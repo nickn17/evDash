@@ -1,6 +1,6 @@
 # KIA ENIRO DASHBOARD v1.0
 
-OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. I programmed it for my KIA ENIRO 2020, but could work on Hyundai Kona EV. Contact me if not. 
+OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. Programmed for KIA ENIRO 2020, but could work on Hyundai Kona EV. Contact me if not. 
 
 Author: nick.n17@gmail.com (Lubos Petrovic)
 
