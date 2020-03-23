@@ -1,6 +1,6 @@
 # KIA ENIRO DASHBOARD v1.0
 
-Obd dashboard for TTGO-T4 (ESP32) + OBD BLE4.0 adapter
+OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. I programmed it for my KIA ENIRO 2020, but could work on Hyundai Kona EV. Contact me if not. 
 
 Author: nick.n17@gmail.com (Lubos Petrovic)
 
@@ -23,7 +23,7 @@ Older video from alpha version
 - software is written for Arduino IDE (ESP32).
 
 ## Roadmap
-- connect to BLE function and deploy HEX file for common users
+- connect to BLE function and deploy HEX file for common users (simplest installation)
 - 2.screen with eNiro battery cells and temperature sensors
 - 3.screen with charging graph
 - ext.relay control for power dashboard and sleep CPU to save AUX during parking
