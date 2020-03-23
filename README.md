@@ -7,7 +7,7 @@ Author: nick.n17@gmail.com (Lubos Petrovic)
 ## Supporting 
 
 - Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- EU companies could support me via IBAN/Invoice (my company is non-VAT payer in Slovakia)
+- EU companies could support me via IBAN/Invoice (my company is non-VAT payer in Slovakia). Contact me via nick.n17@gmail.com
 
 Thank you for supporting me.
 
