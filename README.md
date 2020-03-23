@@ -3,11 +3,15 @@
 Obd dashboard for TTGO-T4 (ESP32) + OBD BLE4.0 adapter
 
 Author: nick.n17@gmail.com (Lubos Petrovic)
-Buy Me a Beer https://www.paypal.me/nickn17
+
+## Supporting 
+
+- Buy Me a Beer via paypal https://www.paypal.me/nickn17
 
 ![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
 
-Old video from alpha version https://www.youtube.com/watch?v=q0yqRzKuuWI
+Old video from alpha version 
+![video](https://www.youtube.com/watch?v=q0yqRzKuuWI)
 
 ## Recommended hardware and software
 - TTGO-T4. I used this one (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
