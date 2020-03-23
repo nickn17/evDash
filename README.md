@@ -5,7 +5,7 @@ Obd dashboard for TTGO-T4 (ESP32) + OBD BLE4.0 adapter
 Author: nick.n17@gmail.com (Lubos Petrovic)
 Buy Me a Beer https://www.paypal.me/nickn17
 
-![image](https://github.com/nickn17/enirodashboard/blob/master/image/v1.jpg)
+![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
 
 Old video from alpha version https://www.youtube.com/watch?v=q0yqRzKuuWI
 
