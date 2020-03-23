@@ -39,3 +39,20 @@ Older video from alpha version
 ESP32-TTGO-T4
 https://github.com/fdufnews/ESP32-TTGO-T4
 
+## Installation guide
+- install arduino IDE + ESP32 support
+- https://github.com/Bodmer/TFT_eSPI  - display library
+
+My configuration
+- Board ESP32 Dev module
+- Upload speed 921600
+- CPU freq: 240MHz (Wifi/BT)
+- Flash freq: 80MHz
+- Flash mode: QIO
+- Flash size 4MB (32mb)
+- Partion scheme: default 4MB with spiffs
+- Core debug level: none
+- PSRAM: disable
+
+
+
