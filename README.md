@@ -46,7 +46,7 @@ https://github.com/fdufnews/ESP32-TTGO-T4
   You need to do some user setup in library folder (Adruino/library/tft/espi/userSetup..) - see TFT eSPI readme or google it. Settings for TFT_eSPI library - userSetup required for T4 v1.3
 ```  
   #define TFT_DC   32            // v1.3 has DC on 32 port
-  #define TFT_BL   4             // Backlight port - required (otherwise you got black screen)
+  #define TFT_BL   4             // Backlight port - required (otherwise you obtain black screen)
   #define TFT_BACKLIGHT_ON HIGH  // Backlight ON - required
 ```
 
