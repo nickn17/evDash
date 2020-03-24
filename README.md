@@ -23,10 +23,10 @@ Older video from alpha version
 - Software is written for Arduino IDE (ESP32).
 
 ## Roadmap
-- connect to BLE function and deploy HEX file for common users (simplest installation)
+- connect to BLE function and deploy HEX file for common users (easy installation)
 - 2.screen with eNiro battery cells and temperature sensors
 - 3.screen with charging graph
-- ext.relay control for power dashboard and sleep CPU to save AUX during parking
+- ext.relay control to power on dashboard, sleep CPU to save AUX during parking
 - etc. 
 
 ## Release notes
