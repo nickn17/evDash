@@ -7,7 +7,7 @@ Author: nick.n17@gmail.com (Lubos Petrovic)
 ## Supporting 
 
 - Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- EU companies could support me via IBAN/Invoice (my company is non-VAT payer in Slovakia). Contact me via nick.n17@gmail.com
+- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
 
 Thank you for supporting me.
 
@@ -17,10 +17,10 @@ Older video from alpha version
 [![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=q0yqRzKuuWI)
 
 
-## Recommended hardware and software
-- TTGO-T4. I used this one (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
+## Hardware and software
+- TTGO-T4. I used this from banggood (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
 - OBD BLE4.0 adapter. Ex. Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~ USD $30
-- software is written for Arduino IDE (ESP32).
+- Software is written for Arduino IDE (ESP32).
 
 ## Roadmap
 - connect to BLE function and deploy HEX file for common users (simplest installation)
