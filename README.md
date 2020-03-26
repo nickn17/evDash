@@ -4,6 +4,11 @@ OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. Programmed for 
 
 Author: nick.n17@gmail.com (Lubos Petrovic)
 
+## Hardware and software
+- TTGO-T4. I used this from banggood (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
+- OBD BLE4.0 adapter. Ex. Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~ USD $30
+- Software is written for Arduino IDE (ESP32).
+
 ## Supporting 
 
 - Buy Me a Beer via paypal https://www.paypal.me/nickn17
@@ -13,12 +18,6 @@ Thank you for supporting me.
 
 ![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
 [![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=shpCb4CsNHg)
-
-
-## Hardware and software
-- TTGO-T4. I used this from banggood (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
-- OBD BLE4.0 adapter. Ex. Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~ USD $30
-- Software is written for Arduino IDE (ESP32).
 
 ## Roadmap
 - connect to BLE function and deploy HEX file for common users (easy installation)
