@@ -12,9 +12,7 @@ Author: nick.n17@gmail.com (Lubos Petrovic)
 Thank you for supporting me.
 
 ![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
-
-Older video from alpha version 
-[![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=q0yqRzKuuWI)
+[![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=shpCb4CsNHg)
 
 
 ## Hardware and software
