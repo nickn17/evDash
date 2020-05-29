@@ -33,7 +33,7 @@ Screen list
 - no2. speed kmh + kwh/100km (or kw for discharge)
 - no3. battery cells + battery module temperatures
 - no4. charging graph
-- no5. conspumption table. Can be used to measure available battery capacity! 
+- no5. consumption table. Can be used to measure available battery capacity! 
 
 ![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
 
@@ -45,7 +45,7 @@ Screen list
 - added menu 
 - Pairing with VGATE iCar Pro BLE4 adapter via menu!
 - Installation with flash tool. You don't have to install Arduino and compile sources :)
-- New screen 5. Conspumption... Can be used to measure available battery capacity!
+- New screen 5. Conpumption... Can be used to measure available battery capacity!
 - Load/Save settings 
 - Flip screen vertical option
 - Several different improvements
