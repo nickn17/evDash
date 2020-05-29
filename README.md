@@ -1,32 +1,55 @@
 # KIA ENIRO DASHBOARD
 
-OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. Developed for my KIA ENIRO 2020, but could work on Hyundai Kona EV. Contact me if not. 
+OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. Working on Kia e-NIRO (EV) and Hyundai Kona.
+Use it at your own risk!
+Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 
-Author: nick.n17@gmail.com (Lubos Petrovic)
+## Hardware 
+- LILYGO TTGO T4 v1.3 
+  ~USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
+- OBD BLE4.0 adapter. 
+  Officialy supported is only this model...  
+  Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~USD $30    
 
-## Hardware and software
-- TTGO-T4. I used this from banggood (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
-- OBD BLE4.0 adapter. Ex. Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~ USD $30
-- Software is written for Arduino IDE (ESP32).
+## Quick installation with ESP32 flash tool
 
-## Supporting 
+Guide is here
+https://docs.google.com/document/d/1nEezrtXY-8X6mQ1hiZVWDjBVse1sXQg1SlnizaRmJwU/edit?usp=sharing
+
+## Supporting me
 
 - Buy Me a Beer via paypal https://www.paypal.me/nickn17
 - EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
 
 Thank you for supporting me.
 
+## Screens and shortcuts
+- Middle button - menu 
+- Left button - toggle screens
+
+Screen list
+- no0. blank screen, lcd off
+- no1. summary info (default)
+- no2. speed kmh + kwh/100km (or kw for discharge)
+- no3. battery cells + battery module temperatures
+- no4. charging graph
+- no5. conspumption table. Can be used to measure available battery capacity! 
+
 ![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
 
 [![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
 
-## Hardware and software
-- TTGO-T4. I used this from banggood (T4 v1.3) ~ USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
-- OBD BLE4.0 adapter. Ex. Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~ USD $30
-- Software is written for Arduino IDE (ESP32).
-
 ## Release notes
     
+### v1.4 2020-05-29
+- added menu 
+- Pairing with VGATE iCar Pro BLE4 adapter via menu!
+- Installation with flash tool. You don't have to install Arduino and compile sources :)
+- New screen 5. Conspumption... Can be used to measure available battery capacity!
+- Load/Save settings 
+- Flip screen vertical option
+- Several different improvements
+
 ### v1.1 2020-04-12
 - added new screens (switch via left button)
 - screen 0. (blank screen, lcd off)
@@ -44,7 +67,7 @@ Thank you for supporting me.
 ESP32-TTGO-T4
 https://github.com/fdufnews/ESP32-TTGO-T4
 
-## Installation guide
+## Installation from sources
 - install arduino IDE + ESP32 support
 - https://github.com/Bodmer/TFT_eSPI  - display library
 - Configure TFT eSPI
