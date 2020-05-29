@@ -7,6 +7,7 @@ Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 ## Hardware 
 - LILYGO TTGO T4 v1.3 
   ~USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
+  I RECOMEND TO REMOVE LION BATTERY IF INCLUDED! But be very very carefull. I will make video when I get new TTGO
 - OBD BLE4.0 adapter. 
   Officialy supported is only this model...  
   Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~USD $30    
@@ -22,6 +23,8 @@ https://docs.google.com/document/d/1nEezrtXY-8X6mQ1hiZVWDjBVse1sXQg1SlnizaRmJwU/
 - EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
 
 Thank you for supporting me.
+
+Many thanks to Blas, Jens, Калин and others for help.
 
 ## Screens and shortcuts
 - Middle button - menu 
