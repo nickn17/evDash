@@ -693,14 +693,14 @@ bool drawSceneMain(bool force) {
   // batTempC
   if (force || params.batTempC != oldParams.batTempC) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batTempC));
-    monitoringRect(1, 3, 1, 1, tmpStr1, "BAT.TEMP.C", TFT_TEMP, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+    monitoringRect(1, 3, 1, 1, tmpStr1, "BAT.TEMP.", TFT_TEMP, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
     oldParams.batTempC = params.batTempC;
   }
 
   // batHeaterC
   if (force || params.batHeaterC != oldParams.batHeaterC) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batHeaterC));
-    monitoringRect(2, 3, 1, 1, tmpStr1, "BAT.HEAT C", TFT_TEMP, TFT_WHITE);
+    monitoringRect(2, 3, 1, 1, tmpStr1, "BAT.HEAT", TFT_TEMP, TFT_WHITE);
     oldParams.batHeaterC = params.batHeaterC;
   }
 
