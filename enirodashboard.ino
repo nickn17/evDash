@@ -1,8 +1,8 @@
 /*
 
-  KIA eNiro Dashboard 1.4, 2020-05-29
-  !! working only with OBD BLE 4.0 adapters 
-  !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version) 
+  KIA eNiro Dashboard 1.5, 2020-06-03
+  !! working only with OBD BLE 4.0 adapters
+  !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
 
   IMPORTANT Replace HM_MAC, serviceUUID, charTxUUID, charRxUUID as described below
@@ -54,7 +54,6 @@ uint32_t PIN = 1234;
 
 // Misc
 #define GFXFF 1  // TFT FOnts
-#define PSI2BAR_DIVIDER  14.503773800722  // tires psi / 14,503773800722 -> bar
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -148,7 +147,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 24
+#define menuItemsCount 39
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -159,36 +158,37 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {1, 0, -1, "Vehicle type"},
   {2, 0, -1, "Select OBD2BLE adapter"},
   {3, 0, -1, "Others"},
-  //{4, 0, -1, "Units"},
+  {4, 0, -1, "Units"},
   {8, 0, -1, "Factory reset"},
   {9, 0, -1, "Save settings"},
 
   {100, 1, 0, "<- parent menu"},
   {101, 1, -1,  "Kia eNiro 2020"},
+  {102, 1, -1,  "Hyundai Kona 2020"},
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
 
-  /*{400, 4, 0, "<- parent menu"},
-    {401, 4, -1, "Distance"},
-    {402, 4, -1, "Temperature"},
-    {403, 4, -1, "Pressure"},
-  */
+  {400, 4, 0, "<- parent menu"},
+  {401, 4, -1, "Distance"},
+  {402, 4, -1, "Temperature"},
+  {403, 4, -1, "Pressure"},
+
   {3010, 301, 3, "<- parent menu"},
   {3011, 301, -1, "Normal"},
   {3012, 301, -1, "Flip vertical"},
-  /*
-    {4010, 401, 4, "<- parent menu"},
-    {4011, 401, -1, "Kilometers"},
-    {4012, 401, -1, "Miles"},
 
-    {4020, 402, 4, "<- parent menu"},
-    {4021, 402, -1, "Celsius"},
-    {4022, 402, -1, "Fahrenheit"},
+  {4010, 401, 4, "<- parent menu"},
+  {4011, 401, -1, "Kilometers"},
+  {4012, 401, -1, "Miles"},
 
-    {4030, 403, 4, "<- parent menu"},
-    {4031, 403, -1, "Bar"},
-    {4032, 403, -1, "Psi"},*/
+  {4020, 402, 4, "<- parent menu"},
+  {4021, 402, -1, "Celsius"},
+  {4022, 402, -1, "Fahrenheit"},
+
+  {4030, 403, 4, "<- parent menu"},
+  {4031, 403, -1, "Bar"},
+  {4032, 403, -1, "Psi"},
 
   {9999, 9998, 0, "List of BLE devices"},
   {10000, 9999, -1, "empty list"},
@@ -260,7 +260,7 @@ typedef struct {
 typedef struct {
   byte initFlag; // 183 value
   byte settingsVersion; // 1
-  uint16_t carType; // 0 - Kia eNiro 2020
+  uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020
   char obdMacAddress[20];
   char serviceUUID[40];
   char charTxUUID[40];
@@ -274,54 +274,6 @@ typedef struct {
 PARAMS_STRUC params;     // Realtime sensor values
 PARAMS_STRUC oldParams;  // Old states used for change detection (draw optimization)
 SETTINGS_STRUC settings, tmpSettings; // Settings stored into flash
-
-/**
-  Load setting from flash memory, upgrade structure if version differs
-*/
-bool loadSettings() {
-
-  String tmpStr;
-
-  // Init
-  settings.initFlag = 183;
-  settings.settingsVersion = 1;
-  settings.carType = 0;
-  
-  // Default OBD adapter MAC and UUID's
-  tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
-  tmpStr.toCharArray(settings.obdMacAddress, 18);
-  tmpStr = "000018f0-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(settings.serviceUUID, 37);
-  tmpStr = "00002af0-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(settings.charTxUUID, 37);
-  tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(settings.charRxUUID, 37);
-  
-  settings.displayRotation = 1; // 1,3
-  settings.distanceUnit = 'k';
-  settings.temperatureUnit = 'c';
-  settings.pressureUnit = 'b';
-
-  // Load settings and replace default values
-  Serial.println("Reading settings from eeprom.");
-  EEPROM.begin(sizeof(SETTINGS_STRUC));
-  EEPROM.get(0, tmpSettings);
-
-  // Init flash with default settings
-  if (tmpSettings.initFlag != 183) {
-    Serial.println("Settings not found. Initialization.");
-    saveSettings();
-  } else {
-    Serial.print("Loaded settings ver.: ");
-    Serial.println(settings.settingsVersion);
-    // Save version? No need to upgrade structure
-    if (settings.settingsVersion == tmpSettings.settingsVersion) {
-      settings = tmpSettings;
-    }
-  }
-
-  return true;
-}
 
 /**
   Load settings from flash memory, upgrade structure if version differs
@@ -351,6 +303,54 @@ bool resetSettings() {
 
   delay(5000);
   ESP.restart();
+
+  return true;
+}
+
+/**
+  Load setting from flash memory, upgrade structure if version differs
+*/
+bool loadSettings() {
+
+  String tmpStr;
+
+  // Init
+  settings.initFlag = 183;
+  settings.settingsVersion = 1;
+  settings.carType = 0; // Kia eNiro
+
+  // Default OBD adapter MAC and UUID's
+  tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
+  tmpStr.toCharArray(settings.obdMacAddress, 18);
+  tmpStr = "000018f0-0000-1000-8000-00805f9b34fb"; // Default UUID's for VGate iCar Pro BLE4 adapter
+  tmpStr.toCharArray(settings.serviceUUID, 37);
+  tmpStr = "00002af0-0000-1000-8000-00805f9b34fb";
+  tmpStr.toCharArray(settings.charTxUUID, 37);
+  tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
+  tmpStr.toCharArray(settings.charRxUUID, 37);
+
+  settings.displayRotation = 1; // 1,3
+  settings.distanceUnit = 'k';
+  settings.temperatureUnit = 'c';
+  settings.pressureUnit = 'b';
+
+  // Load settings and replace default values
+  Serial.println("Reading settings from eeprom.");
+  EEPROM.begin(sizeof(SETTINGS_STRUC));
+  EEPROM.get(0, tmpSettings);
+
+  // Init flash with default settings
+  if (tmpSettings.initFlag != 183) {
+    Serial.println("Settings not found. Initialization.");
+    saveSettings();
+  } else {
+    Serial.print("Loaded settings ver.: ");
+    Serial.println(settings.settingsVersion);
+    // Save version? No need to upgrade structure
+    if (settings.settingsVersion == tmpSettings.settingsVersion) {
+      settings = tmpSettings;
+    }
+  }
 
   return true;
 }
@@ -444,6 +444,27 @@ float hexToDec(String hexString, byte bytes = 2, bool signedNum = true) {
     return (decValue > 127 ? (float)decValue - 256.0 : decValue);
   }
   return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
+}
+
+/**
+   Convert km to km or miles
+*/
+float km2distance(float inKm) {
+  return (settings.distanceUnit == 'k') ? inKm : inKm / 1.609344;
+}
+
+/**
+   Convert celsius to celsius or farenheit
+*/
+float celsius2temperature(float inCelsius) {
+  return (settings.temperatureUnit == 'c') ? inCelsius : (inCelsius * 1.8) + 32;
+}
+
+/**
+   Convert bar to bar or psi
+*/
+float bar2pressure(float inBar) {
+  return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
 }
 
 /**
@@ -585,10 +606,16 @@ bool drawSceneMain(bool force) {
       || oldParams.cumulativeEnergyDischargedKWhStart != params.cumulativeEnergyDischargedKWhStart
       || oldParams.cumulativeEnergyDischargedKWh != params.cumulativeEnergyDischargedKWh
      ) {
-    sprintf(tmpStr1, "%01.01fbar %02.00fC", params.tireFrontLeftPressureBar, params.tireFrontLeftTempC);
-    sprintf(tmpStr2, "%02.00fC %01.01fbar", params.tireFrontRightTempC, params.tireFrontRightPressureBar);
-    sprintf(tmpStr3, "%01.01fbar %02.00fC", params.tireRearLeftPressureBar, params.tireRearLeftTempC);
-    sprintf(tmpStr4, "%02.00fC %01.01fbar", params.tireRearRightTempC, params.tireRearRightPressureBar);
+    char pressureStr[4] = "bar";
+    char temperatureStr[2] = "C";
+    if (settings.pressureUnit != 'b') 
+      strcpy(pressureStr, "psi");
+    if (settings.temperatureUnit != 'c') 
+      strcpy(temperatureStr, "F");
+    sprintf(tmpStr1, "%01.01f%s %02.00f%s", bar2pressure(params.tireFrontLeftPressureBar), pressureStr, celsius2temperature(params.tireFrontLeftTempC), temperatureStr);
+    sprintf(tmpStr2, "%02.00f%s %01.01f%s", celsius2temperature(params.tireFrontRightTempC), temperatureStr, bar2pressure(params.tireFrontRightPressureBar), pressureStr);
+    sprintf(tmpStr3, "%01.01f%s %02.00f%s", bar2pressure(params.tireRearLeftPressureBar), pressureStr, celsius2temperature(params.tireRearLeftTempC), temperatureStr);
+    sprintf(tmpStr4, "%02.00f%s %01.01f%s", celsius2temperature(params.tireRearRightTempC), temperatureStr, bar2pressure(params.tireRearRightPressureBar), pressureStr);
     showTires(1, 0, 2, 1, tmpStr1, tmpStr2, tmpStr3, tmpStr4, TFT_BLACK);
 
     // Added later - kwh total in tires box
@@ -618,8 +645,8 @@ bool drawSceneMain(bool force) {
   // batPowerKwh100 on roads, else batPowerAmp
   if (params.speedKmh > 20) {
     if (force || params.batPowerKwh100 != oldParams.batPowerKwh100) {
-      sprintf(tmpStr1, "%01.01f", params.batPowerKwh100);
-      monitoringRect(1, 1, 2, 2, tmpStr1, "KWH/100KM", (params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
+      sprintf(tmpStr1, "%01.01f", km2distance(params.batPowerKwh100));
+      monitoringRect(1, 1, 2, 2, tmpStr1, ((settings.distanceUnit == 'k') ? "KWH/100KM" : "KWH/100MI"), (params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
       oldParams.batPowerKwh100 = params.batPowerKwh100;
     }
   } else {
@@ -665,14 +692,14 @@ bool drawSceneMain(bool force) {
 
   // batTempC
   if (force || params.batTempC != oldParams.batTempC) {
-    sprintf(tmpStr1, "%01.00f", params.batTempC);
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batTempC));
     monitoringRect(1, 3, 1, 1, tmpStr1, "BAT.TEMP.C", TFT_TEMP, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
     oldParams.batTempC = params.batTempC;
   }
 
   // batHeaterC
   if (force || params.batHeaterC != oldParams.batHeaterC) {
-    sprintf(tmpStr1, "%01.00f", params.batHeaterC);
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batHeaterC));
     monitoringRect(2, 3, 1, 1, tmpStr1, "BAT.HEAT C", TFT_TEMP, TFT_WHITE);
     oldParams.batHeaterC = params.batHeaterC;
   }
@@ -700,8 +727,8 @@ bool drawSceneMain(bool force) {
 
   // indoorTemperature
   if (force || params.indoorTemperature != oldParams.indoorTemperature || params.outdoorTemperature != oldParams.outdoorTemperature) {
-    sprintf(tmpStr1, "%01.01f", params.indoorTemperature);
-    sprintf(tmpStr2, "IN/OUT%01.01fC", params.outdoorTemperature);
+    sprintf(tmpStr1, "%01.01f", celsius2temperature(params.indoorTemperature));
+    sprintf(tmpStr2, "IN/OUT%01.01f", celsius2temperature(params.outdoorTemperature));
     monitoringRect(3, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, TFT_WHITE);
     oldParams.indoorTemperature = params.indoorTemperature;
     oldParams.outdoorTemperature = params.outdoorTemperature;
@@ -724,14 +751,14 @@ bool drawSceneSpeed(bool force) {
   tft.setTextSize(2); // Size for small 5x7 font
   sprintf(tmpStr3, "     0     ");
   if (params.speedKmh > 10)
-    sprintf(tmpStr3, "    %01.00f    ", params.speedKmh);
+    sprintf(tmpStr3, "    %01.00f    ", km2distance(params.speedKmh));
   tft.drawString(tmpStr3, posx, posy, 7);
 
   posy = 140;
   tft.setTextDatum(TC_DATUM); // Top center
   tft.setTextSize(1);
   if (params.speedKmh > 25 && params.batPowerKw < 0) {
-    sprintf(tmpStr3, "     %01.01f     ", params.batPowerKwh100);
+    sprintf(tmpStr3, "     %01.01f     ", km2distance(params.batPowerKwh100));
   } else {
     sprintf(tmpStr3, "     %01.01f     ", params.batPowerKw);
   }
@@ -741,7 +768,7 @@ bool drawSceneSpeed(bool force) {
   tft.setFreeFont(&Roboto_Thin_24);
   posx = 10;
   posy = 10;
-  sprintf(tmpStr3, "%01.00fkm  ", params.odoKm);
+  sprintf(tmpStr3, ((settings.distanceUnit == 'k') ? "%01.00fkm  " : "%01.00fmi  "), km2distance(params.odoKm));
   tft.setTextDatum(TL_DATUM);
   tft.drawString(tmpStr3, posx, posy, GFXFF);
 
@@ -761,7 +788,7 @@ bool drawSceneSpeed(bool force) {
   tft.drawString(tmpStr3, posx, posy, GFXFF);
 
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  sprintf(tmpStr3, "%01.00f", params.batTempC);
+  sprintf(tmpStr3, "%01.00f", celsius2temperature(params.batTempC));
   tft.fillCircle(290, 30, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   tft.setTextColor(TFT_WHITE, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   tft.setFreeFont(&Roboto_Thin_24);
@@ -778,17 +805,17 @@ bool drawSceneBatteryCells(bool force) {
 
   int32_t posx, posy;
 
-  sprintf(tmpStr1, "%01.00f C", params.batHeaterC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batHeaterC));
   drawSmallRect(0, 0, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.00f C", params.batInletC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batInletC));
   drawSmallRect(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.00f C", params.batModule01TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule01TempC));
   drawSmallRect(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (params.batModule01TempC >= 15) ? ((params.batModule01TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, "%01.00f C", params.batModule02TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule02TempC));
   drawSmallRect(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (params.batModule02TempC >= 15) ? ((params.batModule02TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, "%01.00f C", params.batModule03TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule03TempC));
   drawSmallRect(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (params.batModule03TempC >= 15) ? ((params.batModule03TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, "%01.00f C", params.batModule04TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule04TempC));
   drawSmallRect(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (params.batModule04TempC >= 15) ? ((params.batModule04TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
 
   tft.setTextDatum(TL_DATUM); // Topleft
@@ -840,13 +867,13 @@ bool drawSceneChargingGraph(bool force) {
   sprintf(tmpStr1, "%03.00f", params.batVoltage);
   drawSmallRect(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
 
-  sprintf(tmpStr1, "%01.00f C", params.batHeaterC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batHeaterC));
   drawSmallRect(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.00f C", params.batInletC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batInletC));
   drawSmallRect(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.00f C", params.batMinC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batMinC));
   drawSmallRect(2, 1, 1, 1, tmpStr1, "BAT.MIN", (params.batMinC >= 15) ? ((params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
-  sprintf(tmpStr1, "%01.01f C", params.outdoorTemperature);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.outdoorTemperature));
   drawSmallRect(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
 
   tft.setTextColor(TFT_SILVER, TFT_TEMP);
@@ -882,25 +909,25 @@ bool drawSceneChargingGraph(bool force) {
 
   tft.setTextSize(1); // Size for small 5x7 font
   tft.setTextDatum(TR_DATUM);
-  sprintf(tmpStr1, "1:%01.00fC", params.batModule01TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "1:%01.00fC" : "1:%01.00fF"), celsius2temperature(params.batModule01TempC));
   tft.setTextColor((params.batModule01TempC >= 15) ? ((params.batModule01TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (0 * 15), 2);
-  sprintf(tmpStr1, "2:%01.00fC", params.batModule02TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "2:%01.00fC" : "2:%01.00fF"), celsius2temperature(params.batModule02TempC));
   tft.setTextColor((params.batModule02TempC >= 15) ? ((params.batModule02TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (1 * 15), 2);
-  sprintf(tmpStr1, "3:%01.00fC", params.batModule03TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "3:%01.00fC" : "3:%01.00fF"), celsius2temperature(params.batModule03TempC));
   tft.setTextColor((params.batModule03TempC >= 15) ? ((params.batModule03TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (2 * 15), 2);
-  sprintf(tmpStr1, "4:%01.00fC", params.batModule04TempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "4:%01.00fC" : "4:%01.00fF"), celsius2temperature(params.batModule04TempC));
   tft.setTextColor((params.batModule04TempC >= 15) ? ((params.batModule04TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (3 * 15), 2);
-  sprintf(tmpStr1, "W:%01.00fC", params.coolingWaterTempC);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "W:%01.00fC" : "W:%01.00fF"), celsius2temperature(params.coolingWaterTempC));
   tft.setTextColor(TFT_CYAN, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (4 * 15), 2);
-  sprintf(tmpStr1, "C1:%01.00fC", params.coolantTemp1C);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C1:%01.00fC" : "C1:%01.00fF"), celsius2temperature(params.coolantTemp1C));
   tft.setTextColor(TFT_CYAN, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (5 * 15), 2);
-  sprintf(tmpStr1, "C2:%01.00fC", params.coolantTemp2C);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C2:%01.00fC" : "C2:%01.00fF"), celsius2temperature(params.coolantTemp2C));
   tft.setTextColor(TFT_CYAN, TFT_TEMP);
   tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (6 * 15), 2);
 
@@ -926,7 +953,7 @@ bool drawSceneSoc10Table(bool force) {
   tft.setTextDatum(TR_DATUM);
 
   tft.drawString("dis./char.kWh", 128, zeroY + (1 * 15), 2);
-  tft.drawString("km", 160, zeroY + (1 * 15), 2);
+  tft.drawString(((settings.distanceUnit == 'k') ? "km" : "mi"), 160, zeroY + (1 * 15), 2);
   tft.drawString("kWh100", 224, zeroY + (1 * 15), 2);
   tft.drawString("avg.speed", 310, zeroY + (1 * 15), 2);
 
@@ -957,22 +984,22 @@ bool drawSceneSoc10Table(bool force) {
         diffCed0to5 = (i == 0) ? diffCed : diffCed0to5;
       }
       if (diffOdo != -1) {
-        sprintf(tmpStr1, "%01.00f", diffOdo);
+        sprintf(tmpStr1, "%01.00f", km2distance(diffOdo));
         tft.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15), 2);
         diffOdo0to5 = (i == 0) ? diffOdo : diffOdo0to5;
         if (diffTime > 0) {
-          sprintf(tmpStr1, "%01.01f", diffOdo / (diffTime / 3600));
+          sprintf(tmpStr1, "%01.01f", km2distance(diffOdo) / (diffTime / 3600));
           tft.drawString(tmpStr1, 310, zeroY + ((12 - i) * 15), 2);
         }
       }
       if (diffOdo > 0 && diffCed != 0) {
-        sprintf(tmpStr1, "%01.1f", (-diffCed * 100.0 / diffOdo));
+        sprintf(tmpStr1, "%01.1f", (-diffCed * 100.0 / km2distance(diffOdo)));
         tft.drawString(tmpStr1, 224, zeroY + ((12 - i) * 15), 2);
       }
     }
 
     if (diffOdo == -1 && params.soc10odo[i] != -1) {
-      sprintf(tmpStr1, "%01.00f", params.soc10odo[i]);
+      sprintf(tmpStr1, "%01.00f", km2distance(params.soc10odo[i]));
       tft.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15), 2);
     }
   }
@@ -988,7 +1015,7 @@ bool drawSceneSoc10Table(bool force) {
   sprintf(tmpStr1, "+%01.01f", diffCec);
   tft.drawString(tmpStr1, 128, zeroY + (14 * 15), 2);
   diffOdo = (lastOdo != -1 && firstOdo != -1) ? lastOdo - firstOdo + diffOdo0to5 : 0;
-  sprintf(tmpStr1, "%01.00f", diffOdo);
+  sprintf(tmpStr1, "%01.00f", km2distance(diffOdo));
   tft.drawString(tmpStr1, 160, zeroY + (14 * 15), 2);
   sprintf(tmpStr1, "AVAIL.CAP: %01.01f kWh", -diffCed - diffCec);
   tft.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
@@ -1116,10 +1143,20 @@ bool menuItemClick() {
     // Other menus
     switch (tmpMenuItem.id) {
       // Set vehicle type
-      case 101: settings.carType = 1; break;
+      case 101: settings.carType = 0; break;
+      case 102: settings.carType = 1; break;
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
+      // Distance
+      case 4011: settings.distanceUnit = 'k'; break;
+      case 4012: settings.distanceUnit = 'm'; break;
+      // Temperature
+      case 4021: settings.temperatureUnit = 'c'; break;
+      case 4022: settings.temperatureUnit = 'f'; break;
+      // Pressure
+      case 4031: settings.pressureUnit = 'b'; break;
+      case 4032: settings.pressureUnit = 'p'; break;
       // Pair ble device
       case 2: startBleScan(); return false;
       // Reset settings
