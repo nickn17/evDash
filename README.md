@@ -45,7 +45,7 @@ Screen list
 ## Release notes
     
 ### v1.5 2020-06-03
-- added support for different units (miles, farenheit, psi)
+- added support for different units (miles, fahrenheits, psi)
 
 ### v1.4 2020-05-29
 - added menu 
