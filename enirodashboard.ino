@@ -83,7 +83,7 @@ bool btnMiddlePressed = true;
 bool btnRightPressed  = true;
 
 // Commands loop
-#define commandQueueCount 26
+#define commandQueueCount 25
 #define commandQueueLoopFrom 7
 String responseRow;
 String responseRowMerged;
@@ -1853,8 +1853,7 @@ void setup(void) {
   Serial.println("Init TFT display");
   tft.begin();
 
-  // ONLY TTGO TM
-  tft.invertDisplay(false); 
+//  tft.invertDisplay(false);  // ONLY TTGO-TM
   tft.setRotation(settings.displayRotation);
   tft.fillScreen(TFT_BLACK);
   redrawScreen(true);
