@@ -40,6 +40,7 @@ uint32_t PIN = 1234;
 #define BUTTON_MIDDLE 37
 #define BUTTON_LEFT 38
 #define BUTTON_RIGHT 39
+#define TFT_BL 4
 
 /* TFT COLORS */
 #define TFT_BLACK       0x0000      /*   0,   0,   0 */
@@ -95,7 +96,7 @@ String commandQueue[commandQueueCount] = {
   "AT E0",     // Echo off
   "AT L0",     // Linefeeds off
   "AT S0",     // Printing of spaces on
-  //"AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
+  "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
   //"AT AL",     // Allow Long (>7 byte) messages
   //"AT AR",     // Automatically receive
   //"AT H1",     // Headers on (debug only)
@@ -147,7 +148,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 39
+#define menuItemsCount 40
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -165,6 +166,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {100, 1, 0, "<- parent menu"},
   {101, 1, -1,  "Kia eNiro 2020"},
   {102, 1, -1,  "Hyundai Kona 2020"},
+  {103, 1, -1,  "Hyundai Ioniq 2018"},
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
@@ -260,7 +262,7 @@ typedef struct {
 typedef struct {
   byte initFlag; // 183 value
   byte settingsVersion; // 1
-  uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020
+  uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
   char obdMacAddress[20];
   char serviceUUID[40];
   char charTxUUID[40];
@@ -744,40 +746,43 @@ bool drawSceneSpeed(bool force) {
 
   int32_t posx, posy;
 
-  posx = 320 / 2;
-  posy = 32;
-  tft.setTextDatum(TC_DATUM); // Top center
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextSize(2); // Size for small 5x7 font
-  sprintf(tmpStr3, "     0     ");
-  if (params.speedKmh > 10)
-    sprintf(tmpStr3, "    %01.00f    ", km2distance(params.speedKmh));
-  tft.drawString(tmpStr3, posx, posy, 7);
+  tft.fillRect(0, 36, 200, 160, TFT_DARKRED);
 
-  posy = 140;
-  tft.setTextDatum(TC_DATUM); // Top center
+  posx = 320 / 2;
+  posy = 40;
+  tft.setTextDatum(TR_DATUM); // Top center
+  tft.setTextColor(TFT_WHITE, TFT_DARKRED);
+  tft.setTextSize(2); // Size for small 5x7 font
+  sprintf(tmpStr3, "0");
+  if (params.speedKmh > 10)
+    sprintf(tmpStr3, "%01.00f", km2distance(params.speedKmh));
+  tft.drawString(tmpStr3, 200, posy, 7);
+
+  posy = 145;
+  tft.setTextDatum(TR_DATUM); // Top center
   tft.setTextSize(1);
   if (params.speedKmh > 25 && params.batPowerKw < 0) {
-    sprintf(tmpStr3, "     %01.01f     ", km2distance(params.batPowerKwh100));
+    sprintf(tmpStr3, "%01.01f", km2distance(params.batPowerKwh100));
   } else {
-    sprintf(tmpStr3, "     %01.01f     ", params.batPowerKw);
+    sprintf(tmpStr3, "%01.01f", params.batPowerKw);
   }
-  tft.drawString(tmpStr3, posx, posy, 7);
+  tft.drawString(tmpStr3, 200, posy, 7);
 
   // Bottom 2 numbers with charged/discharged kWh from start
   tft.setFreeFont(&Roboto_Thin_24);
-  posx = 10;
-  posy = 10;
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  posx = 5;
+  posy = 5;
   sprintf(tmpStr3, ((settings.distanceUnit == 'k') ? "%01.00fkm  " : "%01.00fmi  "), km2distance(params.odoKm));
   tft.setTextDatum(TL_DATUM);
   tft.drawString(tmpStr3, posx, posy, GFXFF);
 
-  posy = 240 - 10;
+  posy = 240 - 5;
   sprintf(tmpStr3, "-%01.01f    ", params.cumulativeEnergyDischargedKWh - params.cumulativeEnergyDischargedKWhStart);
   tft.setTextDatum(BL_DATUM);
   tft.drawString(tmpStr3, posx, posy, GFXFF);
 
-  posx = 320 - 10;
+  posx = 320 - 5;
   sprintf(tmpStr3, "    +%01.01f", params.cumulativeEnergyChargedKWh - params.cumulativeEnergyChargedKWhStart);
   tft.setTextDatum(BR_DATUM);
   tft.drawString(tmpStr3, posx, posy, GFXFF);
@@ -794,6 +799,18 @@ bool drawSceneSpeed(bool force) {
   tft.setFreeFont(&Roboto_Thin_24);
   tft.setTextDatum(MC_DATUM);
   tft.drawString(tmpStr3, 290, 30, GFXFF);
+
+  // Soc %
+  tft.setFreeFont(&Orbitron_Light_32);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextDatum(TR_DATUM);
+  sprintf(tmpStr3, " %01.00f%%", params.socPerc);
+  tft.drawString(tmpStr3, 320, 64, GFXFF);
+  if (params.socPerc > 0) {
+    sprintf(tmpStr3, " %01.01f", 64 * (params.socPerc / 100));
+    tft.drawString(tmpStr3, 320, 104, GFXFF);
+    tft.drawString(" kWh", 320, 144, GFXFF);
+  }
 
   return true;
 }
@@ -1145,6 +1162,7 @@ bool menuItemClick() {
       // Set vehicle type
       case 101: settings.carType = 0; break;
       case 102: settings.carType = 1; break;
+      case 103: settings.carType = 2; break;
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
@@ -1276,29 +1294,35 @@ bool parseRowMerged() {
   Serial.print("merged:");
   Serial.println(responseRowMerged);
 
+  // IONIQ OK
   if (commandRequest.equals("2101")) {
     params.speedKmh = hexToDec(responseRowMerged.substring(32, 36).c_str(), 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
   }
+  // IONIQ FAILED
   if (commandRequest.equals("2102")) {
     params.auxPerc = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, false);
     params.auxCurrentAmp = - hexToDec(responseRowMerged.substring(46, 50).c_str(), 2, true) / 1000.0;
   }
   // Cluster module 7c6
+  // IONIQ OK
   if (commandRequest.equals("22B002")) {
     params.odoKm = float(strtol(responseRowMerged.substring(18, 24).c_str(), 0, 16));
   }
 
   // Aircon 7b3
+  // IONIQ OK
   if (commandRequest.equals("220100")) {
     params.indoorTemperature = (hexToDec(responseRowMerged.substring(16, 18).c_str(), 1, false) / 2) - 40;
     params.outdoorTemperature = (hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, false) / 2) - 40;
   }
   // Aircon 7b3
+  // IONIQ OK
   if (commandRequest.equals("220102") && responseRowMerged.substring(12, 14) == "00") {
     params.coolantTemp1C = (hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false) / 2) - 40;
     params.coolantTemp2C = (hexToDec(responseRowMerged.substring(16, 18).c_str(), 1, false) / 2) - 40;
   }
   // BMS 7e4
+  // IONIQ FAILED
   if (commandRequest.equals("220101")) {
     params.cumulativeEnergyChargedKWh = float(strtol(responseRowMerged.substring(82, 90).c_str(), 0, 16)) / 10.0;
     if (params.cumulativeEnergyChargedKWhStart == -1)
@@ -1339,24 +1363,28 @@ bool parseRowMerged() {
     }
   }
   // BMS 7e4
+  // IONIQ FAILED
   if (commandRequest.equals("220102") && responseRowMerged.substring(12, 14) == "FF") {
     for (int i = 0; i < 32; i++) {
       params.cellVoltage[i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
     }
   }
   // BMS 7e4
+  // IONIQ FAILED
   if (commandRequest.equals("220103")) {
     for (int i = 0; i < 32; i++) {
       params.cellVoltage[32 + i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
     }
   }
   // BMS 7e4
+  // IONIQ FAILED
   if (commandRequest.equals("220104")) {
     for (int i = 0; i < 32; i++) {
       params.cellVoltage[64 + i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
     }
   }
   // BMS 7e4
+  // IONIQ FAILED
   if (commandRequest.equals("220105")) {
     params.sohPerc = hexToDec(responseRowMerged.substring(56, 60).c_str(), 2, false) / 10.0;
     params.socPerc = hexToDec(responseRowMerged.substring(68, 70).c_str(), 1, false) / 2.0;
@@ -1381,10 +1409,12 @@ bool parseRowMerged() {
     }
   }
   // BMS 7e4
+  // IONIQ FAILED
   if (commandRequest.equals("220106")) {
     params.coolingWaterTempC = hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false);
   }
   // TPMS 7a0
+  // IONIQ OK
   if (commandRequest.equals("22c00b")) {
     params.tireFrontLeftPressureBar = hexToDec(responseRowMerged.substring(14, 16).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
     params.tireFrontRightPressureBar = hexToDec(responseRowMerged.substring(22, 24).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
@@ -1822,6 +1852,9 @@ void setup(void) {
   // Init display
   Serial.println("Init TFT display");
   tft.begin();
+
+  // ONLY TTGO TM
+  tft.invertDisplay(false); 
   tft.setRotation(settings.displayRotation);
   tft.fillScreen(TFT_BLACK);
   redrawScreen(true);
