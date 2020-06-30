@@ -1,6 +1,6 @@
 /*
 
-  KIA eNiro Dashboard 1.5, 2020-06-03
+  KIA eNiro Dashboard 1.6, 2020-06-30
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
@@ -193,7 +193,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {4032, 403, -1, "Psi"},
 
   {9999, 9998, 0, "List of BLE devices"},
-  {10000, 9999, -1, "empty list"},
+  {10000, 9999, 0, "<- parent menu"},
   {10001, 9999, -1, "-"},
   {10002, 9999, -1, "-"},
   {10003, 9999, -1, "-"},
@@ -1150,7 +1150,7 @@ bool menuItemClick() {
   } else {
     Serial.println(tmpMenuItem.id);
     // Device list
-    if (tmpMenuItem.id >= 10000 && tmpMenuItem.id < 10100) {
+    if (tmpMenuItem.id > 10000 && tmpMenuItem.id < 10100) {
       strlcpy((char*)settings.obdMacAddress, (char*)tmpMenuItem.obdMacAddress, 20);
       Serial.print("Selected adapter MAC address ");
       Serial.println(settings.obdMacAddress);
@@ -1613,7 +1613,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       String tmpStr;
       if (scanningDeviceIndex < 10/* && advertisedDevice.haveServiceUUID()*/) {
         for (uint16_t i = 0; i < menuItemsCount; ++i) {
-          if (menuItems[i].id == 10000 + scanningDeviceIndex) {
+          if (menuItems[i].id == 10001 + scanningDeviceIndex) {
             tmpStr = advertisedDevice.toString().c_str();
             tmpStr.replace("Name: ", "");
             tmpStr.replace("Address: ", "");

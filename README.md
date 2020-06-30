@@ -44,6 +44,10 @@ Screen list
 
 ## Release notes
     
+### v1.6 2020-06-30
+- fixed ble device pairing
+- added command to set protocol ISO 15765-4 CAN (11 bit ID, 500 kbit/s) - some vgate adapters freezes during "init at command" phase
+
 ### v1.5 2020-06-03
 - added support for different units (miles, fahrenheits, psi)
 
