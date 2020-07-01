@@ -11,6 +11,8 @@ Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 - OBD BLE4.0 adapter. 
   Officialy supported is only this model...  
   Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~USD $30    
+- 3D printed case... 
+  https://www.thingiverse.com/thing:3099913
 
 ## Quick installation with ESP32 flash tool
 
