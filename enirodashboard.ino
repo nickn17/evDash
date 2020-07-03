@@ -1797,13 +1797,13 @@ bool startBleScan() {
   foundMyBleDevice = NULL;
   scanningDeviceIndex = 0;
 
-  displayMessage(" > Scanning BLE4 devices", "5 seconds");
+  displayMessage(" > Scanning BLE4 devices", "40 seconds");
 
   // Start scanning
   Serial.println("Scanning BLE devices...");
   Serial.print("Looking for ");
   Serial.println(settings.obdMacAddress);
-  BLEScanResults foundDevices = pBLEScan->start(10, false);
+  BLEScanResults foundDevices = pBLEScan->start(40, false);
   Serial.print("Devices found: ");
   Serial.println(foundDevices.getCount());
   Serial.println("Scan done!");
@@ -1875,7 +1875,7 @@ void setup(void) {
   BLEDevice::init("");
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we have detected a new device.
-  // Specify that we want active scanning and start the scan to run for 5 seconds.
+  // Specify that we want active scanning and start the scan to run for 10 seconds.
   Serial.println("Setup BLE scan");
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
