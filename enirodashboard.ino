@@ -1,6 +1,6 @@
 /*
 
-  KIA eNiro Dashboard 1.6, 2020-06-30
+  KIA eNiro Dashboard 1.7, 2020-09-16
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
@@ -20,7 +20,7 @@
   ---
   eNiro/Kona chargins limits depending on battery temperature (min.value of 01-04 battery module)
   >= 35°C BMS allows max 180A
-  >= 25°C without limit 200A
+  >= 25°C without limit (200A)
   >= 15°C BMS allows max 120A
   >= 5°C BMS allows max 90A
   >= 1°C BMS allows max 60A
@@ -32,6 +32,9 @@
 #include "BLEDevice.h"
 #include <EEPROM.h>
 #include <sys/time.h>
+#include "struct.h"
+#include "car_kia_eniro.h"
+#include "car_hyundai_ioniq.h"
 
 // PLEASE CHANGE THIS SETTING for your BLE4
 uint32_t PIN = 1234;
@@ -82,62 +85,6 @@ bool btnLeftPressed   = true;
 bool btnMiddlePressed = true;
 bool btnRightPressed  = true;
 
-// Commands loop
-#define commandQueueCount 25
-#define commandQueueLoopFrom 7
-String responseRow;
-String responseRowMerged;
-byte commandQueueIndex;
-bool canSendNextAtCommand = false;
-String commandRequest = "";
-String commandQueue[commandQueueCount] = {
-  "AT Z",      // Reset all
-  "AT I",      // Print the version ID
-  "AT E0",     // Echo off
-  "AT L0",     // Linefeeds off
-  "AT S0",     // Printing of spaces on
-  "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-  //"AT AL",     // Allow Long (>7 byte) messages
-  //"AT AR",     // Automatically receive
-  //"AT H1",     // Headers on (debug only)
-  //"AT D1",     // Display of the DLC on
-  //"AT CAF0",   // Automatic formatting off
-  "AT DP",
-  "AT ST16",
-
-  // Loop from (KIA ENIRO)
-  // BMS
-  "atsh7e4",
-  "220101",   // power kw, ...
-  "220102",   // cell voltages, screen 3 only
-  "220103",   // cell voltages, screen 3 only
-  "220104",   // cell voltages, screen 3 only
-  "220105",   // soh, soc, ..
-  "220106",   // cooling water temp
-
-  // VMCU
-  "atsh7e2",
-  "2101",     // speed, ...
-  "2102",     // aux, ...
-
-  //"atsh7df",
-  //"2106",
-  //"220106",
-
-  // ECU - Aircondition
-  "atsh7b3",
-  "220100",   // in/out temp
-  "220102",   // coolant temp1, 2
-
-  // BCM / TPMS
-  "atsh7a0",
-  "22c00b",   // tire pressure/temp
-
-  // CLUSTER MODULE
-  "atsh7c6",
-  "22B002",   // odo
-};
-
 // Menu id/parent/title
 typedef struct {
   int16_t id;
@@ -148,7 +95,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 40
+#define menuItemsCount 42
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -164,9 +111,11 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {9, 0, -1, "Save settings"},
 
   {100, 1, 0, "<- parent menu"},
-  {101, 1, -1,  "Kia eNiro 2020"},
-  {102, 1, -1,  "Hyundai Kona 2020"},
-  {103, 1, -1,  "Hyundai Ioniq 2018"},
+  {101, 1, -1,  "Kia eNiro 2020 64kWh"},
+  {102, 1, -1,  "Hyundai Kona 2020 64kWh"},
+  {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
+  {104, 1, -1,  "Kia eNiro 2020 39kWh"},
+  {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
@@ -204,78 +153,6 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {10008, 9999, -1, "-"},
   {10009, 9999, -1, "-"},
 };
-
-// Structure with realtime values
-typedef struct {
-  float speedKmh;
-  float odoKm;
-  float socPerc;
-  float sohPerc;
-  float cumulativeEnergyChargedKWh;
-  float cumulativeEnergyChargedKWhStart;
-  float cumulativeEnergyDischargedKWh;
-  float cumulativeEnergyDischargedKWhStart;
-  float batPowerAmp;
-  float batPowerKw;
-  float batPowerKwh100;
-  float batVoltage;
-  float batCellMinV;
-  float batCellMaxV;
-  float batTempC;
-  float batHeaterC;
-  float batInletC;
-  float batMinC;
-  float batMaxC;
-  float batModule01TempC;
-  float batModule02TempC;
-  float batModule03TempC;
-  float batModule04TempC;
-  float coolingWaterTempC;
-  float coolantTemp1C;
-  float coolantTemp2C;
-  float auxPerc;
-  float auxCurrentAmp;
-  float auxVoltage;
-  float indoorTemperature;
-  float outdoorTemperature;
-  float tireFrontLeftTempC;
-  float tireFrontLeftPressureBar;
-  float tireFrontRightTempC;
-  float tireFrontRightPressureBar;
-  float tireRearLeftTempC;
-  float tireRearLeftPressureBar;
-  float tireRearRightTempC;
-  float tireRearRightPressureBar;
-  float cellVoltage[98]; // 1..98 has index 0..97
-  // Screen - charging graph
-  float chargingGraphKw[101]; // 0..100% .. how many HW in each step
-  float chargingGraphMinTempC[101]; // 0..100% .. Min temp in.C
-  float chargingGraphMaxTempC[101]; // 0..100% .. Max temp in.C
-  // Screen - consumption info
-  float soc10ced[11]; // 0..10 (5%, 10%, 20%, 30%, 40%).. (never discharged soc% to 0)
-  float soc10cec[11]; // 0..10 (5%, 10%, 20%, 30%, 40%)..
-  float soc10odo[11]; // odo history
-  time_t soc10time[11]; // time for avg speed
-} PARAMS_STRUC;
-
-// Setting stored to flash
-typedef struct {
-  byte initFlag; // 183 value
-  byte settingsVersion; // 1
-  uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
-  char obdMacAddress[20];
-  char serviceUUID[40];
-  char charTxUUID[40];
-  char charRxUUID[40];
-  byte displayRotation; // 0 portrait, 1 landscape, 2.., 3..
-  char distanceUnit; // k - kilometers
-  char temperatureUnit; // c - celsius
-  char pressureUnit; // b - bar
-} SETTINGS_STRUC;
-
-PARAMS_STRUC params;     // Realtime sensor values
-PARAMS_STRUC oldParams;  // Old states used for change detection (draw optimization)
-SETTINGS_STRUC settings, tmpSettings; // Settings stored into flash
 
 /**
   Load settings from flash memory, upgrade structure if version differs
@@ -319,7 +196,7 @@ bool loadSettings() {
   // Init
   settings.initFlag = 183;
   settings.settingsVersion = 1;
-  settings.carType = 0; // Kia eNiro
+  settings.carType = CAR_KIA_ENIRO_2020_64;
 
   // Default OBD adapter MAC and UUID's
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
@@ -352,6 +229,15 @@ bool loadSettings() {
     if (settings.settingsVersion == tmpSettings.settingsVersion) {
       settings = tmpSettings;
     }
+  }
+
+  // Load command queue
+  if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64 ||
+      settings.carType == CAR_KIA_ENIRO_2020_39 || settings.carType == CAR_HYUNDAI_KONA_2020_39) {
+    activateCommandQueueForKiaENiro();
+  }
+  if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
+    activateCommandQueueForHyundaiIoniq();
   }
 
   return true;
@@ -417,35 +303,6 @@ bool initStructure() {
   oldParams = params;
 
   return true;
-}
-
-/**
-  Hex to dec (1-2 byte values, signed/unsigned)
-  For 4 byte change int to long and add part for signed numbers
-*/
-float hexToDec(String hexString, byte bytes = 2, bool signedNum = true) {
-
-  unsigned int decValue = 0;
-  unsigned int nextInt;
-
-  for (int i = 0; i < hexString.length(); i++) {
-    nextInt = int(hexString.charAt(i));
-    if (nextInt >= 48 && nextInt <= 57) nextInt = map(nextInt, 48, 57, 0, 9);
-    if (nextInt >= 65 && nextInt <= 70) nextInt = map(nextInt, 65, 70, 10, 15);
-    if (nextInt >= 97 && nextInt <= 102) nextInt = map(nextInt, 97, 102, 10, 15);
-    nextInt = constrain(nextInt, 0, 15);
-    decValue = (decValue * 16) + nextInt;
-  }
-
-  // Unsigned - do nothing
-  if (!signedNum) {
-    return decValue;
-  }
-  // Signed for 1, 2 bytes
-  if (bytes == 1) {
-    return (decValue > 127 ? (float)decValue - 256.0 : decValue);
-  }
-  return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
 }
 
 /**
@@ -610,9 +467,9 @@ bool drawSceneMain(bool force) {
      ) {
     char pressureStr[4] = "bar";
     char temperatureStr[2] = "C";
-    if (settings.pressureUnit != 'b') 
+    if (settings.pressureUnit != 'b')
       strcpy(pressureStr, "psi");
-    if (settings.temperatureUnit != 'c') 
+    if (settings.temperatureUnit != 'c')
       strcpy(temperatureStr, "F");
     sprintf(tmpStr1, "%01.01f%s %02.00f%s", bar2pressure(params.tireFrontLeftPressureBar), pressureStr, celsius2temperature(params.tireFrontLeftTempC), temperatureStr);
     sprintf(tmpStr2, "%02.00f%s %01.01f%s", celsius2temperature(params.tireFrontRightTempC), temperatureStr, bar2pressure(params.tireFrontRightPressureBar), pressureStr);
@@ -807,7 +664,7 @@ bool drawSceneSpeed(bool force) {
   sprintf(tmpStr3, " %01.00f%%", params.socPerc);
   tft.drawString(tmpStr3, 320, 64, GFXFF);
   if (params.socPerc > 0) {
-    sprintf(tmpStr3, " %01.01f", 64 * (params.socPerc / 100));
+    sprintf(tmpStr3, " %01.01f", params.batteryTotalAvailableKWh * (params.socPerc / 100));
     tft.drawString(tmpStr3, 320, 104, GFXFF);
     tft.drawString(" kWh", 320, 144, GFXFF);
   }
@@ -1160,9 +1017,11 @@ bool menuItemClick() {
     // Other menus
     switch (tmpMenuItem.id) {
       // Set vehicle type
-      case 101: settings.carType = 0; break;
-      case 102: settings.carType = 1; break;
-      case 103: settings.carType = 2; break;
+      case 101: settings.carType = CAR_KIA_ENIRO_2020_64; break;
+      case 102: settings.carType = CAR_HYUNDAI_KONA_2020_64; break;
+      case 103: settings.carType = CAR_HYUNDAI_IONIQ_2018; break;
+      case 104: settings.carType = CAR_KIA_ENIRO_2020_39; break;
+      case 105: settings.carType = CAR_HYUNDAI_KONA_2020_39; break;
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
@@ -1294,136 +1153,12 @@ bool parseRowMerged() {
   Serial.print("merged:");
   Serial.println(responseRowMerged);
 
-  // IONIQ OK
-  if (commandRequest.equals("2101")) {
-    params.speedKmh = hexToDec(responseRowMerged.substring(32, 36).c_str(), 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+  if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64 ||
+      settings.carType == CAR_KIA_ENIRO_2020_39 || settings.carType == CAR_HYUNDAI_KONA_2020_39) {
+    parseRowMergedKiaENiro();
   }
-  // IONIQ FAILED
-  if (commandRequest.equals("2102")) {
-    params.auxPerc = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, false);
-    params.auxCurrentAmp = - hexToDec(responseRowMerged.substring(46, 50).c_str(), 2, true) / 1000.0;
-  }
-  // Cluster module 7c6
-  // IONIQ OK
-  if (commandRequest.equals("22B002")) {
-    params.odoKm = float(strtol(responseRowMerged.substring(18, 24).c_str(), 0, 16));
-  }
-
-  // Aircon 7b3
-  // IONIQ OK
-  if (commandRequest.equals("220100")) {
-    params.indoorTemperature = (hexToDec(responseRowMerged.substring(16, 18).c_str(), 1, false) / 2) - 40;
-    params.outdoorTemperature = (hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, false) / 2) - 40;
-  }
-  // Aircon 7b3
-  // IONIQ OK
-  if (commandRequest.equals("220102") && responseRowMerged.substring(12, 14) == "00") {
-    params.coolantTemp1C = (hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false) / 2) - 40;
-    params.coolantTemp2C = (hexToDec(responseRowMerged.substring(16, 18).c_str(), 1, false) / 2) - 40;
-  }
-  // BMS 7e4
-  // IONIQ FAILED
-  if (commandRequest.equals("220101")) {
-    params.cumulativeEnergyChargedKWh = float(strtol(responseRowMerged.substring(82, 90).c_str(), 0, 16)) / 10.0;
-    if (params.cumulativeEnergyChargedKWhStart == -1)
-      params.cumulativeEnergyChargedKWhStart = params.cumulativeEnergyChargedKWh;
-    params.cumulativeEnergyDischargedKWh = float(strtol(responseRowMerged.substring(90, 98).c_str(), 0, 16)) / 10.0;
-    if (params.cumulativeEnergyDischargedKWhStart == -1)
-      params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
-    params.auxVoltage = hexToDec(responseRowMerged.substring(64, 66).c_str(), 2, true) / 10.0;
-    params.batPowerAmp = - hexToDec(responseRowMerged.substring(26, 30).c_str(), 2, true) / 10.0;
-    params.batVoltage = hexToDec(responseRowMerged.substring(30, 34).c_str(), 2, false) / 10.0;
-    params.batPowerKw = (params.batPowerAmp * params.batVoltage) / 1000.0;
-    params.batPowerKwh100 = params.batPowerKw / params.speedKmh * 100;
-    params.batCellMaxV = hexToDec(responseRowMerged.substring(52, 54).c_str(), 1, false) / 50.0;
-    params.batCellMinV = hexToDec(responseRowMerged.substring(56, 58).c_str(), 1, false) / 50.0;
-    params.batModule01TempC = hexToDec(responseRowMerged.substring(38, 40).c_str(), 1, true);
-    params.batModule02TempC = hexToDec(responseRowMerged.substring(40, 42).c_str(), 1, true);
-    params.batModule03TempC = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, true);
-    params.batModule04TempC = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, true);
-    //params.batTempC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
-    //params.batMaxC = hexToDec(responseRowMerged.substring(34, 36).c_str(), 1, true);
-    //params.batMinC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
-
-    // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
-    params.batMinC = params.batMaxC = params.batModule01TempC;
-    params.batMinC = (params.batModule02TempC < params.batMinC) ? params.batModule02TempC : params.batMinC ;
-    params.batMinC = (params.batModule03TempC < params.batMinC) ? params.batModule03TempC : params.batMinC ;
-    params.batMinC = (params.batModule04TempC < params.batMinC) ? params.batModule04TempC : params.batMinC ;
-    params.batMaxC = (params.batModule02TempC > params.batMaxC) ? params.batModule02TempC : params.batMaxC ;
-    params.batMaxC = (params.batModule03TempC > params.batMaxC) ? params.batModule03TempC : params.batMaxC ;
-    params.batMaxC = (params.batModule04TempC > params.batMaxC) ? params.batModule04TempC : params.batMaxC ;
-    params.batTempC = params.batMinC;
-
-    params.batInletC = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, true);
-    if (params.speedKmh < 15 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
-      params.chargingGraphKw[int(params.socPerc)] = params.batPowerKw;
-      params.chargingGraphMinTempC[int(params.socPerc)] = params.batMinC;
-      params.chargingGraphMaxTempC[int(params.socPerc)] = params.batMaxC;
-    }
-  }
-  // BMS 7e4
-  // IONIQ FAILED
-  if (commandRequest.equals("220102") && responseRowMerged.substring(12, 14) == "FF") {
-    for (int i = 0; i < 32; i++) {
-      params.cellVoltage[i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
-    }
-  }
-  // BMS 7e4
-  // IONIQ FAILED
-  if (commandRequest.equals("220103")) {
-    for (int i = 0; i < 32; i++) {
-      params.cellVoltage[32 + i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
-    }
-  }
-  // BMS 7e4
-  // IONIQ FAILED
-  if (commandRequest.equals("220104")) {
-    for (int i = 0; i < 32; i++) {
-      params.cellVoltage[64 + i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
-    }
-  }
-  // BMS 7e4
-  // IONIQ FAILED
-  if (commandRequest.equals("220105")) {
-    params.sohPerc = hexToDec(responseRowMerged.substring(56, 60).c_str(), 2, false) / 10.0;
-    params.socPerc = hexToDec(responseRowMerged.substring(68, 70).c_str(), 1, false) / 2.0;
-
-    // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
-    if (oldParams.socPerc - params.socPerc > 0) {
-      byte index = (int(params.socPerc) == 4) ? 0 : (int)(params.socPerc / 10) + 1;
-      if ((int(params.socPerc) % 10 == 9 || int(params.socPerc) == 4) && params.soc10ced[index] == -1) {
-        struct tm now;
-        getLocalTime(&now, 0);
-        time_t time_now_epoch = mktime(&now);
-        params.soc10ced[index] = params.cumulativeEnergyDischargedKWh;
-        params.soc10cec[index] = params.cumulativeEnergyChargedKWh;
-        params.soc10odo[index] = params.odoKm;
-        params.soc10time[index] = time_now_epoch;
-      }
-    }
-    params.batHeaterC = hexToDec(responseRowMerged.substring(52, 54).c_str(), 1, true);
-    //
-    for (int i = 30; i < 32; i++) { // ai/aj position
-      params.cellVoltage[96 - 30 + i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
-    }
-  }
-  // BMS 7e4
-  // IONIQ FAILED
-  if (commandRequest.equals("220106")) {
-    params.coolingWaterTempC = hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false);
-  }
-  // TPMS 7a0
-  // IONIQ OK
-  if (commandRequest.equals("22c00b")) {
-    params.tireFrontLeftPressureBar = hexToDec(responseRowMerged.substring(14, 16).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-    params.tireFrontRightPressureBar = hexToDec(responseRowMerged.substring(22, 24).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-    params.tireRearRightPressureBar = hexToDec(responseRowMerged.substring(30, 32).c_str(), 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
-    params.tireRearLeftPressureBar = hexToDec(responseRowMerged.substring(38, 40).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-    params.tireFrontLeftTempC = hexToDec(responseRowMerged.substring(16, 18).c_str(), 2, false)  - 50;      // === OK Valid
-    params.tireFrontRightTempC = hexToDec(responseRowMerged.substring(24, 26).c_str(), 2, false) - 50;      // === OK Valid
-    params.tireRearRightTempC = hexToDec(responseRowMerged.substring(32, 34).c_str(), 2, false) - 50;     // === OK Valid
-    params.tireRearLeftTempC = hexToDec(responseRowMerged.substring(40, 42).c_str(), 2, false) - 50;     // === OK Valid
+  if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
+    parseRowMergedHyundaiIoniq();
   }
 
   return true;
@@ -1853,7 +1588,7 @@ void setup(void) {
   Serial.println("Init TFT display");
   tft.begin();
 
-//  tft.invertDisplay(false);  // ONLY TTGO-TM
+  //  tft.invertDisplay(false);  // ONLY TTGO-TM
   tft.setRotation(settings.displayRotation);
   tft.fillScreen(TFT_BLACK);
   redrawScreen(true);

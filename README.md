@@ -46,6 +46,10 @@ Screen list
 
 ## Release notes
     
+### v1.7 2020-09-16
+- added support for 39.2kWh Hyundai Kona and Kia e-Niro
+- added initial support for Hyundai Ioniq 28kWh (not working yet)
+
 ### v1.6 2020-06-30
 - fixed ble device pairing
 - added command to set protocol ISO 15765-4 CAN (11 bit ID, 500 kbit/s) - some vgate adapters freezes during "init at command" phase
