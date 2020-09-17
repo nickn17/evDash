@@ -202,3 +202,144 @@ bool parseRowMergedKiaENiro() {
 
   return true;
 }
+
+/**
+ * Test data
+ */
+bool testDataKiaENiro() {
+
+  // 2101
+  commandRequest = "2101";
+  responseRowMerged = "6101FFF8000009285A3B0648030000B4179D763404080805000000";
+  parseRowMergedKiaENiro();
+
+  // 2102
+  commandRequest = "2102";
+  responseRowMerged = "6102F8FFFC000101000000840FBF83BD33270680953033757F59291C76000001010100000007000000";
+  responseRowMerged = "6102F8FFFC000101000000931CC77F4C39040BE09BA7385D8158832175000001010100000007000000";
+  parseRowMergedKiaENiro();
+
+  // 2106
+  commandRequest = "2106";
+  responseRowMerged = "6106FFFF800000000000000200001B001C001C000600060006000E000000010000000000000000013D013D013E013E00";
+  parseRowMergedKiaENiro();
+
+  // 220100
+  commandRequest = "220100";
+  responseRowMerged = "6201007E5027C8FF7F765D05B95AFFFF5AFF11FFFFFFFFFFFF6AFFFF2DF0757630FFFF00FFFF000000";
+  responseRowMerged = "6201007E5027C8FF867C58121010FFFF10FF8EFFFFFFFFFFFF10FFFF0DF0617900FFFF01FFFF000000";
+  parseRowMergedKiaENiro();
+
+  // 220101
+  commandRequest = "220101";
+  responseRowMerged = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
+  responseRowMerged = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
+  parseRowMergedKiaENiro();
+
+  // 220102
+  commandRequest = "220102";
+  responseRowMerged = "620102FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  parseRowMergedKiaENiro();
+
+  // 220103
+  commandRequest = "220103";
+  responseRowMerged = "620103FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCACBCACACFCCCBCBCBCBCBCBCBCBAAAA";
+  parseRowMergedKiaENiro();
+
+  // 220104
+  commandRequest = "220104";
+  responseRowMerged = "620104FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  parseRowMergedKiaENiro();
+
+  // 220105
+  commandRequest = "220105";
+  responseRowMerged = "620105003fff9000000000000000000F8A86012B4946500101500DAC03E800000000AC0000C7C701000F00000000AAAA";
+  responseRowMerged = "620105003FFF90000000000000000014918E012927465000015013BB03E800000000BB0000CBCB01001300000000AAAA";
+  parseRowMergedKiaENiro();
+
+  // 220106
+  commandRequest = "220106";
+  responseRowMerged = "620106FFFFFFFF14001A00240000003A7C86B4B30000000928EA00";
+  parseRowMergedKiaENiro();
+
+  // 22c002
+  commandRequest = "22c002";
+  responseRowMerged = "62C002FFFF0000D2E84E93D2E84EBBD2DBDACBD2E149F3AAAAAAAA";
+  parseRowMergedKiaENiro();
+
+  // 22c00b
+  commandRequest = "22c00b";
+  responseRowMerged = "62C00BFFFF0000B93D0100B43E0100B43D0100BB3C0100AAAAAAAA";
+  parseRowMergedKiaENiro();
+
+  // 22b002
+  commandRequest = "22b002";
+  responseRowMerged = "62B002E0000000FFB400330B0000000000000000";
+  parseRowMergedKiaENiro();
+
+  params.batModule01TempC = 28;
+  params.batModule02TempC = 29;
+  params.batModule03TempC = 28;
+  params.batModule04TempC = 30;
+  //params.batTempC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
+  //params.batMaxC = hexToDec(responseRowMerged.substring(34, 36).c_str(), 1, true);
+  //params.batMinC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
+
+  // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
+  params.batMinC = params.batMaxC = params.batModule01TempC;
+  params.batMinC = (params.batModule02TempC < params.batMinC) ? params.batModule02TempC : params.batMinC ;
+  params.batMinC = (params.batModule03TempC < params.batMinC) ? params.batModule03TempC : params.batMinC ;
+  params.batMinC = (params.batModule04TempC < params.batMinC) ? params.batModule04TempC : params.batMinC ;
+  params.batMaxC = (params.batModule02TempC > params.batMaxC) ? params.batModule02TempC : params.batMaxC ;
+  params.batMaxC = (params.batModule03TempC > params.batMaxC) ? params.batModule03TempC : params.batMaxC ;
+  params.batMaxC = (params.batModule04TempC > params.batMaxC) ? params.batModule04TempC : params.batMaxC ;
+  params.batTempC = params.batMinC;
+
+  //
+  params.soc10ced[10] = 2200;
+  params.soc10cec[10] = 2500;
+  params.soc10odo[10] = 13000;
+  params.soc10time[10] = 13000;
+  params.soc10ced[9] = params.soc10ced[10] + 6.4;
+  params.soc10cec[9] = params.soc10cec[10] + 0;
+  params.soc10odo[9] = params.soc10odo[10] + 30;
+  params.soc10time[9] = params.soc10time[10] + 900;
+  params.soc10ced[8] = params.soc10ced[9] + 6.8;
+  params.soc10cec[8] = params.soc10cec[9] + 0;
+  params.soc10odo[8] = params.soc10odo[9] + 30;
+  params.soc10time[8] = params.soc10time[9] + 900;
+  params.soc10ced[7] = params.soc10ced[8] + 7.2;
+  params.soc10cec[7] = params.soc10cec[8] + 0.6;
+  params.soc10odo[7] = params.soc10odo[8] + 30;
+  params.soc10time[7] = params.soc10time[8] + 900;
+  params.soc10ced[6] = params.soc10ced[7] + 6.7;
+  params.soc10cec[6] = params.soc10cec[7] + 0;
+  params.soc10odo[6] = params.soc10odo[7] + 30;
+  params.soc10time[6] = params.soc10time[7] + 900;
+  params.soc10ced[5] = params.soc10ced[6] + 6.7;
+  params.soc10cec[5] = params.soc10cec[6] + 0;
+  params.soc10odo[5] = params.soc10odo[6] + 30;
+  params.soc10time[5] = params.soc10time[6] + 900;
+  params.soc10ced[4] = params.soc10ced[5] + 6.4;
+  params.soc10cec[4] = params.soc10cec[5] + 0.3;
+  params.soc10odo[4] = params.soc10odo[5] + 30;
+  params.soc10time[4] = params.soc10time[5] + 900;
+  params.soc10ced[3] = params.soc10ced[4] + 6.4;
+  params.soc10cec[3] = params.soc10cec[4] + 0;
+  params.soc10odo[3] = params.soc10odo[4] + 30;
+  params.soc10time[3] = params.soc10time[4] + 900;
+  params.soc10ced[2] = params.soc10ced[3] + 5.4;
+  params.soc10cec[2] = params.soc10cec[3] + 0.1;
+  params.soc10odo[2] = params.soc10odo[3] + 30;
+  params.soc10time[2] = params.soc10time[3] + 900;
+  params.soc10ced[1] = params.soc10ced[2] + 6.2;
+  params.soc10cec[1] = params.soc10cec[2] + 0.1;
+  params.soc10odo[1] = params.soc10odo[2] + 30;
+  params.soc10time[1] = params.soc10time[2] + 900;
+  params.soc10ced[0] = params.soc10ced[1] + 2.9;
+  params.soc10cec[0] = params.soc10cec[1] + 0.5;
+  params.soc10odo[0] = params.soc10odo[1] + 15;
+  params.soc10time[0] = params.soc10time[1] + 900;
+
+  return true;
+}
