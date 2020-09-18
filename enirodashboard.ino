@@ -1118,6 +1118,10 @@ bool doNextAtCommand() {
 
   // Send AT command to obd
   commandRequest = commandQueue[commandQueueIndex];
+  if (commandRequest.startsWith("ATSH")) {
+    currentAtshRequest = commandRequest;
+  }
+  
   Serial.print(">>> ");
   Serial.println(commandRequest);
   String tmpStr = commandRequest + "\r";

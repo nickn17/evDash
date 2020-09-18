@@ -14,6 +14,7 @@ String responseRowMerged;
 byte commandQueueIndex;
 bool canSendNextAtCommand = false;
 String commandRequest = "";
+String currentAtshRequest = "";
 
 // Structure with realtime values
 typedef struct {
