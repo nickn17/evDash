@@ -4,14 +4,15 @@
 #define CAR_HYUNDAI_IONIQ_2018    2
 #define CAR_KIA_ENIRO_2020_39     3
 #define CAR_HYUNDAI_KONA_2020_39  4
+#define CAR_DEBUG_OBD2_KIA        999
 
 // Commands loop
-byte commandQueueCount;
-byte commandQueueLoopFrom;
-String commandQueue[100];
+uint16_t commandQueueCount;
+uint16_t commandQueueLoopFrom;
+String commandQueue[300];
 String responseRow;
 String responseRowMerged;
-byte commandQueueIndex;
+uint16_t commandQueueIndex;
 bool canSendNextAtCommand = false;
 String commandRequest = "";
 String currentAtshRequest = "";
@@ -38,10 +39,8 @@ typedef struct {
   float batInletC;
   float batMinC;
   float batMaxC;
-  float batModule01TempC;
-  float batModule02TempC;
-  float batModule03TempC;
-  float batModule04TempC;
+  uint16_t batModuleTempCount;
+  float batModuleTempC[12];
   float coolingWaterTempC;
   float coolantTemp1C;
   float coolantTemp2C;
@@ -58,6 +57,7 @@ typedef struct {
   float tireRearLeftPressureBar;
   float tireRearRightTempC;
   float tireRearRightPressureBar;
+  uint16_t cellCount;
   float cellVoltage[98]; // 1..98 has index 0..97
   // Screen - charging graph
   float chargingGraphKw[101]; // 0..100% .. how many HW in each step

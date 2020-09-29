@@ -58,9 +58,10 @@ bool activateCommandQueueForHyundaiIoniq() {
 
   // 28kWh version
   params.batteryTotalAvailableKWh = 28;
+  params.batModuleTempCount = 12;
 
   //  Empty and fill command queue
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 300; i++) {
     commandQueue[i] = "";
   }
   for (int i = 0; i < commandQueueCountHyundaiIoniq; i++) {
@@ -124,24 +125,16 @@ bool parseRowMergedHyundaiIoniq() {
       params.batPowerKwh100 = params.batPowerKw / params.speedKmh * 100;
       params.batCellMaxV = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, false) / 50.0;
       params.batCellMinV = hexToDec(responseRowMerged.substring(54, 56).c_str(), 1, false) / 50.0;
-      params.batModule01TempC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
-      params.batModule02TempC = hexToDec(responseRowMerged.substring(38, 40).c_str(), 1, true);
-      params.batModule03TempC = hexToDec(responseRowMerged.substring(40, 42).c_str(), 1, true);
-      params.batModule04TempC = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, true);
+      params.batModuleTempC[0] = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
+      params.batModuleTempC[1] = hexToDec(responseRowMerged.substring(38, 40).c_str(), 1, true);
+      params.batModuleTempC[2] = hexToDec(responseRowMerged.substring(40, 42).c_str(), 1, true);
+      params.batModuleTempC[3] = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, true);
+      params.batModuleTempC[4] = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, true);
       //params.batTempC = hexToDec(responseRowMerged.substring(34, 36).c_str(), 1, true);
       //params.batMaxC = hexToDec(responseRowMerged.substring(32, 34).c_str(), 1, true);
       //params.batMinC = hexToDec(responseRowMerged.substring(34, 36).c_str(), 1, true);
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
-      params.batMinC = params.batMaxC = params.batModule01TempC;
-      params.batMinC = (params.batModule02TempC < params.batMinC) ? params.batModule02TempC : params.batMinC;
-      params.batMinC = (params.batModule03TempC < params.batMinC) ? params.batModule03TempC : params.batMinC;
-      params.batMinC = (params.batModule04TempC < params.batMinC) ? params.batModule04TempC : params.batMinC;
-      params.batMaxC = (params.batModule02TempC > params.batMaxC) ? params.batModule02TempC : params.batMaxC;
-      params.batMaxC = (params.batModule03TempC > params.batMaxC) ? params.batModule03TempC : params.batMaxC;
-      params.batMaxC = (params.batModule04TempC > params.batMaxC) ? params.batModule04TempC : params.batMaxC;
-      params.batTempC = params.batMinC;
-
       params.batInletC = hexToDec(responseRowMerged.substring(48, 50).c_str(), 1, true);
       if (params.speedKmh < 15 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
         params.chargingGraphKw[int(params.socPerc)] = params.batPowerKw;
@@ -171,6 +164,24 @@ bool parseRowMergedHyundaiIoniq() {
     if (commandRequest.equals("2105")) {
       params.sohPerc = hexToDec(responseRowMerged.substring(54, 58).c_str(), 2, false) / 10.0;
       params.socPerc = hexToDec(responseRowMerged.substring(66, 68).c_str(), 1, false) / 2.0;
+
+      // Remaining battery modules (tempC)
+      params.batModuleTempC[5] = hexToDec(responseRowMerged.substring(22, 24).c_str(), 1, true);
+      params.batModuleTempC[6] = hexToDec(responseRowMerged.substring(24, 26).c_str(), 1, true);
+      params.batModuleTempC[7] = hexToDec(responseRowMerged.substring(26, 28).c_str(), 1, true);
+      params.batModuleTempC[8] = hexToDec(responseRowMerged.substring(28, 30).c_str(), 1, true);
+      params.batModuleTempC[9] = hexToDec(responseRowMerged.substring(30, 32).c_str(), 1, true);
+      params.batModuleTempC[10] = hexToDec(responseRowMerged.substring(32, 34).c_str(), 1, true);
+      params.batModuleTempC[11] = hexToDec(responseRowMerged.substring(34, 36).c_str(), 1, true);
+
+      params.batMinC = params.batMaxC = params.batModuleTempC[0];
+      for (uint16_t i = 1; i < params.batModuleTempCount; i++) {
+        if (params.batModuleTempC[i] < params.batMinC)
+          params.batMinC = params.batModuleTempC[i];
+        if (params.batModuleTempC[i] > params.batMaxC)
+          params.batMaxC = params.batModuleTempC[i];
+      }
+      params.batTempC = params.batMinC;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (oldParams.socPerc - params.socPerc > 0) {
@@ -228,7 +239,7 @@ bool testDataHyundaiIoniq() {
   parseRowMergedHyundaiIoniq();
   // 2102
   commandRequest = "2102";
-  responseRowMerged = "6102FF80000001010000009311AE8C9839640611887C3900000000";
+  responseRowMerged = "6102FF80000001010000009315B2888D390B08618B683900000000";
   parseRowMergedHyundaiIoniq();
 
   // "ATSH7DF",

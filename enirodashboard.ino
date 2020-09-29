@@ -1,3 +1,4 @@
+
 /*
 
   KIA eNiro Dashboard 1.7, 2020-09-17
@@ -35,6 +36,7 @@
 #include "struct.h"
 #include "car_kia_eniro.h"
 #include "car_hyundai_ioniq.h"
+#include "car_debug_obd2_kia.h"
 
 // PLEASE CHANGE THIS SETTING for your BLE4
 uint32_t PIN = 1234;
@@ -95,7 +97,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 42
+#define menuItemsCount 43
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -116,6 +118,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
+  {106, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
@@ -239,6 +242,9 @@ bool loadSettings() {
   if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     activateCommandQueueForHyundaiIoniq();
   }
+  if (settings.carType == CAR_DEBUG_OBD2_KIA) {
+    activateCommandQueueForDebugObd2Kia();
+  }
 
   return true;
 }
@@ -267,10 +273,13 @@ bool initStructure() {
   params.batInletC = -1;
   params.batMinC = -1;
   params.batMaxC = -1;
-  params.batModule01TempC = -1;
-  params.batModule02TempC = -1;
-  params.batModule03TempC = -1;
-  params.batModule04TempC = -1;
+  for (int i = 0; i < 12; i++) {
+    params.batModuleTempC[i] = 0;
+  }
+  params.batModuleTempC[0] = -1;
+  params.batModuleTempC[1] = -1;
+  params.batModuleTempC[2] = -1;
+  params.batModuleTempC[3] = -1;
   params.coolingWaterTempC = -1;
   params.coolantTemp1C = -1;
   params.coolantTemp2C = -1;
@@ -294,6 +303,7 @@ bool initStructure() {
   for (int i = 0; i < 98; i++) {
     params.cellVoltage[i] = 0;
   }
+  params.cellCount = 0;
   for (int i = 0; i <= 100; i++) {
     params.chargingGraphKw[i] = 0;
     params.chargingGraphMinTempC[i] = -100;
@@ -683,14 +693,27 @@ bool drawSceneBatteryCells(bool force) {
   drawSmallRect(0, 0, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batInletC));
   drawSmallRect(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule01TempC));
-  drawSmallRect(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (params.batModule01TempC >= 15) ? ((params.batModule01TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule02TempC));
-  drawSmallRect(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (params.batModule02TempC >= 15) ? ((params.batModule02TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule03TempC));
-  drawSmallRect(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (params.batModule03TempC >= 15) ? ((params.batModule03TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModule04TempC));
-  drawSmallRect(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (params.batModule04TempC >= 15) ? ((params.batModule04TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModuleTempC[0]));
+  drawSmallRect(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (params.batModuleTempC[0] >= 15) ? ((params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModuleTempC[1]));
+  drawSmallRect(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (params.batModuleTempC[1] >= 15) ? ((params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModuleTempC[2]));
+  drawSmallRect(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (params.batModuleTempC[2] >= 15) ? ((params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.batModuleTempC[3]));
+  drawSmallRect(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (params.batModuleTempC[3] >= 15) ? ((params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+  // Ioniq (up to 12 cells)
+  for (uint16_t i = 4; i < params.batModuleTempCount; i++) {
+    if (params.batModuleTempC[i] == 0)
+      continue;
+    posx = (((i-4) % 8) * 40);
+    posy = ((floor((i-4) / 8)) * 13) + 64;
+    //tft.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
+    tft.setTextSize(1); // Size for small 5x7 font
+    tft.setTextDatum(TL_DATUM);
+    tft.setTextColor(((params.batModuleTempC[i] >= 15) ? ((params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED), TFT_BLACK);
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00fC" : "%01.01fF"), celsius2temperature(params.batModuleTempC[i]));
+    tft.drawString(tmpStr1, posx+4, posy, 2);
+  }
 
   tft.setTextDatum(TL_DATUM); // Topleft
   tft.setTextSize(1); // Size for small 5x7 font
@@ -702,14 +725,16 @@ bool drawSceneBatteryCells(bool force) {
       minVal = params.cellVoltage[i];
     if ((params.cellVoltage[i] > maxVal || maxVal == -1) && params.cellVoltage[i] != -1)
       maxVal = params.cellVoltage[i];
+    if (params.cellVoltage[i] > 0 && i > params.cellCount + 1)
+      params.cellCount = i + 1;
   }
 
   // Draw cell matrix
   for (int i = 0; i < 98; i++) {
     if (params.cellVoltage[i] == -1)
-      continue;  
+      continue;
     posx = ((i % 8) * 40) + 4;
-    posy = ((floor(i / 8)) * 13) + 68;
+    posy = ((floor(i / 8) + (params.cellCount > 96 ? 0 : 1)) * 13) + 68;
     sprintf(tmpStr3, "%01.02f", params.cellVoltage[i]);
     tft.setTextColor(TFT_NAVY, TFT_BLACK);
     if (params.cellVoltage[i] == minVal && minVal != maxVal)
@@ -732,6 +757,7 @@ bool drawSceneChargingGraph(bool force) {
   int mulX = 3; // 100% = 300px;
   int mulY = 2; // 100kW = 200px
   int maxKw = 80;
+  int posy = 0;
   int16_t color;
 
   sprintf(tmpStr1, "%01.00f", params.socPerc);
@@ -785,27 +811,36 @@ bool drawSceneChargingGraph(bool force) {
 
   tft.setTextSize(1); // Size for small 5x7 font
   tft.setTextDatum(TR_DATUM);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "1:%01.00fC" : "1:%01.00fF"), celsius2temperature(params.batModule01TempC));
-  tft.setTextColor((params.batModule01TempC >= 15) ? ((params.batModule01TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (0 * 15), 2);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "2:%01.00fC" : "2:%01.00fF"), celsius2temperature(params.batModule02TempC));
-  tft.setTextColor((params.batModule02TempC >= 15) ? ((params.batModule02TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (1 * 15), 2);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "3:%01.00fC" : "3:%01.00fF"), celsius2temperature(params.batModule03TempC));
-  tft.setTextColor((params.batModule03TempC >= 15) ? ((params.batModule03TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (2 * 15), 2);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "4:%01.00fC" : "4:%01.00fF"), celsius2temperature(params.batModule04TempC));
-  tft.setTextColor((params.batModule04TempC >= 15) ? ((params.batModule04TempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (3 * 15), 2);
-  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "W:%01.00fC" : "W:%01.00fF"), celsius2temperature(params.coolingWaterTempC));
-  tft.setTextColor(TFT_CYAN, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (4 * 15), 2);
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "1:%01.00fC" : "1:%01.00fF"), celsius2temperature(params.batModuleTempC[0]));
+  tft.setTextColor((params.batModuleTempC[0] >= 15) ? ((params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+  posy++;
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "2:%01.00fC" : "2:%01.00fF"), celsius2temperature(params.batModuleTempC[1]));
+  tft.setTextColor((params.batModuleTempC[1] >= 15) ? ((params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+  posy++;
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "3:%01.00fC" : "3:%01.00fF"), celsius2temperature(params.batModuleTempC[2]));
+  tft.setTextColor((params.batModuleTempC[2] >= 15) ? ((params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+  posy++;
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "4:%01.00fC" : "4:%01.00fF"), celsius2temperature(params.batModuleTempC[3]));
+  tft.setTextColor((params.batModuleTempC[3] >= 15) ? ((params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+  posy++;
+  if (params.coolingWaterTempC != 0) {
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "W:%01.00fC" : "W:%01.00fF"), celsius2temperature(params.coolingWaterTempC));
+    tft.setTextColor(TFT_CYAN, TFT_TEMP);
+    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    posy++;
+  }
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C1:%01.00fC" : "C1:%01.00fF"), celsius2temperature(params.coolantTemp1C));
   tft.setTextColor(TFT_CYAN, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (5 * 15), 2);
+  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+  posy++;
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C2:%01.00fC" : "C2:%01.00fF"), celsius2temperature(params.coolantTemp2C));
   tft.setTextColor(TFT_CYAN, TFT_TEMP);
-  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (6 * 15), 2);
+  tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+  posy++;
 
   return true;
 }
@@ -1024,6 +1059,7 @@ bool menuItemClick() {
       case 103: settings.carType = CAR_HYUNDAI_IONIQ_2018; break;
       case 104: settings.carType = CAR_KIA_ENIRO_2020_39; break;
       case 105: settings.carType = CAR_HYUNDAI_KONA_2020_39; break;
+      case 106: settings.carType = CAR_DEBUG_OBD2_KIA; break;
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
@@ -1121,7 +1157,7 @@ bool doNextAtCommand() {
   if (commandRequest.startsWith("ATSH")) {
     currentAtshRequest = commandRequest;
   }
-  
+
   Serial.print(">>> ");
   Serial.println(commandRequest);
   String tmpStr = commandRequest + "\r";
@@ -1165,6 +1201,9 @@ bool parseRowMerged() {
   }
   if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     parseRowMergedHyundaiIoniq();
+  }
+  if (settings.carType == CAR_DEBUG_OBD2_KIA) {
+    parseRowMergedDebugObd2Kia();
   }
 
   return true;
