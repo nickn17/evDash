@@ -85,6 +85,8 @@ bool parseRowMergedKiaENiro() {
   if (currentAtshRequest.equals("ATSH7E2")) {
     if (commandRequest.equals("2101")) {
       params.speedKmh = hexToDec(responseRowMerged.substring(32, 36).c_str(), 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+      if (params.speedKmh < -99 || params.speedKmh > 200) 
+        params.speedKmh = 0;
     }
     if (commandRequest.equals("2102")) {
       params.auxPerc = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, false);

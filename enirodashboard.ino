@@ -83,6 +83,7 @@ char tmpStr4[20];
 // Screens, buttons
 #define displayScreenCount 6
 byte displayScreen  = 1; // 0 - blank screen, 1 - automatic mode, 2 - dash board (default), 3 - big speed + kwh/100, 4 - battery cells, 5 - charging graph, 6 - soc10% CED table
+byte displayScreenAutoMode = 0;
 bool btnLeftPressed   = true;
 bool btnMiddlePressed = true;
 bool btnRightPressed  = true;
@@ -1125,13 +1126,25 @@ bool redrawScreen(bool force) {
     tft.fillScreen(TFT_BLACK);
   }
 
-  // 1. Auto mode = >20kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
+  // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
   if (displayScreen == 1) {
-    if (params.speedKmh > 20) {
+    if (params.speedKmh > 5) {
+      if (displayScreenAutoMode != 3) {
+        tft.fillScreen(TFT_BLACK);
+        displayScreenAutoMode = 3;
+      }
       drawSceneSpeed(force);
     } else if (params.batPowerKw > 1) {
+      if (displayScreenAutoMode != 5) {
+        tft.fillScreen(TFT_BLACK);
+        displayScreenAutoMode = 5;
+      }
       drawSceneChargingGraph(force);
     } else {
+      if (displayScreenAutoMode != 2) {
+        tft.fillScreen(TFT_BLACK);
+        displayScreenAutoMode = 2;
+      }
       drawSceneMain(force);
     }
   }
