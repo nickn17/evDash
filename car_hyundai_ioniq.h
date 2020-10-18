@@ -118,6 +118,8 @@ bool parseRowMergedHyundaiIoniq() {
       params.cumulativeEnergyDischargedKWh = float(strtol(responseRowMerged.substring(88, 96).c_str(), 0, 16)) / 10.0;
       if (params.cumulativeEnergyDischargedKWhStart == -1)
         params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
+      params.batFanStatus = hexToDec(responseRowMerged.substring(58, 60).c_str(), 2, true);
+      params.batFanFeedbackHz = hexToDec(responseRowMerged.substring(60, 62).c_str(), 2, true);
       params.auxVoltage = hexToDec(responseRowMerged.substring(62, 64).c_str(), 2, true) / 10.0;
       params.batPowerAmp = - hexToDec(responseRowMerged.substring(24, 28).c_str(), 2, true) / 10.0;
       params.batVoltage = hexToDec(responseRowMerged.substring(28, 32).c_str(), 2, false) / 10.0;

@@ -37,6 +37,8 @@ typedef struct {
   float batTempC;
   float batHeaterC;
   float batInletC;
+  float batFanStatus;
+  float batFanFeedbackHz;
   float batMinC;
   float batMaxC;
   uint16_t batModuleTempCount;
