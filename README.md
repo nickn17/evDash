@@ -46,6 +46,12 @@ Screen list
 
 ## Release notes
     
+### v1.7.1 2020-09-16
+- added new screen 1 - auto mode
+  - automatically shows screen 3 - speed when speed is >20kph
+  - screen 5 chargin graph when power kw > 1kW
+- added bat.fan status and fan feedback in Hz for Ioniq
+
 ### v1.7 2020-09-16
 - added support for 39.2kWh Hyundai Kona and Kia e-Niro
 - added initial support for Hyundai Ioniq 28kWh (not working yet)
