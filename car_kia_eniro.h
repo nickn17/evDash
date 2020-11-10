@@ -1,5 +1,5 @@
 
-#define commandQueueCountKiaENiro 25
+#define commandQueueCountKiaENiro 30
 #define commandQueueLoopFromKiaENiro 8
 
 String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
@@ -27,6 +27,15 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   "220105",   // soh, soc, ..
   "220106",   // cooling water temp
 
+  // ABS / ESP + AHB
+  "ATSH7D1",
+  "22C101",     // brake, park/drive mode
+
+  // IGPM
+  "ATSH770",
+  "22BC03",     // low beam
+  "22BC06",     // brake light
+
   // VMCU
   "ATSH7E2",
   "2101",     // speed, ...
@@ -36,7 +45,7 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   //"2106",
   //"220106",
 
-  // ECU - Aircondition
+  // Aircondition
   "ATSH7B3",
   "220100",   // in/out temp
   "220102",   // coolant temp1, 2
@@ -81,11 +90,60 @@ bool activateCommandQueueForKiaENiro() {
 */
 bool parseRowMergedKiaENiro() {
 
+  // ABS / ESP + AHB 7D1
+  if (currentAtshRequest.equals("ATSH7D1")) {
+    if (commandRequest.equals("22C101")) {
+      params.driveMode = hexToDec(responseRowMerged.substring(22, 24).c_str(), 1, false);
+      // 7 (val 128) 
+      // 6 (val 64) 
+      // 5 (val 32) 
+      // 4 (val 16) 
+      // 3 (val 8) 
+      // 2 (val 4) DRIVE mode
+      // 1 (val 2) REVERSE mode
+      // 0 (val 1) PARK mode / NEUTRAL
+  /*    params.espState = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, false);
+      // b6 (val 64) 1 - ESP OFF, 0 - ESP ON
+  */
+/*      params.xxx = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, false);
+      // 5 (val 32) default 1 
+      // 4 (val 16) default 1 
+      // 2 (val 4) BRAKE PRESSED
+      // 0 (val 1) */
+    }
+  }
+
+  // IGPM
+  if (currentAtshRequest.equals("ATSH770")) {
+    if (commandRequest.equals("22BC03")) {
+      params.lightInfo = hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, false);
+      // 7 (val 128) 
+      // 6 (val 64) 
+      // 5 (val 32) 
+      // 4 (val 16) 
+      // 3 (val 8) 
+      // 2 (val 4
+      // 1 (val 2)
+      // 0 (val 1)
+    }
+    if (commandRequest.equals("22BC06")) {
+      params.brakeLightInfo = hexToDec(responseRowMerged.substring(14, 18).c_str(), 1, false);
+      // 7 (val 128) 
+      // 6 (val 64) 
+      // 5 (val 32) 
+      // 4 (val 16) 
+      // 3 (val 8) 
+      // 2 (val 4
+      // 1 (val 2)
+      // 0 (val 1)
+    }
+  }
+
   // VMCU 7E2
   if (currentAtshRequest.equals("ATSH7E2")) {
     if (commandRequest.equals("2101")) {
       params.speedKmh = hexToDec(responseRowMerged.substring(32, 36).c_str(), 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-      if (params.speedKmh < -99 || params.speedKmh > 200) 
+      if (params.speedKmh < -99 || params.speedKmh > 200)
         params.speedKmh = 0;
     }
     if (commandRequest.equals("2102")) {
@@ -122,10 +180,17 @@ bool parseRowMergedKiaENiro() {
       params.cumulativeEnergyDischargedKWh = float(strtol(responseRowMerged.substring(90, 98).c_str(), 0, 16)) / 10.0;
       if (params.cumulativeEnergyDischargedKWhStart == -1)
         params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
+      params.availableChargePower = float(strtol(responseRowMerged.substring(16, 20).c_str(), 0, 16)) / 100.0;
+      params.availableDischargePower = float(strtol(responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
+      //params.isolationResistanceKOhm = hexToDec(responseRowMerged.substring(118, 122).c_str(), 2, true);
+      params.batFanStatus = hexToDec(responseRowMerged.substring(58, 60).c_str(), 2, true);
+      params.batFanFeedbackHz = hexToDec(responseRowMerged.substring(60, 62).c_str(), 2, true);
       params.auxVoltage = hexToDec(responseRowMerged.substring(64, 66).c_str(), 2, true) / 10.0;
       params.batPowerAmp = - hexToDec(responseRowMerged.substring(26, 30).c_str(), 2, true) / 10.0;
       params.batVoltage = hexToDec(responseRowMerged.substring(30, 34).c_str(), 2, false) / 10.0;
       params.batPowerKw = (params.batPowerAmp * params.batVoltage) / 1000.0;
+      if (params.batPowerKw < 0) // Reset charging start time
+        params.chargingStartTime = params.currentTime;
       params.batPowerKwh100 = params.batPowerKw / params.speedKmh * 100;
       params.batCellMaxV = hexToDec(responseRowMerged.substring(52, 54).c_str(), 1, false) / 50.0;
       params.batCellMinV = hexToDec(responseRowMerged.substring(56, 58).c_str(), 1, false) / 50.0;
@@ -148,10 +213,15 @@ bool parseRowMergedKiaENiro() {
       params.batTempC = params.batMinC;
 
       params.batInletC = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, true);
-      if (params.speedKmh < 15 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
-        params.chargingGraphKw[int(params.socPerc)] = params.batPowerKw;
-        params.chargingGraphMinTempC[int(params.socPerc)] = params.batMinC;
-        params.chargingGraphMaxTempC[int(params.socPerc)] = params.batMaxC;
+      if (params.speedKmh < 10 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
+        if ( params.chargingGraphMinKw[int(params.socPerc)] < 0 || params.batPowerKw < params.chargingGraphMinKw[int(params.socPerc)])
+          params.chargingGraphMinKw[int(params.socPerc)] = params.batPowerKw;
+        if ( params.chargingGraphMaxKw[int(params.socPerc)] < 0 || params.batPowerKw > params.chargingGraphMaxKw[int(params.socPerc)])
+          params.chargingGraphMaxKw[int(params.socPerc)] = params.batPowerKw;
+        params.chargingGraphBatMinTempC[int(params.socPerc)] = params.batMinC;
+        params.chargingGraphBatMaxTempC[int(params.socPerc)] = params.batMaxC;
+        params.chargingGraphHeaterTempC[int(params.socPerc)] = params.batHeaterC;
+        params.chargingGraphWaterCoolantTempC[int(params.socPerc)] = params.coolingWaterTempC;
       }
     }
     // BMS 7e4
@@ -181,13 +251,10 @@ bool parseRowMergedKiaENiro() {
       if (oldParams.socPerc - params.socPerc > 0) {
         byte index = (int(params.socPerc) == 4) ? 0 : (int)(params.socPerc / 10) + 1;
         if ((int(params.socPerc) % 10 == 9 || int(params.socPerc) == 4) && params.soc10ced[index] == -1) {
-          struct tm now;
-          getLocalTime(&now, 0);
-          time_t time_now_epoch = mktime(&now);
           params.soc10ced[index] = params.cumulativeEnergyDischargedKWh;
           params.soc10cec[index] = params.cumulativeEnergyChargedKWh;
           params.soc10odo[index] = params.odoKm;
-          params.soc10time[index] = time_now_epoch;
+          params.soc10time[index] = params.currentTime;
         }
       }
       params.batHeaterC = hexToDec(responseRowMerged.substring(52, 54).c_str(), 1, true);
@@ -224,6 +291,21 @@ bool parseRowMergedKiaENiro() {
 */
 bool testDataKiaENiro() {
 
+
+  // IGPM
+  currentAtshRequest = "ATSH770";
+  // 22BC03
+  commandRequest = "22BC03";
+  responseRowMerged = "62BC03FDEE7C730A600000AAAA";
+  parseRowMergedKiaENiro();
+ 
+  // ABS / ESP + AHB ATSH7D1
+  currentAtshRequest = "ATSH7D1";
+  // 2101
+  commandRequest = "22C101";
+  responseRowMerged = "62C1015FD7E7D0FFFF00FF04D0D400000000FF7EFF0030F5010000FFFF7F6307F207FE05FF00FF3FFFFFAAAAAAAAAAAA";
+  parseRowMergedKiaENiro();
+  
   // VMCU ATSH7E2
   currentAtshRequest = "ATSH7E2";
   // 2101

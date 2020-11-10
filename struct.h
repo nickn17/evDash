@@ -19,6 +19,12 @@ String currentAtshRequest = "";
 
 // Structure with realtime values
 typedef struct {
+  time_t currentTime; 
+  time_t chargingStartTime; 
+  uint8_t driveMode;
+  uint8_t lightInfo;
+  uint8_t brakeLightInfo;
+  uint8_t espState;
   float batteryTotalAvailableKWh; 
   float speedKmh;
   float odoKm;
@@ -28,6 +34,9 @@ typedef struct {
   float cumulativeEnergyChargedKWhStart;
   float cumulativeEnergyDischargedKWh;
   float cumulativeEnergyDischargedKWhStart;
+  float availableChargePower; // max regen
+  float availableDischargePower; // max power
+  float isolationResistanceKOhm;
   float batPowerAmp;
   float batPowerKw;
   float batPowerKwh100;
@@ -62,14 +71,26 @@ typedef struct {
   uint16_t cellCount;
   float cellVoltage[98]; // 1..98 has index 0..97
   // Screen - charging graph
-  float chargingGraphKw[101]; // 0..100% .. how many HW in each step
-  float chargingGraphMinTempC[101]; // 0..100% .. Min temp in.C
-  float chargingGraphMaxTempC[101]; // 0..100% .. Max temp in.C
+  float chargingGraphMinKw[101]; // 0..100% .. Min power Kw
+  float chargingGraphMaxKw[101]; // 0..100% .. Max power Kw
+  float chargingGraphBatMinTempC[101]; // 0..100% .. Min bat.temp in.C
+  float chargingGraphBatMaxTempC[101]; // 0..100% .. Max bat.temp in.C
+  float chargingGraphHeaterTempC[101]; // 0..100% .. Heater temp in.C
+  float chargingGraphWaterCoolantTempC[101]; // 0..100% .. Heater temp in.C
   // Screen - consumption info
   float soc10ced[11]; // 0..10 (5%, 10%, 20%, 30%, 40%).. (never discharged soc% to 0)
   float soc10cec[11]; // 0..10 (5%, 10%, 20%, 30%, 40%)..
   float soc10odo[11]; // odo history
   time_t soc10time[11]; // time for avg speed
+  // additional
+  /*
+  uint8_t bmsIgnition;
+  uint8_t bmsMainRelay;
+  uint8_t highVoltageCharging;
+  float inverterCapacitorVoltage;
+  float normalChargePort;
+  float rapidChargePort;
+  float operationTimeHours;*/
 } PARAMS_STRUC;
 
 // Setting stored to flash

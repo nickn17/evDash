@@ -303,10 +303,14 @@ bool parseRowMergedDebugObd2Kia() {
       params.batTempC = params.batMinC;
 
       params.batInletC = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, true);
-      if (params.speedKmh < 15 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
-        params.chargingGraphKw[int(params.socPerc)] = params.batPowerKw;
-        params.chargingGraphMinTempC[int(params.socPerc)] = params.batMinC;
-        params.chargingGraphMaxTempC[int(params.socPerc)] = params.batMaxC;
+      if (params.speedKmh < 10 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
+        if ( params.chargingGraphMinKw[int(params.socPerc)] == -100 || params.batPowerKw < params.chargingGraphMinKw[int(params.socPerc)])
+          params.chargingGraphMinKw[int(params.socPerc)] = params.batPowerKw;
+        if ( params.chargingGraphMaxKw[int(params.socPerc)] == -100 || params.batPowerKw > params.chargingGraphMaxKw[int(params.socPerc)])
+          params.chargingGraphMaxKw[int(params.socPerc)] = params.batPowerKw;
+        params.chargingGraphBatMinTempC[int(params.socPerc)] = params.batMinC;
+        params.chargingGraphBatMaxTempC[int(params.socPerc)] = params.batMaxC;
+        params.chargingGraphHeaterTempC[int(params.socPerc)] = params.batHeaterC;
       }
     }
     // BMS 7e4

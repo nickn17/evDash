@@ -34,7 +34,7 @@ String commandQueueHyundaiIoniq[commandQueueCountHyundaiIoniq] = {
   //"2106",
   //"220106",
 
-  // ECU - Aircondition
+  // Aircondition
   // IONIQ OK
   "ATSH7B3",
   "220100",   // in/out temp
@@ -120,12 +120,17 @@ bool parseRowMergedHyundaiIoniq() {
       params.cumulativeEnergyDischargedKWh = float(strtol(responseRowMerged.substring(88, 96).c_str(), 0, 16)) / 10.0;
       if (params.cumulativeEnergyDischargedKWhStart == -1)
         params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
+      params.availableChargePower = float(strtol(responseRowMerged.substring(16, 20).c_str(), 0, 16)) / 100.0;
+      params.availableDischargePower = float(strtol(responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
+      params.isolationResistanceKOhm = hexToDec(responseRowMerged.substring(118, 122).c_str(), 2, true);
       params.batFanStatus = hexToDec(responseRowMerged.substring(58, 60).c_str(), 2, true);
       params.batFanFeedbackHz = hexToDec(responseRowMerged.substring(60, 62).c_str(), 2, true);
       params.auxVoltage = hexToDec(responseRowMerged.substring(62, 64).c_str(), 2, true) / 10.0;
       params.batPowerAmp = - hexToDec(responseRowMerged.substring(24, 28).c_str(), 2, true) / 10.0;
       params.batVoltage = hexToDec(responseRowMerged.substring(28, 32).c_str(), 2, false) / 10.0;
       params.batPowerKw = (params.batPowerAmp * params.batVoltage) / 1000.0;
+      if (params.batPowerKw < 1) // Reset charging start time
+        params.chargingStartTime = params.currentTime;
       params.batPowerKwh100 = params.batPowerKw / params.speedKmh * 100;
       params.batCellMaxV = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, false) / 50.0;
       params.batCellMinV = hexToDec(responseRowMerged.substring(54, 56).c_str(), 1, false) / 50.0;
@@ -140,10 +145,14 @@ bool parseRowMergedHyundaiIoniq() {
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       params.batInletC = hexToDec(responseRowMerged.substring(48, 50).c_str(), 1, true);
-      if (params.speedKmh < 15 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
-        params.chargingGraphKw[int(params.socPerc)] = params.batPowerKw;
-        params.chargingGraphMinTempC[int(params.socPerc)] = params.batMinC;
-        params.chargingGraphMaxTempC[int(params.socPerc)] = params.batMaxC;
+      if (params.speedKmh < 10 && params.batPowerKw >= 1 && params.socPerc > 0 && params.socPerc <= 100) {
+        if ( params.chargingGraphMinKw[int(params.socPerc)] == -100 || params.batPowerKw < params.chargingGraphMinKw[int(params.socPerc)])
+          params.chargingGraphMinKw[int(params.socPerc)] = params.batPowerKw;
+        if ( params.chargingGraphMaxKw[int(params.socPerc)] == -100 || params.batPowerKw > params.chargingGraphMaxKw[int(params.socPerc)])
+          params.chargingGraphMaxKw[int(params.socPerc)] = params.batPowerKw;
+        params.chargingGraphBatMinTempC[int(params.socPerc)] = params.batMinC;
+        params.chargingGraphBatMaxTempC[int(params.socPerc)] = params.batMaxC;
+        params.chargingGraphHeaterTempC[int(params.socPerc)] = params.batHeaterC;
       }
     }
     // BMS 7e4
@@ -191,13 +200,10 @@ bool parseRowMergedHyundaiIoniq() {
       if (oldParams.socPerc - params.socPerc > 0) {
         byte index = (int(params.socPerc) == 4) ? 0 : (int)(params.socPerc / 10) + 1;
         if ((int(params.socPerc) % 10 == 9 || int(params.socPerc) == 4) && params.soc10ced[index] == -1) {
-          struct tm now;
-          getLocalTime(&now, 0);
-          time_t time_now_epoch = mktime(&now);
           params.soc10ced[index] = params.cumulativeEnergyDischargedKWh;
           params.soc10cec[index] = params.cumulativeEnergyChargedKWh;
           params.soc10odo[index] = params.odoKm;
-          params.soc10time[index] = time_now_epoch;
+          params.soc10time[index] = params.currentTime;
         }
       }
       params.batHeaterC = hexToDec(responseRowMerged.substring(50, 52).c_str(), 1, true);
