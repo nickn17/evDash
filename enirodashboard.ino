@@ -1,6 +1,6 @@
 /*
 
-  KIA eNiro Dashboard 1.7.1, 2020-10-18
+  KIA eNiro Dashboard 1.7.2, 2020-11-10
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters

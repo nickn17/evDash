@@ -46,7 +46,10 @@ Screen list
 
 ## Release notes
     
-### v1.7.1 2020-09-16
+### v1.7.2 2020-11-10
+- improved charging graph
+
+### v1.7.1 2020-10-20
 - added new screen 1 - auto mode
   - automatically shows screen 3 - speed when speed is >5kph
   - screen 5 chargin graph when power kw > 1kW
