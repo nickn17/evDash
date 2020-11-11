@@ -1,6 +1,6 @@
 /*
 
-  KIA eNiro Dashboard 1.7.2, 2020-11-10
+  KIA eNiro Dashboard 1.7.3, 2020-11-11
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
@@ -107,6 +107,8 @@ byte displayScreenAutoMode = 0;
 bool btnLeftPressed   = true;
 bool btnMiddlePressed = true;
 bool btnRightPressed  = true;
+bool nextFrameFullRedraw = true;
+bool testDataMode = false;
 
 // Menu id/parent/title
 typedef struct {
@@ -277,8 +279,12 @@ bool initStructure() {
 
   params.chargingStartTime = params.currentTime = 0;
   params.lightInfo = 0;
+  params.headLights = false;
+  params.dayLights = false;
   params.brakeLightInfo = 0;
-  params.driveMode = 0;
+  params.forwardDriveMode = false;
+  params.reverseDriveMode = false;
+  params.parkModeOrNeutral = false;
   params.espState = 0;
   params.speedKmh = -1;
   params.odoKm = -1;
@@ -707,11 +713,11 @@ bool drawSceneSpeed(bool force) {
   tft.setTextDatum(MR_DATUM);
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   sprintf(tmpStr3, "  %d", params.brakeLightInfo);
-  tft.drawString(tmpStr3, 250, 20, GFXFF);
-  sprintf(tmpStr3, "  %d", params.lightInfo);
   tft.drawString(tmpStr3, 250, 50, GFXFF);
-  sprintf(tmpStr3, "  %d", params.driveMode);
+  sprintf(tmpStr3, "  %d", params.lightInfo);
   tft.drawString(tmpStr3, 250, 80, GFXFF);
+  //sprintf(tmpStr3, "  %d", params.driveMode);
+  //tft.drawString(tmpStr3, 250, 80, GFXFF);
   
   // Soc%, bat.kWh
   tft.setFreeFont(&Orbitron_Light_32);
@@ -1189,6 +1195,7 @@ bool menuItemClick() {
 */
 bool redrawScreen(bool force) {
 
+  nextFrameFullRedraw = false;
   if (menuVisible) {
     return false;
   }
@@ -1196,6 +1203,17 @@ bool redrawScreen(bool force) {
   // Clear screen if needed
   if (force) {
     tft.fillScreen(TFT_BLACK);
+  }
+
+  // Lights not enabled
+  if (!testDataMode && params.forwardDriveMode && !params.headLights && !params.dayLights) {
+    tft.fillScreen(TFT_RED);
+    tft.setFreeFont(&Orbitron_Light_32);
+    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
+    nextFrameFullRedraw = true;
+    return true;
   }
 
   // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
@@ -1262,7 +1280,7 @@ bool doNextAtCommand() {
   if (commandQueueIndex >= commandQueueCount) {
     commandQueueIndex = commandQueueLoopFrom;
     // Redraw only changed values
-    redrawScreen(false);
+    redrawScreen(nextFrameFullRedraw);
   }
 
   // Send AT command to obd
@@ -1331,6 +1349,7 @@ bool testData() {
 
   if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64 ||
       settings.carType == CAR_KIA_ENIRO_2020_39 || settings.carType == CAR_HYUNDAI_KONA_2020_39) {
+    testDataMode = true;
     testDataKiaENiro();
   }
   if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {

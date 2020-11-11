@@ -21,7 +21,11 @@ String currentAtshRequest = "";
 typedef struct {
   time_t currentTime; 
   time_t chargingStartTime; 
-  uint8_t driveMode;
+  bool forwardDriveMode;
+  bool reverseDriveMode;
+  bool parkModeOrNeutral;
+  bool headLights;
+  bool dayLights;
   uint8_t lightInfo;
   uint8_t brakeLightInfo;
   uint8_t espState;

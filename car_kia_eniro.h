@@ -93,23 +93,19 @@ bool parseRowMergedKiaENiro() {
   // ABS / ESP + AHB 7D1
   if (currentAtshRequest.equals("ATSH7D1")) {
     if (commandRequest.equals("22C101")) {
-      params.driveMode = hexToDec(responseRowMerged.substring(22, 24).c_str(), 1, false);
-      // 7 (val 128) 
-      // 6 (val 64) 
-      // 5 (val 32) 
-      // 4 (val 16) 
-      // 3 (val 8) 
-      // 2 (val 4) DRIVE mode
-      // 1 (val 2) REVERSE mode
-      // 0 (val 1) PARK mode / NEUTRAL
-  /*    params.espState = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, false);
-      // b6 (val 64) 1 - ESP OFF, 0 - ESP ON
-  */
-/*      params.xxx = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, false);
-      // 5 (val 32) default 1 
-      // 4 (val 16) default 1 
-      // 2 (val 4) BRAKE PRESSED
-      // 0 (val 1) */
+      uint8_t driveMode = hexToDec(responseRowMerged.substring(22, 24).c_str(), 1, false);
+      params.forwardDriveMode = (driveMode == 4);
+      params.reverseDriveMode = (driveMode == 2);
+      params.parkModeOrNeutral  = (driveMode == 1);
+      // 2 (val 4) DRIVE mode // 1 (val 2) REVERSE mode // 0 (val 1) PARK mode / NEUTRAL
+      /*    params.espState = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, false);
+          // b6 (val 64) 1 - ESP OFF, 0 - ESP ON
+      */
+      /*      params.xxx = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, false);
+            // 5 (val 32) default 1
+            // 4 (val 16) default 1
+            // 2 (val 4) BRAKE PRESSED
+            // 0 (val 1) */
     }
   }
 
@@ -117,22 +113,25 @@ bool parseRowMergedKiaENiro() {
   if (currentAtshRequest.equals("ATSH770")) {
     if (commandRequest.equals("22BC03")) {
       params.lightInfo = hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, false);
-      // 7 (val 128) 
-      // 6 (val 64) 
-      // 5 (val 32) 
+      params.headLights = (bitRead(params.lightInfo, 5) == 1);
+      params.dayLights = (bitRead(params.lightInfo, 3) == 1);
+      // low beam 44, dimmed light only 12
+      // 7 (val 128)
+      // 6 (val 64)
+      // 5 (val 32) headlights on
       // 4 (val 16) 
-      // 3 (val 8) 
-      // 2 (val 4
+      // 3 (val 8) daylights on
+      // 2 (val 4 daylights on 
       // 1 (val 2)
       // 0 (val 1)
     }
     if (commandRequest.equals("22BC06")) {
-      params.brakeLightInfo = hexToDec(responseRowMerged.substring(14, 18).c_str(), 1, false);
-      // 7 (val 128) 
-      // 6 (val 64) 
-      // 5 (val 32) 
-      // 4 (val 16) 
-      // 3 (val 8) 
+      params.brakeLightInfo = hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false);
+      // 7 (val 128)
+      // 6 (val 64)
+      // 5 (val 32)
+      // 4 (val 16)
+      // 3 (val 8)
       // 2 (val 4
       // 1 (val 2)
       // 0 (val 1)
@@ -298,14 +297,14 @@ bool testDataKiaENiro() {
   commandRequest = "22BC03";
   responseRowMerged = "62BC03FDEE7C730A600000AAAA";
   parseRowMergedKiaENiro();
- 
+
   // ABS / ESP + AHB ATSH7D1
   currentAtshRequest = "ATSH7D1";
   // 2101
   commandRequest = "22C101";
   responseRowMerged = "62C1015FD7E7D0FFFF00FF04D0D400000000FF7EFF0030F5010000FFFF7F6307F207FE05FF00FF3FFFFFAAAAAAAAAAAA";
   parseRowMergedKiaENiro();
-  
+
   // VMCU ATSH7E2
   currentAtshRequest = "ATSH7E2";
   // 2101
