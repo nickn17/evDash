@@ -46,10 +46,13 @@ Screen list
 
 ## Release notes
     
-### v1.7.3 2020-11-11
-- Headlights reminder (if drive mode & headlights are off)
+### v1.7.4 2020-11-12
+- Initial config for Renault ZOE 22kWh
 - ODB response analyzer. Please help community to decode unknown values like BMS valves, heater ON switch,...
   https://docs.google.com/spreadsheets/d/1eT2R8hmsD1hC__9LtnkZ3eDjLcdib9JR-3Myc97jy8M/edit?usp=sharing
+
+### v1.7.3 2020-11-11
+- Headlights reminder (if drive mode & headlights are off)
 
 ### v1.7.2 2020-11-10
 - improved charging graph

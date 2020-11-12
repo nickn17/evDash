@@ -4,6 +4,7 @@
 #define CAR_HYUNDAI_IONIQ_2018    2
 #define CAR_KIA_ENIRO_2020_39     3
 #define CAR_HYUNDAI_KONA_2020_39  4
+#define CAR_RENAULT_ZOE           5
 #define CAR_DEBUG_OBD2_KIA        999
 
 // Commands loop

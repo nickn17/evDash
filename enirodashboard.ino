@@ -35,6 +35,7 @@
 #include "struct.h"
 #include "car_kia_eniro.h"
 #include "car_hyundai_ioniq.h"
+#include "car_renault_zoe.h"
 #include "car_debug_obd2_kia.h"
 
 // PLEASE CHANGE THIS SETTING for your BLE4
@@ -120,7 +121,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 43
+#define menuItemsCount 44
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -141,7 +142,8 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
-  {106, 1, -1,  "Debug OBD2 Kia"},
+  {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
+  {107, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
@@ -272,6 +274,9 @@ bool loadSettings() {
   }
   if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     activateCommandQueueForHyundaiIoniq();
+  }
+  if (settings.carType == CAR_RENAULT_ZOE) {
+    activateCommandQueueForRenaultZoe();
   }
   if (settings.carType == CAR_DEBUG_OBD2_KIA) {
     activateCommandQueueForDebugObd2Kia();
@@ -1201,7 +1206,8 @@ bool menuItemClick() {
       case 103: settings.carType = CAR_HYUNDAI_IONIQ_2018; break;
       case 104: settings.carType = CAR_KIA_ENIRO_2020_39; break;
       case 105: settings.carType = CAR_HYUNDAI_KONA_2020_39; break;
-      case 106: settings.carType = CAR_DEBUG_OBD2_KIA; break;
+      case 106: settings.carType = CAR_RENAULT_ZOE; break;
+      case 107: settings.carType = CAR_DEBUG_OBD2_KIA; break;
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
@@ -1392,6 +1398,9 @@ bool parseRowMerged() {
   if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     parseRowMergedHyundaiIoniq();
   }
+  if (settings.carType == CAR_RENAULT_ZOE) {
+    parseRowMergedRenaultZoe();
+  }
   if (settings.carType == CAR_DEBUG_OBD2_KIA) {
     parseRowMergedDebugObd2Kia();
   }
@@ -1413,6 +1422,9 @@ bool testData() {
   }
   if (settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     testDataHyundaiIoniq();
+  }
+  if (settings.carType == CAR_RENAULT_ZOE) {
+    testDataRenaultZoe();
   }
 
   redrawScreen(false);
