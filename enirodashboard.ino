@@ -121,7 +121,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 44
+#define menuItemsCount 51
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -147,6 +147,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
+  {302, 3, -1, "Default screen"},
 
   {400, 4, 0, "<- parent menu"},
   {401, 4, -1, "Distance"},
@@ -157,6 +158,13 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {3011, 301, -1, "Normal"},
   {3012, 301, -1, "Flip vertical"},
 
+  {3020, 302, 3, "<- parent menu"},
+  {3021, 302, -1, "Auto mode"},
+  {3022, 302, -1, "Basic info"},
+  {3023, 302, -1, "Speed"},
+  {3024, 302, -1, "Battery cells"},
+  {3025, 302, -1, "Charging graph"},
+  
   {4010, 401, 4, "<- parent menu"},
   {4011, 401, -1, "Kilometers"},
   {4012, 401, -1, "Miles"},
@@ -248,11 +256,15 @@ bool loadSettings() {
   settings.distanceUnit = 'k';
   settings.temperatureUnit = 'c';
   settings.pressureUnit = 'b';
+  settings.defaultScreen = 1;
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
   EEPROM.get(0, tmpSettings);
+  if (tmpSettings.defaultScreen < 1 || tmpSettings.defaultScreen > 5) { 
+    tmpSettings.defaultScreen = 1;
+  }
 
   // Init flash with default settings
   if (tmpSettings.initFlag != 183) {
@@ -1211,6 +1223,12 @@ bool menuItemClick() {
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
+      // Default screen 
+      case 3021: settings.defaultScreen = 1; break;
+      case 3022: settings.defaultScreen = 2; break;
+      case 3023: settings.defaultScreen = 3; break;
+      case 3024: settings.defaultScreen = 4; break;
+      case 3025: settings.defaultScreen = 5; break;
       // Distance
       case 4011: settings.distanceUnit = 'k'; break;
       case 4012: settings.distanceUnit = 'm'; break;
@@ -1726,8 +1744,8 @@ void setup(void) {
   params.chargingStartTime = params.currentTime = mktime(&now);
 
   // Show test data on right button during boot device
+  displayScreen = settings.defaultScreen;
   if (digitalRead(BUTTON_RIGHT) == LOW) {
-    displayScreen = 1;
     testData();
   }
 

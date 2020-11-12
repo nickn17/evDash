@@ -111,6 +111,7 @@ typedef struct {
   char distanceUnit; // k - kilometers
   char temperatureUnit; // c - celsius
   char pressureUnit; // b - bar
+  byte defaultScreen; // 1 .. 6
 } SETTINGS_STRUC;
 
 PARAMS_STRUC params;     // Realtime sensor values

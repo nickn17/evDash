@@ -47,6 +47,7 @@ Screen list
 ## Release notes
     
 ### v1.7.4 2020-11-12
+- Added default screen option to settings
 - Initial config for Renault ZOE 22kWh
 - ODB response analyzer. Please help community to decode unknown values like BMS valves, heater ON switch,...
   https://docs.google.com/spreadsheets/d/1eT2R8hmsD1hC__9LtnkZ3eDjLcdib9JR-3Myc97jy8M/edit?usp=sharing
