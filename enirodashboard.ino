@@ -101,8 +101,8 @@ char tmpStr3[20];
 char tmpStr4[20];
 
 // Screens, buttons
-#define displayScreenCount 6
-byte displayScreen  = 1; // 0 - blank screen, 1 - automatic mode, 2 - dash board (default), 3 - big speed + kwh/100, 4 - battery cells, 5 - charging graph, 6 - soc10% CED table
+#define displayScreenCount 7
+byte displayScreen  = 1; // 0 - blank screen, 1 - automatic mode, 2 - dash board (default), 3 - big speed + kwh/100, 4 - battery cells, 5 - charging graph, 6 - soc10% CED table, 7 - debug screen
 byte displayScreenAutoMode = 0;
 bool btnLeftPressed   = true;
 bool btnMiddlePressed = true;
@@ -179,6 +179,14 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {10008, 9999, -1, "-"},
   {10009, 9999, -1, "-"},
 };
+
+// debug screen - move with right button
+uint16_t debugCommandIndex = 0;
+String debugAtshRequest = "ATSH7E4";
+String debugCommandRequest = "220101";
+String debugLastString = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
+String debugPreviousString = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
+
 
 /**
   Load settings from flash memory, upgrade structure if version differs
@@ -268,6 +276,7 @@ bool loadSettings() {
   if (settings.carType == CAR_DEBUG_OBD2_KIA) {
     activateCommandQueueForDebugObd2Kia();
   }
+  debugCommandIndex = commandQueueLoopFrom;
 
   return true;
 }
@@ -718,7 +727,7 @@ bool drawSceneSpeed(bool force) {
   tft.drawString(tmpStr3, 250, 80, GFXFF);
   //sprintf(tmpStr3, "  %d", params.driveMode);
   //tft.drawString(tmpStr3, 250, 80, GFXFF);
-  
+
   // Soc%, bat.kWh
   tft.setFreeFont(&Orbitron_Light_32);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -943,7 +952,7 @@ bool drawSceneChargingGraph(bool force) {
 }
 
 /**
-   SOC 10% table (screen 5)
+  SOC 10% table (screen 5)
 */
 bool drawSceneSoc10Table(bool force) {
 
@@ -1027,6 +1036,42 @@ bool drawSceneSoc10Table(bool force) {
   tft.drawString(tmpStr1, 160, zeroY + (14 * 15), 2);
   sprintf(tmpStr1, "AVAIL.CAP: %01.01f kWh", -diffCed - diffCec);
   tft.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
+
+  return true;
+}
+
+/**
+  DEBUG screen
+*/
+bool drawSceneDebug(bool force) {
+
+  int32_t posx, posy;
+  String chHex, chHex2;
+  uint8_t chByte;
+
+  tft.setTextSize(1); // Size for small 5x7 font
+  tft.setTextColor(TFT_SILVER, TFT_TEMP);
+  tft.setTextDatum(TL_DATUM);
+  tft.drawString(debugAtshRequest, 0, 0, 2);
+  tft.drawString(debugCommandRequest, 128, 0, 2);
+  tft.setTextDatum(TR_DATUM);
+
+  for (int i = 0; i < debugLastString.length() / 2; i++) {
+    chHex = debugLastString.substring(i * 2, (i * 2) + 2);
+    chHex2 = debugPreviousString.substring(i * 2, (i * 2) + 2);
+    tft.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
+    chByte = hexToDec(chHex.c_str(), 1, false);
+    posx = (((i) % 10) * 32) + 24;
+    posy = ((floor((i) / 10)) * 32) + 24;
+    sprintf(tmpStr1, "%03d", chByte);
+    tft.drawString(tmpStr1, posx + 4, posy, 2);
+
+    tft.setTextColor(TFT_YELLOW, TFT_TEMP);
+    sprintf(tmpStr1, "%c", (char)chByte);
+    tft.drawString(tmpStr1, posx + 4, posy + 13, 2);
+  }
+
+  debugPreviousString = debugLastString;
 
   return true;
 }
@@ -1258,6 +1303,10 @@ bool redrawScreen(bool force) {
   if (displayScreen == 6) {
     drawSceneSoc10Table(force);
   }
+  // 7. DEBUG SCREEN
+  if (displayScreen == 7) {
+    drawSceneDebug(force);
+  }
 
   // BLE not connected
   if (!bleConnected && bleConnect) {
@@ -1326,6 +1375,16 @@ bool parseRowMerged() {
   Serial.print("merged:");
   Serial.println(responseRowMerged);
 
+  // Catch output for debug screen
+  if (displayScreen == 7) {
+    if (debugCommandIndex == commandQueueIndex) {
+      debugAtshRequest = currentAtshRequest;
+      debugCommandRequest = commandRequest;
+      debugLastString  = responseRowMerged;
+    }
+  }
+
+  // Parse by car
   if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64 ||
       settings.carType == CAR_KIA_ENIRO_2020_39 || settings.carType == CAR_HYUNDAI_KONA_2020_39) {
     parseRowMergedKiaENiro();
@@ -1467,7 +1526,7 @@ class MySecurity : public BLESecurityCallbacks {
 /**
    Ble notification callback
 */
-static void notifyCallback (BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+static void notifyCallback (BLERemoteCharacteristic * pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
 
   char ch;
 
@@ -1771,6 +1830,11 @@ void loop() {
         menuMove(true);
       } else {
         // doAction
+        if (displayScreen == 7) {
+          debugCommandIndex = (debugCommandIndex >= commandQueueCount) ? commandQueueLoopFrom : debugCommandIndex +1;
+          redrawScreen(true);
+        }
+
       }
     }
   }

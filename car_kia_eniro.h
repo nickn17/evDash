@@ -21,9 +21,9 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   // BMS
   "ATSH7E4",
   "220101",   // power kw, ...
-  "220102",   // cell voltages, screen 3 only
-  "220103",   // cell voltages, screen 3 only
-  "220104",   // cell voltages, screen 3 only
+  "220102",   // cell voltages
+  "220103",   // cell voltages
+  "220104",   // cell voltages
   "220105",   // soh, soc, ..
   "220106",   // cooling water temp
 
