@@ -1,21 +1,23 @@
 
-#define commandQueueCountKiaENiro 30
-#define commandQueueLoopFromKiaENiro 8
+#define commandQueueCountKiaENiro 32
+#define commandQueueLoopFromKiaENiro 10
 
 String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   "AT Z",      // Reset all
   "AT I",      // Print the version ID
+  "AT S0",     // Printing of spaces on
   "AT E0",     // Echo off
   "AT L0",     // Linefeeds off
-  "AT S0",     // Printing of spaces on
   "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
   //"AT AL",     // Allow Long (>7 byte) messages
   //"AT AR",     // Automatically receive
   //"AT H1",     // Headers on (debug only)
   //"AT D1",     // Display of the DLC on
   //"AT CAF0",   // Automatic formatting off
+  "AT AT0",     // disabled the adaptive timing
+  "AT ST 01",   // reduced the time out to 1
   "AT DP",
-  "AT ST16",
+  "AT ST10",    // orig ST16
 
   // Loop from (KIA ENIRO)
 
@@ -23,7 +25,7 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   "ATSH770",
   "22BC03",     // low beam
   "22BC06",     // brake light
-  
+
   // VMCU
   "ATSH7E2",
   "2101",     // speed, ...
@@ -64,6 +66,7 @@ bool activateCommandQueueForKiaENiro() {
   // 39 or 64 kWh model?
   params.batModuleTempCount = 4;
   params.batteryTotalAvailableKWh = 64;
+  // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
   if (settings.carType == CAR_KIA_ENIRO_2020_39 || settings.carType == CAR_HYUNDAI_KONA_2020_39) {
     params.batteryTotalAvailableKWh = 39.2;
   }

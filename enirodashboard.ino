@@ -697,9 +697,14 @@ bool drawSceneSpeed(bool force) {
   sprintf(tmpStr3, " %01.00f%%", params.socPerc);
   tft.drawString(tmpStr3, 320, 94, GFXFF);
   if (params.socPerc > 0) {
-    sprintf(tmpStr3, " %01.01f", params.batteryTotalAvailableKWh * (params.socPerc / 100));
+    float capacity = params.batteryTotalAvailableKWh * (params.socPerc / 100);
+    // calibration for Niro/Kona, real available capacity is ~66.5kWh, 0-10% ~6.2kWh, 90-100% ~7.2kWh
+    if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64) {
+      capacity = (params.socPerc*0.615)*(1+(params.socPerc*0.0008));
+    }
+    sprintf(tmpStr3, " %01.01f", capacity);
     tft.drawString(tmpStr3, 320, 129, GFXFF);
-    tft.drawString(" kWh", 320, 164, GFXFF);
+    tft.drawString("kWh", 320, 164, GFXFF);
   }
 
   return true;
