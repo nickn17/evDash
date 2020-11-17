@@ -688,7 +688,7 @@ bool drawSceneSpeed(bool force) {
   sprintf(tmpStr3, "%01.00f", celsius2temperature(params.batTempC));
   tft.drawString(tmpStr3, 290, 60, GFXFF);
   // Brake lights
-  tft.fillRect(210, 30, 40, 40, (params.brakeLights) ? TFT_RED : TFT_RED);
+  tft.fillRect(210, 30, 40, 40, (params.brakeLights) ? TFT_RED : TFT_BLACK);
 
   // Soc%, bat.kWh
   tft.setFreeFont(&Orbitron_Light_32);
