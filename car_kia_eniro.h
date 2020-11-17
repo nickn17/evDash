@@ -18,6 +18,17 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   "AT ST16",
 
   // Loop from (KIA ENIRO)
+
+  // IGPM
+  "ATSH770",
+  "22BC03",     // low beam
+  "22BC06",     // brake light
+  
+  // VMCU
+  "ATSH7E2",
+  "2101",     // speed, ...
+  "2102",     // aux, ...
+
   // BMS
   "ATSH7E4",
   "220101",   // power kw, ...
@@ -30,20 +41,6 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   // ABS / ESP + AHB
   "ATSH7D1",
   "22C101",     // brake, park/drive mode
-
-  // IGPM
-  "ATSH770",
-  "22BC03",     // low beam
-  "22BC06",     // brake light
-
-  // VMCU
-  "ATSH7E2",
-  "2101",     // speed, ...
-  "2102",     // aux, ...
-
-  //"ATSH7Df",
-  //"2106",
-  //"220106",
 
   // Aircondition
   "ATSH7B3",
@@ -97,15 +94,6 @@ bool parseRowMergedKiaENiro() {
       params.forwardDriveMode = (driveMode == 4);
       params.reverseDriveMode = (driveMode == 2);
       params.parkModeOrNeutral  = (driveMode == 1);
-      // 2 (val 4) DRIVE mode // 1 (val 2) REVERSE mode // 0 (val 1) PARK mode / NEUTRAL
-      /*    params.espState = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, false);
-          // b6 (val 64) 1 - ESP OFF, 0 - ESP ON
-      */
-      /*      params.xxx = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, false);
-            // 5 (val 32) default 1
-            // 4 (val 16) default 1
-            // 2 (val 4) BRAKE PRESSED
-            // 0 (val 1) */
     }
   }
 
@@ -115,26 +103,10 @@ bool parseRowMergedKiaENiro() {
       params.lightInfo = hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, false);
       params.headLights = (bitRead(params.lightInfo, 5) == 1);
       params.dayLights = (bitRead(params.lightInfo, 3) == 1);
-      // low beam 44, dimmed light only 12
-      // 7 (val 128)
-      // 6 (val 64)
-      // 5 (val 32) headlights on
-      // 4 (val 16) 
-      // 3 (val 8) daylights on
-      // 2 (val 4 daylights on 
-      // 1 (val 2)
-      // 0 (val 1)
     }
     if (commandRequest.equals("22BC06")) {
       params.brakeLightInfo = hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false);
-      // 7 (val 128)
-      // 6 (val 64)
-      // 5 (val 32)
-      // 4 (val 16)
-      // 3 (val 8)
-      // 2 (val 4
-      // 1 (val 2)
-      // 0 (val 1)
+      params.brakeLights = (bitRead(params.brakeLightInfo, 5) == 1);
     }
   }
 
@@ -182,8 +154,8 @@ bool parseRowMergedKiaENiro() {
       params.availableChargePower = float(strtol(responseRowMerged.substring(16, 20).c_str(), 0, 16)) / 100.0;
       params.availableDischargePower = float(strtol(responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
       //params.isolationResistanceKOhm = hexToDec(responseRowMerged.substring(118, 122).c_str(), 2, true);
-      params.batFanStatus = hexToDec(responseRowMerged.substring(58, 60).c_str(), 2, true);
-      params.batFanFeedbackHz = hexToDec(responseRowMerged.substring(60, 62).c_str(), 2, true);
+      params.batFanStatus = hexToDec(responseRowMerged.substring(60, 62).c_str(), 2, true);
+      params.batFanFeedbackHz = hexToDec(responseRowMerged.substring(62, 64).c_str(), 2, true);
       params.auxVoltage = hexToDec(responseRowMerged.substring(64, 66).c_str(), 2, true) / 10.0;
       params.batPowerAmp = - hexToDec(responseRowMerged.substring(26, 30).c_str(), 2, true) / 10.0;
       params.batVoltage = hexToDec(responseRowMerged.substring(30, 34).c_str(), 2, false) / 10.0;
@@ -197,6 +169,7 @@ bool parseRowMergedKiaENiro() {
       params.batModuleTempC[1] = hexToDec(responseRowMerged.substring(40, 42).c_str(), 1, true);
       params.batModuleTempC[2] = hexToDec(responseRowMerged.substring(42, 44).c_str(), 1, true);
       params.batModuleTempC[3] = hexToDec(responseRowMerged.substring(44, 46).c_str(), 1, true);
+      params.motorRpm = hexToDec(responseRowMerged.substring(112, 116).c_str(), 2, false);
       //params.batTempC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
       //params.batMaxC = hexToDec(responseRowMerged.substring(34, 36).c_str(), 1, true);
       //params.batMinC = hexToDec(responseRowMerged.substring(36, 38).c_str(), 1, true);
@@ -256,7 +229,9 @@ bool parseRowMergedKiaENiro() {
           params.soc10time[index] = params.currentTime;
         }
       }
+      params.bmsUnknownTempA = hexToDec(responseRowMerged.substring(30, 32).c_str(), 1, true);
       params.batHeaterC = hexToDec(responseRowMerged.substring(52, 54).c_str(), 1, true);
+      params.bmsUnknownTempB = hexToDec(responseRowMerged.substring(82, 84).c_str(), 1, true);
       //
       for (int i = 30; i < 32; i++) { // ai/aj position
         params.cellVoltage[96 - 30 + i] = hexToDec(responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
@@ -265,6 +240,8 @@ bool parseRowMergedKiaENiro() {
     // BMS 7e4
     if (commandRequest.equals("220106")) {
       params.coolingWaterTempC = hexToDec(responseRowMerged.substring(14, 16).c_str(), 1, false);
+      params.bmsUnknownTempC = hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, true);
+      params.bmsUnknownTempD = hexToDec(responseRowMerged.substring(46, 48).c_str(), 1, true);
     }
   }
 

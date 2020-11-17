@@ -46,6 +46,12 @@ Screen list
 
 ## Release notes
     
+### v1.7.5 2020-11-17
+- Settings: Debug screen off/on 
+- Settings: LCD brightness (auto, 20, 50, 100%)
+- Speed screen: added motor rpm
+- Speed screen: brake lights indicator
+
 ### v1.7.4 2020-11-12
 - Added default screen option to settings
 - Initial config for Renault ZOE 22kWh

@@ -32,7 +32,9 @@
 #include "BLEDevice.h"
 #include <EEPROM.h>
 #include <sys/time.h>
+#include <analogWrite.h>
 #include "struct.h"
+#include "menu.h"
 #include "car_kia_eniro.h"
 #include "car_hyundai_ioniq.h"
 #include "car_renault_zoe.h"
@@ -47,7 +49,7 @@ uint32_t PIN = 1234;
 #define BUTTON_RIGHT 39
 #define TFT_BL 4
 
-/* TFT COLORS */
+// TFT COLORS FOR TTGO
 #define TFT_BLACK       0x0000      /*   0,   0,   0 */
 #define TFT_NAVY        0x000F      /*   0,   0, 128 */
 #define TFT_DARKGREEN   0x03E0      /*   0, 128,   0 */
@@ -79,11 +81,12 @@ uint32_t PIN = 1234;
 #define TFT_DARKRED     0x3800      /* 128,   0,   0 */
 #define TFT_DARKGREEN2  0x01E0      /* 128,   0,   0 */
 
-// Misc
+// TTGO FONTS
 #define GFXFF 1  // TFT FOnts
 
 TFT_eSPI tft = TFT_eSPI();
 
+// BLUETOOTH4
 static boolean bleConnect = true;
 static boolean bleConnected = false;
 static BLEAddress *pServerAddress;
@@ -111,92 +114,19 @@ bool btnRightPressed  = true;
 bool nextFrameFullRedraw = true;
 bool testDataMode = false;
 
-// Menu id/parent/title
-typedef struct {
-  int16_t id;
-  int16_t parentId;
-  int16_t targetParentId;
-  char title[50];
-  char obdMacAddress[20];
-  char serviceUUID[40];
-} MENU_ITEM;
-
-#define menuItemsCount 51
-bool menuVisible = false;
-uint16_t menuCurrent = 0;
-uint8_t  menuItemSelected = 0;
-uint16_t scanningDeviceIndex = 0;
-MENU_ITEM menuItems[menuItemsCount] = {
-
-  {0, 0, 0, "<- exit menu"},
-  {1, 0, -1, "Vehicle type"},
-  {2, 0, -1, "Select OBD2BLE adapter"},
-  {3, 0, -1, "Others"},
-  {4, 0, -1, "Units"},
-  {8, 0, -1, "Factory reset"},
-  {9, 0, -1, "Save settings"},
-
-  {100, 1, 0, "<- parent menu"},
-  {101, 1, -1,  "Kia eNiro 2020 64kWh"},
-  {102, 1, -1,  "Hyundai Kona 2020 64kWh"},
-  {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
-  {104, 1, -1,  "Kia eNiro 2020 39kWh"},
-  {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
-  {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
-  {107, 1, -1,  "Debug OBD2 Kia"},
-
-  {300, 3, 0, "<- parent menu"},
-  {301, 3, -1, "Screen rotation"},
-  {302, 3, -1, "Default screen"},
-
-  {400, 4, 0, "<- parent menu"},
-  {401, 4, -1, "Distance"},
-  {402, 4, -1, "Temperature"},
-  {403, 4, -1, "Pressure"},
-
-  {3010, 301, 3, "<- parent menu"},
-  {3011, 301, -1, "Normal"},
-  {3012, 301, -1, "Flip vertical"},
-
-  {3020, 302, 3, "<- parent menu"},
-  {3021, 302, -1, "Auto mode"},
-  {3022, 302, -1, "Basic info"},
-  {3023, 302, -1, "Speed"},
-  {3024, 302, -1, "Battery cells"},
-  {3025, 302, -1, "Charging graph"},
-  
-  {4010, 401, 4, "<- parent menu"},
-  {4011, 401, -1, "Kilometers"},
-  {4012, 401, -1, "Miles"},
-
-  {4020, 402, 4, "<- parent menu"},
-  {4021, 402, -1, "Celsius"},
-  {4022, 402, -1, "Fahrenheit"},
-
-  {4030, 403, 4, "<- parent menu"},
-  {4031, 403, -1, "Bar"},
-  {4032, 403, -1, "Psi"},
-
-  {9999, 9998, 0, "List of BLE devices"},
-  {10000, 9999, 0, "<- parent menu"},
-  {10001, 9999, -1, "-"},
-  {10002, 9999, -1, "-"},
-  {10003, 9999, -1, "-"},
-  {10004, 9999, -1, "-"},
-  {10005, 9999, -1, "-"},
-  {10006, 9999, -1, "-"},
-  {10007, 9999, -1, "-"},
-  {10008, 9999, -1, "-"},
-  {10009, 9999, -1, "-"},
-};
-
-// debug screen - move with right button
+// Debug screen - next command with right button
 uint16_t debugCommandIndex = 0;
 String debugAtshRequest = "ATSH7E4";
 String debugCommandRequest = "220101";
 String debugLastString = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
 String debugPreviousString = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
-
+bool debugTmpCharging = false;
+String debugTmpChargingLast05 = "";
+String debugTmpChargingPrevious05 = "";
+String debugTmpChargingRef05 = "620105003FFF900000000000000000--####################--------00000000--0000----##00--00000000AAAA";
+String debugTmpChargingLast06 = "";
+String debugTmpChargingPrevious06 = "";
+String debugTmpChargingRef06 = "620106FFFFFFFF--00--########################00--28EA00";
 
 /**
   Load settings from flash memory, upgrade structure if version differs
@@ -239,7 +169,7 @@ bool loadSettings() {
 
   // Init
   settings.initFlag = 183;
-  settings.settingsVersion = 1;
+  settings.settingsVersion = 2;
   settings.carType = CAR_KIA_ENIRO_2020_64;
 
   // Default OBD adapter MAC and UUID's
@@ -257,14 +187,13 @@ bool loadSettings() {
   settings.temperatureUnit = 'c';
   settings.pressureUnit = 'b';
   settings.defaultScreen = 1;
+  settings.lcdBrightness = 0;
+  settings.debugScreen = 0;
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
   EEPROM.get(0, tmpSettings);
-  if (tmpSettings.defaultScreen < 1 || tmpSettings.defaultScreen > 5) { 
-    tmpSettings.defaultScreen = 1;
-  }
 
   // Init flash with default settings
   if (tmpSettings.initFlag != 183) {
@@ -273,6 +202,18 @@ bool loadSettings() {
   } else {
     Serial.print("Loaded settings ver.: ");
     Serial.println(settings.settingsVersion);
+
+    // Upgrade structure
+    if (settings.settingsVersion != tmpSettings.settingsVersion) {
+      if (tmpSettings.settingsVersion == 1) {
+        tmpSettings.settingsVersion = 2;
+        tmpSettings.defaultScreen = settings.defaultScreen;
+        tmpSettings.lcdBrightness = settings.lcdBrightness;
+        tmpSettings.debugScreen = settings.debugScreen;
+      }
+      saveSettings();
+    }
+
     // Save version? No need to upgrade structure
     if (settings.settingsVersion == tmpSettings.settingsVersion) {
       settings = tmpSettings;
@@ -307,12 +248,14 @@ bool initStructure() {
   params.lightInfo = 0;
   params.headLights = false;
   params.dayLights = false;
+  params.brakeLights = false;
   params.brakeLightInfo = 0;
   params.forwardDriveMode = false;
   params.reverseDriveMode = false;
   params.parkModeOrNeutral = false;
   params.espState = 0;
   params.speedKmh = -1;
+  params.motorRpm = -1;
   params.odoKm = -1;
   params.socPerc = -1;
   params.sohPerc = -1;
@@ -346,6 +289,10 @@ bool initStructure() {
   params.coolingWaterTempC = -1;
   params.coolantTemp1C = -1;
   params.coolantTemp2C = -1;
+  params.bmsUnknownTempA = -1;
+  params.bmsUnknownTempB = -1;
+  params.bmsUnknownTempC = -1;
+  params.bmsUnknownTempD = -1;
   params.auxPerc = -1;
   params.auxCurrentAmp = -1;
   params.auxVoltage = -1;
@@ -707,9 +654,14 @@ bool drawSceneSpeed(bool force) {
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   posx = 5;
   posy = 5;
-  sprintf(tmpStr3, ((settings.distanceUnit == 'k') ? "%01.00fkm  " : "%01.00fmi  "), km2distance(params.odoKm));
   tft.setTextDatum(TL_DATUM);
+  sprintf(tmpStr3, ((settings.distanceUnit == 'k') ? "%01.00fkm  " : "%01.00fmi  "), km2distance(params.odoKm));
   tft.drawString(tmpStr3, posx, posy, GFXFF);
+  if (params.motorRpm > -1) {
+    tft.setTextDatum(TR_DATUM);
+    sprintf(tmpStr3, "     %01.00frpm" , params.motorRpm);
+    tft.drawString(tmpStr3, 320 - posx, posy, GFXFF);
+  }
 
   // Bottom info
   // Cummulative regen/power
@@ -735,15 +687,8 @@ bool drawSceneSpeed(bool force) {
   tft.setTextDatum(MC_DATUM);
   sprintf(tmpStr3, "%01.00f", celsius2temperature(params.batTempC));
   tft.drawString(tmpStr3, 290, 60, GFXFF);
-
-  tft.setTextDatum(MR_DATUM);
-  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-  sprintf(tmpStr3, "  %d", params.brakeLightInfo);
-  tft.drawString(tmpStr3, 250, 50, GFXFF);
-  sprintf(tmpStr3, "  %d", params.lightInfo);
-  tft.drawString(tmpStr3, 250, 80, GFXFF);
-  //sprintf(tmpStr3, "  %d", params.driveMode);
-  //tft.drawString(tmpStr3, 250, 80, GFXFF);
+  // Brake lights
+  tft.fillRect(210, 30, 40, 40, (params.brakeLights) ? TFT_RED : TFT_RED);
 
   // Soc%, bat.kWh
   tft.setFreeFont(&Orbitron_Light_32);
@@ -838,6 +783,11 @@ bool drawSceneChargingGraph(bool force) {
   int posy = 0;
   int16_t color;
 
+  // Debug info
+  if (debugTmpCharging) {
+    tft.fillScreen(TFT_BLACK);
+  }
+
   sprintf(tmpStr1, "%01.00f", params.socPerc);
   drawSmallRect(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
   sprintf(tmpStr1, "%01.01f", params.batPowerKw);
@@ -930,27 +880,39 @@ bool drawSceneChargingGraph(bool force) {
     tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (params.batFanFeedbackHz != -1) {
+  tft.setTextColor(TFT_WHITE, TFT_TEMP);
+  if (params.batFanFeedbackHz > 0) {
     sprintf(tmpStr1, "FF=%03.00fHz", params.batFanFeedbackHz);
-    tft.setTextColor(TFT_WHITE, TFT_TEMP);
     tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (params.batFanStatus != -1) {
+  if (params.batFanStatus > 0) {
     sprintf(tmpStr1, "FS=%03.00f", params.batFanStatus);
-    tft.setTextColor(TFT_WHITE, TFT_TEMP);
     tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (params.coolantTemp1C != -1) {
-    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C1:%01.00fC" : "C1:%01.00fF"), celsius2temperature(params.coolantTemp1C));
-    tft.setTextColor(TFT_WHITE, TFT_TEMP);
+  if (params.coolantTemp1C != -1 && params.coolantTemp2C != -1) {
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00fC" : "C1/2:%01.00f/%01.00fF"), celsius2temperature(params.coolantTemp1C), celsius2temperature(params.coolantTemp2C));
     tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (params.coolantTemp2C != -1) {
-    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C2:%01.00fC" : "C2:%01.00fF"), celsius2temperature(params.coolantTemp2C));
-    tft.setTextColor(TFT_WHITE, TFT_TEMP);
+  if (params.bmsUnknownTempA != -1) {
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "A=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempA));
+    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    posy++;
+  }
+  if (params.bmsUnknownTempB != -1) {
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "B=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempB));
+    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    posy++;
+  }
+  if (params.bmsUnknownTempC != -1) {
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempC));
+    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    posy++;
+  }
+  if (params.bmsUnknownTempD != -1) {
+    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "D=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempD));
     tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
@@ -961,9 +923,53 @@ bool drawSceneChargingGraph(bool force) {
     sprintf(tmpStr1, "%02d:%02d:%02d", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
   else
     sprintf(tmpStr1, "%02d:%02d", (diffTime / 60), diffTime % 60);
-  tft.setTextDatum(TC_DATUM);
+  tft.setTextDatum(TL_DATUM);
   tft.setTextColor(TFT_SILVER, TFT_BLACK);
-  tft.drawString(tmpStr1, 160 - 10, 225, 2);
+  tft.drawString(tmpStr1, 0, zeroY - (maxKw * mulY), 2);
+
+  // Debug info
+  if (debugTmpCharging) {
+    if (params.currentTime % 10 > 5) {
+      int32_t posx, posy;
+      String chHex, chHex2, chRef;
+      uint8_t chByte;
+
+      tft.setTextSize(1); // Size for small 5x7 font
+      tft.setTextColor(TFT_SILVER, TFT_TEMP);
+      tft.setTextDatum(TR_DATUM);
+      // tft.fillRect(0, 240-104, 320, 104, TFT_BLACK);
+
+      for (int i = 0; i < debugTmpChargingLast05.length() / 2; i++) {
+        chHex = debugTmpChargingLast05.substring(i * 2, (i * 2) + 2);
+        chHex2 = debugTmpChargingPrevious05.substring(i * 2, (i * 2) + 2);
+        chRef = debugTmpChargingRef05.substring(i * 2, (i * 2) + 2);
+        if (chRef.equals("--") || chRef.equals(chHex))
+          continue;
+        tft.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
+        chByte = hexToDec(chHex.c_str(), 1, false);
+        posx = (((i) % 10) * 32) + 24;
+        posy = ((floor((i) / 10)) * 13) + 240 - 104;
+        sprintf(tmpStr1, "%03d", chByte);
+        tft.drawString(tmpStr1, posx + 4, posy, 2);
+      }
+      for (int i = 0; i < debugTmpChargingLast06.length() / 2; i++) {
+        chHex = debugTmpChargingLast06.substring(i * 2, (i * 2) + 2);
+        chHex2 = debugTmpChargingPrevious06.substring(i * 2, (i * 2) + 2);
+        chRef = debugTmpChargingRef06.substring(i * 2, (i * 2) + 2);
+        if (chRef.equals("--") || chRef.equals(chHex))
+          continue;
+        tft.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
+        chByte = hexToDec(chHex.c_str(), 1, false);
+        posx = (((i) % 10) * 32) + 24;
+        posy = ((floor((i) / 10)) * 13) + 65 + 240 - 104;
+        sprintf(tmpStr1, "%03d", chByte);
+        tft.drawString(tmpStr1, posx + 4, posy, 2);
+      }
+
+      debugTmpChargingPrevious05 = debugTmpChargingLast05;
+      debugTmpChargingPrevious06 = debugTmpChargingLast06;
+    }
+  }
 
   return true;
 }
@@ -1071,6 +1077,7 @@ bool drawSceneDebug(bool force) {
   tft.setTextDatum(TL_DATUM);
   tft.drawString(debugAtshRequest, 0, 0, 2);
   tft.drawString(debugCommandRequest, 128, 0, 2);
+  tft.drawString(commandRequest, 256, 0, 2);
   tft.setTextDatum(TR_DATUM);
 
   for (int i = 0; i < debugLastString.length() / 2; i++) {
@@ -1223,12 +1230,20 @@ bool menuItemClick() {
       // Screen orientation
       case 3011: settings.displayRotation = 1; tft.setRotation(settings.displayRotation); break;
       case 3012: settings.displayRotation = 3; tft.setRotation(settings.displayRotation); break;
-      // Default screen 
+      // Default screen
       case 3021: settings.defaultScreen = 1; break;
       case 3022: settings.defaultScreen = 2; break;
       case 3023: settings.defaultScreen = 3; break;
       case 3024: settings.defaultScreen = 4; break;
       case 3025: settings.defaultScreen = 5; break;
+      // Debug screen off/on
+      case 3031: settings.debugScreen = 0; break;
+      case 3032: settings.debugScreen = 1; break;
+      // Lcd brightness
+      case 3041: settings.lcdBrightness = 0; break;
+      case 3042: settings.lcdBrightness = 20; break;
+      case 3043: settings.lcdBrightness = 50; break;
+      case 3044: settings.lcdBrightness = 100; break;
       // Distance
       case 4011: settings.distanceUnit = 'k'; break;
       case 4012: settings.distanceUnit = 'm'; break;
@@ -1269,6 +1284,8 @@ bool redrawScreen(bool force) {
     return false;
   }
 
+  tft.startWrite();
+
   // Clear screen if needed
   if (force) {
     tft.fillScreen(TFT_BLACK);
@@ -1281,6 +1298,8 @@ bool redrawScreen(bool force) {
     tft.setTextColor(TFT_WHITE, TFT_RED);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
+    tft.endWrite();
+
     nextFrameFullRedraw = true;
     return true;
   }
@@ -1341,6 +1360,9 @@ bool redrawScreen(bool force) {
     tft.drawString(" BLE4 OBDII not connected... ", 0, 240 / 2, 2);
     tft.drawString(" Press middle button to menu. ", 0, (240 / 2) + tft.fontHeight(), 2);
   }
+
+  tft.endWrite();
+
   return true;
 }
 
@@ -1406,6 +1428,12 @@ bool parseRowMerged() {
       debugCommandRequest = commandRequest;
       debugLastString  = responseRowMerged;
     }
+  }
+  if (debugTmpCharging && currentAtshRequest.equals("ATSH7E4")) {
+    if (commandRequest.equals("220105"))
+      debugTmpChargingLast05 = responseRowMerged;
+    if (commandRequest.equals("220106"))
+      debugTmpChargingLast06 = responseRowMerged;
   }
 
   // Parse by car
@@ -1731,6 +1759,7 @@ void setup(void) {
 
   //  tft.invertDisplay(false);  // ONLY TTGO-TM
   tft.setRotation(settings.displayRotation);
+  analogWrite(TFT_BL, (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
   tft.fillScreen(TFT_BLACK);
   redrawScreen(true);
 
@@ -1842,10 +1871,10 @@ void loop() {
         menuMove(false);
       } else {
         displayScreen++;
-        if (displayScreen > displayScreenCount)
+        if (displayScreen > displayScreenCount - (settings.debugScreen == 0) ? 1 : 0)
           displayScreen = 0; // rotate screens
         // Turn off display on screen 0
-        digitalWrite(TFT_BL, (displayScreen == 0) ? LOW : HIGH);
+        analogWrite(TFT_BL, (displayScreen == 0) ? 0 : (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
         redrawScreen(true);
       }
     }
@@ -1860,8 +1889,8 @@ void loop() {
         menuMove(true);
       } else {
         // doAction
-        if (displayScreen == 7) {
-          debugCommandIndex = (debugCommandIndex >= commandQueueCount) ? commandQueueLoopFrom : debugCommandIndex +1;
+        if (settings.debugScreen == 1 && displayScreen == 7) {
+          debugCommandIndex = (debugCommandIndex >= commandQueueCount) ? commandQueueLoopFrom : debugCommandIndex + 1;
           redrawScreen(true);
         }
 
@@ -1873,5 +1902,4 @@ void loop() {
   struct tm now;
   getLocalTime(&now, 0);
   params.currentTime = mktime(&now);
-  delay(1);
 }

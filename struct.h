@@ -27,11 +27,13 @@ typedef struct {
   bool parkModeOrNeutral;
   bool headLights;
   bool dayLights;
+  bool brakeLights;
   uint8_t lightInfo;
   uint8_t brakeLightInfo;
   uint8_t espState;
   float batteryTotalAvailableKWh; 
   float speedKmh;
+  float motorRpm;
   float odoKm;
   float socPerc;
   float sohPerc;
@@ -60,6 +62,10 @@ typedef struct {
   float coolingWaterTempC;
   float coolantTemp1C;
   float coolantTemp2C;
+  float bmsUnknownTempA;
+  float bmsUnknownTempB;
+  float bmsUnknownTempC;
+  float bmsUnknownTempD;
   float auxPerc;
   float auxCurrentAmp;
   float auxVoltage;
@@ -101,7 +107,7 @@ typedef struct {
 // Setting stored to flash
 typedef struct {
   byte initFlag; // 183 value
-  byte settingsVersion; // 1
+  byte settingsVersion; // current 2
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
   char obdMacAddress[20];
   char serviceUUID[40];
@@ -111,7 +117,10 @@ typedef struct {
   char distanceUnit; // k - kilometers
   char temperatureUnit; // c - celsius
   char pressureUnit; // b - bar
+  // version 2
   byte defaultScreen; // 1 .. 6
+  byte lcdBrightness; // 0 - auto, 1 .. 100%
+  byte debugScreen; // 0 - off, 1 - on
 } SETTINGS_STRUC;
 
 PARAMS_STRUC params;     // Realtime sensor values
