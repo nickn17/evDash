@@ -49,9 +49,9 @@ Screen list
 ### v1.7.5 2020-11-17
 - Settings: Debug screen off/on 
 - Settings: LCD brightness (auto, 20, 50, 100%)
-- Speed screen: added motor rpm
-- Speed screen: brake lights indicator
+- Speed screen: added motor rpm, brake lights indicator
 - Soc% to kWh is now calibrated for NiroEV/KonaEV 2020
+- eNiroDashboard speed improvements
 
 ### v1.7.4 2020-11-12
 - Added default screen option to settings

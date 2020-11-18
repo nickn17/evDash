@@ -1,5 +1,5 @@
 
-#define commandQueueCountKiaENiro 32
+#define commandQueueCountKiaENiro 30
 #define commandQueueLoopFromKiaENiro 10
 
 String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
@@ -14,10 +14,9 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   //"AT H1",     // Headers on (debug only)
   //"AT D1",     // Display of the DLC on
   //"AT CAF0",   // Automatic formatting off
-  "AT AT0",     // disabled the adaptive timing
-  "AT ST 01",   // reduced the time out to 1
+  ////"AT AT0",     // disabled adaptive timing
   "AT DP",
-  "AT ST10",    // orig ST16
+  "AT ST10",    // reduced timeout to 1, orig.16
 
   // Loop from (KIA ENIRO)
 

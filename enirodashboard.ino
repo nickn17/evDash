@@ -1811,8 +1811,6 @@ void setup(void) {
 */
 void loop() {
 
-  //Serial.println("Loop");
-
   // Connect BLE device
   if (bleConnect == true && foundMyBleDevice != NULL) {
     pServerAddress = new BLEAddress(settings.obdMacAddress);
@@ -1833,13 +1831,12 @@ void loop() {
     }
   }
 
-  // Send line from TTY to OBD (custom command)
+  // Send command from TTY to OBD2
   if (bleConnected) {
     if (Serial.available()) {
       ch = Serial.read();
       line = line + ch;
       if (ch == '\r' || ch == '\n') {
-        Serial.print("Sending line: ");
         Serial.println(line);
         pRemoteCharacteristicWrite->writeValue(line.c_str(), line.length());
         line = "";
@@ -1853,7 +1850,9 @@ void loop() {
     }
   }
 
-  // Handle buttons (under construction) LOW - pressed, HIGH - not pressed
+  ///////////////////////////////////////////////////////////////////////
+  // Handle buttons
+  // MIDDLE - menu select
   if (digitalRead(BUTTON_MIDDLE) == HIGH) {
     btnMiddlePressed = false;
   } else {
@@ -1866,6 +1865,7 @@ void loop() {
       }
     }
   }
+  // LEFT - screen rotate, menu
   if (digitalRead((settings.displayRotation == 1) ? BUTTON_RIGHT : BUTTON_LEFT) == HIGH) {
     btnLeftPressed = false;
   } else {
@@ -1884,6 +1884,7 @@ void loop() {
       }
     }
   }
+  // RIGHT - menu, debug screen rotation
   if (digitalRead((settings.displayRotation == 1) ? BUTTON_LEFT : BUTTON_RIGHT) == HIGH) {
     btnRightPressed = false;
   } else {
