@@ -1,6 +1,6 @@
 # KIA ENIRO DASHBOARD
 
-OBDII dashboard supports this hardware
+Supported devices
 1. LILYGO TTGO T4 v1.3
 2. M5STACK CORE1 IOT Development Kit
 
@@ -23,6 +23,7 @@ Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help. Thank 
 Board
 - M5STACK CORE1 IOT Development Kit(~EUR 35)
   https://rlx.sk/sk/m5stack/7285-esp32-basic-core-iot-development-kit-m5-k001-m5stack.html
+  
 or 
 - LILYGO TTGO T4 v1.3 (~USD $30) https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
 I RECOMMEND TO REMOVE LION BATTERY DUE TO HIGH SUMMER TEMPERATURES
