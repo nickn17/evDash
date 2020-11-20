@@ -1,13 +1,21 @@
-#ifdef BOARD_TTGO_T4
+////////////////////////////////////////////////////////////
+// SELECT HARDWARE !!!!
+////////////////////////////////////////////////////////////
+
+//#define BOARD_TTGO_T4
+#define BOARD_M5STACK_CORE
+
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
 #define USER_SETUP_LOADED 1
 #define SPI_FREQUENCY  27000000
-#define SPI_READ_FREQUENCY  20000000
 #define SPI_TOUCH_FREQUENCY  2500000
 
-/////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 // BOARD LILYGO TTGO T4 v1.3
 /////////////////////////////////////////////////////////////
+#ifdef BOARD_TTGO_T4
 #define ILI9341_DRIVER
 #define TFT_MISO 12
 #define TFT_MOSI 23
@@ -21,14 +29,14 @@
 #define BUTTON_LEFT 38
 #define BUTTON_MIDDLE 37
 #define BUTTON_RIGHT 39
-
 #endif // BOARD_TTGO_T4
-
 
 /////////////////////////////////////////////////////////////
 // BOARD M5STACK CORE IOT (M5-K001)
 /////////////////////////////////////////////////////////////
-/*#define ILI9341_DRIVER
+#ifdef BOARD_M5STACK_CORE
+#define USER_SETUP_LOADED 1
+#define ILI9341_DRIVER
 #define M5STACK
 #define TFT_MISO 19
 #define TFT_MOSI 23
@@ -39,10 +47,13 @@
 #define TFT_BL   32  // LED back-light
 #define SPI_FREQUENCY  27000000
 #define SPI_READ_FREQUENCY  5000000
-#define BUTTON_LEFT 39
+#define BUTTON_LEFT 37
 #define BUTTON_MIDDLE 38
-#define BUTTON_RIGHT 37
-#define SPEAKER 25*/
+#define BUTTON_RIGHT 39
+#define SPEAKER 25
+#define INVERT_DISPLAY
+#endif // BOARD_M5STACK_CORE
+
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 

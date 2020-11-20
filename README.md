@@ -1,17 +1,38 @@
 # KIA ENIRO DASHBOARD
 
-OBDII dashboard for TTGO-T4 module (ESP32) + OBD BLE4.0 adapter. Working on Kia e-NIRO (EV) and Hyundai Kona.
+OBDII dashboard is now supporting 2 different hardware. 
+1. LILYGO TTGO T4 v1.3
+2. M5STACK CORE1 IOT Development Kit
+Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. 
+
+Working with only with electric vehicles 
+- Kia e-NIRO (EV)
+- Hyundai Kona EV
+- Hyundai Ioniq EV
+
 Use it at your own risk!
 Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 
-## Hardware 
-- LILYGO TTGO T4 v1.3 
-  ~USD $30 https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
-  I RECOMEND TO REMOVE LION BATTERY IF INCLUDED! But be very very carefull. I will make video when I get new TTGO
-- OBD BLE4.0 adapter. 
-  Officialy supported is only this model...  
-  Vgate iCar Pro Bluetooth 4.0 (BLE) OBD2 ~USD $30    
-- 3D printed case... 
+## Supporting me
+
+- Buy Me a Beer via paypal https://www.paypal.me/nickn17
+- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
+Thank you for supporting me. Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help.
+
+## Required hardware
+Board
+- M5STACK CORE1 IOT Development Kit(~EUR 35)
+  https://rlx.sk/sk/m5stack/7285-esp32-basic-core-iot-development-kit-m5-k001-m5stack.html
+or 
+- LILYGO TTGO T4 v1.3 (~USD $30) https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
+I RECOMMEND TO REMOVE LION BATTERY DUE TO HIGH SUMMER TEMPERATURES
+
+OBD2 adapter
+- Officialy supported is only this model...  
+  Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30)
+
+Others
+- 3D printed case for TTGO-T4
   https://www.thingiverse.com/thing:3099913
 
 ## Quick installation with ESP32 flash tool
@@ -19,32 +40,30 @@ Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 Guide is here
 https://docs.google.com/document/d/1nEezrtXY-8X6mQ1hiZVWDjBVse1sXQg1SlnizaRmJwU/edit?usp=sharing
 
-## Supporting me
-
-- Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
-
-Thank you for supporting me.
-
-Many thanks to Blas, Jens, Калин and others for help.
-
 ## Screens and shortcuts
 - Middle button - menu 
 - Left button - toggle screens
 
 Screen list
 - no0. blank screen, lcd off
-- no1. summary info (default)
-- no2. speed kmh + kwh/100km (or kw for discharge)
-- no3. battery cells + battery module temperatures
-- no4. charging graph
-- no5. consumption table. Can be used to measure available battery capacity! 
+- no1. auto mode (summary info / speed kmh / charging graph)
+- no2. summary info (default)
+- no3. speed kmh + kwh/100km (or kw for discharge)
+- no4. battery cells + battery module temperatures
+- no5. charging graph
+- no6. consumption table. Can be used to measure available battery capacity! 
+- no7. debug screen (default off in the menu)
+
 
 ![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
 
 [![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
 
 ## Release notes
+
+### v1.8.0 2020-11-20
+- Support for new device m5stack core1 iot development kit
+- TTGO T4 is still supported device!
     
 ### v1.7.5 2020-11-17
 - Settings: Debug screen off/on 

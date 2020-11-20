@@ -1,6 +1,6 @@
 /*
 
-  KIA eNiro Dashboard 1.7.3, 2020-11-11
+  KIA eNiro Dashboard 1.8.0, 2020-11-20
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
@@ -27,13 +27,15 @@
   <= 0°C BMS allows max 40A
 */
 
-#include "config.h"
+#define APP_VERSION "v1.8.0e"
+
 #include "SPI.h"
 #include "TFT_eSPI.h"
 #include "BLEDevice.h"
 #include <EEPROM.h>
 #include <sys/time.h>
 #include <analogWrite.h>
+#include "config.h"
 #include "struct.h"
 #include "menu.h"
 #include "car_kia_eniro.h"
@@ -88,6 +90,21 @@ String debugTmpChargingRef05 = "620105003FFF900000000000000000--################
 String debugTmpChargingLast06 = "";
 String debugTmpChargingPrevious06 = "";
 String debugTmpChargingRef06 = "620106FFFFFFFF--00--########################00--28EA00";
+
+/**
+   Clear screen a display two lines message
+*/
+bool displayMessage(const char* row1, const char* row2) {
+
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextDatum(ML_DATUM);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setFreeFont(&Roboto_Thin_24);
+  tft.setTextDatum(BL_DATUM);
+  tft.drawString(row1, 0, 240 / 2, GFXFF);
+  tft.drawString(row2, 0, (240 / 2) + 30, GFXFF);
+  return true;
+}
 
 /**
   Load settings from flash memory, upgrade structure if version differs
@@ -308,21 +325,6 @@ float celsius2temperature(float inCelsius) {
 */
 float bar2pressure(float inBar) {
   return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
-}
-
-/**
-   Clear screen a display two lines message
-*/
-bool displayMessage(const char* row1, const char* row2) {
-
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextDatum(ML_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setFreeFont(&Roboto_Thin_24);
-  tft.setTextDatum(BL_DATUM);
-  tft.drawString(row1, 0, 240 / 2, GFXFF);
-  tft.drawString(row2, 0, (240 / 2) + 30, GFXFF);
-  return true;
 }
 
 /**
@@ -661,7 +663,7 @@ bool drawSceneSpeed(bool force) {
     float capacity = params.batteryTotalAvailableKWh * (params.socPerc / 100);
     // calibration for Niro/Kona, real available capacity is ~66.5kWh, 0-10% ~6.2kWh, 90-100% ~7.2kWh
     if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64) {
-      capacity = (params.socPerc*0.615)*(1+(params.socPerc*0.0008));
+      capacity = (params.socPerc * 0.615) * (1 + (params.socPerc * 0.0008));
     }
     sprintf(tmpStr3, " %01.01f", capacity);
     tft.drawString(tmpStr3, 320, 129, GFXFF);
@@ -1323,8 +1325,10 @@ bool redrawScreen(bool force) {
     tft.setTextSize(1);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextDatum(TL_DATUM);
-    tft.drawString(" BLE4 OBDII not connected... ", 0, 240 / 2, 2);
-    tft.drawString(" Press middle button to menu. ", 0, (240 / 2) + tft.fontHeight(), 2);
+    tft.drawString(" BLE4 OBDII not connected... ", 0, (240 / 2) - tft.fontHeight(), 2);
+    tft.drawString(" Press middle button to menu. ", 0, (240 / 2), 2);
+    tft.drawString(APP_VERSION, 0, (240 / 2) + tft.fontHeight(), 2);
+    
   }
 
   tft.endWrite();
@@ -1723,7 +1727,10 @@ void setup(void) {
   Serial.println("Init TFT display");
   tft.begin();
 
-  //  tft.invertDisplay(false);  // ONLY TTGO-TM
+#ifdef INVERT_DISPLAY
+  tft.invertDisplay(true);
+#endif // INVERT_DISPLAY
+
   tft.setRotation(settings.displayRotation);
   analogWrite(TFT_BL, (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
   tft.fillScreen(TFT_BLACK);
