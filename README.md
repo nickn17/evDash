@@ -1,6 +1,6 @@
 # KIA ENIRO DASHBOARD
 
-OBDII dashboard is now supporting 2 different hardware. 
+OBDII dashboard supports this hardware
 1. LILYGO TTGO T4 v1.3
 2. M5STACK CORE1 IOT Development Kit
 
