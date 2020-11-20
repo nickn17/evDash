@@ -16,9 +16,13 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   //"AT CAF0",   // Automatic formatting off
   ////"AT AT0",     // disabled adaptive timing
   "AT DP",
-  "AT ST10",    // reduced timeout to 1, orig.16
+  "AT ST16",    // reduced timeout to 1, orig.16
 
   // Loop from (KIA ENIRO)
+
+  // ABS / ESP + AHB
+  "ATSH7D1",
+  "22C101",     // brake, park/drive mode
 
   // IGPM
   "ATSH770",
@@ -39,10 +43,6 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   "220105",   // soh, soc, ..
   "220106",   // cooling water temp
 
-  // ABS / ESP + AHB
-  "ATSH7D1",
-  "22C101",     // brake, park/drive mode
-
   // Aircondition
   "ATSH7B3",
   "220100",   // in/out temp
@@ -55,6 +55,7 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   // CLUSTER MODULE
   "ATSH7C6",
   "22B002",   // odo
+ 
 };
 
 /**
