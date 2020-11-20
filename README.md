@@ -3,9 +3,8 @@
 OBDII dashboard is now supporting 2 different hardware. 
 1. LILYGO TTGO T4 v1.3
 2. M5STACK CORE1 IOT Development Kit
-Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. 
 
-Working with only with electric vehicles 
+Working with only with electric vehicles. Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. 
 - Kia e-NIRO (EV)
 - Hyundai Kona EV
 - Hyundai Ioniq EV
