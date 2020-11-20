@@ -29,8 +29,7 @@ or
 I RECOMMEND TO REMOVE LION BATTERY DUE TO HIGH SUMMER TEMPERATURES
 
 OBD2 adapter
-- Officialy supported is only this model...  
-  Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30)
+- Supported is only this model... Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30)
 
 Others
 - 3D printed case for TTGO-T4
