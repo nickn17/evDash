@@ -27,7 +27,7 @@
   <= 0°C BMS allows max 40A
 */
 
-#define APP_VERSION "v1.8.0e"
+#define APP_VERSION "v1.8.0f"
 
 #include "SPI.h"
 #include "TFT_eSPI.h"
@@ -69,8 +69,9 @@ char tmpStr4[20];
 
 // Screens, buttons
 #define displayScreenCount 7
-byte displayScreen  = 1; // 0 - blank screen, 1 - automatic mode, 2 - dash board (default), 3 - big speed + kwh/100, 4 - battery cells, 5 - charging graph, 6 - soc10% CED table, 7 - debug screen
+byte displayScreen  = SCREEN_AUTO;
 byte displayScreenAutoMode = 0;
+byte displayScreenSpeedHud = false;
 bool btnLeftPressed   = true;
 bool btnMiddlePressed = true;
 bool btnRightPressed  = true;
@@ -590,11 +591,51 @@ bool drawSceneSpeed(bool force) {
 
   int32_t posx, posy;
 
+  // HUD
+  if (displayScreenSpeedHud) {
+
+    // Change rotation to vertical & mirror
+    if (tft.getRotation() != 6)
+      tft.setRotation(6);
+
+    tft.fillRect(0, 0, 240, 320, TFT_BLACK);
+    tft.setTextDatum(TR_DATUM); // top-right alignment
+    tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
+
+    // Draw speed
+    tft.setTextSize((params.speedKmh > 99) ? 1 : 2);
+    sprintf(tmpStr3, "0");
+    if (params.speedKmh > 10)
+      sprintf(tmpStr3, "%01.00f", km2distance(params.speedKmh));
+    tft.drawString(tmpStr3, 240, 0, 8);
+
+    // Draw power kWh/100km (>25kmh) else kW
+    tft.setTextSize(1);
+    if (params.speedKmh > 25 && params.batPowerKw < 0)
+      sprintf(tmpStr3, "%01.01f", km2distance(params.batPowerKwh100));
+    else
+      sprintf(tmpStr3, "%01.01f", params.batPowerKw);
+    tft.drawString(tmpStr3, 240, 150, 8);
+
+    // Draw soc%
+    sprintf(tmpStr3, "%01.00f", params.socPerc);
+    tft.drawString(tmpStr3, 240 , 230, 8);
+
+    // Cold gate cirlce
+    tft.fillCircle(30, 280, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+
+    // Brake lights
+    tft.fillRect(0, 310, 240, 10, (params.brakeLights) ? TFT_RED : TFT_BLACK);
+
+    return true;
+  }
+
+  //
   tft.fillRect(0, 36, 200, 160, TFT_DARKRED);
 
   posx = 320 / 2;
   posy = 40;
-  tft.setTextDatum(TR_DATUM); // Top center
+  tft.setTextDatum(TR_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_DARKRED);
   tft.setTextSize(2); // Size for small 5cix7 font
   sprintf(tmpStr3, "0");
@@ -1273,7 +1314,7 @@ bool redrawScreen(bool force) {
   }
 
   // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
-  if (displayScreen == 1) {
+  if (displayScreen == SCREEN_AUTO) {
     if (params.speedKmh > 5) {
       if (displayScreenAutoMode != 3) {
         tft.fillScreen(TFT_BLACK);
@@ -1295,27 +1336,27 @@ bool redrawScreen(bool force) {
     }
   }
   // 2. Main screen
-  if (displayScreen == 2) {
+  if (displayScreen == SCREEN_DASH) {
     drawSceneMain(force);
   }
   // 3. Big speed + kwh/100km
-  if (displayScreen == 3) {
+  if (displayScreen == SCREEN_SPEED) {
     drawSceneSpeed(force);
   }
   // 4. Battery cells
-  if (displayScreen == 4) {
+  if (displayScreen == SCREEN_CELLS) {
     drawSceneBatteryCells(force);
   }
   // 5. Charging graph
-  if (displayScreen == 5) {
+  if (displayScreen == SCREEN_CHARGING) {
     drawSceneChargingGraph(force);
   }
   // 6. SOC10% table (CEC-CED)
-  if (displayScreen == 6) {
+  if (displayScreen == SCREEN_SOC10) {
     drawSceneSoc10Table(force);
   }
   // 7. DEBUG SCREEN
-  if (displayScreen == 7) {
+  if (displayScreen == SCREEN_DEBUG) {
     drawSceneDebug(force);
   }
 
@@ -1328,7 +1369,6 @@ bool redrawScreen(bool force) {
     tft.drawString(" BLE4 OBDII not connected... ", 0, (240 / 2) - tft.fontHeight(), 2);
     tft.drawString(" Press middle button to menu. ", 0, (240 / 2), 2);
     tft.drawString(APP_VERSION, 0, (240 / 2) + tft.fontHeight(), 2);
-    
   }
 
   tft.endWrite();
@@ -1392,7 +1432,7 @@ bool parseRowMerged() {
   Serial.println(responseRowMerged);
 
   // Catch output for debug screen
-  if (displayScreen == 7) {
+  if (displayScreen == SCREEN_DEBUG) {
     if (debugCommandIndex == commandQueueIndex) {
       debugAtshRequest = currentAtshRequest;
       debugCommandRequest = commandRequest;
@@ -1826,6 +1866,7 @@ void loop() {
   } else {
     if (!btnMiddlePressed) {
       btnMiddlePressed = true;
+      tft.setRotation(settings.displayRotation);
       if (menuVisible) {
         menuItemClick();
       } else {
@@ -1839,6 +1880,7 @@ void loop() {
   } else {
     if (!btnLeftPressed) {
       btnLeftPressed = true;
+      tft.setRotation(settings.displayRotation);
       // Menu handling
       if (menuVisible) {
         menuMove(false);
@@ -1847,7 +1889,7 @@ void loop() {
         if (displayScreen > displayScreenCount - (settings.debugScreen == 0) ? 1 : 0)
           displayScreen = 0; // rotate screens
         // Turn off display on screen 0
-        analogWrite(TFT_BL, (displayScreen == 0) ? 0 : (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
+        analogWrite(TFT_BL, (displayScreen == SCREEN_BLANK) ? 0 : (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
         redrawScreen(true);
       }
     }
@@ -1858,12 +1900,17 @@ void loop() {
   } else {
     if (!btnRightPressed) {
       btnRightPressed = true;
+      tft.setRotation(settings.displayRotation);
       // Menu handling
       if (menuVisible) {
         menuMove(true);
       } else {
         // doAction
-        if (settings.debugScreen == 1 && displayScreen == 7) {
+        if (displayScreen == SCREEN_SPEED) {
+          displayScreenSpeedHud = !displayScreenSpeedHud;
+          redrawScreen(true);
+        }
+        if (settings.debugScreen == 1 && displayScreen == SCREEN_DEBUG) {
           debugCommandIndex = (debugCommandIndex >= commandQueueCount) ? commandQueueLoopFrom : debugCommandIndex + 1;
           redrawScreen(true);
         }

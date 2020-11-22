@@ -8,6 +8,16 @@
 #define CAR_RENAULT_ZOE           5
 #define CAR_DEBUG_OBD2_KIA        999
 
+// SCREENS
+#define SCREEN_BLANK  0
+#define SCREEN_AUTO   1
+#define SCREEN_DASH   2
+#define SCREEN_SPEED  3
+#define SCREEN_CELLS  4
+#define SCREEN_CHARGING 5
+#define SCREEN_SOC10  6
+#define SCREEN_DEBUG  7
+
 // Commands loop
 uint16_t commandQueueCount;
 uint16_t commandQueueLoopFrom;
