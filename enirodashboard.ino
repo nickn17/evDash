@@ -337,7 +337,7 @@ float bar2pressure(float inBar) {
 /**
   Draw cell on dashboard
 */
-bool monitoringRect(int32_t x, int32_t y, int32_t w, int32_t h, const char* text, const char* desc, int16_t bgColor, int16_t fgColor) {
+bool monitoringRect(int32_t x, int32_t y, int32_t w, int32_t h, const char* text, const char* desc, uint16_t bgColor, uint16_t fgColor) {
 
   int32_t posx, posy;
 
@@ -418,7 +418,7 @@ bool drawSmallRect(int32_t x, int32_t y, int32_t w, int32_t h, const char* text,
   Show tire pressures / temperatures
   Custom field
 */
-bool showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char* topleft, const char* topright, const char* bottomleft, const char* bottomright, int16_t color) {
+bool showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char* topleft, const char* topright, const char* bottomleft, const char* bottomright, uint16_t color) {
 
   int32_t posx, posy;
 
@@ -818,7 +818,7 @@ bool drawSceneChargingGraph() {
   int mulY = 2; // 100kW = 200px
   int maxKw = 80;
   int posy = 0;
-  int16_t color;
+  uint16_t color;
 
   spr.fillSprite(TFT_BLACK);
 
