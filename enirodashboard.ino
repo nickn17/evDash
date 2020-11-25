@@ -27,7 +27,7 @@
   <= 0°C BMS allows max 40A
 */
 
-#define APP_VERSION "v1.8.2"
+#define APP_VERSION "v1.8.2b"
 
 #include "SPI.h"
 #include "TFT_eSPI.h"
@@ -541,37 +541,38 @@ bool drawSceneSpeed() {
   if (displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
-    if (spr.getRotation() != 6)
-      spr.setRotation(6);
+    if (tft.getRotation() != 6) {
+      tft.setRotation(6);
+    }
 
-    spr.fillRect(0, 0, 240, 320, TFT_BLACK);
-    spr.setTextDatum(TR_DATUM); // top-right alignment
-    spr.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextDatum(TR_DATUM); // top-right alignment
+    tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
-    spr.setTextSize((params.speedKmh > 99) ? 1 : 2);
+    tft.setTextSize((params.speedKmh > 99) ? 1 : 2);
     sprintf(tmpStr3, "0");
     if (params.speedKmh > 10)
       sprintf(tmpStr3, "%01.00f", km2distance(params.speedKmh));
-    spr.drawString(tmpStr3, 240, 0, 8);
+    tft.drawString(tmpStr3, 240, 0, 8);
 
     // Draw power kWh/100km (>25kmh) else kW
-    spr.setTextSize(1);
+    tft.setTextSize(1);
     if (params.speedKmh > 25 && params.batPowerKw < 0)
       sprintf(tmpStr3, "%01.01f", km2distance(params.batPowerKwh100));
     else
       sprintf(tmpStr3, "%01.01f", params.batPowerKw);
-    spr.drawString(tmpStr3, 240, 150, 8);
+    tft.drawString(tmpStr3, 240, 150, 8);
 
     // Draw soc%
     sprintf(tmpStr3, "%01.00f", params.socPerc);
-    spr.drawString(tmpStr3, 240 , 230, 8);
+    tft.drawString(tmpStr3, 240 , 230, 8);
 
     // Cold gate cirlce
-    spr.fillCircle(30, 280, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.fillCircle(30, 280, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
 
     // Brake lights
-    spr.fillRect(0, 310, 240, 10, (params.brakeLights) ? TFT_RED : TFT_BLACK);
+    tft.fillRect(0, 310, 240, 10, (params.brakeLights) ? TFT_RED : TFT_BLACK);
 
     return true;
   }
@@ -1392,18 +1393,20 @@ bool redrawScreen() {
     drawSceneDebug();
   }
 
-  // BLE not connected
-  if (!bleConnected && bleConnect) {
-    // Print message
-    spr.setTextSize(1);
-    spr.setTextColor(TFT_WHITE, TFT_BLACK);
-    spr.setTextDatum(TL_DATUM);
-    spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
-    spr.drawString("Press middle button to menu.", 0, 200, 2);
-    spr.drawString(APP_VERSION, 0, 220, 2);
-  }
+  if (!displayScreenSpeedHud) {
+    // BLE not connected
+    if (!bleConnected && bleConnect) {
+      // Print message
+      spr.setTextSize(1);
+      spr.setTextColor(TFT_WHITE, TFT_BLACK);
+      spr.setTextDatum(TL_DATUM);
+      spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
+      spr.drawString("Press middle button to menu.", 0, 200, 2);
+      spr.drawString(APP_VERSION, 0, 220, 2);
+    }
 
-  spr.pushSprite(0, 0);
+    spr.pushSprite(0, 0);
+  }
 
   return true;
 }
@@ -1811,11 +1814,11 @@ void setup(void) {
   if (psramFound())
     psramUsed = true;
 #endif
-//  if (!psramUsed) {
-//    displayMessage("SRAM support required", "Compile with ESP32 Wrover CPU");
-//    delay(60000);
-//    ESP.restart();
-//  }
+  //  if (!psramUsed) {
+  //    displayMessage("SRAM support required", "Compile with ESP32 Wrover CPU");
+  //    delay(60000);
+  //    ESP.restart();
+  //  }
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   redrawScreen();
