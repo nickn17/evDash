@@ -1811,12 +1811,12 @@ void setup(void) {
   if (psramFound())
     psramUsed = true;
 #endif
-  if (!psramUsed) {
-    displayMessage("SRAM support required", "Compile with ESP32 Wrover CPU");
-    delay(60000);
-    ESP.restart();
-  }
-  spr.setColorDepth(16);
+//  if (!psramUsed) {
+//    displayMessage("SRAM support required", "Compile with ESP32 Wrover CPU");
+//    delay(60000);
+//    ESP.restart();
+//  }
+  spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   redrawScreen();
 
