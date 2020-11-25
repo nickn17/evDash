@@ -1,6 +1,6 @@
 /*
 
-  KIA eNiro Dashboard 1.8.0, 2020-11-20
+  KIA eNiro Dashboard 1.8.2, 2020-11-25
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
@@ -27,7 +27,7 @@
   <= 0°C BMS allows max 40A
 */
 
-#define APP_VERSION "v1.8.0f"
+#define APP_VERSION "v1.8.2"
 
 #include "SPI.h"
 #include "TFT_eSPI.h"
@@ -48,6 +48,7 @@ uint32_t PIN = 1234;
 
 // TFT
 TFT_eSPI tft = TFT_eSPI();
+TFT_eSprite spr = TFT_eSprite(&tft);
 
 // BLUETOOTH4
 static boolean bleConnect = true;
@@ -75,7 +76,6 @@ byte displayScreenSpeedHud = false;
 bool btnLeftPressed   = true;
 bool btnMiddlePressed = true;
 bool btnRightPressed  = true;
-bool nextFrameFullRedraw = true;
 bool testDataMode = false;
 
 // Debug screen - next command with right button
@@ -97,13 +97,15 @@ String debugTmpChargingRef06 = "620106FFFFFFFF--00--########################00--
 */
 bool displayMessage(const char* row1, const char* row2) {
 
+  // Must draw directly, withou sprite (due to psramFound check)
   tft.fillScreen(TFT_BLACK);
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setFreeFont(&Roboto_Thin_24);
   tft.setTextDatum(BL_DATUM);
   tft.drawString(row1, 0, 240 / 2, GFXFF);
-  tft.drawString(row2, 0, (240 / 2) + 30, GFXFF);
+  spr.drawString(row2, 0, (240 / 2) + 30, GFXFF);
+
   return true;
 }
 
@@ -168,6 +170,7 @@ bool loadSettings() {
   settings.defaultScreen = 1;
   settings.lcdBrightness = 0;
   settings.debugScreen = 0;
+  settings.predrawnChargingGraphs = 1;
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -189,6 +192,10 @@ bool loadSettings() {
         tmpSettings.defaultScreen = settings.defaultScreen;
         tmpSettings.lcdBrightness = settings.lcdBrightness;
         tmpSettings.debugScreen = settings.debugScreen;
+      }
+      if (tmpSettings.settingsVersion == 2) {
+        tmpSettings.settingsVersion = 3;
+        tmpSettings.predrawnChargingGraphs = settings.predrawnChargingGraphs;
       }
       saveSettings();
     }
@@ -338,13 +345,13 @@ bool monitoringRect(int32_t x, int32_t y, int32_t w, int32_t h, const char* text
   posx = (x * 80) + 4;
   posy = (y * 60) + 1;
 
-  tft.fillRect(x * 80, y * 60, ((w) * 80) - 1, ((h) * 60) - 1,  bgColor);
-  tft.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
-  tft.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
-  tft.setTextDatum(TL_DATUM); // Topleft
-  tft.setTextColor(TFT_SILVER, bgColor); // Bk, fg color
-  tft.setTextSize(1); // Size for small 5x7 font
-  tft.drawString(desc, posx, posy, 2);
+  spr.fillRect(x * 80, y * 60, ((w) * 80) - 1, ((h) * 60) - 1,  bgColor);
+  spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
+  spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
+  spr.setTextDatum(TL_DATUM); // Topleft
+  spr.setTextColor(TFT_SILVER, bgColor); // Bk, fg color
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.drawString(desc, posx, posy, 2);
 
   // Big 2x2 cell in the middle of screen
   if (w == 2 && h == 2) {
@@ -353,30 +360,30 @@ bool monitoringRect(int32_t x, int32_t y, int32_t w, int32_t h, const char* text
     posx = (x * 80) + 5;
     posy = ((y + h) * 60) - 32;
     sprintf(tmpStr3, "-%01.01f", params.cumulativeEnergyDischargedKWh - params.cumulativeEnergyDischargedKWhStart);
-    tft.setFreeFont(&Roboto_Thin_24);
-    tft.setTextDatum(TL_DATUM);
-    tft.drawString(tmpStr3, posx, posy, GFXFF);
+    spr.setFreeFont(&Roboto_Thin_24);
+    spr.setTextDatum(TL_DATUM);
+    spr.drawString(tmpStr3, posx, posy, GFXFF);
 
     posx = ((x + w) * 80) - 8;
     sprintf(tmpStr3, "+%01.01f", params.cumulativeEnergyChargedKWh - params.cumulativeEnergyChargedKWhStart);
-    tft.setTextDatum(TR_DATUM);
-    tft.drawString(tmpStr3, posx, posy, GFXFF);
+    spr.setTextDatum(TR_DATUM);
+    spr.drawString(tmpStr3, posx, posy, GFXFF);
 
     // Main number - kwh on roads, amps on charges
     posy = (y * 60) + 24;
-    tft.setTextColor(fgColor, bgColor);
-    tft.setFreeFont(&Orbitron_Light_32);
-    tft.drawString(text, posx, posy, 7);
+    spr.setTextColor(fgColor, bgColor);
+    spr.setFreeFont(&Orbitron_Light_32);
+    spr.drawString(text, posx, posy, 7);
 
   } else {
 
     // All others 1x1 cells
-    tft.setTextDatum(MC_DATUM);
-    tft.setTextColor(fgColor, bgColor);
-    tft.setFreeFont(&Orbitron_Light_24);
+    spr.setTextDatum(MC_DATUM);
+    spr.setTextColor(fgColor, bgColor);
+    spr.setFreeFont(&Orbitron_Light_24);
     posx = (x * 80) + (w * 80 / 2) - 3;
     posy = (y * 60) + (h * 60 / 2) + 4;
-    tft.drawString(text, posx, posy, (w == 2 ? 7 : GFXFF));
+    spr.drawString(text, posx, posy, (w == 2 ? 7 : GFXFF));
   }
 
   return true;
@@ -392,18 +399,18 @@ bool drawSmallRect(int32_t x, int32_t y, int32_t w, int32_t h, const char* text,
   posx = (x * 80) + 4;
   posy = (y * 32) + 1;
 
-  tft.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
-  tft.drawFastVLine(((x + w) * 80) - 1, ((y) * 32) - 1, h * 32, TFT_BLACK);
-  tft.drawFastHLine(((x) * 80) - 1, ((y + h) * 32) - 1, w * 80, TFT_BLACK);
-  tft.setTextDatum(TL_DATUM); // Topleft
-  tft.setTextColor(TFT_SILVER, bgColor); // Bk, fg bgColor
-  tft.setTextSize(1); // Size for small 5x7 font
-  tft.drawString(desc, posx, posy, 2);
+  spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
+  spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 32) - 1, h * 32, TFT_BLACK);
+  spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 32) - 1, w * 80, TFT_BLACK);
+  spr.setTextDatum(TL_DATUM); // Topleft
+  spr.setTextColor(TFT_SILVER, bgColor); // Bk, fg bgColor
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.drawString(desc, posx, posy, 2);
 
-  tft.setTextDatum(TC_DATUM);
-  tft.setTextColor(fgColor, bgColor);
+  spr.setTextDatum(TC_DATUM);
+  spr.setTextColor(fgColor, bgColor);
   posx = (x * 80) + (w * 80 / 2) - 3;
-  tft.drawString(text, posx, posy + 14, 2);
+  spr.drawString(text, posx, posy + 14, 2);
 
   return true;
 }
@@ -416,25 +423,25 @@ bool showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char* topleft, 
 
   int32_t posx, posy;
 
-  tft.fillRect(x * 80, y * 60, ((w) * 80) - 1, ((h) * 60) - 1,  color);
-  tft.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
-  tft.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
+  spr.fillRect(x * 80, y * 60, ((w) * 80) - 1, ((h) * 60) - 1,  color);
+  spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
+  spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
 
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(TFT_SILVER, color);
-  tft.setTextSize(1);
+  spr.setTextDatum(TL_DATUM);
+  spr.setTextColor(TFT_SILVER, color);
+  spr.setTextSize(1);
   posx = (x * 80) + 4;
   posy = (y * 60) + 0;
-  tft.drawString(topleft, posx, posy, 2);
+  spr.drawString(topleft, posx, posy, 2);
   posy = (y * 60) + 14;
-  tft.drawString(bottomleft, posx, posy, 2);
+  spr.drawString(bottomleft, posx, posy, 2);
 
-  tft.setTextDatum(TR_DATUM);
+  spr.setTextDatum(TR_DATUM);
   posx = ((x + w) * 80) - 4;
   posy = (y * 60) + 0;
-  tft.drawString(topright, posx, posy, 2);
+  spr.drawString(topright, posx, posy, 2);
   posy = (y * 60) + 14;
-  tft.drawString(bottomright, posx, posy, 2);
+  spr.drawString(bottomright, posx, posy, 2);
 
   return true;
 }
@@ -442,10 +449,10 @@ bool showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char* topleft, 
 /**
    Main screen (Screen 1)
 */
-bool drawSceneMain(bool force) {
+bool drawSceneMain() {
 
   // Tire pressure
-  if (force || params.tireFrontLeftTempC != oldParams.tireFrontLeftTempC
+  if (params.tireFrontLeftTempC != oldParams.tireFrontLeftTempC
       || params.tireFrontRightTempC != oldParams.tireFrontRightTempC || params.tireRearLeftTempC != oldParams.tireRearLeftTempC || params.tireRearRightTempC != oldParams.tireRearRightTempC
       || oldParams.cumulativeEnergyChargedKWhStart != params.cumulativeEnergyChargedKWhStart
       || oldParams.cumulativeEnergyChargedKWh != params.cumulativeEnergyChargedKWh
@@ -466,13 +473,13 @@ bool drawSceneMain(bool force) {
 
     // Added later - kwh total in tires box
     // TODO: refactoring
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextColor(TFT_GREEN, TFT_BLACK);
     sprintf(tmpStr1, "C: %01.01f +%01.01fkWh", params.cumulativeEnergyChargedKWh, params.cumulativeEnergyChargedKWh - params.cumulativeEnergyChargedKWhStart);
-    tft.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30, 2);
-    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30, 2);
+    spr.setTextColor(TFT_YELLOW, TFT_BLACK);
     sprintf(tmpStr1, "D: %01.01f -%01.01fkWh", params.cumulativeEnergyDischargedKWh, params.cumulativeEnergyDischargedKWh - params.cumulativeEnergyDischargedKWhStart);
-    tft.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44, 2);
+    spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44, 2);
 
     oldParams.tireFrontLeftTempC = params.tireFrontLeftTempC;
     oldParams.tireFrontLeftPressureBar = params.tireFrontLeftPressureBar;
@@ -490,14 +497,14 @@ bool drawSceneMain(bool force) {
 
   // batPowerKwh100 on roads, else batPowerAmp
   if (params.speedKmh > 20) {
-    if (force || params.batPowerKwh100 != oldParams.batPowerKwh100) {
+    if (params.batPowerKwh100 != oldParams.batPowerKwh100) {
       sprintf(tmpStr1, "%01.01f", km2distance(params.batPowerKwh100));
       monitoringRect(1, 1, 2, 2, tmpStr1, ((settings.distanceUnit == 'k') ? "POWER KWH/100KM" : "POWER KWH/100MI"), (params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
       oldParams.batPowerKwh100 = params.batPowerKwh100;
     }
   } else {
     // batPowerAmp on chargers (under 10kmh)
-    if (force || params.batPowerKw != oldParams.batPowerKw) {
+    if (params.batPowerKw != oldParams.batPowerKw) {
       sprintf(tmpStr1, "%01.01f", params.batPowerKw);
       monitoringRect(1, 1, 2, 2, tmpStr1, "POWER KW", (params.batPowerKw >= 0 ? TFT_DARKGREEN2 : (params.batPowerKw <= -30 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
       oldParams.batPowerKw = params.batPowerKw;
@@ -505,7 +512,7 @@ bool drawSceneMain(bool force) {
   }
 
   // socPerc
-  if (force || params.socPerc != oldParams.socPerc) {
+  if (params.socPerc != oldParams.socPerc) {
     sprintf(tmpStr1, "%01.00f%%", params.socPerc);
     sprintf(tmpStr2, (params.sohPerc ==  100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), params.sohPerc);
     monitoringRect(0, 0, 1, 1, tmpStr1, tmpStr2, (params.socPerc < 10 || params.sohPerc < 100 ? TFT_RED : (params.socPerc  > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
@@ -514,21 +521,21 @@ bool drawSceneMain(bool force) {
   }
 
   // batPowerAmp
-  if (force || params.batPowerAmp != oldParams.batPowerAmp) {
+  if (params.batPowerAmp != oldParams.batPowerAmp) {
     sprintf(tmpStr1, (abs(params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), params.batPowerAmp);
     monitoringRect(0, 1, 1, 1, tmpStr1, "CURRENT A", (params.batPowerAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
     oldParams.batPowerAmp = params.batPowerAmp;
   }
 
   // batVoltage
-  if (force || params.batVoltage != oldParams.batVoltage) {
+  if (params.batVoltage != oldParams.batVoltage) {
     sprintf(tmpStr1, "%03.00f", params.batVoltage);
     monitoringRect(0, 2, 1, 1, tmpStr1, "VOLTAGE", TFT_DEFAULT_BK, TFT_WHITE);
     oldParams.batVoltage = params.batVoltage;
   }
 
   // batCellMinV
-  if (force || params.batCellMinV != oldParams.batCellMinV || params.batCellMaxV != oldParams.batCellMaxV) {
+  if (params.batCellMinV != oldParams.batCellMinV || params.batCellMaxV != oldParams.batCellMaxV) {
     sprintf(tmpStr1, "%01.02f", params.batCellMaxV - params.batCellMinV);
     sprintf(tmpStr2, "CELLS %01.02f", params.batCellMinV);
     monitoringRect(0, 3, 1, 1, ( params.batCellMaxV - params.batCellMinV == 0.00 ? "OK" : tmpStr1), tmpStr2, TFT_DEFAULT_BK, TFT_WHITE);
@@ -537,7 +544,7 @@ bool drawSceneMain(bool force) {
   }
 
   // batTempC
-  if (force || params.batTempC != oldParams.batTempC) {
+  if (params.batTempC != oldParams.batTempC) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batMinC));
     sprintf(tmpStr2, ((settings.temperatureUnit == 'c') ? "BATT. %01.00fC" : "BATT. %01.01fF"), celsius2temperature(params.batMaxC));
     monitoringRect(1, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
@@ -545,35 +552,35 @@ bool drawSceneMain(bool force) {
   }
 
   // batHeaterC
-  if (force || params.batHeaterC != oldParams.batHeaterC) {
+  if (params.batHeaterC != oldParams.batHeaterC) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batHeaterC));
     monitoringRect(2, 3, 1, 1, tmpStr1, "BAT.HEAT", TFT_TEMP, TFT_WHITE);
     oldParams.batHeaterC = params.batHeaterC;
   }
 
   // Aux perc
-  if (force || params.auxPerc != oldParams.auxPerc) {
+  if (params.auxPerc != oldParams.auxPerc) {
     sprintf(tmpStr1, "%01.00f%%", params.auxPerc);
     monitoringRect(3, 0, 1, 1, tmpStr1, "AUX BAT.", (params.auxPerc < 60 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
     oldParams.auxPerc = params.auxPerc;
   }
 
   // Aux amp
-  if (force || params.auxCurrentAmp != oldParams.auxCurrentAmp) {
+  if (params.auxCurrentAmp != oldParams.auxCurrentAmp) {
     sprintf(tmpStr1, (abs(params.auxCurrentAmp) > 9.9 ? "%01.00f" : "%01.01f"), params.auxCurrentAmp);
     monitoringRect(3, 1, 1, 1, tmpStr1, "AUX AMPS",  (params.auxCurrentAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
     oldParams.auxCurrentAmp = params.auxCurrentAmp;
   }
 
   // auxVoltage
-  if (force || params.auxVoltage != oldParams.auxVoltage) {
+  if (params.auxVoltage != oldParams.auxVoltage) {
     sprintf(tmpStr1, "%01.01f", params.auxVoltage);
     monitoringRect(3, 2, 1, 1, tmpStr1, "AUX VOLTS", (params.auxVoltage < 12.1 ? TFT_RED : (params.auxVoltage < 12.6 ? TFT_ORANGE : TFT_DEFAULT_BK)), TFT_WHITE);
     oldParams.auxVoltage = params.auxVoltage;
   }
 
   // indoorTemperature
-  if (force || params.indoorTemperature != oldParams.indoorTemperature || params.outdoorTemperature != oldParams.outdoorTemperature) {
+  if (params.indoorTemperature != oldParams.indoorTemperature || params.outdoorTemperature != oldParams.outdoorTemperature) {
     sprintf(tmpStr1, "%01.01f", celsius2temperature(params.indoorTemperature));
     sprintf(tmpStr2, "IN/OUT%01.01f", celsius2temperature(params.outdoorTemperature));
     monitoringRect(3, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, TFT_WHITE);
@@ -587,7 +594,7 @@ bool drawSceneMain(bool force) {
 /**
    Speed + kwh/100km (Screen 2)
 */
-bool drawSceneSpeed(bool force) {
+bool drawSceneSpeed() {
 
   int32_t posx, posy;
 
@@ -595,111 +602,111 @@ bool drawSceneSpeed(bool force) {
   if (displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
-    if (tft.getRotation() != 6)
-      tft.setRotation(6);
+    if (spr.getRotation() != 6)
+      spr.setRotation(6);
 
-    tft.fillRect(0, 0, 240, 320, TFT_BLACK);
-    tft.setTextDatum(TR_DATUM); // top-right alignment
-    tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
+    spr.fillRect(0, 0, 240, 320, TFT_BLACK);
+    spr.setTextDatum(TR_DATUM); // top-right alignment
+    spr.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
-    tft.setTextSize((params.speedKmh > 99) ? 1 : 2);
+    spr.setTextSize((params.speedKmh > 99) ? 1 : 2);
     sprintf(tmpStr3, "0");
     if (params.speedKmh > 10)
       sprintf(tmpStr3, "%01.00f", km2distance(params.speedKmh));
-    tft.drawString(tmpStr3, 240, 0, 8);
+    spr.drawString(tmpStr3, 240, 0, 8);
 
     // Draw power kWh/100km (>25kmh) else kW
-    tft.setTextSize(1);
+    spr.setTextSize(1);
     if (params.speedKmh > 25 && params.batPowerKw < 0)
       sprintf(tmpStr3, "%01.01f", km2distance(params.batPowerKwh100));
     else
       sprintf(tmpStr3, "%01.01f", params.batPowerKw);
-    tft.drawString(tmpStr3, 240, 150, 8);
+    spr.drawString(tmpStr3, 240, 150, 8);
 
     // Draw soc%
     sprintf(tmpStr3, "%01.00f", params.socPerc);
-    tft.drawString(tmpStr3, 240 , 230, 8);
+    spr.drawString(tmpStr3, 240 , 230, 8);
 
     // Cold gate cirlce
-    tft.fillCircle(30, 280, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    spr.fillCircle(30, 280, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
 
     // Brake lights
-    tft.fillRect(0, 310, 240, 10, (params.brakeLights) ? TFT_RED : TFT_BLACK);
+    spr.fillRect(0, 310, 240, 10, (params.brakeLights) ? TFT_RED : TFT_BLACK);
 
     return true;
   }
 
   //
-  tft.fillRect(0, 36, 200, 160, TFT_DARKRED);
+  spr.fillRect(0, 36, 200, 160, TFT_DARKRED);
 
   posx = 320 / 2;
   posy = 40;
-  tft.setTextDatum(TR_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_DARKRED);
-  tft.setTextSize(2); // Size for small 5cix7 font
+  spr.setTextDatum(TR_DATUM);
+  spr.setTextColor(TFT_WHITE, TFT_DARKRED);
+  spr.setTextSize(2); // Size for small 5cix7 font
   sprintf(tmpStr3, "0");
   if (params.speedKmh > 10)
     sprintf(tmpStr3, "%01.00f", km2distance(params.speedKmh));
-  tft.drawString(tmpStr3, 200, posy, 7);
+  spr.drawString(tmpStr3, 200, posy, 7);
 
   posy = 145;
-  tft.setTextDatum(TR_DATUM); // Top center
-  tft.setTextSize(1);
+  spr.setTextDatum(TR_DATUM); // Top center
+  spr.setTextSize(1);
   if (params.speedKmh > 25 && params.batPowerKw < 0) {
     sprintf(tmpStr3, "%01.01f", km2distance(params.batPowerKwh100));
   } else {
     sprintf(tmpStr3, "%01.01f", params.batPowerKw);
   }
-  tft.drawString(tmpStr3, 200, posy, 7);
+  spr.drawString(tmpStr3, 200, posy, 7);
 
   // Bottom 2 numbers with charged/discharged kWh from start
-  tft.setFreeFont(&Roboto_Thin_24);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setFreeFont(&Roboto_Thin_24);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);
   posx = 5;
   posy = 5;
-  tft.setTextDatum(TL_DATUM);
+  spr.setTextDatum(TL_DATUM);
   sprintf(tmpStr3, ((settings.distanceUnit == 'k') ? "%01.00fkm  " : "%01.00fmi  "), km2distance(params.odoKm));
-  tft.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);
   if (params.motorRpm > -1) {
-    tft.setTextDatum(TR_DATUM);
+    spr.setTextDatum(TR_DATUM);
     sprintf(tmpStr3, "     %01.00frpm" , params.motorRpm);
-    tft.drawString(tmpStr3, 320 - posx, posy, GFXFF);
+    spr.drawString(tmpStr3, 320 - posx, posy, GFXFF);
   }
 
   // Bottom info
   // Cummulative regen/power
   posy = 240 - 5;
   sprintf(tmpStr3, "-%01.01f    ", params.cumulativeEnergyDischargedKWh - params.cumulativeEnergyDischargedKWhStart);
-  tft.setTextDatum(BL_DATUM);
-  tft.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.setTextDatum(BL_DATUM);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);
   posx = 320 - 5;
   sprintf(tmpStr3, "    +%01.01f", params.cumulativeEnergyChargedKWh - params.cumulativeEnergyChargedKWhStart);
-  tft.setTextDatum(BR_DATUM);
-  tft.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.setTextDatum(BR_DATUM);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);
   // Bat.power
   posx = 320 / 2;
   sprintf(tmpStr3, "   %01.01fkw   ", params.batPowerKw);
-  tft.setTextDatum(BC_DATUM);
-  tft.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.setTextDatum(BC_DATUM);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  tft.fillCircle(290, 60, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  tft.setTextColor(TFT_WHITE, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  tft.setFreeFont(&Roboto_Thin_24);
-  tft.setTextDatum(MC_DATUM);
+  spr.fillCircle(290, 60, 25, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.setTextColor(TFT_WHITE, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.setFreeFont(&Roboto_Thin_24);
+  spr.setTextDatum(MC_DATUM);
   sprintf(tmpStr3, "%01.00f", celsius2temperature(params.batTempC));
-  tft.drawString(tmpStr3, 290, 60, GFXFF);
+  spr.drawString(tmpStr3, 290, 60, GFXFF);
   // Brake lights
-  tft.fillRect(210, 40, 40, 40, (params.brakeLights) ? TFT_RED : TFT_BLACK);
+  spr.fillRect(210, 40, 40, 40, (params.brakeLights) ? TFT_RED : TFT_BLACK);
 
   // Soc%, bat.kWh
-  tft.setFreeFont(&Orbitron_Light_32);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextDatum(TR_DATUM);
+  spr.setFreeFont(&Orbitron_Light_32);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, " %01.00f%%", params.socPerc);
-  tft.drawString(tmpStr3, 320, 94, GFXFF);
+  spr.drawString(tmpStr3, 320, 94, GFXFF);
   if (params.socPerc > 0) {
     float capacity = params.batteryTotalAvailableKWh * (params.socPerc / 100);
     // calibration for Niro/Kona, real available capacity is ~66.5kWh, 0-10% ~6.2kWh, 90-100% ~7.2kWh
@@ -707,8 +714,8 @@ bool drawSceneSpeed(bool force) {
       capacity = (params.socPerc * 0.615) * (1 + (params.socPerc * 0.0008));
     }
     sprintf(tmpStr3, " %01.01f", capacity);
-    tft.drawString(tmpStr3, 320, 129, GFXFF);
-    tft.drawString("kWh", 320, 164, GFXFF);
+    spr.drawString(tmpStr3, 320, 129, GFXFF);
+    spr.drawString("kWh", 320, 164, GFXFF);
   }
 
   return true;
@@ -717,7 +724,7 @@ bool drawSceneSpeed(bool force) {
 /**
    Battery cells (Screen 3)
 */
-bool drawSceneBatteryCells(bool force) {
+bool drawSceneBatteryCells() {
 
   int32_t posx, posy;
 
@@ -739,16 +746,16 @@ bool drawSceneBatteryCells(bool force) {
       continue;
     posx = (((i - 4) % 8) * 40);
     posy = ((floor((i - 4) / 8)) * 13) + 64;
-    //tft.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
-    tft.setTextSize(1); // Size for small 5x7 font
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(((params.batModuleTempC[i] >= 15) ? ((params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED), TFT_BLACK);
+    //spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
+    spr.setTextSize(1); // Size for small 5x7 font
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextColor(((params.batModuleTempC[i] >= 15) ? ((params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED), TFT_BLACK);
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00fC" : "%01.01fF"), celsius2temperature(params.batModuleTempC[i]));
-    tft.drawString(tmpStr1, posx + 4, posy, 2);
+    spr.drawString(tmpStr1, posx + 4, posy, 2);
   }
 
-  tft.setTextDatum(TL_DATUM); // Topleft
-  tft.setTextSize(1); // Size for small 5x7 font
+  spr.setTextDatum(TL_DATUM); // Topleft
+  spr.setTextSize(1); // Size for small 5x7 font
 
   // Find min and max val
   float minVal = -1, maxVal = -1;
@@ -768,21 +775,103 @@ bool drawSceneBatteryCells(bool force) {
     posx = ((i % 8) * 40) + 4;
     posy = ((floor(i / 8) + (params.cellCount > 96 ? 0 : 1)) * 13) + 68;
     sprintf(tmpStr3, "%01.02f", params.cellVoltage[i]);
-    tft.setTextColor(TFT_NAVY, TFT_BLACK);
+    spr.setTextColor(TFT_NAVY, TFT_BLACK);
     if (params.cellVoltage[i] == minVal && minVal != maxVal)
-      tft.setTextColor(TFT_RED, TFT_BLACK);
+      spr.setTextColor(TFT_RED, TFT_BLACK);
     if (params.cellVoltage[i] == maxVal && minVal != maxVal)
-      tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.drawString(tmpStr3, posx, posy, 2);
+      spr.setTextColor(TFT_GREEN, TFT_BLACK);
+    spr.drawString(tmpStr3, posx, posy, 2);
   }
 
   return true;
 }
 
 /**
+   drawPreDrawnChargingGraphs
+   P = U.I
+*/
+bool drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, int mulY) {
+
+  // Rapid gate
+  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_RAPIDGATE35);
+  // Coldgate <5C
+  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE0_5);
+  // Coldgate 5-14C
+  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+  spr.drawLine(zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+  spr.drawLine(zeroX + (/* SOC FROM */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+  spr.drawLine(zeroX + (/* SOC FROM */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+  spr.drawLine(zeroX + (/* SOC FROM */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 40 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+  // Coldgate 15-24C
+  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
+  spr.drawLine(zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
+  // Optimal
+  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 51 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 51 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 53 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 53 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 55 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 55 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 71 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 71 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 73 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 73 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 75 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 75 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX + (/* SOC FROM */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX + (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX + (/* SOC FROM */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  spr.drawLine(zeroX +  (/* SOC FROM */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY),
+               zeroX +  (/* SOC TO */ 100 * mulX), zeroY - (/*I*/ 15 * /*U SOC*/ (100 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+  // Triangles
+  int x = zeroX;
+  int y;
+  if (params.batMaxC >= 35) {
+    y = zeroY - (/*I*/ 180 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
+  } else if (params.batMinC >= 25) {
+    y = zeroY - (/*I*/ 200 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
+  } else if (params.batMinC >= 15) {
+    y = zeroY - (/*I*/ 150 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
+  } else if (params.batMinC >= 5) {
+    y = zeroY - (/*I*/ 110 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
+  } else {
+    y = zeroY - (/*I*/ 60 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
+  }
+  spr.fillTriangle(x + 5, y,  x , y - 5, x, y + 5, TFT_ORANGE);
+}
+
+/**
    Charging graph (Screen 4)
 */
-bool drawSceneChargingGraph(bool force) {
+bool drawSceneChargingGraph() {
 
   int zeroX = 0;
   int zeroY = 238;
@@ -792,10 +881,7 @@ bool drawSceneChargingGraph(bool force) {
   int posy = 0;
   int16_t color;
 
-  // Debug info
-  if (debugTmpCharging) {
-    tft.fillScreen(TFT_BLACK);
-  }
+  spr.fillSprite(TFT_BLACK);
 
   sprintf(tmpStr1, "%01.00f", params.socPerc);
   drawSmallRect(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
@@ -815,114 +901,120 @@ bool drawSceneChargingGraph(bool force) {
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), celsius2temperature(params.outdoorTemperature));
   drawSmallRect(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
 
-  tft.setTextColor(TFT_SILVER, TFT_TEMP);
+  spr.setTextColor(TFT_SILVER, TFT_TEMP);
 
   for (int i = 0; i <= 10; i++) {
-    color = TFT_DARKRED;
+    color = TFT_DARKRED2;
     if (i == 0 || i == 5 || i == 10)
-      color = TFT_NAVY;
-    tft.drawFastVLine(zeroX + (i * 10 * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
+      color = TFT_DARKRED;
+    spr.drawFastVLine(zeroX + (i * 10 * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
     /*if (i != 0 && i != 10) {
       sprintf(tmpStr1, "%d%%", i * 10);
-      tft.setTextDatum(BC_DATUM);
-      tft.drawString(tmpStr1, zeroX + (i * 10 * mulX),  zeroY - (maxKw * mulY), 2);
+      spr.setTextDatum(BC_DATUM);
+      spr.drawString(tmpStr1, zeroX + (i * 10 * mulX),  zeroY - (maxKw * mulY), 2);
       }*/
     if (i <= (maxKw / 10)) {
-      tft.drawFastHLine(zeroX, zeroY - (i * 10 * mulY), 100 * mulX, color);
+      spr.drawFastHLine(zeroX, zeroY - (i * 10 * mulY), 100 * mulX, color);
       if (i > 0) {
         sprintf(tmpStr1, "%d", i * 10);
-        tft.setTextDatum(ML_DATUM);
-        tft.drawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY), 2);
+        spr.setTextDatum(ML_DATUM);
+        spr.drawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY), 2);
       }
     }
   }
 
+  // Draw suggested curves
+  if (settings.predrawnChargingGraphs == 1) {
+    drawPreDrawnChargingGraphs(zeroX, zeroY, mulX, mulY);
+  }
+
+  // Draw realtime values
   for (int i = 0; i <= 100; i++) {
     if (params.chargingGraphBatMinTempC[i] > -10)
-      tft.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphBatMinTempC[i]*mulY), mulX, TFT_BLUE);
+      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphBatMinTempC[i]*mulY), mulX, TFT_BLUE);
     if (params.chargingGraphBatMaxTempC[i] > -10)
-      tft.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphBatMaxTempC[i]*mulY), mulX, TFT_BLUE);
+      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphBatMaxTempC[i]*mulY), mulX, TFT_BLUE);
     if (params.chargingGraphWaterCoolantTempC[i] > -10)
-      tft.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphWaterCoolantTempC[i]*mulY), mulX, TFT_PURPLE);
+      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphWaterCoolantTempC[i]*mulY), mulX, TFT_PURPLE);
     if (params.chargingGraphHeaterTempC[i] > -10)
-      tft.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphHeaterTempC[i]*mulY), mulX, TFT_RED);
+      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphHeaterTempC[i]*mulY), mulX, TFT_RED);
 
     if (params.chargingGraphMinKw[i] > 0)
-      tft.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphMinKw[i]*mulY), mulX, TFT_GREENYELLOW);
+      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphMinKw[i]*mulY), mulX, TFT_GREENYELLOW);
     if (params.chargingGraphMaxKw[i] > 0)
-      tft.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphMaxKw[i]*mulY), mulX, TFT_YELLOW);
+      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (params.chargingGraphMaxKw[i]*mulY), mulX, TFT_YELLOW);
   }
 
   // Bat.module temperatures
-  tft.setTextSize(1); // Size for small 5x7 font
-  tft.setTextDatum(BL_DATUM);
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.setTextDatum(BL_DATUM);
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "1=%01.00fC " : "1=%01.00fF "), celsius2temperature(params.batModuleTempC[0]));
-  tft.setTextColor((params.batModuleTempC[0] >= 15) ? ((params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, 0,  zeroY - (maxKw * mulY), 2);
+  spr.setTextColor((params.batModuleTempC[0] >= 15) ? ((params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.drawString(tmpStr1, 0,  zeroY - (maxKw * mulY), 2);
 
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "2=%01.00fC " : "2=%01.00fF "), celsius2temperature(params.batModuleTempC[1]));
-  tft.setTextColor((params.batModuleTempC[1] >= 15) ? ((params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, 48,  zeroY - (maxKw * mulY), 2);
+  spr.setTextColor((params.batModuleTempC[1] >= 15) ? ((params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.drawString(tmpStr1, 48,  zeroY - (maxKw * mulY), 2);
 
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "3=%01.00fC " : "3=%01.00fF "), celsius2temperature(params.batModuleTempC[2]));
-  tft.setTextColor((params.batModuleTempC[2] >= 15) ? ((params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, 96,  zeroY - (maxKw * mulY), 2);
+  spr.setTextColor((params.batModuleTempC[2] >= 15) ? ((params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.drawString(tmpStr1, 96,  zeroY - (maxKw * mulY), 2);
 
   sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "4=%01.00fC " : "4=%01.00fF "), celsius2temperature(params.batModuleTempC[3]));
-  tft.setTextColor((params.batModuleTempC[3] >= 15) ? ((params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
-  tft.drawString(tmpStr1, 144,  zeroY - (maxKw * mulY), 2);
+  spr.setTextColor((params.batModuleTempC[3] >= 15) ? ((params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.drawString(tmpStr1, 144,  zeroY - (maxKw * mulY), 2);
   sprintf(tmpStr1, "ir %01.00fkOhm", params.isolationResistanceKOhm );
 
   // Bms max.regen/power available
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);
   sprintf(tmpStr1, "xC=%01.00fkW ", params.availableChargePower);
-  tft.drawString(tmpStr1, 192,  zeroY - (maxKw * mulY), 2);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.drawString(tmpStr1, 192,  zeroY - (maxKw * mulY), 2);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);
   sprintf(tmpStr1, "xD=%01.00fkW", params.availableDischargePower);
-  tft.drawString(tmpStr1, 256,  zeroY - (maxKw * mulY), 2);
+  spr.drawString(tmpStr1, 256,  zeroY - (maxKw * mulY), 2);
 
   //
-  tft.setTextDatum(TR_DATUM);
+  spr.setTextDatum(TR_DATUM);
   if (params.coolingWaterTempC != -1) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "W=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.coolingWaterTempC));
-    tft.setTextColor(TFT_PURPLE, TFT_TEMP);
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.setTextColor(TFT_PURPLE, TFT_TEMP);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  tft.setTextColor(TFT_WHITE, TFT_TEMP);
+  spr.setTextColor(TFT_WHITE, TFT_TEMP);
   if (params.batFanFeedbackHz > 0) {
     sprintf(tmpStr1, "FF=%03.00fHz", params.batFanFeedbackHz);
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (params.batFanStatus > 0) {
     sprintf(tmpStr1, "FS=%03.00f", params.batFanStatus);
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (params.coolantTemp1C != -1 && params.coolantTemp2C != -1) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00fC" : "C1/2:%01.00f/%01.00fF"), celsius2temperature(params.coolantTemp1C), celsius2temperature(params.coolantTemp2C));
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (params.bmsUnknownTempA != -1) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "A=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempA));
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (params.bmsUnknownTempB != -1) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "B=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempB));
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (params.bmsUnknownTempC != -1) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "C=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempC));
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (params.bmsUnknownTempD != -1) {
     sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "D=%01.00fC" : "W=%01.00fF"), celsius2temperature(params.bmsUnknownTempD));
-    tft.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
 
@@ -932,9 +1024,9 @@ bool drawSceneChargingGraph(bool force) {
     sprintf(tmpStr1, "%02d:%02d:%02d", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
   else
     sprintf(tmpStr1, "%02d:%02d", (diffTime / 60), diffTime % 60);
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(TFT_SILVER, TFT_BLACK);
-  tft.drawString(tmpStr1, 0, zeroY - (maxKw * mulY), 2);
+  spr.setTextDatum(TL_DATUM);
+  spr.setTextColor(TFT_SILVER, TFT_BLACK);
+  spr.drawString(tmpStr1, 0, zeroY - (maxKw * mulY), 2);
 
   // Debug info
   if (debugTmpCharging) {
@@ -943,9 +1035,9 @@ bool drawSceneChargingGraph(bool force) {
       String chHex, chHex2, chRef;
       uint8_t chByte;
 
-      tft.setTextSize(1); // Size for small 5x7 font
-      tft.setTextColor(TFT_SILVER, TFT_TEMP);
-      tft.setTextDatum(TR_DATUM);
+      spr.setTextSize(1); // Size for small 5x7 font
+      spr.setTextColor(TFT_SILVER, TFT_TEMP);
+      spr.setTextDatum(TR_DATUM);
       // tft.fillRect(0, 240-104, 320, 104, TFT_BLACK);
 
       for (int i = 0; i < debugTmpChargingLast05.length() / 2; i++) {
@@ -954,12 +1046,12 @@ bool drawSceneChargingGraph(bool force) {
         chRef = debugTmpChargingRef05.substring(i * 2, (i * 2) + 2);
         if (chRef.equals("--") || chRef.equals(chHex))
           continue;
-        tft.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
+        spr.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
         chByte = hexToDec(chHex.c_str(), 1, false);
         posx = (((i) % 10) * 32) + 24;
         posy = ((floor((i) / 10)) * 13) + 240 - 104;
         sprintf(tmpStr1, "%03d", chByte);
-        tft.drawString(tmpStr1, posx + 4, posy, 2);
+        spr.drawString(tmpStr1, posx + 4, posy, 2);
       }
       for (int i = 0; i < debugTmpChargingLast06.length() / 2; i++) {
         chHex = debugTmpChargingLast06.substring(i * 2, (i * 2) + 2);
@@ -967,12 +1059,12 @@ bool drawSceneChargingGraph(bool force) {
         chRef = debugTmpChargingRef06.substring(i * 2, (i * 2) + 2);
         if (chRef.equals("--") || chRef.equals(chHex))
           continue;
-        tft.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
+        spr.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
         chByte = hexToDec(chHex.c_str(), 1, false);
         posx = (((i) % 10) * 32) + 24;
         posy = ((floor((i) / 10)) * 13) + 65 + 240 - 104;
         sprintf(tmpStr1, "%03d", chByte);
-        tft.drawString(tmpStr1, posx + 4, posy, 2);
+        spr.drawString(tmpStr1, posx + 4, posy, 2);
       }
 
       debugTmpChargingPrevious05 = debugTmpChargingLast05;
@@ -986,7 +1078,7 @@ bool drawSceneChargingGraph(bool force) {
 /**
   SOC 10% table (screen 5)
 */
-bool drawSceneSoc10Table(bool force) {
+bool drawSceneSoc10Table() {
 
   int zeroY = 2;
   float diffCec, diffCed, diffOdo = -1;
@@ -994,21 +1086,21 @@ bool drawSceneSoc10Table(bool force) {
   float firstCec = -1, lastCec = -1, diffCec0to5 = 0;
   float firstOdo = -1, lastOdo = -1, diffOdo0to5 = 0;
   float diffTime;
-  tft.setTextSize(1); // Size for small 5x7 font
-  tft.setTextColor(TFT_SILVER, TFT_TEMP);
-  tft.setTextDatum(TL_DATUM);
-  tft.drawString("CONSUMPTION | DISCH.100%->4% SOC",  2, zeroY, 2);
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.setTextColor(TFT_SILVER, TFT_TEMP);
+  spr.setTextDatum(TL_DATUM);
+  spr.drawString("CONSUMPTION | DISCH.100%->4% SOC",  2, zeroY, 2);
 
-  tft.setTextDatum(TR_DATUM);
+  spr.setTextDatum(TR_DATUM);
 
-  tft.drawString("dis./char.kWh", 128, zeroY + (1 * 15), 2);
-  tft.drawString(((settings.distanceUnit == 'k') ? "km" : "mi"), 160, zeroY + (1 * 15), 2);
-  tft.drawString("kWh100", 224, zeroY + (1 * 15), 2);
-  tft.drawString("avg.speed", 310, zeroY + (1 * 15), 2);
+  spr.drawString("dis./char.kWh", 128, zeroY + (1 * 15), 2);
+  spr.drawString(((settings.distanceUnit == 'k') ? "km" : "mi"), 160, zeroY + (1 * 15), 2);
+  spr.drawString("kWh100", 224, zeroY + (1 * 15), 2);
+  spr.drawString("avg.speed", 310, zeroY + (1 * 15), 2);
 
   for (int i = 0; i <= 10; i++) {
     sprintf(tmpStr1, "%d%%", (i == 0) ? 5 : i * 10);
-    tft.drawString(tmpStr1, 32, zeroY + ((12 - i) * 15), 2);
+    spr.drawString(tmpStr1, 32, zeroY + ((12 - i) * 15), 2);
 
     firstCed = (params.soc10ced[i] != -1) ? params.soc10ced[i] : firstCed;
     lastCed = (lastCed == -1 && params.soc10ced[i] != -1) ? params.soc10ced[i] : lastCed;
@@ -1024,50 +1116,50 @@ bool drawSceneSoc10Table(bool force) {
       diffTime = (params.soc10time[i + 1] != -1 && params.soc10time[i] != -1) ? (params.soc10time[i] - params.soc10time[i + 1]) : -1;
       if (diffCec != 0) {
         sprintf(tmpStr1, "+%01.01f", diffCec);
-        tft.drawString(tmpStr1, 128, zeroY + ((12 - i) * 15), 2);
+        spr.drawString(tmpStr1, 128, zeroY + ((12 - i) * 15), 2);
         diffCec0to5 = (i == 0) ? diffCec : diffCec0to5;
       }
       if (diffCed != 0) {
         sprintf(tmpStr1, "%01.01f", diffCed);
-        tft.drawString(tmpStr1, 80, zeroY + ((12 - i) * 15), 2);
+        spr.drawString(tmpStr1, 80, zeroY + ((12 - i) * 15), 2);
         diffCed0to5 = (i == 0) ? diffCed : diffCed0to5;
       }
       if (diffOdo != -1) {
         sprintf(tmpStr1, "%01.00f", km2distance(diffOdo));
-        tft.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15), 2);
+        spr.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15), 2);
         diffOdo0to5 = (i == 0) ? diffOdo : diffOdo0to5;
         if (diffTime > 0) {
           sprintf(tmpStr1, "%01.01f", km2distance(diffOdo) / (diffTime / 3600));
-          tft.drawString(tmpStr1, 310, zeroY + ((12 - i) * 15), 2);
+          spr.drawString(tmpStr1, 310, zeroY + ((12 - i) * 15), 2);
         }
       }
       if (diffOdo > 0 && diffCed != 0) {
         sprintf(tmpStr1, "%01.1f", (-diffCed * 100.0 / km2distance(diffOdo)));
-        tft.drawString(tmpStr1, 224, zeroY + ((12 - i) * 15), 2);
+        spr.drawString(tmpStr1, 224, zeroY + ((12 - i) * 15), 2);
       }
     }
 
     if (diffOdo == -1 && params.soc10odo[i] != -1) {
       sprintf(tmpStr1, "%01.00f", km2distance(params.soc10odo[i]));
-      tft.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15), 2);
+      spr.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15), 2);
     }
   }
 
-  tft.drawString("0%", 32, zeroY + (13 * 15), 2);
-  tft.drawString("0-5% is calculated (same) as 5-10%", 310, zeroY + (13 * 15), 2);
+  spr.drawString("0%", 32, zeroY + (13 * 15), 2);
+  spr.drawString("0-5% is calculated (same) as 5-10%", 310, zeroY + (13 * 15), 2);
 
-  tft.drawString("TOT.", 32, zeroY + (14 * 15), 2);
+  spr.drawString("TOT.", 32, zeroY + (14 * 15), 2);
   diffCed = (lastCed != -1 && firstCed != -1) ? firstCed - lastCed + diffCed0to5 : 0;
   sprintf(tmpStr1, "%01.01f", diffCed);
-  tft.drawString(tmpStr1, 80, zeroY + (14 * 15), 2);
+  spr.drawString(tmpStr1, 80, zeroY + (14 * 15), 2);
   diffCec = (lastCec != -1 && firstCec != -1) ? lastCec - firstCec + diffCec0to5 : 0;
   sprintf(tmpStr1, "+%01.01f", diffCec);
-  tft.drawString(tmpStr1, 128, zeroY + (14 * 15), 2);
+  spr.drawString(tmpStr1, 128, zeroY + (14 * 15), 2);
   diffOdo = (lastOdo != -1 && firstOdo != -1) ? lastOdo - firstOdo + diffOdo0to5 : 0;
   sprintf(tmpStr1, "%01.00f", km2distance(diffOdo));
-  tft.drawString(tmpStr1, 160, zeroY + (14 * 15), 2);
+  spr.drawString(tmpStr1, 160, zeroY + (14 * 15), 2);
   sprintf(tmpStr1, "AVAIL.CAP: %01.01f kWh", -diffCed - diffCec);
-  tft.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
+  spr.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
 
   return true;
 }
@@ -1075,33 +1167,33 @@ bool drawSceneSoc10Table(bool force) {
 /**
   DEBUG screen
 */
-bool drawSceneDebug(bool force) {
+bool drawSceneDebug() {
 
   int32_t posx, posy;
   String chHex, chHex2;
   uint8_t chByte;
 
-  tft.setTextSize(1); // Size for small 5x7 font
-  tft.setTextColor(TFT_SILVER, TFT_TEMP);
-  tft.setTextDatum(TL_DATUM);
-  tft.drawString(debugAtshRequest, 0, 0, 2);
-  tft.drawString(debugCommandRequest, 128, 0, 2);
-  tft.drawString(commandRequest, 256, 0, 2);
-  tft.setTextDatum(TR_DATUM);
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.setTextColor(TFT_SILVER, TFT_TEMP);
+  spr.setTextDatum(TL_DATUM);
+  spr.drawString(debugAtshRequest, 0, 0, 2);
+  spr.drawString(debugCommandRequest, 128, 0, 2);
+  spr.drawString(commandRequest, 256, 0, 2);
+  spr.setTextDatum(TR_DATUM);
 
   for (int i = 0; i < debugLastString.length() / 2; i++) {
     chHex = debugLastString.substring(i * 2, (i * 2) + 2);
     chHex2 = debugPreviousString.substring(i * 2, (i * 2) + 2);
-    tft.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
+    spr.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
     chByte = hexToDec(chHex.c_str(), 1, false);
     posx = (((i) % 10) * 32) + 24;
     posy = ((floor((i) / 10)) * 32) + 24;
     sprintf(tmpStr1, "%03d", chByte);
-    tft.drawString(tmpStr1, posx + 4, posy, 2);
+    spr.drawString(tmpStr1, posx + 4, posy, 2);
 
-    tft.setTextColor(TFT_YELLOW, TFT_TEMP);
+    spr.setTextColor(TFT_YELLOW, TFT_TEMP);
     sprintf(tmpStr1, "%c", (char)chByte);
-    tft.drawString(tmpStr1, posx + 4, posy + 13, 2);
+    spr.drawString(tmpStr1, posx + 4, posy + 13, 2);
   }
 
   debugPreviousString = debugLastString;
@@ -1115,6 +1207,9 @@ bool drawSceneDebug(bool force) {
 String menuItemCaption(int16_t menuItemId, String title) {
 
   String prefix = "", suffix = "";
+
+  if (menuItemId == 10) // Version
+    suffix = APP_VERSION;
 
   if (menuItemId == 401) // distance
     suffix = (settings.distanceUnit == 'k') ? "[km]" : "[mi]";
@@ -1135,19 +1230,22 @@ bool showMenu() {
   uint16_t posY = 0, tmpCurrMenuItem = 0;
 
   menuVisible = true;
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextDatum(TL_DATUM);
-  tft.setFreeFont(&Roboto_Thin_24);
+
+  spr.fillSprite(TFT_BLACK);
+  spr.setTextDatum(TL_DATUM);
+  spr.setFreeFont(&Roboto_Thin_24);
 
   for (uint16_t i = 0; i < menuItemsCount; ++i) {
     if (menuCurrent == menuItems[i].parentId) {
-      tft.fillRect(0, posY, 320, tft.fontHeight() + 2, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
-      tft.setTextColor((menuItemSelected == tmpCurrMenuItem) ? TFT_WHITE : TFT_WHITE, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
-      tft.drawString(menuItemCaption(menuItems[i].id, menuItems[i].title), 0, posY + 2, GFXFF);
-      posY += tft.fontHeight();
+      spr.fillRect(0, posY, 320, spr.fontHeight() + 2, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
+      spr.setTextColor((menuItemSelected == tmpCurrMenuItem) ? TFT_WHITE : TFT_WHITE, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
+      spr.drawString(menuItemCaption(menuItems[i].id, menuItems[i].title), 0, posY + 2, GFXFF);
+      posY += spr.fontHeight();
       tmpCurrMenuItem++;
     }
   }
+
+  spr.pushSprite(0, 0);
 
   return true;
 }
@@ -1160,7 +1258,7 @@ bool hideMenu() {
   menuVisible = false;
   menuCurrent = 0;
   menuItemSelected = 0;
-  redrawScreen(true);
+  redrawScreen();
 
   return false;
 }
@@ -1209,7 +1307,7 @@ bool menuItemClick() {
     // Exit menu
     if (tmpMenuItem.parentId == 0 && tmpMenuItem.id == 0) {
       menuVisible = false;
-      redrawScreen(true);
+      redrawScreen();
     } else {
       // Parent menu
       menuCurrent = tmpMenuItem.targetParentId;
@@ -1253,6 +1351,9 @@ bool menuItemClick() {
       case 3042: settings.lcdBrightness = 20; break;
       case 3043: settings.lcdBrightness = 50; break;
       case 3044: settings.lcdBrightness = 100; break;
+      // Pre-drawn charg.graphs off/on
+      case 3051: settings.predrawnChargingGraphs = 0; break;
+      case 3052: settings.predrawnChargingGraphs = 1; break;
       // Distance
       case 4011: settings.distanceUnit = 'k'; break;
       case 4012: settings.distanceUnit = 'm'; break;
@@ -1268,6 +1369,8 @@ bool menuItemClick() {
       case 8: resetSettings(); hideMenu(); return false;
       // Save settings
       case 9: saveSettings(); break;
+      // Version
+      case 10: hideMenu(); return false;
       default:
         // Submenu
         menuCurrent = tmpMenuItem.id;
@@ -1286,92 +1389,82 @@ bool menuItemClick() {
 /**
    Redraw screen
 */
-bool redrawScreen(bool force) {
+bool redrawScreen() {
 
-  nextFrameFullRedraw = false;
   if (menuVisible) {
     return false;
   }
 
-  tft.startWrite();
-
-  // Clear screen if needed
-  if (force) {
-    tft.fillScreen(TFT_BLACK);
-  }
-
   // Lights not enabled
   if (!testDataMode && params.forwardDriveMode && !params.headLights && !params.dayLights) {
-    tft.fillScreen(TFT_RED);
-    tft.setFreeFont(&Orbitron_Light_32);
-    tft.setTextColor(TFT_WHITE, TFT_RED);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
-    tft.endWrite();
+    spr.fillSprite(TFT_RED);
+    spr.setFreeFont(&Orbitron_Light_32);
+    spr.setTextColor(TFT_WHITE, TFT_RED);
+    spr.setTextDatum(MC_DATUM);
+    spr.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
+    spr.pushSprite(0, 0);
 
-    nextFrameFullRedraw = true;
     return true;
   }
+
+  spr.fillSprite(TFT_BLACK);
 
   // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
   if (displayScreen == SCREEN_AUTO) {
     if (params.speedKmh > 5) {
       if (displayScreenAutoMode != 3) {
-        tft.fillScreen(TFT_BLACK);
         displayScreenAutoMode = 3;
       }
-      drawSceneSpeed(force);
+      drawSceneSpeed();
     } else if (params.batPowerKw > 1) {
       if (displayScreenAutoMode != 5) {
-        tft.fillScreen(TFT_BLACK);
         displayScreenAutoMode = 5;
       }
-      drawSceneChargingGraph(force);
+      drawSceneChargingGraph();
     } else {
       if (displayScreenAutoMode != 2) {
-        tft.fillScreen(TFT_BLACK);
         displayScreenAutoMode = 2;
       }
-      drawSceneMain(force);
+      drawSceneMain();
     }
   }
   // 2. Main screen
   if (displayScreen == SCREEN_DASH) {
-    drawSceneMain(force);
+    drawSceneMain();
   }
   // 3. Big speed + kwh/100km
   if (displayScreen == SCREEN_SPEED) {
-    drawSceneSpeed(force);
+    drawSceneSpeed();
   }
   // 4. Battery cells
   if (displayScreen == SCREEN_CELLS) {
-    drawSceneBatteryCells(force);
+    drawSceneBatteryCells();
   }
   // 5. Charging graph
   if (displayScreen == SCREEN_CHARGING) {
-    drawSceneChargingGraph(force);
+    drawSceneChargingGraph();
   }
   // 6. SOC10% table (CEC-CED)
   if (displayScreen == SCREEN_SOC10) {
-    drawSceneSoc10Table(force);
+    drawSceneSoc10Table();
   }
   // 7. DEBUG SCREEN
   if (displayScreen == SCREEN_DEBUG) {
-    drawSceneDebug(force);
+    drawSceneDebug();
   }
 
   // BLE not connected
   if (!bleConnected && bleConnect) {
     // Print message
-    tft.setTextSize(1);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.setTextDatum(TL_DATUM);
-    tft.drawString(" BLE4 OBDII not connected... ", 0, (240 / 2) - tft.fontHeight(), 2);
-    tft.drawString(" Press middle button to menu. ", 0, (240 / 2), 2);
-    tft.drawString(APP_VERSION, 0, (240 / 2) + tft.fontHeight(), 2);
+    spr.setTextSize(1);
+    spr.setTextColor(TFT_WHITE, TFT_BLACK);
+    spr.setTextDatum(TL_DATUM);
+    spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
+    spr.drawString("Press middle button to menu.", 0, 200, 2);
+    spr.drawString(APP_VERSION, 0, 220, 2);
   }
 
-  tft.endWrite();
+  spr.pushSprite(0, 0);
 
   return true;
 }
@@ -1384,8 +1477,7 @@ bool doNextAtCommand() {
   // Restart loop with AT commands
   if (commandQueueIndex >= commandQueueCount) {
     commandQueueIndex = commandQueueLoopFrom;
-    // Redraw only changed values
-    redrawScreen(nextFrameFullRedraw);
+    redrawScreen();
   }
 
   // Send AT command to obd
@@ -1469,7 +1561,7 @@ bool parseRowMerged() {
 */
 bool testData() {
 
-  redrawScreen(true);
+  redrawScreen();
 
   if (settings.carType == CAR_KIA_ENIRO_2020_64 || settings.carType == CAR_HYUNDAI_KONA_2020_64 ||
       settings.carType == CAR_KIA_ENIRO_2020_39 || settings.carType == CAR_HYUNDAI_KONA_2020_39) {
@@ -1483,7 +1575,7 @@ bool testData() {
     testDataRenaultZoe();
   }
 
-  redrawScreen(false);
+  redrawScreen();
   return true;
 }
 
@@ -1642,7 +1734,7 @@ bool connectToServer(BLEAddress pAddress) {
 
   pClient = BLEDevice::createClient();
   pClient->setClientCallbacks(new MyClientCallback());
-  if ( pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM) ) Serial.println("bleConnected");
+  if (pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM) ) Serial.println("bleConnected");
   Serial.println(" - bleConnected to server");
 
   displayMessage(" > Connecting device", "Connecting service...");
@@ -1738,7 +1830,7 @@ bool startBleScan() {
     if (foundMyBleDevice == NULL) {
       displayMessage("Device not found", "Middle button - menu");
     } else {
-      redrawScreen(true);
+      redrawScreen();
     }
   }
 
@@ -1774,7 +1866,20 @@ void setup(void) {
   tft.setRotation(settings.displayRotation);
   analogWrite(TFT_BL, (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
   tft.fillScreen(TFT_BLACK);
-  redrawScreen(true);
+
+  bool psramUsed = false; // 320x240 16bpp sprites requires psram
+#if defined (ESP32) && defined (CONFIG_SPIRAM_SUPPORT)
+  if (psramFound())
+    psramUsed = true;
+#endif
+  if (!psramUsed) {
+    displayMessage("SRAM support required", "Compile with ESP32 Wrover CPU");
+    delay(60000);
+    ESP.restart();
+  }
+  spr.setColorDepth(16);
+  spr.createSprite(320, 240);
+  redrawScreen();
 
   // Init time library
   struct timeval tv;
@@ -1890,7 +1995,7 @@ void loop() {
           displayScreen = 0; // rotate screens
         // Turn off display on screen 0
         analogWrite(TFT_BL, (displayScreen == SCREEN_BLANK) ? 0 : (settings.lcdBrightness == 0) ? 100 : settings.lcdBrightness);
-        redrawScreen(true);
+        redrawScreen();
       }
     }
   }
@@ -1908,11 +2013,11 @@ void loop() {
         // doAction
         if (displayScreen == SCREEN_SPEED) {
           displayScreenSpeedHud = !displayScreenSpeedHud;
-          redrawScreen(true);
+          redrawScreen();
         }
         if (settings.debugScreen == 1 && displayScreen == SCREEN_DEBUG) {
           debugCommandIndex = (debugCommandIndex >= commandQueueCount) ? commandQueueLoopFrom : debugCommandIndex + 1;
-          redrawScreen(true);
+          redrawScreen();
         }
 
       }

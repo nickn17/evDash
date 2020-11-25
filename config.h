@@ -97,4 +97,12 @@
 #define TFT_TEMP        0x0000    // NAVY
 #define TFT_GREENYELLOW 0xB7E0
 #define TFT_DARKRED     0x3800      /* 128,   0,   0 */
+#define TFT_DARKRED2    0x1800      /* 128,   0,   0 */
 #define TFT_DARKGREEN2  0x01E0      /* 128,   0,   0 */
+
+// COLDGATE COLORS
+#define TFT_GRAPH_COLDGATE0_5 0x4208
+#define TFT_GRAPH_COLDGATE5_14 0x6000
+#define TFT_GRAPH_COLDGATE15_24 0x0008
+#define TFT_GRAPH_OPTIMAL25  0x0200
+#define TFT_GRAPH_RAPIDGATE35 0x8300

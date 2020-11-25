@@ -8,7 +8,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 61
+#define menuItemsCount 66
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -22,6 +22,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {4, 0, -1, "Units"},
   {8, 0, -1, "Factory reset"},
   {9, 0, -1, "Save settings"},
+  {10, 0, -1, "Version"},
 
   {100, 1, 0, "<- parent menu"},
   {101, 1, -1,  "Kia eNiro 2020 64kWh"},
@@ -37,6 +38,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {302, 3, -1, "Default screen"},
   {303, 3, -1, "Debug screen off/on"},
   {304, 3, -1, "LCD brightness"},
+  {305, 3, -1, "Pre-drawn ch.graphs 0/1"},
 
   {400, 4, 0, "<- parent menu"},
   {401, 4, -1, "Distance"},
@@ -63,6 +65,10 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {3042, 304, -1, "20%"},
   {3043, 304, -1, "50%"},
   {3044, 304, -1, "100%"},
+
+  {3050, 305, 3, "<- parent menu"},
+  {3051, 305, -1, "Off"},
+  {3052, 305, -1, "On"},
 
   {4010, 401, 4, "<- parent menu"},
   {4011, 401, -1, "Kilometers"},

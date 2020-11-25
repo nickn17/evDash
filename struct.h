@@ -118,7 +118,7 @@ typedef struct {
 // Setting stored to flash
 typedef struct {
   byte initFlag; // 183 value
-  byte settingsVersion; // current 2
+  byte settingsVersion; // current 3
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
   char obdMacAddress[20];
   char serviceUUID[40];
@@ -132,6 +132,7 @@ typedef struct {
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
   byte debugScreen; // 0 - off, 1 - on
+  byte predrawnChargingGraphs; // 0 - off, 1 - on
 } SETTINGS_STRUC;
 
 PARAMS_STRUC params;     // Realtime sensor values
