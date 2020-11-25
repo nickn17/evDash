@@ -60,6 +60,8 @@ Screen list
 
 ### v1.8.2 2020-11-25
 - Removed screen flickering. (via Sprites, esp32 with SRAM is now required!)
+- Code cleaning. Removed force no/yes redraw mode. Not required with sprites
+- Arrow for current (based on bat.temperature) pre-drawn charging graph 
 
 ### v1.8.1 2020-11-23
 - Pre-drawn charging graphs (based on coldgates)
