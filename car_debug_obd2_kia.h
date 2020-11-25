@@ -96,7 +96,7 @@ String commandQueueDebugObd2Kia[commandQueueCountDebugObd2Kia] = {
   // 7A5 7AD SMK B UDS Smart Key
   "ATSH7A5",
   "22B001", // 7F2278 7F2231
-  "22B002", // positive 
+  "22B002", // positive
   "22B003", // positive
   "22B004", // 7F2278 7F2231
   "22B005", // positive
@@ -240,7 +240,7 @@ bool parseRowMergedDebugObd2Kia() {
   if (currentAtshRequest.equals("ATSH7E2")) {
     if (commandRequest.equals("2101")) {
       params.speedKmh = hexToDec(responseRowMerged.substring(32, 36).c_str(), 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-      if (params.speedKmh < -99 || params.speedKmh > 200) 
+      if (params.speedKmh < -99 || params.speedKmh > 200)
         params.speedKmh = 0;
     }
     if (commandRequest.equals("2102")) {
@@ -333,11 +333,12 @@ bool parseRowMergedDebugObd2Kia() {
     }
     // BMS 7e4
     if (commandRequest.equals("220105")) {
+      params.socPercPrevious = params.socPerc;
       params.sohPerc = hexToDec(responseRowMerged.substring(56, 60).c_str(), 2, false) / 10.0;
       params.socPerc = hexToDec(responseRowMerged.substring(68, 70).c_str(), 1, false) / 2.0;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
-      if (oldParams.socPerc - params.socPerc > 0) {
+      if (params.socPercPrevious - params.socPerc > 0) {
         byte index = (int(params.socPerc) == 4) ? 0 : (int)(params.socPerc / 10) + 1;
         if ((int(params.socPerc) % 10 == 9 || int(params.socPerc) == 4) && params.soc10ced[index] == -1) {
           struct tm now;

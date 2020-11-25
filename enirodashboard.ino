@@ -244,6 +244,7 @@ bool initStructure() {
   params.motorRpm = -1;
   params.odoKm = -1;
   params.socPerc = -1;
+  params.socPercPrevious = -1;
   params.sohPerc = -1;
   params.cumulativeEnergyChargedKWh = -1;
   params.cumulativeEnergyChargedKWhStart = -1;
@@ -308,8 +309,6 @@ bool initStructure() {
     params.chargingGraphHeaterTempC[i] = -100;
     params.chargingGraphWaterCoolantTempC[i] = -100;
   }
-
-  oldParams = params;
 
   return true;
 }
@@ -452,141 +451,81 @@ bool showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char* topleft, 
 bool drawSceneMain() {
 
   // Tire pressure
-  if (params.tireFrontLeftTempC != oldParams.tireFrontLeftTempC
-      || params.tireFrontRightTempC != oldParams.tireFrontRightTempC || params.tireRearLeftTempC != oldParams.tireRearLeftTempC || params.tireRearRightTempC != oldParams.tireRearRightTempC
-      || oldParams.cumulativeEnergyChargedKWhStart != params.cumulativeEnergyChargedKWhStart
-      || oldParams.cumulativeEnergyChargedKWh != params.cumulativeEnergyChargedKWh
-      || oldParams.cumulativeEnergyDischargedKWhStart != params.cumulativeEnergyDischargedKWhStart
-      || oldParams.cumulativeEnergyDischargedKWh != params.cumulativeEnergyDischargedKWh
-     ) {
-    char pressureStr[4] = "bar";
-    char temperatureStr[2] = "C";
-    if (settings.pressureUnit != 'b')
-      strcpy(pressureStr, "psi");
-    if (settings.temperatureUnit != 'c')
-      strcpy(temperatureStr, "F");
-    sprintf(tmpStr1, "%01.01f%s %02.00f%s", bar2pressure(params.tireFrontLeftPressureBar), pressureStr, celsius2temperature(params.tireFrontLeftTempC), temperatureStr);
-    sprintf(tmpStr2, "%02.00f%s %01.01f%s", celsius2temperature(params.tireFrontRightTempC), temperatureStr, bar2pressure(params.tireFrontRightPressureBar), pressureStr);
-    sprintf(tmpStr3, "%01.01f%s %02.00f%s", bar2pressure(params.tireRearLeftPressureBar), pressureStr, celsius2temperature(params.tireRearLeftTempC), temperatureStr);
-    sprintf(tmpStr4, "%02.00f%s %01.01f%s", celsius2temperature(params.tireRearRightTempC), temperatureStr, bar2pressure(params.tireRearRightPressureBar), pressureStr);
-    showTires(1, 0, 2, 1, tmpStr1, tmpStr2, tmpStr3, tmpStr4, TFT_BLACK);
+  char pressureStr[4] = "bar";
+  char temperatureStr[2] = "C";
+  if (settings.pressureUnit != 'b')
+    strcpy(pressureStr, "psi");
+  if (settings.temperatureUnit != 'c')
+    strcpy(temperatureStr, "F");
+  sprintf(tmpStr1, "%01.01f%s %02.00f%s", bar2pressure(params.tireFrontLeftPressureBar), pressureStr, celsius2temperature(params.tireFrontLeftTempC), temperatureStr);
+  sprintf(tmpStr2, "%02.00f%s %01.01f%s", celsius2temperature(params.tireFrontRightTempC), temperatureStr, bar2pressure(params.tireFrontRightPressureBar), pressureStr);
+  sprintf(tmpStr3, "%01.01f%s %02.00f%s", bar2pressure(params.tireRearLeftPressureBar), pressureStr, celsius2temperature(params.tireRearLeftTempC), temperatureStr);
+  sprintf(tmpStr4, "%02.00f%s %01.01f%s", celsius2temperature(params.tireRearRightTempC), temperatureStr, bar2pressure(params.tireRearRightPressureBar), pressureStr);
+  showTires(1, 0, 2, 1, tmpStr1, tmpStr2, tmpStr3, tmpStr4, TFT_BLACK);
 
-    // Added later - kwh total in tires box
-    // TODO: refactoring
-    spr.setTextDatum(TL_DATUM);
-    spr.setTextColor(TFT_GREEN, TFT_BLACK);
-    sprintf(tmpStr1, "C: %01.01f +%01.01fkWh", params.cumulativeEnergyChargedKWh, params.cumulativeEnergyChargedKWh - params.cumulativeEnergyChargedKWhStart);
-    spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30, 2);
-    spr.setTextColor(TFT_YELLOW, TFT_BLACK);
-    sprintf(tmpStr1, "D: %01.01f -%01.01fkWh", params.cumulativeEnergyDischargedKWh, params.cumulativeEnergyDischargedKWh - params.cumulativeEnergyDischargedKWhStart);
-    spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44, 2);
-
-    oldParams.tireFrontLeftTempC = params.tireFrontLeftTempC;
-    oldParams.tireFrontLeftPressureBar = params.tireFrontLeftPressureBar;
-    oldParams.tireFrontRightTempC = params.tireFrontRightTempC;
-    oldParams.tireFrontRightPressureBar = params.tireFrontRightPressureBar;
-    oldParams.tireRearLeftTempC = params.tireRearLeftTempC;
-    oldParams.tireRearLeftPressureBar = params.tireRearLeftPressureBar;
-    oldParams.tireRearRightTempC = params.tireRearRightTempC;
-    oldParams.tireRearRightPressureBar = params.tireRearRightPressureBar;
-    oldParams.cumulativeEnergyChargedKWhStart = params.cumulativeEnergyChargedKWhStart;
-    oldParams.cumulativeEnergyChargedKWh = params.cumulativeEnergyChargedKWh;
-    oldParams.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWhStart;
-    oldParams.cumulativeEnergyDischargedKWh = params.cumulativeEnergyDischargedKWh;
-  }
+  // Added later - kwh total in tires box
+  // TODO: refactoring
+  spr.setTextDatum(TL_DATUM);
+  spr.setTextColor(TFT_GREEN, TFT_BLACK);
+  sprintf(tmpStr1, "C: %01.01f +%01.01fkWh", params.cumulativeEnergyChargedKWh, params.cumulativeEnergyChargedKWh - params.cumulativeEnergyChargedKWhStart);
+  spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30, 2);
+  spr.setTextColor(TFT_YELLOW, TFT_BLACK);
+  sprintf(tmpStr1, "D: %01.01f -%01.01fkWh", params.cumulativeEnergyDischargedKWh, params.cumulativeEnergyDischargedKWh - params.cumulativeEnergyDischargedKWhStart);
+  spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44, 2);
 
   // batPowerKwh100 on roads, else batPowerAmp
   if (params.speedKmh > 20) {
-    if (params.batPowerKwh100 != oldParams.batPowerKwh100) {
-      sprintf(tmpStr1, "%01.01f", km2distance(params.batPowerKwh100));
-      monitoringRect(1, 1, 2, 2, tmpStr1, ((settings.distanceUnit == 'k') ? "POWER KWH/100KM" : "POWER KWH/100MI"), (params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
-      oldParams.batPowerKwh100 = params.batPowerKwh100;
-    }
+    sprintf(tmpStr1, "%01.01f", km2distance(params.batPowerKwh100));
+    monitoringRect(1, 1, 2, 2, tmpStr1, ((settings.distanceUnit == 'k') ? "POWER KWH/100KM" : "POWER KWH/100MI"), (params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
   } else {
     // batPowerAmp on chargers (under 10kmh)
-    if (params.batPowerKw != oldParams.batPowerKw) {
-      sprintf(tmpStr1, "%01.01f", params.batPowerKw);
-      monitoringRect(1, 1, 2, 2, tmpStr1, "POWER KW", (params.batPowerKw >= 0 ? TFT_DARKGREEN2 : (params.batPowerKw <= -30 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
-      oldParams.batPowerKw = params.batPowerKw;
-    }
+    sprintf(tmpStr1, "%01.01f", params.batPowerKw);
+    monitoringRect(1, 1, 2, 2, tmpStr1, "POWER KW", (params.batPowerKw >= 0 ? TFT_DARKGREEN2 : (params.batPowerKw <= -30 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
   }
 
   // socPerc
-  if (params.socPerc != oldParams.socPerc) {
-    sprintf(tmpStr1, "%01.00f%%", params.socPerc);
-    sprintf(tmpStr2, (params.sohPerc ==  100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), params.sohPerc);
-    monitoringRect(0, 0, 1, 1, tmpStr1, tmpStr2, (params.socPerc < 10 || params.sohPerc < 100 ? TFT_RED : (params.socPerc  > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
-    oldParams.socPerc = params.socPerc;
-    oldParams.sohPerc = params.sohPerc;
-  }
+  sprintf(tmpStr1, "%01.00f%%", params.socPerc);
+  sprintf(tmpStr2, (params.sohPerc ==  100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), params.sohPerc);
+  monitoringRect(0, 0, 1, 1, tmpStr1, tmpStr2, (params.socPerc < 10 || params.sohPerc < 100 ? TFT_RED : (params.socPerc  > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
 
   // batPowerAmp
-  if (params.batPowerAmp != oldParams.batPowerAmp) {
-    sprintf(tmpStr1, (abs(params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), params.batPowerAmp);
-    monitoringRect(0, 1, 1, 1, tmpStr1, "CURRENT A", (params.batPowerAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
-    oldParams.batPowerAmp = params.batPowerAmp;
-  }
+  sprintf(tmpStr1, (abs(params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), params.batPowerAmp);
+  monitoringRect(0, 1, 1, 1, tmpStr1, "CURRENT A", (params.batPowerAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
 
   // batVoltage
-  if (params.batVoltage != oldParams.batVoltage) {
-    sprintf(tmpStr1, "%03.00f", params.batVoltage);
-    monitoringRect(0, 2, 1, 1, tmpStr1, "VOLTAGE", TFT_DEFAULT_BK, TFT_WHITE);
-    oldParams.batVoltage = params.batVoltage;
-  }
+  sprintf(tmpStr1, "%03.00f", params.batVoltage);
+  monitoringRect(0, 2, 1, 1, tmpStr1, "VOLTAGE", TFT_DEFAULT_BK, TFT_WHITE);
 
   // batCellMinV
-  if (params.batCellMinV != oldParams.batCellMinV || params.batCellMaxV != oldParams.batCellMaxV) {
-    sprintf(tmpStr1, "%01.02f", params.batCellMaxV - params.batCellMinV);
-    sprintf(tmpStr2, "CELLS %01.02f", params.batCellMinV);
-    monitoringRect(0, 3, 1, 1, ( params.batCellMaxV - params.batCellMinV == 0.00 ? "OK" : tmpStr1), tmpStr2, TFT_DEFAULT_BK, TFT_WHITE);
-    oldParams.batCellMaxV = params.batCellMaxV;
-    oldParams.batCellMinV = params.batCellMinV;
-  }
+  sprintf(tmpStr1, "%01.02f", params.batCellMaxV - params.batCellMinV);
+  sprintf(tmpStr2, "CELLS %01.02f", params.batCellMinV);
+  monitoringRect(0, 3, 1, 1, ( params.batCellMaxV - params.batCellMinV == 0.00 ? "OK" : tmpStr1), tmpStr2, TFT_DEFAULT_BK, TFT_WHITE);
 
   // batTempC
-  if (params.batTempC != oldParams.batTempC) {
-    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batMinC));
-    sprintf(tmpStr2, ((settings.temperatureUnit == 'c') ? "BATT. %01.00fC" : "BATT. %01.01fF"), celsius2temperature(params.batMaxC));
-    monitoringRect(1, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-    oldParams.batTempC = params.batTempC;
-  }
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batMinC));
+  sprintf(tmpStr2, ((settings.temperatureUnit == 'c') ? "BATT. %01.00fC" : "BATT. %01.01fF"), celsius2temperature(params.batMaxC));
+  monitoringRect(1, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, (params.batTempC >= 15) ? ((params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
 
   // batHeaterC
-  if (params.batHeaterC != oldParams.batHeaterC) {
-    sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batHeaterC));
-    monitoringRect(2, 3, 1, 1, tmpStr1, "BAT.HEAT", TFT_TEMP, TFT_WHITE);
-    oldParams.batHeaterC = params.batHeaterC;
-  }
+  sprintf(tmpStr1, ((settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), celsius2temperature(params.batHeaterC));
+  monitoringRect(2, 3, 1, 1, tmpStr1, "BAT.HEAT", TFT_TEMP, TFT_WHITE);
 
   // Aux perc
-  if (params.auxPerc != oldParams.auxPerc) {
-    sprintf(tmpStr1, "%01.00f%%", params.auxPerc);
-    monitoringRect(3, 0, 1, 1, tmpStr1, "AUX BAT.", (params.auxPerc < 60 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
-    oldParams.auxPerc = params.auxPerc;
-  }
+  sprintf(tmpStr1, "%01.00f%%", params.auxPerc);
+  monitoringRect(3, 0, 1, 1, tmpStr1, "AUX BAT.", (params.auxPerc < 60 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
 
   // Aux amp
-  if (params.auxCurrentAmp != oldParams.auxCurrentAmp) {
-    sprintf(tmpStr1, (abs(params.auxCurrentAmp) > 9.9 ? "%01.00f" : "%01.01f"), params.auxCurrentAmp);
-    monitoringRect(3, 1, 1, 1, tmpStr1, "AUX AMPS",  (params.auxCurrentAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
-    oldParams.auxCurrentAmp = params.auxCurrentAmp;
-  }
+  sprintf(tmpStr1, (abs(params.auxCurrentAmp) > 9.9 ? "%01.00f" : "%01.01f"), params.auxCurrentAmp);
+  monitoringRect(3, 1, 1, 1, tmpStr1, "AUX AMPS",  (params.auxCurrentAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
 
   // auxVoltage
-  if (params.auxVoltage != oldParams.auxVoltage) {
-    sprintf(tmpStr1, "%01.01f", params.auxVoltage);
-    monitoringRect(3, 2, 1, 1, tmpStr1, "AUX VOLTS", (params.auxVoltage < 12.1 ? TFT_RED : (params.auxVoltage < 12.6 ? TFT_ORANGE : TFT_DEFAULT_BK)), TFT_WHITE);
-    oldParams.auxVoltage = params.auxVoltage;
-  }
+  sprintf(tmpStr1, "%01.01f", params.auxVoltage);
+  monitoringRect(3, 2, 1, 1, tmpStr1, "AUX VOLTS", (params.auxVoltage < 12.1 ? TFT_RED : (params.auxVoltage < 12.6 ? TFT_ORANGE : TFT_DEFAULT_BK)), TFT_WHITE);
 
   // indoorTemperature
-  if (params.indoorTemperature != oldParams.indoorTemperature || params.outdoorTemperature != oldParams.outdoorTemperature) {
-    sprintf(tmpStr1, "%01.01f", celsius2temperature(params.indoorTemperature));
-    sprintf(tmpStr2, "IN/OUT%01.01f", celsius2temperature(params.outdoorTemperature));
-    monitoringRect(3, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, TFT_WHITE);
-    oldParams.indoorTemperature = params.indoorTemperature;
-    oldParams.outdoorTemperature = params.outdoorTemperature;
-  }
+  sprintf(tmpStr1, "%01.01f", celsius2temperature(params.indoorTemperature));
+  sprintf(tmpStr2, "IN/OUT%01.01f", celsius2temperature(params.outdoorTemperature));
+  monitoringRect(3, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, TFT_WHITE);
 
   return true;
 }

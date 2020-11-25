@@ -55,7 +55,7 @@ String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
   // CLUSTER MODULE
   "ATSH7C6",
   "22B002",   // odo
- 
+
 };
 
 /**
@@ -219,11 +219,12 @@ bool parseRowMergedKiaENiro() {
     }
     // BMS 7e4
     if (commandRequest.equals("220105")) {
+      params.socPercPrevious = params.socPerc;
       params.sohPerc = hexToDec(responseRowMerged.substring(56, 60).c_str(), 2, false) / 10.0;
       params.socPerc = hexToDec(responseRowMerged.substring(68, 70).c_str(), 1, false) / 2.0;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
-      if (oldParams.socPerc - params.socPerc > 0) {
+      if (params.socPercPrevious - params.socPerc > 0) {
         byte index = (int(params.socPerc) == 4) ? 0 : (int)(params.socPerc / 10) + 1;
         if ((int(params.socPerc) % 10 == 9 || int(params.socPerc) == 4) && params.soc10ced[index] == -1) {
           params.soc10ced[index] = params.cumulativeEnergyDischargedKWh;

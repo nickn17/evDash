@@ -47,6 +47,7 @@ typedef struct {
   float motorRpm;
   float odoKm;
   float socPerc;
+  float socPercPrevious;
   float sohPerc;
   float cumulativeEnergyChargedKWh;
   float cumulativeEnergyChargedKWhStart;
@@ -136,7 +137,6 @@ typedef struct {
 } SETTINGS_STRUC;
 
 PARAMS_STRUC params;     // Realtime sensor values
-PARAMS_STRUC oldParams;  // Old states used for change detection (draw optimization)
 SETTINGS_STRUC settings, tmpSettings; // Settings stored into flash
 
 /**
