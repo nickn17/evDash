@@ -35,8 +35,11 @@ Others
 ## Quick installation with ESP32 flash tool
 
 M5STACK (Many thanks to DimZen)
+
 https://docs.google.com/document/d/17vJmeveNfN0exQy9wKC-5igU8zzNjsuOn1DPuPV_yJA/edit?usp=sharing
+
 TTGO-T4 (older)
+
 https://docs.google.com/document/d/1nEezrtXY-8X6mQ1hiZVWDjBVse1sXQg1SlnizaRmJwU/edit?usp=sharing
 
 ## Screens and shortcuts
