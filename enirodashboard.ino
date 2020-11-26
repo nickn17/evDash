@@ -1838,6 +1838,11 @@ void setup(void) {
   pinMode(BUTTON_LEFT, INPUT);
   pinMode(BUTTON_RIGHT, INPUT);
 
+#ifdef BOARD_M5STACK_CORE
+  // mute speaker
+  dacWrite(25, 0);
+#endif // BOARD_M5STACK_C
+
   // Init display
   Serial.println("Init TFT display");
   tft.begin();
