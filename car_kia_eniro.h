@@ -90,6 +90,8 @@ bool activateCommandQueueForKiaENiro() {
 */
 bool parseRowMergedKiaENiro() {
 
+  bool tempByte;
+
   // ABS / ESP + AHB 7D1
   if (currentAtshRequest.equals("ATSH7D1")) {
     if (commandRequest.equals("22C101")) {
@@ -103,6 +105,12 @@ bool parseRowMergedKiaENiro() {
   // IGPM
   if (currentAtshRequest.equals("ATSH770")) {
     if (commandRequest.equals("22BC03")) {
+      tempByte = hexToDec(responseRowMerged.substring(16, 18).c_str(), 1, false);
+      params.ignitionOnPrevious = params.ignitionOn;
+      params.ignitionOn = (bitRead(tempByte, 5) == 1);
+      if (params.ignitionOnPrevious && !params.ignitionOn) 
+        params.automatickShutdownTimer = params.currentTime;
+      
       params.lightInfo = hexToDec(responseRowMerged.substring(18, 20).c_str(), 1, false);
       params.headLights = (bitRead(params.lightInfo, 5) == 1);
       params.dayLights = (bitRead(params.lightInfo, 3) == 1);

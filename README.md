@@ -63,6 +63,9 @@ Screen list
 
 ## Release notes
 
+- Fixed menu
+- Automatic shutdown when car goes off
+
 ### v1.8.2 2020-11-25
 - Removed screen flickering. (via Sprites, esp32 with SRAM is now required!)
 - Code cleaning. Removed force no/yes redraw mode. Not required with sprites

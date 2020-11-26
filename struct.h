@@ -33,6 +33,9 @@ String currentAtshRequest = "";
 typedef struct {
   time_t currentTime; 
   time_t chargingStartTime; 
+  time_t automatickShutdownTimer; 
+  bool ignitionOn;
+  bool ignitionOnPrevious;
   bool forwardDriveMode;
   bool reverseDriveMode;
   bool parkModeOrNeutral;

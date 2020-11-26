@@ -110,6 +110,32 @@ bool displayMessage(const char* row1, const char* row2) {
 }
 
 /**
+  Shutdown device
+*/
+bool shutdownDevice() {
+
+  Serial.println("Shutdown.");
+
+  displayMessage("Shutdown in 3 sec.", "");
+  delay(3000);
+
+  setCpuFrequencyMhz(80);
+  analogWrite(TFT_BL, 0);
+  //WiFi.disconnect(true);
+  //WiFi.mode(WIFI_OFF);
+  btStop();
+  //adc_power_off();
+  //esp_wifi_stop();
+  esp_bt_controller_disable();
+
+  delay(2000);
+  //esp_sleep_enable_timer_wakeup(/*minutes*/ 525600L * 60L * 1000000L);
+  esp_deep_sleep_start();
+
+  return true;
+}
+
+/**
   Load settings from flash memory, upgrade structure if version differs
 */
 bool saveSettings() {
@@ -230,6 +256,9 @@ bool loadSettings() {
 */
 bool initStructure() {
 
+  params.automatickShutdownTimer = 0;
+  params.ignitionOn = false;
+  params.ignitionOnPrevious = false;
   params.chargingStartTime = params.currentTime = 0;
   params.lightInfo = 0;
   params.headLights = false;
@@ -1175,12 +1204,22 @@ bool showMenu() {
   spr.setTextDatum(TL_DATUM);
   spr.setFreeFont(&Roboto_Thin_24);
 
+  // Page scroll
+  uint8_t visibleCount = (int)(tft.height() / spr.fontHeight());
+  if (menuItemSelected >= menuItemOffset + visibleCount)
+    menuItemOffset = menuItemSelected - visibleCount + 1;
+  if (menuItemSelected < menuItemOffset)
+    menuItemOffset = menuItemSelected;  
+
+  // Print items
   for (uint16_t i = 0; i < menuItemsCount; ++i) {
     if (menuCurrent == menuItems[i].parentId) {
-      spr.fillRect(0, posY, 320, spr.fontHeight() + 2, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
-      spr.setTextColor((menuItemSelected == tmpCurrMenuItem) ? TFT_WHITE : TFT_WHITE, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
-      spr.drawString(menuItemCaption(menuItems[i].id, menuItems[i].title), 0, posY + 2, GFXFF);
-      posY += spr.fontHeight();
+      if (tmpCurrMenuItem >= menuItemOffset) {
+        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
+        spr.setTextColor((menuItemSelected == tmpCurrMenuItem) ? TFT_WHITE : TFT_WHITE, (menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
+        spr.drawString(menuItemCaption(menuItems[i].id, menuItems[i].title), 0, posY + 2, GFXFF);
+        posY += spr.fontHeight();
+      }
       tmpCurrMenuItem++;
     }
   }
@@ -1215,7 +1254,7 @@ bool menuMove(bool forward) {
         tmpCount++;
       }
     }
-    menuItemSelected = (menuItemSelected > tmpCount) ? tmpCount : menuItemSelected + 1;
+    menuItemSelected = (menuItemSelected >= tmpCount - 1 ) ? tmpCount - 1 : menuItemSelected + 1;
   } else {
     menuItemSelected = (menuItemSelected <= 0) ? 0 : menuItemSelected - 1;
   }
@@ -1311,6 +1350,8 @@ bool menuItemClick() {
       case 9: saveSettings(); break;
       // Version
       case 10: hideMenu(); return false;
+      // Shutdown
+      case 11: shutdownDevice(); return false;
       default:
         // Submenu
         menuCurrent = tmpMenuItem.id;
@@ -1970,4 +2011,7 @@ void loop() {
   struct tm now;
   getLocalTime(&now, 0);
   params.currentTime = mktime(&now);
+  // Shutdown when car is off
+  if (params.automatickShutdownTimer != 0 && params.currentTime - params.automatickShutdownTimer > 5)
+    shutdownDevice();
 }
