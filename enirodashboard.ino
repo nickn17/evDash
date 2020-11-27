@@ -27,14 +27,17 @@
   <= 0°C BMS allows max 40A
 */
 
-#define APP_VERSION "v1.8.2b"
+#define APP_VERSION "v1.9.0"
 
+#include "FS.h"
+#include "SD.h"
 #include "SPI.h"
 #include "TFT_eSPI.h"
 #include "BLEDevice.h"
 #include <EEPROM.h>
 #include <sys/time.h>
 #include <analogWrite.h>
+#include <WiFi.h>
 #include "config.h"
 #include "struct.h"
 #include "menu.h"
@@ -45,6 +48,10 @@
 
 // PLEASE CHANGE THIS SETTING for your BLE4
 uint32_t PIN = 1234;
+const char* ssid     = "your-ssid";
+const char* password = "your-password";
+long timezone = 1;
+byte daysavetime = 1;
 
 // TFT
 TFT_eSPI tft = TFT_eSPI();
@@ -1180,6 +1187,12 @@ String menuItemCaption(int16_t menuItemId, String title) {
   if (menuItemId == 10) // Version
     suffix = APP_VERSION;
 
+  if (menuItemId == 3071) { // sdcard info
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    sprintf(tmpStr1, "%lluMB", cardSize);
+    suffix = String(tmpStr1);
+  }
+
   if (menuItemId == 401) // distance
     suffix = (settings.distanceUnit == 'k') ? "[km]" : "[mi]";
   if (menuItemId == 402) // temperature
@@ -1209,7 +1222,7 @@ bool showMenu() {
   if (menuItemSelected >= menuItemOffset + visibleCount)
     menuItemOffset = menuItemSelected - visibleCount + 1;
   if (menuItemSelected < menuItemOffset)
-    menuItemOffset = menuItemSelected;  
+    menuItemOffset = menuItemSelected;
 
   // Print items
   for (uint16_t i = 0; i < menuItemsCount; ++i) {
@@ -1333,6 +1346,8 @@ bool menuItemClick() {
       // Pre-drawn charg.graphs off/on
       case 3051: settings.predrawnChargingGraphs = 0; break;
       case 3052: settings.predrawnChargingGraphs = 1; break;
+      // Sdcard:
+      case 3072: SD.begin(SDCARD_CS, SDCARD_MOSI, SDCARD_MISO, SDCARD_SCK); break;
       // Distance
       case 4011: settings.distanceUnit = 'k'; break;
       case 4012: settings.distanceUnit = 'm'; break;
@@ -1868,6 +1883,28 @@ void setup(void) {
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   redrawScreen();
+
+  // Init SDCARD
+  if (!SD.begin(SDCARD_CS, SDCARD_MOSI, SDCARD_MISO, SDCARD_SCK)) {
+    Serial.println("Card Mount Failed");
+  }
+  uint8_t cardType = SD.cardType();
+  if (cardType == CARD_NONE) {
+    Serial.println("No SD card attached");
+  }
+  Serial.print("SD Card Type: ");
+  if (cardType == CARD_MMC) {
+    Serial.println("MMC");
+  } else if (cardType == CARD_SD) {
+    Serial.println("SDSC");
+  } else if (cardType == CARD_SDHC) {
+    Serial.println("SDHC");
+  } else {
+    Serial.println("UNKNOWN");
+  }
+
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
   // Init time library
   struct timeval tv;

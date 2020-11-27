@@ -29,6 +29,10 @@
 #define BUTTON_LEFT 38
 #define BUTTON_MIDDLE 37
 #define BUTTON_RIGHT 39
+#define SDCARD_CS 13
+#define SDCARD_MOSI 15
+#define SDCARD_MISO 2
+#define SDCARD_SCK 14
 #endif // BOARD_TTGO_T4
 
 /////////////////////////////////////////////////////////////
@@ -52,6 +56,10 @@
 #define BUTTON_RIGHT 39
 #define SPEAKER 25
 #define INVERT_DISPLAY
+#define SDCARD_CS 4
+#define SDCARD_MOSI 23
+#define SDCARD_MISO 19
+#define SDCARD_SCK 18
 #endif // BOARD_M5STACK_CORE
 
 /////////////////////////////////////////////////////////////
