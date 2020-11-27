@@ -1885,7 +1885,7 @@ void setup(void) {
   redrawScreen();
 
   // Init SDCARD
-  if (!SD.begin(SDCARD_CS, SDCARD_MOSI, SDCARD_MISO, SDCARD_SCK)) {
+  /*if (!SD.begin(SDCARD_CS, SDCARD_MOSI, SDCARD_MISO, SDCARD_SCK)) {
     Serial.println("Card Mount Failed");
   }
   uint8_t cardType = SD.cardType();
@@ -1905,7 +1905,7 @@ void setup(void) {
 
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   Serial.printf("SD Card Size: %lluMB\n", cardSize);
-
+*/
   // Init time library
   struct timeval tv;
   tv.tv_sec = 1589011873;

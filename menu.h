@@ -41,8 +41,8 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {303, 3, -1, "Debug screen off/on"},
   {304, 3, -1, "LCD brightness"},
   {305, 3, -1, "Pre-drawn ch.graphs 0/1"},
-  {306, 3, -1, "WiFi network"},
-  {307, 3, -1, "SD card"},
+  {306, 3, -1, "[DEV] WiFi network"},
+  {307, 3, -1, "[DEV] SD card"},
 
   {400, 4, 0, "<- parent menu"},
   {401, 4, -1, "Distance"},
