@@ -27,28 +27,31 @@
   <= 0°C BMS allows max 40A
 */
 
-#define APP_VERSION "v1.8.2b"
+#define APP_VERSION "v1.8.3b"
 
-#include "SPI.h"
-#include "TFT_eSPI.h"
-#include "BLEDevice.h"
+#include <SPI.h>
+#include <TFT_eSPI.h>
+#include <BLEDevice.h>
+#include "./config.h"
+#include <mySD.h>
+//#include <SD.h>
 #include <EEPROM.h>
 #include <sys/time.h>
 #include <analogWrite.h>
-#include "config.h"
-#include "struct.h"
-#include "menu.h"
-#include "car_kia_eniro.h"
-#include "car_hyundai_ioniq.h"
-#include "car_renault_zoe.h"
-#include "car_debug_obd2_kia.h"
+#include "./struct.h"
+#include "./menu.h"
+#include "./car_kia_eniro.h"
+#include "./car_hyundai_ioniq.h"
+#include "./car_renault_zoe.h"
+#include "./car_debug_obd2_kia.h"
 
 // PLEASE CHANGE THIS SETTING for your BLE4
 uint32_t PIN = 1234;
 
-// TFT
+// TFT, SD SPI
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite spr = TFT_eSprite(&tft);
+//SPIClass spiSD(HSPI);
 
 // BLUETOOTH4
 static boolean bleConnect = true;
@@ -176,7 +179,7 @@ bool loadSettings() {
 
   // Init
   settings.initFlag = 183;
-  settings.settingsVersion = 2;
+  settings.settingsVersion = 3;
   settings.carType = CAR_KIA_ENIRO_2020_64;
 
   // Default OBD adapter MAC and UUID's
@@ -1209,7 +1212,7 @@ bool showMenu() {
   if (menuItemSelected >= menuItemOffset + visibleCount)
     menuItemOffset = menuItemSelected - visibleCount + 1;
   if (menuItemSelected < menuItemOffset)
-    menuItemOffset = menuItemSelected;  
+    menuItemOffset = menuItemSelected;
 
   // Print items
   for (uint16_t i = 0; i < menuItemsCount; ++i) {
@@ -1830,6 +1833,7 @@ void setup(void) {
   Serial.println("");
   Serial.println("Booting device...");
 
+  //
   initStructure();
   loadSettings();
 
@@ -1840,9 +1844,9 @@ void setup(void) {
 
 #ifdef BOARD_M5STACK_CORE
   // mute speaker
-  dacWrite(25, 0);
+  Serial.println("Mute speaker for m5stack");
+  dacWrite(SPEAKER_PIN, 0);
 #endif // BOARD_M5STACK_C
-
   // Init display
   Serial.println("Init TFT display");
   tft.begin();
@@ -1860,11 +1864,6 @@ void setup(void) {
   if (psramFound())
     psramUsed = true;
 #endif
-  //  if (!psramUsed) {
-  //    displayMessage("SRAM support required", "Compile with ESP32 Wrover CPU");
-  //    delay(60000);
-  //    ESP.restart();
-  //  }
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   redrawScreen();
@@ -1884,6 +1883,19 @@ void setup(void) {
     testData();
   }
 
+  // Init SDCARD
+  if (!SD.begin(SD_CS, SD_MOSI, SD_MISO, SD_SCLK)) {
+    Serial.println("SDCARD initialization failed!");
+  } else {
+    Serial.println("SDCARD initialization done.");
+  }
+  /*spiSD.begin(SD_SCLK,SD_MISO,SD_MOSI,SD_CS);
+  if(!SD.begin( SD_CS, spiSD, 27000000)){
+    Serial.println("SDCARD initialization failed!");
+  } else {
+    Serial.println("SDCARD initialization done.");
+  }*/
+  
   // Start BLE connection
   line = "";
   Serial.println("Start BLE with PIN auth");

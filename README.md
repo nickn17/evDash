@@ -61,10 +61,10 @@ Screen list
 
 [![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
 
-## Release notes
-
-- Fixed menu
+### v1.8.3 2020-11-28
 - Automatic shutdown when car goes off
+- Fixed M5stack speaker noise
+- Fixed menu, added scroll support
 
 ### v1.8.2 2020-11-25
 - Removed screen flickering. (via Sprites, esp32 with SRAM is now required!)

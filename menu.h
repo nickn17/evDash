@@ -8,7 +8,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 67
+#define menuItemsCount 79
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -41,6 +41,8 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {303, 3, -1, "Debug screen off/on"},
   {304, 3, -1, "LCD brightness"},
   {305, 3, -1, "Pre-drawn ch.graphs 0/1"},
+  {306, 3, -1, "[DEV] WiFi network"},
+  {307, 3, -1, "[DEV] SD card"},
 
   {400, 4, 0, "<- parent menu"},
   {401, 4, -1, "Distance"},
@@ -71,6 +73,18 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {3050, 305, 3, "<- parent menu"},
   {3051, 305, -1, "Off"},
   {3052, 305, -1, "On"},
+
+  {3060, 306, 3, "<- parent menu"},
+  {3061, 306, -1, "WiFi off/on"},
+  {3062, 306, -1, "SSID"},
+  {3063, 306, -1, "Password"},
+
+  {3070, 307, 3, "<- parent menu"},
+  {3071, 307, -1, "Info:"},
+  {3072, 307, -1, "Mount manually"},
+  {3073, 307, -1, "Record now"},
+  {3074, 307, -1, "Stop recording"},
+  {3075, 307, -1, "Record on boot off/on"},
 
   {4010, 401, 4, "<- parent menu"},
   {4011, 401, -1, "Kilometers"},
