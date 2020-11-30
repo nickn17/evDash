@@ -1,6 +1,16 @@
 #ifndef CARKIAENIRO_CPP
 #define CARKIAENIRO_CPP
 
+/* 
+ *    eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
+  >= 35°C BMS allows max 180A
+  >= 25°C without limit (200A)
+  >= 15°C BMS allows max 120A
+  >= 5°C BMS allows max 90A
+  >= 1°C BMS allows max 60A
+  <= 0°C BMS allows max 40A
+ */
+
 #include <Arduino.h>
 #include <stdint.h>
 #include <WString.h>

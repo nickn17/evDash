@@ -1,25 +1,20 @@
 /*
-
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
 
-  ---
-  eNiro/Kona chargins limits depending on battery temperature (min.value of 01-04 battery module)
-  >= 35°C BMS allows max 180A
-  >= 25°C without limit (200A)
-  >= 15°C BMS allows max 120A
-  >= 5°C BMS allows max 90A
-  >= 1°C BMS allows max 60A
-  <= 0°C BMS allows max 40A
+Required libraries
+- esp32 board support
+- tft_espi
+- ArduinoJson
 */
 
 ////////////////////////////////////////////////////////////
 // SELECT HARDWARE
 ////////////////////////////////////////////////////////////
 
-#define BOARD_TTGO_T4
-//#define BOARD_M5STACK_CORE
+//#define BOARD_TTGO_T4
+#define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
 
@@ -27,7 +22,7 @@
 ////////////////////////////////////////////////////////////
 
 #define APP_VERSION "v1.9.0"
-#define APP_RELEASE_DATE "2020-11-29"
+#define APP_RELEASE_DATE "2020-11-30"
 
 #include <SPI.h>
 #include <TFT_eSPI.h>
