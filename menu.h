@@ -1,3 +1,7 @@
+
+#ifndef MENU_H
+#define MENU_H
+
 // Menu id/parent/title
 typedef struct {
   int16_t id;
@@ -8,7 +12,7 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#define menuItemsCount 79
+#define menuItemsCount 78
 bool menuVisible = false;
 uint16_t menuCurrent = 0;
 uint8_t  menuItemSelected = 0;
@@ -32,7 +36,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
-  {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
+  //{106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
   {107, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},
@@ -110,3 +114,6 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {10008, 9999, -1, "-"},
   {10009, 9999, -1, "-"},
 };
+
+//
+#endif // MENU_H

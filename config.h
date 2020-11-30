@@ -1,94 +1,5 @@
-////////////////////////////////////////////////////////////
-// SELECT HARDWARE !!!!
-////////////////////////////////////////////////////////////
-
-#define BOARD_TTGO_T4
-//#define BOARD_M5STACK_CORE
-
-//#define SIM800L_ENABLED
-
-////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////
-
-#define USER_SETUP_LOADED 1
-#define SPI_FREQUENCY  27000000
-//#define SPI_READ_FREQUENCY  20000000
-#define SPI_TOUCH_FREQUENCY  2500000
-
-////////////////////////////////////////////////////////////
-// BOARD LILYGO TTGO T4 v1.3
-/////////////////////////////////////////////////////////////
-#ifdef BOARD_TTGO_T4
-
-#define ILI9341_DRIVER
-#define TFT_MISO 12
-#define TFT_MOSI 23
-#define TFT_SCLK 18
-#define TFT_CS   27
-#define TFT_DC   32
-#define TFT_RST   5
-//#define TFT_BACKLIGHT_ON HIGH
-#define TFT_BL 4
-
-#define USE_HSPI_PORT
-//#define SPI_FREQUENCY  40000000   // Maximum for ILI9341
-#define SPI_READ_FREQUENCY  6000000 // 6 MHz is the maximum SPI read speed for the ST7789V
-
-#define SD_CS    13
-#define SD_MOSI  15
-#define SD_MISO  2
-#define SD_SCLK  14
-
-#define BUTTON_LEFT 38
-#define BUTTON_MIDDLE 37
-#define BUTTON_RIGHT 39
-
-#endif // BOARD_TTGO_T4
-
-/////////////////////////////////////////////////////////////
-// BOARD M5STACK CORE IOT (M5-K001)
-/////////////////////////////////////////////////////////////
-#ifdef BOARD_M5STACK_CORE
-
-#define USER_SETUP_LOADED 1
-#define ILI9341_DRIVER
-#define M5STACK
-#define TFT_MISO 19
-#define TFT_MOSI 23
-#define TFT_SCLK 18
-#define TFT_CS   14  // Chip select control pin
-#define TFT_DC   27  // Data Command control pin
-#define TFT_RST  33  // Reset pin (could connect to Arduino RESET pin)
-#define TFT_BL   32  // LED back-light
-#define SPI_FREQUENCY  27000000
-#define SPI_READ_FREQUENCY  5000000
-#define SPEAKER_PIN 25
-#define INVERT_DISPLAY
-
-#define BUTTON_LEFT 37
-#define BUTTON_MIDDLE 38
-#define BUTTON_RIGHT 39
-
-#define SD_CS    4
-#define SD_MOSI  23
-#define SD_MISO  19
-#define SD_SCLK  18
-
-#endif // BOARD_M5STACK_CORE
-
-////////////////////////////////////////////////////////////
-// SIM800L
-/////////////////////////////////////////////////////////////
-
-#ifdef SIM800L_ENABLED
-#define SIM800L_RX 16
-#define SIM800L_TX 17
-#define SIM800L_RST 5
-#define SIM800L_TIMER 120
-#endif //SIM800L_ENABLED
-
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
+#ifndef CONFIG_H
+#define CONFIG_H
 
 // TFT COMMON
 #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
@@ -139,3 +50,18 @@
 #define TFT_GRAPH_COLDGATE15_24 0x0008
 #define TFT_GRAPH_OPTIMAL25  0x0200
 #define TFT_GRAPH_RAPIDGATE35 0x8300
+
+////////////////////////////////////////////////////////////
+// SIM800L
+/////////////////////////////////////////////////////////////
+
+#ifdef SIM800L_ENABLED
+#define SIM800L_RX 16
+#define SIM800L_TX 17
+#define SIM800L_RST 5
+#define SIM800L_TIMER 120
+#endif //SIM800L_ENABLED
+
+/////////////////////////////////////////////////////////////
+//
+#endif // CONFIG_H
