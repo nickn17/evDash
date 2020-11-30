@@ -7,6 +7,8 @@ Required libraries
 - esp32 board support
 - tft_espi
 - ArduinoJson
+For SIM800L m5stack
+- SIM800L.h, SoftwareSerial.h
 */
 
 ////////////////////////////////////////////////////////////
@@ -122,7 +124,7 @@ bool displayMessage(const char* row1, const char* row2) {
   tft.setFreeFont(&Roboto_Thin_24);
   tft.setTextDatum(BL_DATUM);
   tft.drawString(row1, 0, 240 / 2, GFXFF);
-  spr.drawString(row2, 0, (240 / 2) + 30, GFXFF);
+  tft.drawString(row2, 0, (240 / 2) + 30, GFXFF);
 
   return true;
 }
