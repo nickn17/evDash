@@ -45,6 +45,14 @@
 #include "./car_renault_zoe.h"
 #include "./car_debug_obd2_kia.h"
 
+#ifdef SIM800L_ENABLED
+#include <ArduinoJson.h>
+#include <SoftwareSerial.h>
+#include "SIM800L.h"
+
+SIM800L* sim800l;
+#endif //SIM800L_ENABLED
+
 // PLEASE CHANGE THIS SETTING for your BLE4
 uint32_t PIN = 1234;
 
@@ -260,6 +268,10 @@ bool loadSettings() {
 bool initStructure() {
 
   params.automatickShutdownTimer = 0;
+#ifdef SIM800L_ENABLED
+  params.lastDataSent = 0;
+  params.sim800l_enabled = true;
+#endif //SIM800L_ENABLED
   params.ignitionOn = false;
   params.ignitionOnPrevious = false;
   params.chargingStartTime = params.currentTime = 0;
@@ -1824,6 +1836,107 @@ bool startBleScan() {
 }
 
 /**
+  SIM800L
+*/
+#ifdef SIM800L_ENABLED
+bool sim800lSetup() {
+  const char APN[] = "internet.t-mobile.cz";
+  
+  Serial.println("Setting SIM800L module");
+  SoftwareSerial* serial = new SoftwareSerial(SIM800L_RX, SIM800L_TX);
+  serial->begin(9600);
+  sim800l = new SIM800L((Stream *)serial, SIM800L_RST, 512 , 512);
+
+  bool sim800l_ready = sim800l->isReady();
+  for(uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
+    Serial.println("Problem to initialize SIM800L module, retry in 1 sec");
+    delay(1000);
+    sim800l_ready = sim800l->isReady();
+  }
+
+  if(!sim800l_ready) {
+    params.sim800l_enabled = false;
+    Serial.println("Problem to initialize SIM800L module - module disabled");
+  } else {
+    Serial.println("SIM800L - Setup Complete!");
+    Serial.println("Setting GPRS connection");
+
+    bool sim800l_gprs = sim800l->setupGPRS(APN);
+    for(uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
+      Serial.println("Problem to set GPRS connection, retry in 1 sec");
+      delay(1000);
+      sim800l_gprs = sim800l->setupGPRS(APN);
+    }
+
+    if(sim800l_gprs) {
+      Serial.println("GPRS OK");
+    } else {
+      Serial.println("Problem to set GPRS");
+    }
+  }
+  
+  return true;  
+}
+
+bool sendDataViaGPRS() {
+  Serial.println("Sending data via GPRS");
+
+  NetworkRegistration network = sim800l->getRegistrationStatus();
+  if(network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
+    Serial.println("SIM800L module not connected to network!");
+    return false;
+  }
+
+  bool connected = sim800l->connectGPRS();
+  for(uint8_t i = 0; i < 5 && !connected; i++) {
+    delay(1000);
+    connected = sim800l->connectGPRS();
+  }
+ 
+  if(!connected) {
+    Serial.println("GPRS not connected! Reseting SIM800L module!");
+    sim800l->reset();
+    sim800lSetup();
+    
+    return false;
+  }
+
+  Serial.println("Start HTTP POST...");
+
+  StaticJsonDocument<250> jsonData;
+
+  jsonData["soc"] = params.socPerc;
+  jsonData["soh"] = params.sohPerc;
+  jsonData["batK"] = params.batPowerKw;
+  jsonData["batA"] = params.batPowerAmp;
+  jsonData["batV"] = params.batVoltage;
+  jsonData["auxV"] = params.auxVoltage;
+  jsonData["MinC"] = params.batMinC;
+  jsonData["MaxC"] = params.batMaxC;
+  jsonData["InlC"] = params.batInletC;
+  jsonData["fan"] = params.batFanStatus;
+  jsonData["cumCh"] = params.cumulativeEnergyChargedKWh;
+  jsonData["cumD"] = params.cumulativeEnergyDischargedKWh;
+
+  char payload[200];
+  serializeJson(jsonData, payload);
+
+  uint16_t rc = sim800l->doPost("http://api.example.com", "application/json", payload, 10000, 10000);
+  if(rc == 200) {
+    Serial.println(F("HTTP POST successful"));
+  } else {
+    // Failed...
+    Serial.print(F("HTTP POST error: "));
+    Serial.println(rc);
+  }
+
+  sim800l->disconnectGPRS();
+  
+  return true;
+}
+#endif //SIM800L_ENABLED
+
+/**
   Setup device
 */
 void setup(void) {
@@ -1915,6 +2028,10 @@ void setup(void) {
     startBleScan();
   }
 
+#ifdef SIM800L_ENABLED
+  sim800lSetup();
+#endif //SIM800L_ENABLED
+
   // End
   Serial.println("Device setup completed");
 }
@@ -1962,6 +2079,13 @@ void loop() {
       doNextAtCommand();
     }
   }
+
+#ifdef SIM800L_ENABLED
+  if(params.lastDataSent + SIM800L_TIMER < params.currentTime && params.sim800l_enabled) {
+    sendDataViaGPRS();
+    params.lastDataSent = params.currentTime;
+  }
+#endif //SIM800L_ENABLED
 
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
