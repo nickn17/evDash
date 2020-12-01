@@ -609,8 +609,8 @@ bool drawSceneSpeed() {
   if (displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
-    if (tft.getRotation() != 6) {
-      tft.setRotation(6);
+    if (tft.getRotation() != 3) {
+      tft.setRotation(3);
     }
 
     tft.fillScreen(TFT_BLACK);
@@ -618,11 +618,11 @@ bool drawSceneSpeed() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
-    tft.setTextSize((liveData->params.speedKmh > 99) ? 1 : 2);
+    tft.setTextSize(3);
     sprintf(tmpStr3, "0");
     if (liveData->params.speedKmh > 10)
       sprintf(tmpStr3, "%01.00f", km2distance(liveData->params.speedKmh));
-    tft.drawString(tmpStr3, 240, 0, 8);
+    tft.drawString(tmpStr3, 240, 0, 7);
 
     // Draw power kWh/100km (>25kmh) else kW
     tft.setTextSize(1);
@@ -630,11 +630,11 @@ bool drawSceneSpeed() {
       sprintf(tmpStr3, "%01.01f", km2distance(liveData->params.batPowerKwh100));
     else
       sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
-    tft.drawString(tmpStr3, 240, 150, 8);
+    tft.drawString(tmpStr3, 240, 150, 7);
 
     // Draw soc%
     sprintf(tmpStr3, "%01.00f", liveData->params.socPerc);
-    tft.drawString(tmpStr3, 240 , 230, 8);
+    tft.drawString(tmpStr3, 240 , 230, 7);
 
     // Cold gate cirlce
     tft.fillCircle(30, 280, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
