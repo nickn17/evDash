@@ -2,7 +2,7 @@
 
 ### v1.9.0 2020-11-30
 - Refactoring (classes)
-- Some SIM800L (m5stack) code from https://github.com/kolaCZek
+- SIM800L (m5stack) code from https://github.com/kolaCZek
 
 ### v1.8.3 2020-11-28
 - Automatic shutdown when car goes off
