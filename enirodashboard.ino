@@ -19,6 +19,7 @@ For SIM800L m5stack
 #define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
+//#define SD_ENABLED
 
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
@@ -38,8 +39,11 @@ For SIM800L m5stack
 #endif // BOARD_M5STACK_CORE
 #include "config.h"
 
+#ifdef SD_ENABLED
 #include <mySD.h>
 //#include <SD.h>
+#endif
+
 #include <EEPROM.h>
 #include <sys/time.h>
 #include <analogWrite.h>
@@ -2000,6 +2004,7 @@ void setup(void) {
     testData();
   }
 
+  #ifdef SD_ENABLED
   // Init SDCARD
   if (!SD.begin(SD_CS, SD_MOSI, SD_MISO, SD_SCLK)) {
     Serial.println("SDCARD initialization failed!");
@@ -2012,6 +2017,7 @@ void setup(void) {
     } else {
     Serial.println("SDCARD initialization done.");
     }*/
+  #endif
 
   // Start BLE connection
   line = "";
