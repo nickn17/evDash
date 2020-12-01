@@ -7,6 +7,8 @@
 #include <WString.h>
 #include <String.h>
 #include <sys/time.h>
+#include <BLEDevice.h>
+#include "config.h"
 
 // SUPPORTED CARS
 #define CAR_KIA_ENIRO_2020_64     0
@@ -31,7 +33,7 @@
 typedef struct {
   time_t currentTime;
   time_t chargingStartTime;
-  time_t automatickShutdownTimer;
+  time_t automaticShutdownTimer;
 #ifdef SIM800L_ENABLED
   time_t lastDataSent;
   bool sim800l_enabled;
@@ -147,6 +149,7 @@ typedef struct {
 } SETTINGS_STRUC;
 
 
+//
 class LiveData {
   private:
   public:
@@ -160,10 +163,36 @@ class LiveData {
     bool canSendNextAtCommand = false;
     String commandRequest = "";
     String currentAtshRequest = "";
-    //
+    // Menu
+    bool menuVisible = false;
+    uint8_t  menuItemsCount = 78;
+    uint16_t menuCurrent = 0;
+    uint8_t  menuItemSelected = 0;
+    uint8_t  menuItemOffset = 0;
+    uint16_t scanningDeviceIndex = 0;
+    MENU_ITEM* menuItems;
+
+    // Bluetooth4
+    boolean bleConnect = true;
+    boolean bleConnected = false;
+    BLEAddress *pServerAddress;
+    BLERemoteCharacteristic* pRemoteCharacteristic;
+    BLERemoteCharacteristic* pRemoteCharacteristicWrite;
+    BLEAdvertisedDevice* foundMyBleDevice;
+    BLEClient* pClient;
+    BLEScan* pBLEScan;
+    
+    // Params
     PARAMS_STRUC params;     // Realtime sensor values
+    // Settings
     SETTINGS_STRUC settings, tmpSettings; // Settings stored into flash
+
+    //
+    void initParams();
     float hexToDec(String hexString, byte bytes = 2, bool signedNum = true);
+    float km2distance(float inKm);
+    float celsius2temperature(float inCelsius);
+    float bar2pressure(float inBar);
 };
 
 
