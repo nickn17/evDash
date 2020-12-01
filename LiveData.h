@@ -139,6 +139,11 @@ typedef struct {
   byte lcdBrightness; // 0 - auto, 1 .. 100%
   byte debugScreen; // 0 - off, 1 - on
   byte predrawnChargingGraphs; // 0 - off, 1 - on
+#ifdef SIM800L_ENABLED
+  char gprsApn[64];
+  char remoteApiSrvr[64];
+  char remoteApiKey[13];
+#endif //SIM800L_ENABLED
 } SETTINGS_STRUC;
 
 

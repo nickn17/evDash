@@ -201,13 +201,13 @@ bool loadSettings() {
 
   // Default OBD adapter MAC and UUID's
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
-  tmpStr.toCharArray(liveData->settings.obdMacAddress, 18);
+  tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
   tmpStr = "000018f0-0000-1000-8000-00805f9b34fb"; // Default UUID's for VGate iCar Pro BLE4 adapter
-  tmpStr.toCharArray(liveData->settings.serviceUUID, 37);
+  tmpStr.toCharArray(liveData->settings.serviceUUID, tmpStr.length() + 1);
   tmpStr = "00002af0-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(liveData->settings.charTxUUID, 37);
+  tmpStr.toCharArray(liveData->settings.charTxUUID, tmpStr.length() + 1);
   tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(liveData->settings.charRxUUID, 37);
+  tmpStr.toCharArray(liveData->settings.charRxUUID, tmpStr.length() + 1);
 
   liveData->settings.displayRotation = 1; // 1,3
   liveData->settings.distanceUnit = 'k';
@@ -217,6 +217,15 @@ bool loadSettings() {
   liveData->settings.lcdBrightness = 0;
   liveData->settings.debugScreen = 0;
   liveData->settings.predrawnChargingGraphs = 1;
+
+#ifdef SIM800L_ENABLED
+  tmpStr = "internet.t-mobile.cz";
+  tmpStr.toCharArray(liveData->settings.gprsApn, tmpStr.length() + 1);
+  tmpStr = "http://api.example.com";
+  tmpStr.toCharArray(liveData->settings.remoteApiSrvr, tmpStr.length() + 1);
+  tmpStr = "example";
+  tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
+#endif //SIM800L_ENABLED
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -281,7 +290,7 @@ bool initStructure() {
   liveData->params.automatickShutdownTimer = 0;
 #ifdef SIM800L_ENABLED
   liveData->params.lastDataSent = 0;
-  liveData->params.sim800l_enabled = true;
+  liveData->params.sim800l_enabled = false;
 #endif //SIM800L_ENABLED
   liveData->params.ignitionOn = false;
   liveData->params.ignitionOnPrevious = false;
@@ -1826,9 +1835,7 @@ bool startBleScan() {
   SIM800L
 */
 #ifdef SIM800L_ENABLED
-bool sim800lSetup() {
-  const char APN[] = "internet.t-mobile.cz";
-  
+bool sim800lSetup() {  
   Serial.println("Setting SIM800L module");
   SoftwareSerial* serial = new SoftwareSerial(SIM800L_RX, SIM800L_TX);
   serial->begin(9600);
@@ -1842,20 +1849,22 @@ bool sim800lSetup() {
   }
 
   if(!sim800l_ready) {
-    params.sim800l_enabled = false;
-    Serial.println("Problem to initialize SIM800L module - module disabled");
+    Serial.println("Problem to initialize SIM800L module");
   } else {
-    Serial.println("SIM800L - Setup Complete!");
-    Serial.println("Setting GPRS connection");
+    Serial.println("SIM800L module initialized");
+    
+    Serial.print("Setting GPRS APN to: ");
+    Serial.println(liveData->settings.gprsApn);
 
-    bool sim800l_gprs = sim800l->setupGPRS(APN);
+    bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     for(uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
       Serial.println("Problem to set GPRS connection, retry in 1 sec");
       delay(1000);
-      sim800l_gprs = sim800l->setupGPRS(APN);
+      sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     }
 
     if(sim800l_gprs) {
+      liveData->params.sim800l_enabled = true;
       Serial.println("GPRS OK");
     } else {
       Serial.println("Problem to set GPRS");
@@ -1892,23 +1901,30 @@ bool sendDataViaGPRS() {
 
   StaticJsonDocument<250> jsonData;
 
-  jsonData["soc"] = params.socPerc;
-  jsonData["soh"] = params.sohPerc;
-  jsonData["batK"] = params.batPowerKw;
-  jsonData["batA"] = params.batPowerAmp;
-  jsonData["batV"] = params.batVoltage;
-  jsonData["auxV"] = params.auxVoltage;
-  jsonData["MinC"] = params.batMinC;
-  jsonData["MaxC"] = params.batMaxC;
-  jsonData["InlC"] = params.batInletC;
-  jsonData["fan"] = params.batFanStatus;
-  jsonData["cumCh"] = params.cumulativeEnergyChargedKWh;
-  jsonData["cumD"] = params.cumulativeEnergyDischargedKWh;
+  jsonData["akey"] = liveData->settings.remoteApiKey;
+  jsonData["soc"] = liveData->params.socPerc;
+  jsonData["soh"] = liveData->params.sohPerc;
+  jsonData["batK"] = liveData->params.batPowerKw;
+  jsonData["batA"] = liveData->params.batPowerAmp;
+  jsonData["batV"] = liveData->params.batVoltage;
+  jsonData["auxV"] = liveData->params.auxVoltage;
+  jsonData["MinC"] = liveData->params.batMinC;
+  jsonData["MaxC"] = liveData->params.batMaxC;
+  jsonData["InlC"] = liveData->params.batInletC;
+  jsonData["fan"] = liveData->params.batFanStatus;
+  jsonData["cumCh"] = liveData->params.cumulativeEnergyChargedKWh;
+  jsonData["cumD"] = liveData->params.cumulativeEnergyDischargedKWh;
 
   char payload[200];
   serializeJson(jsonData, payload);
 
-  uint16_t rc = sim800l->doPost("http://api.example.com", "application/json", payload, 10000, 10000);
+  Serial.print("Sending payload: ");
+  Serial.println(payload);
+
+  Serial.print("Remote API server: ");
+  Serial.println(liveData->settings.remoteApiSrvr);
+
+  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiSrvr, "application/json", payload, 10000, 10000);
   if(rc == 200) {
     Serial.println(F("HTTP POST successful"));
   } else {
@@ -2069,9 +2085,9 @@ void loop() {
   }
 
 #ifdef SIM800L_ENABLED
-  if(params.lastDataSent + SIM800L_TIMER < params.currentTime && params.sim800l_enabled) {
+  if(liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
     sendDataViaGPRS();
-    params.lastDataSent = params.currentTime;
+    liveData->params.lastDataSent = liveData->params.currentTime;
   }
 #endif //SIM800L_ENABLED
 
