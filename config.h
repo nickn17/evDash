@@ -1,16 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// TFT COMMON
-#define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
-#define LOAD_FONT2  // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters
-#define LOAD_FONT4  // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
-#define LOAD_FONT6  // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm
-#define LOAD_FONT7  // Font 7. 7 segment 48 pixel font, needs ~2438 bytes in FLASH, only characters 1234567890:.
-#define LOAD_FONT8  // Font 8. Large 75 pixel font needs ~3256 bytes in FLASH, only characters 1234567890:-.
-#define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
-#define SMOOTH_FONT
-#define GFXFF 1  // TFT FOnts
+#include <BLEDevice.h>
+
+#define APP_VERSION "v1.9.0b"
+#define APP_RELEASE_DATE "2020-11-30"
 
 // TFT COLORS FOR TTGO
 #define TFT_BLACK       0x0000      /*   0,   0,   0 */
@@ -62,6 +56,14 @@
 #define SIM800L_TIMER 120
 #endif //SIM800L_ENABLED
 
-/////////////////////////////////////////////////////////////
-//
+// MENU ITEM
+typedef struct {
+  int16_t id;
+  int16_t parentId;
+  int16_t targetParentId;
+  char title[50];
+  char obdMacAddress[20];
+  char serviceUUID[40];
+} MENU_ITEM;
+
 #endif // CONFIG_H
