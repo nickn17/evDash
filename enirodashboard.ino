@@ -20,8 +20,8 @@
 //#define BOARD_TTGO_T4
 #define BOARD_M5STACK_CORE
 
-// Modules
-//#define SIM800L_ENABLED // SIM800L for m5stack
+//#define SIM800L_ENABLED
+//#define SD_ENABLED
 
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
@@ -37,8 +37,11 @@
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
 
-//#include <mySD.h>
+#ifdef SD_ENABLED
+#include <mySD.h>
 //#include <SD.h>
+#endif
+
 #include <sys/time.h>
 #include "config.h"
 #include "LiveData.h"
@@ -553,6 +556,7 @@ void setup(void) {
   // Hold right button
   board->afterSetup();
 
+  #ifdef SD_ENABLED
   // Init SDCARD
   /*if (!SD.begin(SD_CS, SD_MOSI, SD_MISO, SD_SCLK)) {
     Serial.println("SDCARD initialization failed!");
@@ -565,6 +569,7 @@ void setup(void) {
     } else {
     Serial.println("SDCARD initialization done.");
     }*/
+  #endif
 
   // Start BLE connection
   line = "";
