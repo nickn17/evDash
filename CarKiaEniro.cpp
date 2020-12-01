@@ -127,7 +127,7 @@ void CarKiaEniro::parseRowMerged() {
       this->liveData->params.ignitionOnPrevious = this->liveData->params.ignitionOn;
       this->liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
       if (this->liveData->params.ignitionOnPrevious && !this->liveData->params.ignitionOn)
-        this->liveData->params.automatickShutdownTimer = this->liveData->params.currentTime;
+        this->liveData->params.automaticShutdownTimer = this->liveData->params.currentTime;
 
       this->liveData->params.lightInfo = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(18, 20).c_str(), 1, false);
       this->liveData->params.headLights = (bitRead(this->liveData->params.lightInfo, 5) == 1);

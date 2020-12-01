@@ -1,10 +1,10 @@
+#ifndef BOARDTTGOT4V13_H
+#define BOARDTTGOT4V13_H
 
 // Setup for TTGO T4 v13
 #define USER_SETUP_LOADED 1
 #define SPI_FREQUENCY  27000000
 #define SPI_TOUCH_FREQUENCY  2500000
-
-#ifdef BOARD_TTGO_T4
 
 #define ILI9341_DRIVER
 #define TFT_MISO 12
@@ -29,4 +29,17 @@
 #define BUTTON_MIDDLE 37
 #define BUTTON_RIGHT 39
 
-#endif // BOARD_TTGO_T4
+//
+#include "BoardInterface.h"
+#include "Board320_240.h"
+
+//
+class BoardTtgoT4v13 : public Board320_240 {
+  
+  private:   
+  public:
+    void initBoard() override;
+  
+};
+
+#endif // BOARDTTGOT4V13_H

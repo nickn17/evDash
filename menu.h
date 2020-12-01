@@ -1,24 +1,8 @@
 
-#ifndef MENU_H
-#define MENU_H
 
-// Menu id/parent/title
-typedef struct {
-  int16_t id;
-  int16_t parentId;
-  int16_t targetParentId;
-  char title[50];
-  char obdMacAddress[20];
-  char serviceUUID[40];
-} MENU_ITEM;
+#include "config.h";
 
-#define menuItemsCount 78
-bool menuVisible = false;
-uint16_t menuCurrent = 0;
-uint8_t  menuItemSelected = 0;
-uint8_t  menuItemOffset = 0;
-uint16_t scanningDeviceIndex = 0;
-MENU_ITEM menuItems[menuItemsCount] = {
+MENU_ITEM menuItemsSource[78] = {
 
   {0, 0, 0, "<- exit menu"},
   {1, 0, -1, "Vehicle type"},
@@ -114,6 +98,3 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {10008, 9999, -1, "-"},
   {10009, 9999, -1, "-"},
 };
-
-//
-#endif // MENU_H

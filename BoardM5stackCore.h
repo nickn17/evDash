@@ -1,10 +1,10 @@
+#ifndef BOARDM5STACKCORE_H
+#define BOARDM5STACKCORE_H
 
 // Setup for m5stack core
 #define USER_SETUP_LOADED 1
 #define SPI_FREQUENCY  27000000
 #define SPI_TOUCH_FREQUENCY  2500000
-
-#ifdef BOARD_M5STACK_CORE
 
 #define USER_SETUP_LOADED 1
 #define ILI9341_DRIVER
@@ -19,7 +19,6 @@
 #define SPI_FREQUENCY  27000000
 #define SPI_READ_FREQUENCY  5000000
 #define SPEAKER_PIN 25
-#define INVERT_DISPLAY
 
 #define BUTTON_LEFT 37
 #define BUTTON_MIDDLE 38
@@ -30,4 +29,16 @@
 #define SD_MISO  19
 #define SD_SCLK  18
 
-#endif // BOARD_M5STACK_CORE
+//
+#include "BoardInterface.h"
+#include "Board320_240.h"
+
+class BoardM5stackCore : public Board320_240 {
+  
+  private:   
+  public:
+    void initBoard() override;
+ 
+};
+
+#endif // BOARDM5STACKCORE_H
