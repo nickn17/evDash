@@ -1,4 +1,4 @@
-# KIA ENIRO DASHBOARD
+# evDash (older nama enirodashboard)
 
 Supported devices
 1. LILYGO TTGO T4 v1.3
@@ -57,7 +57,7 @@ Screen list
 - no6. consumption table. Can be used to measure available battery capacity! 
 - no7. debug screen (default off in the menu)
 
-![image](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v1.jpg)
+![image](https://github.com/nickn17/evDash/blob/master/screenshots/v1.jpg)
 
-[![Watch the video](https://github.com/nickn17/enirodashboard/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
+[![Watch the video](https://github.com/nickn17/evDash/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
 

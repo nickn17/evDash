@@ -1,5 +1,8 @@
 # RELEASE NOTES
 
+### v2.0.0 2020-12-02
+- Project renamed from eNiroDashboard to evDash
+
 ### v1.9.0 2020-11-30
 - Refactoring (classes)
 - SIM800L (m5stack) code from https://github.com/kolaCZek

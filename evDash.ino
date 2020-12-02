@@ -1,4 +1,7 @@
 /*
+ * 2020-12-02 
+ * Project renamed from eNiroDashboard to evDash
+ * 
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
@@ -17,8 +20,8 @@
 ////////////////////////////////////////////////////////////
 
 // Boards
-//#define BOARD_TTGO_T4
-#define BOARD_M5STACK_CORE
+#define BOARD_TTGO_T4
+//#define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
 //#define SD_ENABLED
