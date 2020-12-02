@@ -2,7 +2,7 @@
 
 #include "config.h";
 
-MENU_ITEM menuItemsSource[78] = {
+MENU_ITEM menuItemsSource[79] = {
 
   {0, 0, 0, "<- exit menu"},
   {1, 0, -1, "Vehicle type"},
@@ -20,7 +20,7 @@ MENU_ITEM menuItemsSource[78] = {
   {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
-  //{106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
+  {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
   {107, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},

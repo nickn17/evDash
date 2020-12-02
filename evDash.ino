@@ -20,8 +20,8 @@
 ////////////////////////////////////////////////////////////
 
 // Boards
-#define BOARD_TTGO_T4
-//#define BOARD_M5STACK_CORE
+//#define BOARD_TTGO_T4
+#define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
 //#define SD_ENABLED
@@ -51,6 +51,7 @@
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
 #include "CarHyundaiIoniq.h"
+#include "CarRenaultZoe.h"
 #include "CarKiaDebugObd2.h"
 
 #ifdef SIM800L_ENABLED
@@ -536,6 +537,8 @@ void setup(void) {
     car = new CarKiaEniro();
   } else if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     car = new CarHyundaiIoniq();
+  } else if (liveData->settings.carType == CAR_RENAULT_ZOE) {
+    car = new CarRenaultZoe();
   } else {
     // if (liveData->settings.carType == CAR_DEBUG_OBD2_KIA)
     car = new CarKiaDebugObd2();

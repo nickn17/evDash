@@ -959,6 +959,7 @@ void Board320_240::menuItemClick() {
       case 103: this->liveData->settings.carType = CAR_HYUNDAI_IONIQ_2018; break;
       case 104: this->liveData->settings.carType = CAR_KIA_ENIRO_2020_39; break;
       case 105: this->liveData->settings.carType = CAR_HYUNDAI_KONA_2020_39; break;
+      case 106: this->liveData->settings.carType = CAR_RENAULT_ZOE; break;
       case 107: this->liveData->settings.carType = CAR_DEBUG_OBD2_KIA; break;
       // Screen orientation
       case 3011: this->liveData->settings.displayRotation = 1; this->tft.setRotation(this->liveData->settings.displayRotation); break;
