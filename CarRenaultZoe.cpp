@@ -46,7 +46,7 @@ void CarRenaultZoe::activateCommandQueue() {
   };
 
   //
-  this->liveData->params.batModuleTempCount = 4; // ???
+  this->liveData->params.batModuleTempCount = 12;
   this->liveData->params.batteryTotalAvailableKWh = 28;
 
   //  Empty and fill command queue
@@ -72,6 +72,9 @@ void CarRenaultZoe::parseRowMerged() {
   if (this->liveData->currentAtshRequest.equals("ATSH79B")) {
     if (this->liveData->commandRequest.equals("2101")) {
         this->liveData->params.auxVoltage = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(56, 60).c_str(), 2, false) / 100.0;
+        this->liveData->params.availableChargePower = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(84, 88).c_str(), 2, false) / 100.0;
+        this->liveData->params.batCellMinV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(24, 28).c_str(), 2, false) / 100.0;
+        this->liveData->params.batCellMaxV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(28, 32).c_str(), 2, false) / 100.0;
     }
     if (this->liveData->commandRequest.equals("2103")) {
       this->liveData->params.socPercPrevious = this->liveData->params.socPerc;
@@ -154,7 +157,6 @@ void CarRenaultZoe::parseRowMerged() {
         this->liveData->params.cumulativeEnergyDischargedKWh = float(strtol(this->liveData->responseRowMerged.substring(90, 98).c_str(), 0, 16)) / 10.0;
         if (this->liveData->params.cumulativeEnergyDischargedKWhStart == -1)
           this->liveData->params.cumulativeEnergyDischargedKWhStart = this->liveData->params.cumulativeEnergyDischargedKWh;
-        this->liveData->params.availableChargePower = float(strtol(this->liveData->responseRowMerged.substring(16, 20).c_str(), 0, 16)) / 100.0;
         this->liveData->params.availableDischargePower = float(strtol(this->liveData->responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
         //this->liveData->params.isolationResistanceKOhm = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(118, 122).c_str(), 2, true);
         this->liveData->params.batFanStatus = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(60, 62).c_str(), 2, true);
@@ -166,16 +168,11 @@ void CarRenaultZoe::parseRowMerged() {
         if (this->liveData->params.batPowerKw < 0) // Reset charging start time
           this->liveData->params.chargingStartTime = this->liveData->params.currentTime;
         this->liveData->params.batPowerKwh100 = this->liveData->params.batPowerKw / this->liveData->params.speedKmh * 100;
-        this->liveData->params.batCellMaxV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(52, 54).c_str(), 1, false) / 50.0;
-        this->liveData->params.batCellMinV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(56, 58).c_str(), 1, false) / 50.0;
         this->liveData->params.batModuleTempC[0] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(38, 40).c_str(), 1, true);
         this->liveData->params.batModuleTempC[1] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(40, 42).c_str(), 1, true);
         this->liveData->params.batModuleTempC[2] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(42, 44).c_str(), 1, true);
         this->liveData->params.batModuleTempC[3] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(44, 46).c_str(), 1, true);
         this->liveData->params.motorRpm = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(112, 116).c_str(), 2, false);
-        //this->liveData->params.batTempC = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(36, 38).c_str(), 1, true);
-        //this->liveData->params.batMaxC = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(34, 36).c_str(), 1, true);
-        //this->liveData->params.batMinC = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(36, 38).c_str(), 1, true);
 
         // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
         this->liveData->params.batMinC = this->liveData->params.batMaxC = this->liveData->params.batModuleTempC[0];
