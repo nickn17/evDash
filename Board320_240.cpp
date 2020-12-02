@@ -273,8 +273,8 @@ void Board320_240::drawSceneSpeed() {
   if (this->displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
-    if (this->tft.getRotation() != 6) {
-      this->tft.setRotation(6);
+    if (this->tft.getRotation() != 5) {
+      this->tft.setRotation(5);
     }
 
     this->tft.fillScreen(TFT_BLACK);
@@ -282,11 +282,11 @@ void Board320_240::drawSceneSpeed() {
     this->tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
-    this->tft.setTextSize((this->liveData->params.speedKmh > 99) ? 1 : 2);
+    this->tft.setTextSize(3);
     sprintf(this->tmpStr3, "0");
     if (this->liveData->params.speedKmh > 10)
       sprintf(this->tmpStr3, "%01.00f", this->liveData->km2distance(this->liveData->params.speedKmh));
-    this->tft.drawString(this->tmpStr3, 240, 0, 8);
+    this->tft.drawString(this->tmpStr3, 320, 0, 7);
 
     // Draw power kWh/100km (>25kmh) else kW
     this->tft.setTextSize(1);
@@ -294,17 +294,17 @@ void Board320_240::drawSceneSpeed() {
       sprintf(this->tmpStr3, "%01.01f", this->liveData->km2distance(this->liveData->params.batPowerKwh100));
     else
       sprintf(this->tmpStr3, "%01.01f", this->liveData->params.batPowerKw);
-    this->tft.drawString(this->tmpStr3, 240, 150, 8);
+    this->tft.drawString(this->tmpStr3, 320, 150, 7);
 
     // Draw soc%
-    sprintf(this->tmpStr3, "%01.00f", this->liveData->params.socPerc);
-    this->tft.drawString(this->tmpStr3, 240 , 230, 8);
+    sprintf(this->tmpStr3, "%01.00f%", this->liveData->params.socPerc);
+    this->tft.drawString(this->tmpStr3, 170 , 150, 7);
 
     // Cold gate cirlce
-    this->tft.fillCircle(30, 280, 25, (this->liveData->params.batTempC >= 15) ? ((this->liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    this->tft.fillCircle(40, 170, 35, (this->liveData->params.batTempC >= 15) ? ((this->liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
 
     // Brake lights
-    this->tft.fillRect(0, 310, 240, 10, (this->liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+    this->tft.fillRect(0, 210, 320, 30, (this->liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
 
     return;
   }
