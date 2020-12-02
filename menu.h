@@ -1,20 +1,8 @@
-// Menu id/parent/title
-typedef struct {
-  int16_t id;
-  int16_t parentId;
-  int16_t targetParentId;
-  char title[50];
-  char obdMacAddress[20];
-  char serviceUUID[40];
-} MENU_ITEM;
 
-#define menuItemsCount 79
-bool menuVisible = false;
-uint16_t menuCurrent = 0;
-uint8_t  menuItemSelected = 0;
-uint8_t  menuItemOffset = 0;
-uint16_t scanningDeviceIndex = 0;
-MENU_ITEM menuItems[menuItemsCount] = {
+
+#include "config.h";
+
+MENU_ITEM menuItemsSource[78] = {
 
   {0, 0, 0, "<- exit menu"},
   {1, 0, -1, "Vehicle type"},
@@ -32,7 +20,7 @@ MENU_ITEM menuItems[menuItemsCount] = {
   {103, 1, -1,  "Hyundai Ioniq 2018 28kWh"},
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
-  {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
+  //{106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
   {107, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},
