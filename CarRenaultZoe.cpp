@@ -9,7 +9,7 @@
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
 
-#define commandQueueCountRenaultZoe 15
+#define commandQueueCountRenaultZoe 18
 #define commandQueueLoopFromRenaultZoe 11
 
 /**
@@ -42,11 +42,14 @@ void CarRenaultZoe::activateCommandQueue() {
     "ATFCSH79B",
     "2101",
     "2103",
+    "2104",
+    "2141",
+    "2142",
     "2161",
   };
 
   //
-  this->liveData->params.batModuleTempCount = 12;
+  this->liveData->params.batModuleTempCount = 12; // 24, 12 is display limit
   this->liveData->params.batteryTotalAvailableKWh = 28;
 
   //  Empty and fill command queue
@@ -71,14 +74,34 @@ void CarRenaultZoe::parseRowMerged() {
   // LBC 79B
   if (this->liveData->currentAtshRequest.equals("ATSH79B")) {
     if (this->liveData->commandRequest.equals("2101")) {
-        this->liveData->params.auxVoltage = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(56, 60).c_str(), 2, false) / 100.0;
-        this->liveData->params.availableChargePower = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(84, 88).c_str(), 2, false) / 100.0;
-        this->liveData->params.batCellMinV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(24, 28).c_str(), 2, false) / 100.0;
-        this->liveData->params.batCellMaxV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(28, 32).c_str(), 2, false) / 100.0;
+      this->liveData->params.batPowerAmp = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(4, 8).c_str(), 2, false) - 5000;
+      this->liveData->params.batPowerKw = (this->liveData->params.batPowerAmp * this->liveData->params.batVoltage) / 1000.0;
+      this->liveData->params.auxVoltage = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(56, 60).c_str(), 2, false) / 100.0;
+      this->liveData->params.availableChargePower = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(84, 88).c_str(), 2, false) / 100.0;
+      this->liveData->params.batCellMinV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(24, 28).c_str(), 2, false) / 100.0;
+      this->liveData->params.batCellMaxV = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(28, 32).c_str(), 2, false) / 100.0;
     }
     if (this->liveData->commandRequest.equals("2103")) {
       this->liveData->params.socPercPrevious = this->liveData->params.socPerc;
       this->liveData->params.socPerc = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(48, 52).c_str(), 2, false) / 100.0;
+    }
+    if (this->liveData->commandRequest.equals("2104")) {
+      for (uint16_t i = 0; i < 12; i++) {
+        this->liveData->params.batModuleTempC[i] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(8 + ( i * 6), 10 + (i * 6)).c_str(), 1, false) - 40;
+      }
+      for (uint16_t i = 12; i < 24; i++) {
+        this->liveData->params.batModuleTempC[i] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(80 + ((i - 12) * 6), 82 + ((i - 12) * 6)).c_str(), 1, false) - 40;
+      }
+    }
+    if (this->liveData->commandRequest.equals("2141")) {
+      for (int i = 0; i < 62; i++) {
+        this->liveData->params.cellVoltage[i] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(4 + (i * 4), 8 + (i * 4)).c_str(), 2, false) / 1000;
+      }
+    }
+    if (this->liveData->commandRequest.equals("2142")) {
+      for (int i = 0; i < 34; i++) {
+        this->liveData->params.cellVoltage[i + 62] = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(4 + (i * 4), 8 + (i * 4)).c_str(), 2, false) / 1000;
+      }
     }
     if (this->liveData->commandRequest.equals("2161")) {
       this->liveData->params.sohPerc = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(18, 20).c_str(), 2, false) / 2.0;
@@ -162,9 +185,7 @@ void CarRenaultZoe::parseRowMerged() {
         this->liveData->params.batFanStatus = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(60, 62).c_str(), 2, true);
         this->liveData->params.batFanFeedbackHz = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(62, 64).c_str(), 2, true);
         this->liveData->params.auxVoltage = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(64, 66).c_str(), 2, true) / 10.0;
-        this->liveData->params.batPowerAmp = - this->liveData->hexToDec(this->liveData->responseRowMerged.substring(26, 30).c_str(), 2, true) / 10.0;
         this->liveData->params.batVoltage = this->liveData->hexToDec(this->liveData->responseRowMerged.substring(30, 34).c_str(), 2, false) / 10.0;
-        this->liveData->params.batPowerKw = (this->liveData->params.batPowerAmp * this->liveData->params.batVoltage) / 1000.0;
         if (this->liveData->params.batPowerKw < 0) // Reset charging start time
           this->liveData->params.chargingStartTime = this->liveData->params.currentTime;
         this->liveData->params.batPowerKwh100 = this->liveData->params.batPowerKw / this->liveData->params.speedKmh * 100;
@@ -274,6 +295,15 @@ void CarRenaultZoe::loadTestData() {
   this->parseRowMerged();
   this->liveData->commandRequest = "2103";
   this->liveData->responseRowMerged = "610301770D010D740000000001750174000000FFFF07D0050D410000030000000000";
+  this->parseRowMerged();
+  this->liveData->commandRequest = "2104";
+  this->liveData->responseRowMerged = "61040B9D290B9F290B9D290B99290B9E290B98290B8A2A0B842A0BA0290B9B290B9A290B9629FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF29292A000000000000";
+  this->parseRowMerged();
+  this->liveData->commandRequest = "2141";
+  this->liveData->responseRowMerged = "61410E930E950E900E930E930E950E950E930E970E940E970E970E950E940E940E930E970E920E930E8F0E900E8E0E8C0E920E970E920E940E940E930E950E950E940E970E970E950E970E940E950E950E990E940E9A0E8E0E900E990E950E900E990E980E950E940E970E970E950E940E980E970E920E920E940E950E93000000000000";
+  this->parseRowMerged();
+  this->liveData->commandRequest = "2142";
+  this->liveData->responseRowMerged = "61420E920E940E970E930E920E970E940E950E950E980E920E900E8F0E8F0E920E900E920E940E9B0E980E950E940E950E930E970E980E980E950E950E930E970E950E950E978BFA8C200000";
   this->parseRowMerged();
   this->liveData->commandRequest = "2161";
   this->liveData->responseRowMerged = "6161000AA820C8C8C8C2C2000153B400004669FF";

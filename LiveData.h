@@ -77,7 +77,7 @@ typedef struct {
   float batMinC;
   float batMaxC;
   uint16_t batModuleTempCount;
-  float batModuleTempC[12];
+  float batModuleTempC[25];
   float coolingWaterTempC;
   float coolantTemp1C;
   float coolantTemp2C;
