@@ -1,4 +1,4 @@
-# evDash (older nama enirodashboard)
+# evDash (old enirodashboard)
 
 Supported devices
 1. LILYGO TTGO T4 v1.3
