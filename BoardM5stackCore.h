@@ -34,11 +34,11 @@
 #include "Board320_240.h"
 
 class BoardM5stackCore : public Board320_240 {
-  
-  private:   
+
+  private:
   public:
     void initBoard() override;
- 
+    void mainLoop() override;
 };
 
 #endif // BOARDM5STACKCORE_H

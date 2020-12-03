@@ -10,14 +10,14 @@
    Set live data
 */
 void BoardInterface::setLiveData(LiveData* pLiveData) {
-  this->liveData = pLiveData;
+  liveData = pLiveData;
 }
 
 /**
    Attach car interface
 */
 void BoardInterface::attachCar(CarInterface* pCarInterface) {
-  this->carInterface = pCarInterface;
+  carInterface = pCarInterface;
 }
 
 
@@ -28,11 +28,11 @@ void BoardInterface::shutdownDevice() {
 
   Serial.println("Shutdown.");
 
-  this->displayMessage("Shutdown in 3 sec.", "");
+  displayMessage("Shutdown in 3 sec.", "");
   delay(3000);
 
   setCpuFrequencyMhz(80);
-  this->setBrightness(0);
+  setBrightness(0);
   //WiFi.disconnect(true);
   //WiFi.mode(WIFI_OFF);
   btStop();
@@ -52,7 +52,7 @@ void BoardInterface::saveSettings() {
 
   // Flash to memory
   Serial.println("Settings saved to eeprom.");
-  EEPROM.put(0, this->liveData->settings);
+  EEPROM.put(0, liveData->settings);
   EEPROM.commit();
 }
 
@@ -63,11 +63,11 @@ void BoardInterface::resetSettings() {
 
   // Flash to memory
   Serial.println("Factory reset.");
-  this->liveData->settings.initFlag = 1;
-  EEPROM.put(0, this->liveData->settings);
+  liveData->settings.initFlag = 1;
+  EEPROM.put(0, liveData->settings);
   EEPROM.commit();
 
-  this->displayMessage("Settings erased", "Restarting in 5 seconds");
+  displayMessage("Settings erased", "Restarting in 5 seconds");
 
   delay(5000);
   ESP.restart();
@@ -81,28 +81,28 @@ void BoardInterface::loadSettings() {
   String tmpStr;
 
   // Init
-  this->liveData->settings.initFlag = 183;
-  this->liveData->settings.settingsVersion = 3;
-  this->liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
+  liveData->settings.initFlag = 183;
+  liveData->settings.settingsVersion = 3;
+  liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
 
   // Default OBD adapter MAC and UUID's
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
-  tmpStr.toCharArray(this->liveData->settings.obdMacAddress, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
   tmpStr = "000018f0-0000-1000-8000-00805f9b34fb"; // Default UUID's for VGate iCar Pro BLE4 adapter
-  tmpStr.toCharArray(this->liveData->settings.serviceUUID, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.serviceUUID, tmpStr.length() + 1);
   tmpStr = "00002af0-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(this->liveData->settings.charTxUUID, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.charTxUUID, tmpStr.length() + 1);
   tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
-  tmpStr.toCharArray(this->liveData->settings.charRxUUID, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.charRxUUID, tmpStr.length() + 1);
 
-  this->liveData->settings.displayRotation = 1; // 1,3
-  this->liveData->settings.distanceUnit = 'k';
-  this->liveData->settings.temperatureUnit = 'c';
-  this->liveData->settings.pressureUnit = 'b';
-  this->liveData->settings.defaultScreen = 1;
-  this->liveData->settings.lcdBrightness = 0;
-  this->liveData->settings.debugScreen = 0;
-  this->liveData->settings.predrawnChargingGraphs = 1;
+  liveData->settings.displayRotation = 1; // 1,3
+  liveData->settings.distanceUnit = 'k';
+  liveData->settings.temperatureUnit = 'c';
+  liveData->settings.pressureUnit = 'b';
+  liveData->settings.defaultScreen = 1;
+  liveData->settings.lcdBrightness = 0;
+  liveData->settings.debugScreen = 0;
+  liveData->settings.predrawnChargingGraphs = 1;
 
 #ifdef SIM800L_ENABLED
   tmpStr = "internet.t-mobile.cz";
@@ -116,34 +116,34 @@ void BoardInterface::loadSettings() {
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
-  EEPROM.get(0, this->liveData->tmpSettings);
+  EEPROM.get(0, liveData->tmpSettings);
 
   // Init flash with default settings
-  if (this->liveData->tmpSettings.initFlag != 183) {
+  if (liveData->tmpSettings.initFlag != 183) {
     Serial.println("Settings not found. Initialization.");
-    this->saveSettings();
+    saveSettings();
   } else {
     Serial.print("Loaded settings ver.: ");
-    Serial.println(this->liveData->settings.settingsVersion);
+    Serial.println(liveData->settings.settingsVersion);
 
     // Upgrade structure
-    if (this->liveData->settings.settingsVersion != this->liveData->tmpSettings.settingsVersion) {
-      if (this->liveData->tmpSettings.settingsVersion == 1) {
-        this->liveData->tmpSettings.settingsVersion = 2;
-        this->liveData->tmpSettings.defaultScreen = this->liveData->settings.defaultScreen;
-        this->liveData->tmpSettings.lcdBrightness = this->liveData->settings.lcdBrightness;
-        this->liveData->tmpSettings.debugScreen = this->liveData->settings.debugScreen;
+    if (liveData->settings.settingsVersion != liveData->tmpSettings.settingsVersion) {
+      if (liveData->tmpSettings.settingsVersion == 1) {
+        liveData->tmpSettings.settingsVersion = 2;
+        liveData->tmpSettings.defaultScreen = liveData->settings.defaultScreen;
+        liveData->tmpSettings.lcdBrightness = liveData->settings.lcdBrightness;
+        liveData->tmpSettings.debugScreen = liveData->settings.debugScreen;
       }
-      if (this->liveData->tmpSettings.settingsVersion == 2) {
-        this->liveData->tmpSettings.settingsVersion = 3;
-        this->liveData->tmpSettings.predrawnChargingGraphs = this->liveData->settings.predrawnChargingGraphs;
+      if (liveData->tmpSettings.settingsVersion == 2) {
+        liveData->tmpSettings.settingsVersion = 3;
+        liveData->tmpSettings.predrawnChargingGraphs = liveData->settings.predrawnChargingGraphs;
       }
-      this->saveSettings();
+      saveSettings();
     }
 
     // Save version? No need to upgrade structure
-    if (this->liveData->settings.settingsVersion == this->liveData->tmpSettings.settingsVersion) {
-      this->liveData->settings = this->liveData->tmpSettings;
+    if (liveData->settings.settingsVersion == liveData->tmpSettings.settingsVersion) {
+      liveData->settings = liveData->tmpSettings;
     }
   }
 }

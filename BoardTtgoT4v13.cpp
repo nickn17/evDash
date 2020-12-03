@@ -10,11 +10,11 @@
 */
 void BoardTtgoT4v13::initBoard() {
 
-  this->pinButtonLeft = BUTTON_LEFT;
-  this->pinButtonRight = BUTTON_RIGHT;
-  this->pinButtonMiddle = BUTTON_MIDDLE;
-  //this->pinSpeaker = SPEAKER_PIN;
-  this->pinBrightness = TFT_BL;
+  pinButtonLeft = BUTTON_LEFT;
+  pinButtonRight = BUTTON_RIGHT;
+  pinButtonMiddle = BUTTON_MIDDLE;
+  //pinSpeaker = SPEAKER_PIN;
+  pinBrightness = TFT_BL;
 
   Board320_240::initBoard();
 }
