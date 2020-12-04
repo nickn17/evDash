@@ -53,7 +53,7 @@
 #define SIM800L_RX 16
 #define SIM800L_TX 17
 #define SIM800L_RST 5
-#define SIM800L_TIMER 120
+#define SIM800L_TIMER 60
 #endif //SIM800L_ENABLED
 
 // MENU ITEM
