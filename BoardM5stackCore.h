@@ -17,7 +17,10 @@
 #define TFT_BL   32  // LED back-light
 #define SPI_FREQUENCY  27000000
 #define SPI_READ_FREQUENCY  5000000
+// BEEP PIN
 #define SPEAKER_PIN 25
+#define TONE_PIN_CHANNEL 0 
+// SDCARD
 #define TFCARD_CS_PIN 4
 
 #define BUTTON_LEFT 37

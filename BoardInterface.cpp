@@ -80,12 +80,10 @@ void BoardInterface::loadSettings() {
 
   String tmpStr;
 
-  // Init
+  // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 3;
+  liveData->settings.settingsVersion = 4;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
-
-  // Default OBD adapter MAC and UUID's
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
   tmpStr = "000018f0-0000-1000-8000-00805f9b34fb"; // Default UUID's for VGate iCar Pro BLE4 adapter
@@ -94,7 +92,6 @@ void BoardInterface::loadSettings() {
   tmpStr.toCharArray(liveData->settings.charTxUUID, tmpStr.length() + 1);
   tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
   tmpStr.toCharArray(liveData->settings.charRxUUID, tmpStr.length() + 1);
-
   liveData->settings.displayRotation = 1; // 1,3
   liveData->settings.distanceUnit = 'k';
   liveData->settings.temperatureUnit = 'c';
@@ -103,15 +100,26 @@ void BoardInterface::loadSettings() {
   liveData->settings.lcdBrightness = 0;
   liveData->settings.debugScreen = 0;
   liveData->settings.predrawnChargingGraphs = 1;
-
-#ifdef SIM800L_ENABLED
+  liveData->settings.commType = 0; // BLE4
+  liveData->settings.wifiEnabled = 0;
+  tmpStr = "empty";
+  tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
+  tmpStr = "not_set";
+  tmpStr.toCharArray(liveData->settings.wifiPassword, tmpStr.length() + 1);
+  liveData->settings.ntpEnabled = 0;
+  liveData->settings.ntpTimezone = 1;
+  liveData->settings.ntpDaySaveTime = 0;
+  liveData->settings.sdcardEnabled = 0;
+  liveData->settings.sdcardAutstartLog = 1;
+  liveData->settings.gprsEnabled = 0;
   tmpStr = "internet.t-mobile.cz";
   tmpStr.toCharArray(liveData->settings.gprsApn, tmpStr.length() + 1);
+  // Remote upload
+  liveData->settings.remoteUploadEnabled = 0;
   tmpStr = "http://api.example.com";
-  tmpStr.toCharArray(liveData->settings.remoteApiSrvr, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.remoteApiUrl, tmpStr.length() + 1);
   tmpStr = "example";
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
-#endif //SIM800L_ENABLED
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -124,7 +132,7 @@ void BoardInterface::loadSettings() {
     saveSettings();
   } else {
     Serial.print("Loaded settings ver.: ");
-    Serial.println(liveData->settings.settingsVersion);
+    Serial.println(liveData->tmpSettings.settingsVersion);
 
     // Upgrade structure
     if (liveData->settings.settingsVersion != liveData->tmpSettings.settingsVersion) {
@@ -138,13 +146,37 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 3;
         liveData->tmpSettings.predrawnChargingGraphs = liveData->settings.predrawnChargingGraphs;
       }
-      saveSettings();
+      if (liveData->tmpSettings.settingsVersion == 3) {
+        liveData->tmpSettings.settingsVersion = 4;
+        liveData->tmpSettings.commType = 0; // BLE4
+        liveData->tmpSettings.wifiEnabled = 0;
+        tmpStr = "empty";
+        tmpStr.toCharArray(liveData->tmpSettings.wifiSsid, tmpStr.length() + 1);
+        tmpStr = "not_set";
+        tmpStr.toCharArray(liveData->tmpSettings.wifiPassword, tmpStr.length() + 1);
+        liveData->tmpSettings.ntpEnabled = 0;
+        liveData->tmpSettings.ntpTimezone = 1;
+        liveData->tmpSettings.ntpDaySaveTime = 0;
+        liveData->tmpSettings.sdcardEnabled = 0;
+        liveData->tmpSettings.sdcardAutstartLog = 1;
+        liveData->tmpSettings.gprsEnabled = 0;
+        tmpStr = "internet.t-mobile.cz";
+        tmpStr.toCharArray(liveData->tmpSettings.gprsApn, tmpStr.length() + 1);
+        // Remote upload
+        liveData->tmpSettings.remoteUploadEnabled = 0;
+        tmpStr = "http://api.example.com";
+        tmpStr.toCharArray(liveData->tmpSettings.remoteApiUrl, tmpStr.length() + 1);
+        tmpStr = "example";
+        tmpStr.toCharArray(liveData->tmpSettings.remoteApiKey, tmpStr.length() + 1);
+      }
+
+      // Save upgraded structure
+      liveData->settings = liveData->tmpSettings;
+      saveSettings(); 
     }
 
-    // Save version? No need to upgrade structure
-    if (liveData->settings.settingsVersion == liveData->tmpSettings.settingsVersion) {
-      liveData->settings = liveData->tmpSettings;
-    }
+    // Apply settings from flash if needed
+    liveData->settings = liveData->tmpSettings;
   }
 }
 

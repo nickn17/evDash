@@ -366,7 +366,7 @@ void startBleScan() {
 
   liveData->foundMyBleDevice = NULL;
   liveData->scanningDeviceIndex = 0;
-  board->displayMessage(" > Scanning BLE4 devices", "40 seconds");
+  board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
   // Start scanning
   Serial.println("Scanning BLE devices...");
@@ -490,7 +490,7 @@ bool sendDataViaGPRS() {
   Serial.println(payload);
 
   Serial.print("Remote API server: ");
-  Serial.println(liveData->settings.remoteApiSrvr);
+  Serial.println(liveData->settings.remoteApiUrl);
 
   uint16_t rc = sim800l->doPost(liveData->settings.remoteApiSrvr, "application/json", payload, 10000, 10000);
   if(rc == 200) {
@@ -592,7 +592,8 @@ void setup(void) {
   liveData->pBLEScan->setActiveScan(true);
 
   // Skip BLE scan if middle button pressed
-  if (!board->skipAdapterScan()) {
+  Serial.println(liveData->settings.obdMacAddress);
+  if (strcmp(liveData->settings.obdMacAddress, "00:00:00:00:00:00") != 0 && !board->skipAdapterScan()) {
     startBleScan();
   }
 

@@ -17,12 +17,6 @@ void Board320_240::initBoard() {
   pinMode(pinButtonLeft, INPUT);
   pinMode(pinButtonRight, INPUT);
 
-  // mute speaker
-  if (pinSpeaker != 0) {
-    Serial.println("Mute speaker for m5stack");
-    dacWrite(pinSpeaker, 0);
-  }
-
   // Init display
   Serial.println("Init tft display");
   tft.begin();
@@ -1174,7 +1168,7 @@ void Board320_240::mainLoop() {
  * skipAdapterScan
  */
 bool Board320_240::skipAdapterScan() {
-   return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonRight) == LOW;
+   return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonLeft) == LOW || digitalRead(pinButtonRight) == LOW;
 }
 
 #endif // BOARD320_240_CPP

@@ -126,7 +126,9 @@ typedef struct {
 // Setting stored to flash
 typedef struct {
   byte initFlag; // 183 value
-  byte settingsVersion; // current 3
+  byte settingsVersion; // current 4
+  // === settings version 1
+  // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
   char obdMacAddress[20];
   char serviceUUID[40];
@@ -136,16 +138,34 @@ typedef struct {
   char distanceUnit; // k - kilometers
   char temperatureUnit; // c - celsius
   char pressureUnit; // b - bar
-  // version 2
+  // === settings version 3
+  // =================================
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
   byte debugScreen; // 0 - off, 1 - on
   byte predrawnChargingGraphs; // 0 - off, 1 - on
-#ifdef SIM800L_ENABLED
+  // === settings version 4
+  // =================================
+  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN 
+  // Wifi
+  byte wifiEnabled; // 0/1 
+  char wifiSsid[32];
+  char wifiPassword[32];
+  // NTP
+  byte ntpEnabled; // 0/1 
+  byte ntpTimezone;
+  byte ntpDaySaveTime; // 0/1
+  // SDcard logging
+  byte sdcardEnabled; // 0/1 
+  byte sdcardAutstartLog; // 0/1   
+  // GPRS SIM800L 
+  byte gprsEnabled; // 0/1 
   char gprsApn[64];
-  char remoteApiSrvr[64];
-  char remoteApiKey[13];
-#endif //SIM800L_ENABLED
+  // Remote upload
+  byte remoteUploadEnabled; // 0/1 
+  char remoteApiUrl[64];
+  char remoteApiKey[32];
+  //
 } SETTINGS_STRUC;
 
 
