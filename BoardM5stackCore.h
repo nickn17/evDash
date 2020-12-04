@@ -5,7 +5,6 @@
 #define USER_SETUP_LOADED 1
 #define SPI_FREQUENCY  27000000
 #define SPI_TOUCH_FREQUENCY  2500000
-
 #define USER_SETUP_LOADED 1
 #define ILI9341_DRIVER
 #define M5STACK
@@ -19,15 +18,11 @@
 #define SPI_FREQUENCY  27000000
 #define SPI_READ_FREQUENCY  5000000
 #define SPEAKER_PIN 25
+#define TFCARD_CS_PIN 4
 
 #define BUTTON_LEFT 37
 #define BUTTON_MIDDLE 38
 #define BUTTON_RIGHT 39
-
-#define SD_CS    4
-#define SD_MOSI  23
-#define SD_MISO  19
-#define SD_SCLK  18
 
 //
 #include "BoardInterface.h"

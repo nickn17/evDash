@@ -26,9 +26,7 @@ void BoardM5stackCore::mainLoop() {
 
   Board320_240::mainLoop();
 
-/*#define TFCARD_CS_PIN 4
-
-  if (!SD.begin(TFCARD_CS_PIN, SPI, 40000000)) {
+/*  if (!SD.begin(TFCARD_CS_PIN, SPI, 27000000)) {
     Serial.println("Card Mount Failed");
     return;
   }

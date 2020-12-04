@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <WString.h>
-#include <String.h>
+#include <string.h>
 #include <sys/time.h>
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
