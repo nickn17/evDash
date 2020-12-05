@@ -1,10 +1,21 @@
 /*
- * 2020-12-02 
- * Project renamed from eNiroDashboard to evDash
- * 
+   2020-12-02
+   Project renamed from eNiroDashboard to evDash
+
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
+
+  Supported serial console commands 
+
+    serviceUUID=xxx
+    charTxUUID=xxx
+    charRxUUID=xxx
+    wifiSsid=xxx
+    wifiPassword=xxx
+    gprsApn=xxx
+    remoteApiUrl=xxx
+    remoteApiKey=xxx
 
   Required libraries
   - esp32 board support
@@ -403,7 +414,7 @@ void startBleScan() {
   SIM800L
 */
 #ifdef SIM800L_ENABLED
-bool sim800lSetup() {  
+bool sim800lSetup() {
   Serial.println("Setting SIM800L module");
   SoftwareSerial* serial = new SoftwareSerial(SIM800L_RX, SIM800L_TX);
   serial->begin(9600);
@@ -416,22 +427,22 @@ bool sim800lSetup() {
     sim800l_ready = sim800l->isReady();
   }
 
-  if(!sim800l_ready) {
+  if (!sim800l_ready) {
     Serial.println("Problem to initialize SIM800L module");
   } else {
     Serial.println("SIM800L module initialized");
-    
+
     Serial.print("Setting GPRS APN to: ");
     Serial.println(liveData->settings.gprsApn);
 
     bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
-    for(uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
+    for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
       Serial.println("Problem to set GPRS connection, retry in 1 sec");
       delay(1000);
       sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     }
 
-    if(sim800l_gprs) {
+    if (sim800l_gprs) {
       liveData->params.sim800l_enabled = true;
       Serial.println("GPRS OK");
     } else {
@@ -494,7 +505,7 @@ bool sendDataViaGPRS() {
   Serial.println(liveData->settings.remoteApiUrl);
 
   uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 10000, 10000);
-  if(rc == 200) {
+  if (rc == 200) {
     Serial.println("HTTP POST successful");
   } else {
     // Failed...
@@ -563,7 +574,7 @@ void setup(void) {
   // Hold right button
   board->afterSetup();
 
-  #ifdef SD_ENABLED
+#ifdef SD_ENABLED
   // Init SDCARD
   /*if (!SD.begin(SD_CS, SD_MOSI, SD_MISO, SD_SCLK)) {
     Serial.println("SDCARD initialization failed!");
@@ -576,7 +587,7 @@ void setup(void) {
     } else {
     Serial.println("SDCARD initialization done.");
     }*/
-  #endif
+#endif
 
   // Start BLE connection
   line = "";
@@ -632,18 +643,18 @@ void loop() {
   }
 
   // Send command from TTY to OBD2
-  if (liveData->bleConnected) {
-    if (Serial.available()) {
-      ch = Serial.read();
-      if (ch == '\r' || ch == '\n') {
-        board->customConsoleCommand(line);
-        line = line + ch;
-        Serial.println(line);
+  if (Serial.available()) {
+    ch = Serial.read();
+    if (ch == '\r' || ch == '\n') {
+      board->customConsoleCommand(line);
+      line = line + ch;
+      Serial.println(line);
+      if (liveData->bleConnected) {
         liveData->pRemoteCharacteristicWrite->writeValue(line.c_str(), line.length());
-        line = "";
-      } else {
-        line = line + ch;
       }
+      line = "";
+    } else {
+      line = line + ch;
     }
 
     // Can send next command from queue to OBD
@@ -654,7 +665,7 @@ void loop() {
   }
 
 #ifdef SIM800L_ENABLED
-  if(liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
+  if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
     sendDataViaGPRS();
     liveData->params.lastDataSent = liveData->params.currentTime;
   }

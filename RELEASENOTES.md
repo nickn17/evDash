@@ -5,6 +5,15 @@
 - settings v4 (wifi/gprs/sdcard/ntp/..)
 - ble4 skipped if mac is not set (00:00:00:00:00:00)
 - improved menu
+- supported serial console commands
+    serviceUUID=xxx
+    charTxUUID=xxx
+    charRxUUID=xxx
+    wifiSsid=xxx
+    wifiPassword=xxx
+    gprsApn=xxx
+    remoteApiUrl=xxx
+    remoteApiKey=xxx
 
 ### v2.0.0 2020-12-02
 - Project renamed from eNiroDashboard to evDash

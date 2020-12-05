@@ -174,7 +174,7 @@ void BoardInterface::loadSettings() {
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
-      saveSettings(); 
+      saveSettings();
     }
 
     // Apply settings from flash if needed
@@ -183,10 +183,25 @@ void BoardInterface::loadSettings() {
 }
 
 /**
- * Custom commands
- */
+   Custom commands
+*/
 void BoardInterface::customConsoleCommand(String cmd) {
-  
+
+  int8_t idx = cmd.indexOf("=");
+  if (idx == -1)
+    return;
+
+  String key = cmd.substring(0, idx);
+  String value = cmd.substring(idx + 1);
+
+  if (key == "serviceUUID") value.toCharArray(liveData->settings.serviceUUID, value.length() + 1);
+  if (key == "charTxUUID") value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
+  if (key == "charRxUUID") value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
+  if (key == "wifiSsid") value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
+  if (key == "wifiPassword") value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
+  if (key == "gprsApn") value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
+  if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
+  if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
 }
 
 #endif // BOARDINTERFACE_CPP
