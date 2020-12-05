@@ -178,6 +178,9 @@ void BoardInterface::loadSettings() {
     // Apply settings from flash if needed
     liveData->settings = liveData->tmpSettings;
   }
+
+  void customConsoleCommand(String cmd);
+
 }
 
 #endif // BOARDINTERFACE_CPP

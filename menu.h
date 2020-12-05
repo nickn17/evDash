@@ -2,7 +2,7 @@
 
 #include "config.h";
 
-MENU_ITEM menuItemsSource[79] = {
+MENU_ITEM menuItemsSource[100] = {
 
   {0, 0, 0, "<- exit menu"},
   {MENU_VEHICLE_TYPE, 0, -1, "Vehicle type"},
@@ -31,6 +31,27 @@ MENU_ITEM menuItemsSource[79] = {
   {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
   {306, 3, -1, "[DEV] WiFi network"},
   {307, 3, -1, "[DEV] SD card"},
+  {MENU_GPRS, 3, -1, "GPRS"},
+  {309, 3, -1, "[DEV] Remote upload"},
+/*
+    // Wifi
+  byte wifiEnabled; // 0/1 
+  char wifiSsid[32];
+  char wifiPassword[32];
+  // NTP
+  byte ntpEnabled; // 0/1 
+  byte ntpTimezone;
+  byte ntpDaySaveTime; // 0/1
+  // SDcard logging
+  byte sdcardEnabled; // 0/1 
+  byte sdcardAutstartLog; // 0/1   
+  // GPRS SIM800L 
+  byte gprsEnabled; // 0/1 
+  char gprsApn[64];
+  // Remote upload
+  byte remoteUploadEnabled; // 0/1 
+  char remoteApiUrl[64];
+  char remoteApiKey[32];*/
 
   {400, 4, 0, "<- parent menu"},
   {MENU_DISTANCE_UNIT, 4, -1, "Distance"},

@@ -11,10 +11,8 @@
 void LiveData::initParams() {
 
   params.automaticShutdownTimer = 0;
-#ifdef SIM800L_ENABLED
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
-#endif //SIM800L_ENABLED
   params.ignitionOn = false;
   params.ignitionOnPrevious = false;
   params.chargingStartTime = params.currentTime = 0;
@@ -98,6 +96,7 @@ void LiveData::initParams() {
   }
 
   // Menu
+  menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);
   menuItems = menuItemsSource;
 }
 

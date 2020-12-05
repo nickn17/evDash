@@ -838,7 +838,8 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
     case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
-    case MENU_PREDRAWN_GRAPHS:     suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
+    case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
+    case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on": "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
     //
     case MENU_DISTANCE_UNIT:    suffix = (liveData->settings.distanceUnit == 'k') ? "[km]" : "[mi]"; break;
     case MENU_TEMPERATURE_UNIT: suffix = (liveData->settings.temperatureUnit == 'c') ? "[C]" : "[F]"; break;
@@ -924,6 +925,7 @@ void Board320_240::menuItemClick() {
   MENU_ITEM* tmpMenuItem;
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
+  
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId) {
       if (parentMenu == -1)

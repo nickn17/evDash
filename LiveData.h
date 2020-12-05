@@ -183,7 +183,7 @@ class LiveData {
     String currentAtshRequest = "";
     // Menu
     bool menuVisible = false;
-    uint8_t  menuItemsCount = 79;
+    uint8_t  menuItemsCount;
     uint16_t menuCurrent = 0;
     uint8_t  menuItemSelected = 0;
     uint8_t  menuItemOffset = 0;
