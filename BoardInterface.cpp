@@ -179,7 +179,7 @@ void BoardInterface::loadSettings() {
     liveData->settings = liveData->tmpSettings;
   }
 
-  void customConsoleCommand(String cmd);
+//  void customConsoleCommand(String cmd);
 
 }
 

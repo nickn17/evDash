@@ -45,7 +45,7 @@ class BoardInterface {
     void saveSettings();
     void resetSettings();
     void loadSettings();
-    void customConsoleCommand(String cmd);
+//    void customConsoleCommand(String cmd);
 };
 
 #endif // BOARDINTERFACE_H
