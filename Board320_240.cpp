@@ -34,6 +34,14 @@ void Board320_240::initBoard() {
 #endif
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
+
+  // Wifi
+  if (liveData->settings.wifiEnabled == 1) {
+    Serial.println("WiFi init...");
+    //WiFi.mode(WIFI_STA);
+    //WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+    Serial.println("WiFi init completed...");
+  }
 }
 
 /**
@@ -45,12 +53,6 @@ void Board320_240::afterSetup() {
   displayScreen = liveData->settings.defaultScreen;
   if (digitalRead(pinButtonRight) == LOW) {
     loadTestData();
-  }
-
-  // Wifi
-  if (liveData->settings.wifiEnabled == 1) {
-    /*WiFi.mode(WIFI_STA);
-    WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);*/
   }
 }
 
@@ -844,23 +846,23 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case 106: prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : ""; break;
     case 107: prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : ""; break;
     //
-    case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
-    case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
-    case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
-    case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
     case MENU_WIFI: switch (WiFi.status()) {
 WL_CONNECTED: suffix = "CONNECTED"; break;
 WL_NO_SHIELD: suffix = "NO_SHIELD"; break;
 WL_IDLE_STATUS: suffix = "IDLE_STATUS"; break;
-WL_NO_SSID_AVAIL: suffix = "NO_SSID_AVAIL"; break;
 WL_SCAN_COMPLETED: suffix = "SCAN_COMPLETED"; break;
 WL_CONNECT_FAILED: suffix = "CONNECT_FAILED"; break;
 WL_CONNECTION_LOST: suffix = "CONNECTION_LOST"; break;
 WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
       }
       break;
-    case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
     case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on" : "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
+    case MENU_SCREEN_ROTATION:  suffix = (liveData->settings.displayRotation == 1) ? "[vertical]" : "[normal]"; break;
+    case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
+    case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
+    case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
+    case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
+    case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
     //
     case MENU_WIFI_ENABLED: suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]"; break;
     case MENU_WIFI_SSID:        sprintf(tmpStr1, "%s", liveData->settings.wifiSsid); suffix = tmpStr1; break;
@@ -949,8 +951,9 @@ void Board320_240::menuItemClick() {
   MENU_ITEM* tmpMenuItem;
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
+  uint16_t i;
 
-  for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
+  for (i = 0; i < liveData->menuItemsCount; ++i) {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId) {
       if (parentMenu == -1)
         parentMenu = liveData->menuItems[i].targetParentId;
@@ -963,18 +966,8 @@ void Board320_240::menuItemClick() {
   }
 
   // Exit menu, parent level menu, open item
-  if (liveData->menuItemSelected == 0) {
-    // Exit menu
-    if (tmpMenuItem->parentId == 0 && tmpMenuItem->id == 0) {
-      liveData->menuVisible = false;
-      redrawScreen();
-    } else {
-      // Parent menu
-      liveData->menuCurrent = tmpMenuItem->targetParentId;
-      showMenu();
-    }
-    return;
-  } else {
+  bool showParentMenu = false;
+  if (liveData->menuItemSelected > 0) {
     Serial.println(tmpMenuItem->id);
     // Device list
     if (tmpMenuItem->id > 10000 && tmpMenuItem->id < 10100) {
@@ -985,7 +978,6 @@ void Board320_240::menuItemClick() {
       ESP.restart();
     }
     // Other menus
-    bool showParentMenu = false;
     switch (tmpMenuItem->id) {
       // Set vehicle type
       case 101: liveData->settings.carType = CAR_KIA_ENIRO_2020_64; showMenu(); return; break;
@@ -996,21 +988,17 @@ void Board320_240::menuItemClick() {
       case 106: liveData->settings.carType = CAR_RENAULT_ZOE; showMenu(); return; break;
       case 107: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; showMenu(); return; break;
       // Screen orientation
-      case 3011: liveData->settings.displayRotation = 1; tft.setRotation(liveData->settings.displayRotation); break;
-      case 3012: liveData->settings.displayRotation = 3; tft.setRotation(liveData->settings.displayRotation); break;
+      case MENU_SCREEN_ROTATION: liveData->settings.displayRotation = (liveData->settings.displayRotation == 1) ? 3 : 1; tft.setRotation(liveData->settings.displayRotation); showMenu(); return; break;
       // Default screen
-      case 3021: liveData->settings.defaultScreen = 1; showParentMenu = true; break;
-      case 3022: liveData->settings.defaultScreen = 2; showParentMenu = true; break;
-      case 3023: liveData->settings.defaultScreen = 3; showParentMenu = true; break;
-      case 3024: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
-      case 3025: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
+      case 3061: liveData->settings.defaultScreen = 1; showParentMenu = true; break;
+      case 3062: liveData->settings.defaultScreen = 2; showParentMenu = true; break;
+      case 3063: liveData->settings.defaultScreen = 3; showParentMenu = true; break;
+      case 3064: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
+      case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       // Debug screen off/on
       case MENU_DEBUG_SCREEN: liveData->settings.debugScreen = (liveData->settings.debugScreen == 1) ? 0 : 1; showMenu(); return; break;
-      // Lcd brightness
-      case 3041: liveData->settings.lcdBrightness = 0; showParentMenu = true; break;
-      case 3042: liveData->settings.lcdBrightness = 20; showParentMenu = true; break;
-      case 3043: liveData->settings.lcdBrightness = 50; showParentMenu = true; break;
-      case 3044: liveData->settings.lcdBrightness = 100; showParentMenu = true; break;
+      case MENU_SCREEN_BRIGHTNESS: liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
+        setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness); showMenu(); return; break;
       // Pre-drawn charg.graphs off/on
       case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
@@ -1044,17 +1032,32 @@ void Board320_240::menuItemClick() {
         showMenu();
         return;
     }
+  }
 
-    if (showParentMenu && parentMenu != -1) {
-      liveData->menuCurrent = parentMenu;
+  // Exit menu
+  if (liveData->menuItemSelected == 0 || (showParentMenu && parentMenu != -1)) {
+    if (tmpMenuItem->parentId == 0 && tmpMenuItem->id == 0) {
+      liveData->menuVisible = false;
+      redrawScreen();
+    } else {
+      // Parent menu
       liveData->menuItemSelected = 0;
+      for (i = 0; i < liveData->menuItemsCount; ++i) {
+        if (parentMenu == liveData->menuItems[i].parentId) {
+          if (liveData->menuItems[i].id == liveData->menuCurrent) 
+            break;
+          liveData->menuItemSelected++;
+        }
+      }
+      liveData->menuCurrent = parentMenu;
       Serial.println(liveData->menuCurrent);
       showMenu();
-    } else {
-      // close menu
-      hideMenu();
     }
+    return;
   }
+
+  // Close menu
+  hideMenu();
 }
 
 /**
@@ -1215,7 +1218,10 @@ void Board320_240::mainLoop() {
       }
     }
   }
-
+  // Both left&right button (hide menu) 
+  if (digitalRead(pinButtonLeft) == LOW && digitalRead(pinButtonRight) == LOW) {
+    hideMenu();
+  }
 }
 
 /**
