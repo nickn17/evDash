@@ -5,13 +5,13 @@
 MENU_ITEM menuItemsSource[79] = {
 
   {0, 0, 0, "<- exit menu"},
-  {1, 0, -1, "Vehicle type"},
+  {MENU_VEHICLE_TYPE, 0, -1, "Vehicle type"},
   {2, 0, -1, "Select OBD2BLE adapter"},
   {3, 0, -1, "Others"},
   {4, 0, -1, "Units"},
   {8, 0, -1, "Factory reset"},
-  {9, 0, -1, "Save settings"},
-  {10, 0, -1, "Version"},
+  {MENU_SAVE_SETTINGS, 0, -1, "Save settings"},
+  {MENU_APP_VERSION, 0, -1, "Version"},
   {11, 0, -1, "Shutdown"},
 
   {100, 1, 0, "<- parent menu"},
@@ -25,17 +25,17 @@ MENU_ITEM menuItemsSource[79] = {
 
   {300, 3, 0, "<- parent menu"},
   {301, 3, -1, "Screen rotation"},
-  {302, 3, -1, "Default screen"},
-  {303, 3, -1, "Debug screen off/on"},
-  {304, 3, -1, "LCD brightness"},
-  {305, 3, -1, "Pre-drawn ch.graphs 0/1"},
+  {MENU_DEFAULT_SCREEN, 3, -1, "Default screen"},
+  {MENU_DEBUG_SCREEN, 3, -1, "Debug screen"},
+  {MENU_SCREEN_BRIGHTNESS, 3, -1, "LCD brightness"},
+  {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
   {306, 3, -1, "[DEV] WiFi network"},
   {307, 3, -1, "[DEV] SD card"},
 
   {400, 4, 0, "<- parent menu"},
-  {401, 4, -1, "Distance"},
-  {402, 4, -1, "Temperature"},
-  {403, 4, -1, "Pressure"},
+  {MENU_DISTANCE_UNIT, 4, -1, "Distance"},
+  {MENU_TEMPERATURE_UNIT, 4, -1, "Temperature"},
+  {MENU_PRESSURE_UNIT, 4, -1, "Pressure"},
 
   {3010, 301, 3, "<- parent menu"},
   {3011, 301, -1, "Normal"},
@@ -48,19 +48,11 @@ MENU_ITEM menuItemsSource[79] = {
   {3024, 302, -1, "Battery cells"},
   {3025, 302, -1, "Charging graph"},
 
-  {3030, 303, 3, "<- parent menu"},
-  {3031, 303, -1, "Off"},
-  {3032, 303, -1, "On"},
-
   {3040, 304, 3, "<- parent menu"},
   {3041, 304, -1, "Auto"},
   {3042, 304, -1, "20%"},
   {3043, 304, -1, "50%"},
   {3044, 304, -1, "100%"},
-
-  {3050, 305, 3, "<- parent menu"},
-  {3051, 305, -1, "Off"},
-  {3052, 305, -1, "On"},
 
   {3060, 306, 3, "<- parent menu"},
   {3061, 306, -1, "WiFi off/on"},

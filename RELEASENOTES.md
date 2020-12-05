@@ -4,6 +4,7 @@
 - m5stack mute speaker
 - settings v4 (wifi/gprs/sdcard/ntp/..)
 - ble4 skipped if mac is not set (00:00:00:00:00:00)
+- improved menu
 
 ### v2.0.0 2020-12-02
 - Project renamed from eNiroDashboard to evDash

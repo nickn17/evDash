@@ -456,63 +456,63 @@ void Board320_240::drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, in
 
   // Rapid gate
   spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_RAPIDGATE35);
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_RAPIDGATE35);
   // Coldgate <5C
   spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE0_5);
+               zeroX +  (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE0_5);
   // Coldgate 5-14C
   spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
   spr.drawLine(zeroX +  (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+               zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
   spr.drawLine(zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+               zeroX +  (/* SOC TO */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
   spr.drawLine(zeroX + (/* SOC FROM */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+               zeroX +  (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
   spr.drawLine(zeroX + (/* SOC FROM */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+               zeroX +  (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
   spr.drawLine(zeroX + (/* SOC FROM */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 40 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
+               zeroX +  (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 40 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
   // Coldgate 15-24C
   spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
   spr.drawLine(zeroX +  (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
+               zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
   spr.drawLine(zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
+               zeroX +  (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
   // Optimal
   spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 51 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 51 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 51 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 53 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 53 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 53 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 55 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 55 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 55 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 71 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 71 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 71 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 73 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 73 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 73 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 75 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 75 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 75 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX + (/* SOC FROM */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX + (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX + (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX + (/* SOC FROM */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   spr.drawLine(zeroX +  (/* SOC FROM */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY),
-                     zeroX +  (/* SOC TO */ 100 * mulX), zeroY - (/*I*/ 15 * /*U SOC*/ (100 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
+               zeroX +  (/* SOC TO */ 100 * mulX), zeroY - (/*I*/ 15 * /*U SOC*/ (100 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
   // Triangles
   int x = zeroX;
   int y;
@@ -821,15 +821,29 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
 
   String prefix = "", suffix = "";
 
-  if (menuItemId == 10) // Version
-    suffix = APP_VERSION;
-
-  if (menuItemId == 401) // distance
-    suffix = (liveData->settings.distanceUnit == 'k') ? "[km]" : "[mi]";
-  if (menuItemId == 402) // temperature
-    suffix = (liveData->settings.temperatureUnit == 'c') ? "[C]" : "[F]";
-  if (menuItemId == 403) // pressure
-    suffix = (liveData->settings.pressureUnit == 'b') ? "[bar]" : "[psi]";
+  switch (menuItemId) {
+    // Set vehicle type
+    case MENU_VEHICLE_TYPE:     sprintf(tmpStr1, "[%d]", liveData->settings.carType); suffix = tmpStr1; break;
+    case MENU_SAVE_SETTINGS:    sprintf(tmpStr1, "[v%d]", liveData->settings.settingsVersion); suffix = tmpStr1; break;
+    case MENU_APP_VERSION:      sprintf(tmpStr1, "[%s]", APP_VERSION); suffix = tmpStr1; break;
+    //
+    case 101: prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : ""; break;
+    case 102: prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) ? ">" : ""; break;
+    case 103: prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : ""; break;
+    case 104: prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_39) ? ">" : ""; break;
+    case 105: prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : ""; break;
+    case 106: prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : ""; break;
+    case 107: prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : ""; break;
+    //
+    case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
+    case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
+    case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
+    case MENU_PREDRAWN_GRAPHS:     suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
+    //
+    case MENU_DISTANCE_UNIT:    suffix = (liveData->settings.distanceUnit == 'k') ? "[km]" : "[mi]"; break;
+    case MENU_TEMPERATURE_UNIT: suffix = (liveData->settings.temperatureUnit == 'c') ? "[C]" : "[F]"; break;
+    case MENU_PRESSURE_UNIT:    suffix = (liveData->settings.pressureUnit == 'b') ? "[bar]" : "[psi]"; break;
+  }
 
   title = ((prefix == "") ? "" : prefix + " ") + title + ((suffix == "") ? "" : " " + suffix);
 
@@ -907,12 +921,15 @@ void Board320_240::menuMove(bool forward) {
 void Board320_240::menuItemClick() {
 
   // Locate menu item for meta data
-  MENU_ITEM tmpMenuItem;
+  MENU_ITEM* tmpMenuItem;
   uint16_t tmpCurrMenuItem = 0;
+  int16_t parentMenu = -1;
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId) {
+      if (parentMenu == -1)
+        parentMenu = liveData->menuItems[i].targetParentId;
       if (liveData->menuItemSelected == tmpCurrMenuItem) {
-        tmpMenuItem = liveData->menuItems[i];
+        tmpMenuItem = &liveData->menuItems[i];
         break;
       }
       tmpCurrMenuItem++;
@@ -922,64 +939,63 @@ void Board320_240::menuItemClick() {
   // Exit menu, parent level menu, open item
   if (liveData->menuItemSelected == 0) {
     // Exit menu
-    if (tmpMenuItem.parentId == 0 && tmpMenuItem.id == 0) {
+    if (tmpMenuItem->parentId == 0 && tmpMenuItem->id == 0) {
       liveData->menuVisible = false;
       redrawScreen();
     } else {
       // Parent menu
-      liveData->menuCurrent = tmpMenuItem.targetParentId;
+      liveData->menuCurrent = tmpMenuItem->targetParentId;
       showMenu();
     }
     return;
   } else {
-    Serial.println(tmpMenuItem.id);
+    Serial.println(tmpMenuItem->id);
     // Device list
-    if (tmpMenuItem.id > 10000 && tmpMenuItem.id < 10100) {
-      strlcpy((char*)liveData->settings.obdMacAddress, (char*)tmpMenuItem.obdMacAddress, 20);
+    if (tmpMenuItem->id > 10000 && tmpMenuItem->id < 10100) {
+      strlcpy((char*)liveData->settings.obdMacAddress, (char*)tmpMenuItem->obdMacAddress, 20);
       Serial.print("Selected adapter MAC address ");
       Serial.println(liveData->settings.obdMacAddress);
       saveSettings();
       ESP.restart();
     }
     // Other menus
-    switch (tmpMenuItem.id) {
+    bool showParentMenu = false;
+    switch (tmpMenuItem->id) {
       // Set vehicle type
-      case 101: liveData->settings.carType = CAR_KIA_ENIRO_2020_64; break;
-      case 102: liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64; break;
-      case 103: liveData->settings.carType = CAR_HYUNDAI_IONIQ_2018; break;
-      case 104: liveData->settings.carType = CAR_KIA_ENIRO_2020_39; break;
-      case 105: liveData->settings.carType = CAR_HYUNDAI_KONA_2020_39; break;
-      case 106: liveData->settings.carType = CAR_RENAULT_ZOE; break;
-      case 107: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; break;
+      case 101: liveData->settings.carType = CAR_KIA_ENIRO_2020_64; showMenu(); return; break;
+      case 102: liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64; showMenu(); return; break;
+      case 103: liveData->settings.carType = CAR_HYUNDAI_IONIQ_2018; showMenu(); return; break;
+      case 104: liveData->settings.carType = CAR_KIA_ENIRO_2020_39; showMenu(); return; break;
+      case 105: liveData->settings.carType = CAR_HYUNDAI_KONA_2020_39; showMenu(); return; break;
+      case 106: liveData->settings.carType = CAR_RENAULT_ZOE; showMenu(); return; break;
+      case 107: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; showMenu(); return; break;
       // Screen orientation
       case 3011: liveData->settings.displayRotation = 1; tft.setRotation(liveData->settings.displayRotation); break;
       case 3012: liveData->settings.displayRotation = 3; tft.setRotation(liveData->settings.displayRotation); break;
       // Default screen
-      case 3021: liveData->settings.defaultScreen = 1; break;
-      case 3022: liveData->settings.defaultScreen = 2; break;
-      case 3023: liveData->settings.defaultScreen = 3; break;
-      case 3024: liveData->settings.defaultScreen = 4; break;
-      case 3025: liveData->settings.defaultScreen = 5; break;
+      case 3021: liveData->settings.defaultScreen = 1; showParentMenu = true; break;
+      case 3022: liveData->settings.defaultScreen = 2; showParentMenu = true; break;
+      case 3023: liveData->settings.defaultScreen = 3; showParentMenu = true; break;
+      case 3024: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
+      case 3025: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       // Debug screen off/on
-      case 3031: liveData->settings.debugScreen = 0; break;
-      case 3032: liveData->settings.debugScreen = 1; break;
+      case MENU_DEBUG_SCREEN: liveData->settings.debugScreen = (liveData->settings.debugScreen == 1) ? 0 : 1; showMenu(); return; break;
       // Lcd brightness
-      case 3041: liveData->settings.lcdBrightness = 0; break;
-      case 3042: liveData->settings.lcdBrightness = 20; break;
-      case 3043: liveData->settings.lcdBrightness = 50; break;
-      case 3044: liveData->settings.lcdBrightness = 100; break;
+      case 3041: liveData->settings.lcdBrightness = 0; showParentMenu = true; break;
+      case 3042: liveData->settings.lcdBrightness = 20; showParentMenu = true; break;
+      case 3043: liveData->settings.lcdBrightness = 50; showParentMenu = true; break;
+      case 3044: liveData->settings.lcdBrightness = 100; showParentMenu = true; break;
       // Pre-drawn charg.graphs off/on
-      case 3051: liveData->settings.predrawnChargingGraphs = 0; break;
-      case 3052: liveData->settings.predrawnChargingGraphs = 1; break;
+      case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
       // Distance
-      case 4011: liveData->settings.distanceUnit = 'k'; break;
-      case 4012: liveData->settings.distanceUnit = 'm'; break;
+      case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
+      case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
       // Temperature
-      case 4021: liveData->settings.temperatureUnit = 'c'; break;
-      case 4022: liveData->settings.temperatureUnit = 'f'; break;
+      case 4021: liveData->settings.temperatureUnit = 'c'; showParentMenu = true; break;
+      case 4022: liveData->settings.temperatureUnit = 'f'; showParentMenu = true; break;
       // Pressure
-      case 4031: liveData->settings.pressureUnit = 'b'; break;
-      case 4032: liveData->settings.pressureUnit = 'p'; break;
+      case 4031: liveData->settings.pressureUnit = 'b'; showParentMenu = true; break;
+      case 4032: liveData->settings.pressureUnit = 'p'; showParentMenu = true; break;
       // Pair ble device
       case 2: scanDevices = true; /*startBleScan(); */return;
       // Reset settings
@@ -992,14 +1008,21 @@ void Board320_240::menuItemClick() {
       case 11: shutdownDevice(); return;
       default:
         // Submenu
-        liveData->menuCurrent = tmpMenuItem.id;
+        liveData->menuCurrent = tmpMenuItem->id;
         liveData->menuItemSelected = 0;
         showMenu();
         return;
     }
 
-    // close menu
-    hideMenu();
+    if (showParentMenu && parentMenu != -1) {
+      liveData->menuCurrent = parentMenu;
+      liveData->menuItemSelected = 0;
+      Serial.println(liveData->menuCurrent);
+      showMenu();
+    } else {
+      // close menu
+      hideMenu();
+    }
   }
 }
 
@@ -1165,10 +1188,10 @@ void Board320_240::mainLoop() {
 }
 
 /**
- * skipAdapterScan
- */
+   skipAdapterScan
+*/
 bool Board320_240::skipAdapterScan() {
-   return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonLeft) == LOW || digitalRead(pinButtonRight) == LOW;
+  return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonLeft) == LOW || digitalRead(pinButtonRight) == LOW;
 }
 
 #endif // BOARD320_240_CPP
