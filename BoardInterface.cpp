@@ -120,6 +120,7 @@ void BoardInterface::loadSettings() {
   tmpStr.toCharArray(liveData->settings.remoteApiUrl, tmpStr.length() + 1);
   tmpStr = "example";
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
+  liveData->settings.headlightsReminder = 0;
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -168,6 +169,7 @@ void BoardInterface::loadSettings() {
         tmpStr.toCharArray(liveData->tmpSettings.remoteApiUrl, tmpStr.length() + 1);
         tmpStr = "example";
         tmpStr.toCharArray(liveData->tmpSettings.remoteApiKey, tmpStr.length() + 1);
+        liveData->settings.headlightsReminder = 0;
       }
 
       // Save upgraded structure
@@ -178,9 +180,13 @@ void BoardInterface::loadSettings() {
     // Apply settings from flash if needed
     liveData->settings = liveData->tmpSettings;
   }
+}
 
-//  void customConsoleCommand(String cmd);
-
+/**
+ * Custom commands
+ */
+void BoardInterface::customConsoleCommand(String cmd) {
+  
 }
 
 #endif // BOARDINTERFACE_CPP

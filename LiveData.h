@@ -164,6 +164,8 @@ typedef struct {
   char remoteApiUrl[64];
   char remoteApiKey[32];
   //
+  bool headlightsReminder;
+  //  
 } SETTINGS_STRUC;
 
 

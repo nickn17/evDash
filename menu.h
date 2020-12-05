@@ -33,6 +33,8 @@ MENU_ITEM menuItemsSource[100] = {
   {307, 3, -1, "[DEV] SD card"},
   {MENU_GPRS, 3, -1, "GPRS"},
   {309, 3, -1, "[DEV] Remote upload"},
+  {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
+  
 /*
     // Wifi
   byte wifiEnabled; // 0/1 

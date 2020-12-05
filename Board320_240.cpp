@@ -839,6 +839,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
     case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
+    case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
     case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on": "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
     //
     case MENU_DISTANCE_UNIT:    suffix = (liveData->settings.distanceUnit == 'k') ? "[km]" : "[mi]"; break;
@@ -989,6 +990,7 @@ void Board320_240::menuItemClick() {
       case 3044: liveData->settings.lcdBrightness = 100; showParentMenu = true; break;
       // Pre-drawn charg.graphs off/on
       case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;      
       // Distance
       case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
       case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
@@ -1038,7 +1040,7 @@ void Board320_240::redrawScreen() {
   }
 
   // Lights not enabled
-  if (!testDataMode && liveData->params.forwardDriveMode && !liveData->params.headLights && !liveData->params.dayLights) {
+  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode && !liveData->params.headLights && !liveData->params.dayLights) {
     spr.fillSprite(TFT_RED);
     spr.setFreeFont(&Orbitron_Light_32);
     spr.setTextColor(TFT_WHITE, TFT_RED);

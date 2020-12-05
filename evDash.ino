@@ -636,7 +636,7 @@ void loop() {
     if (Serial.available()) {
       ch = Serial.read();
       if (ch == '\r' || ch == '\n') {
-//board->customConsoleCommand(line);
+        board->customConsoleCommand(line);
         line = line + ch;
         Serial.println(line);
         liveData->pRemoteCharacteristicWrite->writeValue(line.c_str(), line.length());
