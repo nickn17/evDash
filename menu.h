@@ -6,7 +6,7 @@ MENU_ITEM menuItemsSource[100] = {
 
   {0, 0, 0, "<- exit menu"},
   {MENU_VEHICLE_TYPE, 0, -1, "Vehicle type"},
-  {2, 0, -1, "Select OBD2BLE adapter"},
+  {2, 0, -1, "Select OBD2 BLE4 adapter"},
   {3, 0, -1, "Others"},
   {4, 0, -1, "Units"},
   {8, 0, -1, "Factory reset"},
@@ -29,17 +29,13 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_DEBUG_SCREEN, 3, -1, "Debug screen"},
   {MENU_SCREEN_BRIGHTNESS, 3, -1, "LCD brightness"},
   {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
-  {306, 3, -1, "[DEV] WiFi network"},
+  {MENU_WIFI, 3, -1, "WiFi network"},
   {307, 3, -1, "[DEV] SD card"},
   {MENU_GPRS, 3, -1, "GPRS"},
   {309, 3, -1, "[DEV] Remote upload"},
   {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
   
 /*
-    // Wifi
-  byte wifiEnabled; // 0/1 
-  char wifiSsid[32];
-  char wifiPassword[32];
   // NTP
   byte ntpEnabled; // 0/1 
   byte ntpTimezone;
@@ -78,9 +74,9 @@ MENU_ITEM menuItemsSource[100] = {
   {3044, 304, -1, "100%"},
 
   {3060, 306, 3, "<- parent menu"},
-  {3061, 306, -1, "WiFi off/on"},
-  {3062, 306, -1, "SSID"},
-  {3063, 306, -1, "Password"},
+  {MENU_WIFI_ENABLED, 306, -1, "WiFi enabled"},
+  {MENU_WIFI_SSID, 306, -1, "SSID"},
+  {MENU_WIFI_PASSWORD, 306, -1, "Password"},
 
   {3070, 307, 3, "<- parent menu"},
   {3071, 307, -1, "Info:"},

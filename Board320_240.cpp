@@ -3,6 +3,8 @@
 
 #include <analogWrite.h>
 #include <TFT_eSPI.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -38,10 +40,17 @@ void Board320_240::initBoard() {
    After setup device
 */
 void Board320_240::afterSetup() {
+
   // Show test data on right button during boot device
   displayScreen = liveData->settings.defaultScreen;
   if (digitalRead(pinButtonRight) == LOW) {
     loadTestData();
+  }
+
+  // Wifi
+  if (liveData->settings.wifiEnabled == 1) {
+    /*WiFi.mode(WIFI_STA);
+    WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);*/
   }
 }
 
@@ -839,8 +848,23 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
     case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
+    case MENU_WIFI: switch (WiFi.status()) {
+WL_CONNECTED: suffix = "CONNECTED"; break;
+WL_NO_SHIELD: suffix = "NO_SHIELD"; break;
+WL_IDLE_STATUS: suffix = "IDLE_STATUS"; break;
+WL_NO_SSID_AVAIL: suffix = "NO_SSID_AVAIL"; break;
+WL_SCAN_COMPLETED: suffix = "SCAN_COMPLETED"; break;
+WL_CONNECT_FAILED: suffix = "CONNECT_FAILED"; break;
+WL_CONNECTION_LOST: suffix = "CONNECTION_LOST"; break;
+WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
+      }
+      break;
     case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
-    case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on": "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
+    case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on" : "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
+    //
+    case MENU_WIFI_ENABLED: suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]"; break;
+    case MENU_WIFI_SSID:        sprintf(tmpStr1, "%s", liveData->settings.wifiSsid); suffix = tmpStr1; break;
+    case MENU_WIFI_PASSWORD:    sprintf(tmpStr1, "%s", liveData->settings.wifiPassword); suffix = tmpStr1; break;
     //
     case MENU_DISTANCE_UNIT:    suffix = (liveData->settings.distanceUnit == 'k') ? "[km]" : "[mi]"; break;
     case MENU_TEMPERATURE_UNIT: suffix = (liveData->settings.temperatureUnit == 'c') ? "[C]" : "[F]"; break;
@@ -906,9 +930,8 @@ void Board320_240::menuMove(bool forward) {
   if (forward) {
     uint16_t tmpCount = 0;
     for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
-      if (liveData->menuCurrent == liveData->menuItems[i].parentId) {
+      if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
         tmpCount++;
-      }
     }
     liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1 ) ? tmpCount - 1 : liveData->menuItemSelected + 1;
   } else {
@@ -926,7 +949,7 @@ void Board320_240::menuItemClick() {
   MENU_ITEM* tmpMenuItem;
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
-  
+
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId) {
       if (parentMenu == -1)
@@ -990,7 +1013,11 @@ void Board320_240::menuItemClick() {
       case 3044: liveData->settings.lcdBrightness = 100; showParentMenu = true; break;
       // Pre-drawn charg.graphs off/on
       case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;      
+      case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
+      // Wifi menu
+      case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_WIFI_SSID: return; break;
+      case MENU_WIFI_PASSWORD: return; break;
       // Distance
       case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
       case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
@@ -1114,7 +1141,7 @@ void Board320_240::redrawScreen() {
 }
 
 /**
-   Parse test data
+  Parse test data
 */
 void Board320_240::loadTestData() {
 
@@ -1124,7 +1151,7 @@ void Board320_240::loadTestData() {
 }
 
 /**
-   Board looop
+  Board looop
 */
 void Board320_240::mainLoop() {
 
