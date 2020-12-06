@@ -112,13 +112,13 @@ void BoardInterface::loadSettings() {
   liveData->settings.sdcardEnabled = 0;
   liveData->settings.sdcardAutstartLog = 1;
   liveData->settings.gprsEnabled = 0;
-  tmpStr = "internet.t-mobile.cz";
+  tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.gprsApn, tmpStr.length() + 1);
   // Remote upload
   liveData->settings.remoteUploadEnabled = 0;
-  tmpStr = "http://api.example.com";
+  tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.remoteApiUrl, tmpStr.length() + 1);
-  tmpStr = "example";
+  tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
   liveData->settings.headlightsReminder = 0;
 

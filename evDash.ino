@@ -420,6 +420,9 @@ bool sim800lSetup() {
   serial->begin(9600);
   sim800l = new SIM800L((Stream *)serial, SIM800L_RST, 512 , 512);
 
+  // SIM800L DebugMode:
+  //sim800l = new SIM800L((Stream *)serial, SIM800L_RST, 512 , 512, (Stream *)&Serial);
+
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
     Serial.println("Problem to initialize SIM800L module, retry in 1 sec");
@@ -437,16 +440,16 @@ bool sim800lSetup() {
 
     bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
-      Serial.println("Problem to set GPRS connection, retry in 1 sec");
+      Serial.println("Problem to set GPRS APN, retry in 1 sec");
       delay(1000);
       sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     }
 
     if (sim800l_gprs) {
       liveData->params.sim800l_enabled = true;
-      Serial.println("GPRS OK");
+      Serial.println("GPRS APN set OK");
     } else {
-      Serial.println("Problem to set GPRS");
+      Serial.println("Problem to set GPRS APN");
     }
   }
 
@@ -458,22 +461,27 @@ bool sendDataViaGPRS() {
 
   NetworkRegistration network = sim800l->getRegistrationStatus();
   if (network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
-    Serial.println("SIM800L module not connected to network!");
+    Serial.println("SIM800L module not connected to network, skipping data send");
     return false;
   }
 
-  bool connected = sim800l->connectGPRS();
-  for (uint8_t i = 0; i < 5 && !connected; i++) {
-    delay(1000);
-    connected = sim800l->connectGPRS();
-  }
-
-  if (!connected) {
-    Serial.println("GPRS not connected! Reseting SIM800L module!");
-    sim800l->reset();
-    sim800lSetup();
-
-    return false;
+  if(!sim800l->isConnectedGPRS()) {
+    Serial.println("GPRS not connected... Connecting");
+    bool connected = sim800l->connectGPRS();
+    for (uint8_t i = 0; i < 5 && !connected; i++) {
+      Serial.println("Problem to connect GPRS, retry in 1 sec");
+      delay(1000);
+      connected = sim800l->connectGPRS();
+    }
+    if(connected) {
+      Serial.println("GPRS connected!");
+    } else {
+      Serial.println("GPRS not connected! Reseting SIM800L module!");
+      sim800l->reset();
+      sim800lSetup();
+  
+      return false;
+    }
   }
 
   Serial.println("Start HTTP POST...");
@@ -512,8 +520,6 @@ bool sendDataViaGPRS() {
     Serial.print("HTTP POST error: ");
     Serial.println(rc);
   }
-
-  sim800l->disconnectGPRS();
 
   return true;
 }
