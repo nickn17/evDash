@@ -22,6 +22,7 @@ class Board320_240 : public BoardInterface {
     // TFT, SD SPI
     TFT_eSPI tft = TFT_eSPI();
     TFT_eSprite spr = TFT_eSprite(&tft);
+    //SPIClass spiSD(HSPI);
     char tmpStr1[20];
     char tmpStr2[20];
     char tmpStr3[20];

@@ -1,12 +1,11 @@
 /*
-   2020-12-02
    Project renamed from eNiroDashboard to evDash
 
   !! working only with OBD BLE 4.0 adapters
   !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
 
-  Supported serial console commands 
+  Serial console commands
 
     serviceUUID=xxx
     charTxUUID=xxx
@@ -35,7 +34,6 @@
 #define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
-//#define SD_ENABLED
 
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
@@ -50,11 +48,6 @@
 #ifdef BOARD_M5STACK_CORE
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
-
-#ifdef SD_ENABLED
-#include <mySD.h>
-//#include <SD.h>
-#endif
 
 #include <sys/time.h>
 #include "config.h"
@@ -536,6 +529,7 @@ void setup(void) {
   Serial.println("Booting device...");
 
   // Init settings/params, board library
+  line = "";
   liveData = new LiveData();
   liveData->initParams();
 
@@ -577,27 +571,9 @@ void setup(void) {
   getLocalTime(&now, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
-  // Hold right button
-  board->afterSetup();
-
-#ifdef SD_ENABLED
-  // Init SDCARD
-  /*if (!SD.begin(SD_CS, SD_MOSI, SD_MISO, SD_SCLK)) {
-    Serial.println("SDCARD initialization failed!");
-    } else {
-    Serial.println("SDCARD initialization done.");
-    }
-    /*spiSD.begin(SD_SCLK,SD_MISO,SD_MOSI,SD_CS);
-    if(!SD.begin( SD_CS, spiSD, 27000000)){
-    Serial.println("SDCARD initialization failed!");
-    } else {
-    Serial.println("SDCARD initialization done.");
-    }*/
-#endif
-
   // Start BLE connection
-  line = "";
   Serial.println("Start BLE with PIN auth");
+  ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
   BLEDevice::init("");
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we have detected a new device.
@@ -610,14 +586,17 @@ void setup(void) {
   liveData->pBLEScan->setActiveScan(true);
 
   // Skip BLE scan if middle button pressed
-  Serial.println(liveData->settings.obdMacAddress);
   if (strcmp(liveData->settings.obdMacAddress, "00:00:00:00:00:00") != 0 && !board->skipAdapterScan()) {
+    Serial.println(liveData->settings.obdMacAddress);
     startBleScan();
   }
 
 #ifdef SIM800L_ENABLED
   sim800lSetup();
 #endif //SIM800L_ENABLED
+
+  // Hold right button
+  board->afterSetup();
 
   // End
   Serial.println("Device setup completed");

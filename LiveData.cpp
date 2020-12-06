@@ -17,9 +17,13 @@ void LiveData::initParams() {
   // SD card
   params.sdcardInit = false;
   params.sdcardRecording = false;
+  String tmpStr = "";
+  tmpStr.toCharArray(params.sdcardFilename, tmpStr.length() + 1);
+  params.sdcardCanNotify = false;
   // Car data
   params.ignitionOn = false;
   params.ignitionOnPrevious = false;
+  params.operationTimeSec = 0;
   params.chargingStartTime = params.currentTime = 0;
   params.lightInfo = 0;
   params.headLights = false;

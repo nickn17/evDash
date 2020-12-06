@@ -41,9 +41,12 @@ typedef struct {
   // SD card
   bool sdcardInit;
   bool sdcardRecording;
+  char sdcardFilename[32];
   // Car params
   bool ignitionOn;
   bool ignitionOnPrevious;
+  uint64_t operationTimeSec;
+  bool sdcardCanNotify;
   bool forwardDriveMode;
   bool reverseDriveMode;
   bool parkModeOrNeutral;
@@ -118,13 +121,12 @@ typedef struct {
   time_t soc10time[11]; // time for avg speed
   // additional
   /*
-    uint8_t bmsIgnition;
     uint8_t bmsMainRelay;
     uint8_t highVoltageCharging;
     float inverterCapacitorVoltage;
     float normalChargePort;
     float rapidChargePort;
-    float operationTimeHours;*/
+    ;*/
 } PARAMS_STRUC;
 
 // Setting stored to flash

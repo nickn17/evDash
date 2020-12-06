@@ -1,10 +1,12 @@
 # RELEASE NOTES
 
-### DEV
+### v2.1.0 2020-12-06
 - m5stack mute speaker
 - settings v4 (wifi/gprs/sdcard/ntp/..)
 - ble4 skipped if mac is not set (00:00:00:00:00:00)
 - improved menu (L&R buttons hides menu, parent menu now keep position)
+- SD card car params logging (json format)
+  (note: m5stack supports max 16GB FAT16/32 microSD)
 - supported serial console commands
     serviceUUID=xxx
     charTxUUID=xxx

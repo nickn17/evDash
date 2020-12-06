@@ -1,6 +1,7 @@
 #ifndef BOARDINTERFACE_H
 #define BOARDINTERFACE_H
 
+#include <FS.h>
 #include "LiveData.h"
 #include "CarInterface.h"
 
@@ -18,6 +19,7 @@ class BoardInterface {
     bool btnRightPressed  = true;
     bool testDataMode = false;
     bool scanDevices = false;
+    String sdcardRecordBuffer = "";
     // Debug screen - next command with right button
     uint16_t debugCommandIndex = 0;
     String debugAtshRequest = "ATSH7E4";
@@ -49,6 +51,7 @@ class BoardInterface {
     // Sdcard
     virtual bool sdcardMount() {return false; }; 
     virtual void sdcardToggleRecording()=0;
+    bool serializeParamsToJson(File file);
 };
 
 #endif // BOARDINTERFACE_H

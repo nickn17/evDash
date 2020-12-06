@@ -24,11 +24,11 @@ MENU_ITEM menuItemsSource[100] = {
   {107, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},
-  {MENU_WIFI, 3, -1, "[dev] WiFi network"},
+  // {MENU_WIFI, 3, -1, "[dev] WiFi network"},
   {MENU_GPRS, 3, -1, "[dev] GSM/GPRS"},
-  {MENU_NTP, 3, -1, "[dev] NTP"},
-  {MENU_SDCARD, 3, -1, "[dev] SD card"},
   {MENU_REMOTE_UPLOAD, 3, -1, "[dev] Remote upload"},
+  {MENU_NTP, 3, -1, "[dev] NTP"},
+  {MENU_SDCARD, 3, -1, "SD card"},
   {MENU_SCREEN_ROTATION, 3, -1, "Screen rotation"},
   {MENU_DEFAULT_SCREEN, 3, -1, "Default screen"},
   {MENU_SCREEN_BRIGHTNESS, 3, -1, "LCD brightness"},
@@ -41,9 +41,6 @@ MENU_ITEM menuItemsSource[100] = {
   byte ntpEnabled; // 0/1 
   byte ntpTimezone;
   byte ntpDaySaveTime; // 0/1
-  // SDcard logging
-  byte sdcardEnabled; // 0/1 
-  byte sdcardAutstartLog; // 0/1   
   // GPRS SIM800L 
   byte gprsEnabled; // 0/1 
   char gprsApn[64];

@@ -21,7 +21,7 @@ void BoardM5stackCore::initBoard() {
   pinSdcardMosi = SDCARD_MOSI;
   pinSdcardMiso = SDCARD_MISO;
   pinSdcardSclk = SDCARD_SCLK;
-  
+
   // Mute speaker
   //ledcWriteTone(TONE_PIN_CHANNEL, 0);
   digitalWrite(SPEAKER_PIN, 0);

@@ -109,6 +109,7 @@ void CarKiaEniro::activateCommandQueue() {
 void CarKiaEniro::parseRowMerged() {
 
   bool tempByte;
+  float tempFloat;
 
   // ABS / ESP + AHB 7D1
   if (liveData->currentAtshRequest.equals("ATSH7D1")) {
@@ -155,7 +156,10 @@ void CarKiaEniro::parseRowMerged() {
   // Cluster module 7c6
   if (liveData->currentAtshRequest.equals("ATSH7C6")) {
     if (liveData->commandRequest.equals("22B002")) {
+      tempFloat = liveData->params.odoKm;
       liveData->params.odoKm = float(strtol(liveData->responseRowMerged.substring(18, 24).c_str(), 0, 16));
+      if (tempFloat != liveData->params.odoKm) 
+        liveData->params.sdcardCanNotify = true;
     }
   }
 
@@ -174,6 +178,7 @@ void CarKiaEniro::parseRowMerged() {
   // BMS 7e4
   if (liveData->currentAtshRequest.equals("ATSH7E4")) {
     if (liveData->commandRequest.equals("220101")) {
+      liveData->params.operationTimeSec = liveData->hexToDec(liveData->responseRowMerged.substring(98, 106).c_str(), 4, false);
       liveData->params.cumulativeEnergyChargedKWh = float(strtol(liveData->responseRowMerged.substring(82, 90).c_str(), 0, 16)) / 10.0;
       if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
         liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
@@ -248,6 +253,8 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDec(liveData->responseRowMerged.substring(56, 60).c_str(), 2, false) / 10.0;
       liveData->params.socPerc = liveData->hexToDec(liveData->responseRowMerged.substring(68, 70).c_str(), 1, false) / 2.0;
+      if (liveData->params.socPercPrevious != liveData->params.socPerc)
+        liveData->params.sdcardCanNotify = true;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {

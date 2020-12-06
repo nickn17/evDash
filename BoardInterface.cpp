@@ -1,6 +1,9 @@
 #ifndef BOARDINTERFACE_CPP
 #define BOARDINTERFACE_CPP
 
+#define ARDUINOJSON_USE_LONG_LONG 1
+
+#include <ArduinoJson.h>
 #include <EEPROM.h>
 #include <BLEDevice.h>
 #include "BoardInterface.h"
@@ -202,6 +205,69 @@ void BoardInterface::customConsoleCommand(String cmd) {
   if (key == "gprsApn") value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
+}
+
+/**
+ * Serialize parameters
+ */
+bool BoardInterface::serializeParamsToJson(File file) {
+  
+  StaticJsonDocument<1024> jsonData;
+
+  jsonData["apiKey"] = liveData->settings.remoteApiKey;
+  jsonData["carType"] = liveData->settings.carType;
+  jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
+  jsonData["currTime"] = liveData->params.currentTime;
+  jsonData["opTime"] = liveData->params.operationTimeSec;
+   
+  jsonData["socPerc"] = liveData->params.socPerc;
+  jsonData["sohPerc"] = liveData->params.sohPerc;
+  jsonData["powKwh100"] = liveData->params.batPowerKwh100;
+  jsonData["speedKmh"] = liveData->params.speedKmh;
+  jsonData["motorRpm"] = liveData->params.motorRpm;
+  jsonData["odoKm"] = liveData->params.odoKm;
+  
+  jsonData["batPowKw"] = liveData->params.batPowerKw;
+  jsonData["batPowA"] = liveData->params.batPowerAmp;
+  jsonData["batV"] = liveData->params.batVoltage;
+  jsonData["cecKwh"] = liveData->params.cumulativeEnergyChargedKWh;
+  jsonData["cedKwh"] = liveData->params.cumulativeEnergyDischargedKWh;
+  jsonData["maxChKw"] = liveData->params.availableChargePower;
+  jsonData["maxDisKw"] = liveData->params.availableDischargePower;
+  
+  jsonData["cellMinV"] = liveData->params.batCellMinV;
+  jsonData["cellMaxV"] = liveData->params.batCellMaxV;
+  jsonData["bMinC"] = round(liveData->params.batMinC);
+  jsonData["baxC"] = round(liveData->params.batMaxC);
+  jsonData["bHeatC"] = round(liveData->params.batHeaterC);
+  jsonData["bInletC"] = round(liveData->params.batInletC);
+  jsonData["bFanSt"] = liveData->params.batFanStatus;
+  jsonData["bWatC"] = round(liveData->params.coolingWaterTempC);
+  jsonData["tmpA"] = round(liveData->params.bmsUnknownTempA);
+  jsonData["tmpB"] = round(liveData->params.bmsUnknownTempB);
+  jsonData["tmpC"] = round(liveData->params.bmsUnknownTempC);
+  jsonData["tmpD"] = round(liveData->params.bmsUnknownTempD);
+
+  jsonData["auxP"] = liveData->params.auxPerc;
+  jsonData["auxV"] = liveData->params.auxVoltage;
+  jsonData["auxA"] = liveData->params.auxCurrentAmp;
+  
+  jsonData["inC"] = liveData->params.indoorTemperature;
+  jsonData["outC"] = liveData->params.outdoorTemperature;
+  jsonData["c1C"] = liveData->params.coolantTemp1C;
+  jsonData["c2C"] = liveData->params.coolantTemp2C;
+
+  jsonData["tFlC"] = liveData->params.tireFrontLeftTempC;
+  jsonData["tFlBar"] = round(liveData->params.tireFrontLeftPressureBar * 10) / 10;
+  jsonData["tFrC"] = liveData->params.tireFrontRightTempC;
+  jsonData["tFrBar"] = round(liveData->params.tireFrontRightPressureBar * 10) / 10;
+  jsonData["tRlC"] = liveData->params.tireRearLeftTempC;
+  jsonData["tRlBar"] = round(liveData->params.tireRearLeftPressureBar * 10) / 10;
+  jsonData["tRrC"] = liveData->params.tireRearRightTempC;
+  jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
+
+  serializeJson(jsonData, Serial);
+  serializeJson(jsonData, file);
 }
 
 #endif // BOARDINTERFACE_CPP

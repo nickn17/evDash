@@ -3,8 +3,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v2.0.0"
-#define APP_RELEASE_DATE "2020-12-02"
+#define APP_VERSION "v2.1.0"
+#define APP_RELEASE_DATE "2020-12-06"
 
 // TFT COLORS FOR TTGO
 #define TFT_BLACK       0x0000      /*   0,   0,   0 */
