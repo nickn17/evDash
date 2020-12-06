@@ -65,12 +65,12 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_SDCARD_MOUNT_STATUS, 304, -1, "Status"},
   {MENU_SDCARD_REC, 304, -1, "Record"},
   
-  {3070, 307, 3, "<- parent menu"},
-  {3071, 307, -1, "Auto mode"},
-  {3072, 307, -1, "Basic info"},
-  {3073, 307, -1, "Speed"},
-  {3074, 307, -1, "Battery cells"},
-  {3075, 307, -1, "Charging graph"},
+  {3060, 306, 3, "<- parent menu"},
+  {3061, 306, -1, "Auto mode"},
+  {3062, 306, -1, "Basic info"},
+  {3063, 306, -1, "Speed"},
+  {3064, 306, -1, "Battery cells"},
+  {3065, 306, -1, "Charging graph"},
 
   {4010, 401, 4, "<- parent menu"},
   {4011, 401, -1, "Kilometers"},
