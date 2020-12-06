@@ -20,8 +20,12 @@
 // BEEP PIN
 #define SPEAKER_PIN 25
 #define TONE_PIN_CHANNEL 0 
+
 // SDCARD
-#define TFCARD_CS_PIN 4
+#define SDCARD_CS    4
+#define SDCARD_MOSI  23
+#define SDCARD_MISO  19
+#define SDCARD_SCLK  18
 
 #define BUTTON_LEFT 37
 #define BUTTON_MIDDLE 38

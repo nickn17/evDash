@@ -11,8 +11,13 @@
 void LiveData::initParams() {
 
   params.automaticShutdownTimer = 0;
+  // SIM
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
+  // SD card
+  params.sdcardInit = false;
+  params.sdcardRecording = false;
+  // Car data
   params.ignitionOn = false;
   params.ignitionOnPrevious = false;
   params.chargingStartTime = params.currentTime = 0;

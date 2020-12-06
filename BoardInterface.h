@@ -46,6 +46,9 @@ class BoardInterface {
     void resetSettings();
     void loadSettings();
     void customConsoleCommand(String cmd);
+    // Sdcard
+    virtual bool sdcardMount() {return false; }; 
+    virtual void sdcardToggleRecording()=0;
 };
 
 #endif // BOARDINTERFACE_H

@@ -31,11 +31,17 @@
 
 // Structure with realtime values
 typedef struct {
+  // System
   time_t currentTime;
   time_t chargingStartTime;
   time_t automaticShutdownTimer;
+  // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
+  // SD card
+  bool sdcardInit;
+  bool sdcardRecording;
+  // Car params
   bool ignitionOn;
   bool ignitionOnPrevious;
   bool forwardDriveMode;

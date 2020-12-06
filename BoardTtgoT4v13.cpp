@@ -15,6 +15,10 @@ void BoardTtgoT4v13::initBoard() {
   pinButtonMiddle = BUTTON_MIDDLE;
   //pinSpeaker = SPEAKER_PIN;
   pinBrightness = TFT_BL;
+  pinSdcardCs = SDCARD_CS;
+  pinSdcardMosi = SDCARD_MOSI;
+  pinSdcardMiso = SDCARD_MISO;
+  pinSdcardSclk = SDCARD_SCLK;
 
   Board320_240::initBoard();
 }

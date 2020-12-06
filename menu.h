@@ -63,12 +63,11 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_WIFI_PASSWORD, 301, -1, "Password"},
 
   {3040, 304, 3, "<- parent menu"},
-  {3041, 304, -1, "Info:"},
-  {3042, 304, -1, "Mount manually"},
-  {3043, 304, -1, "Record now"},
-  {3044, 304, -1, "Stop recording"},
-  {3045, 304, -1, "Record on boot off/on"},
-
+  {MENU_SDCARD_ENABLED, 304, -1, "SD enabled"},
+  {MENU_SDCARD_AUTOSTARTLOG, 304, -1, "Autostart log enabled"},
+  {MENU_SDCARD_MOUNT_STATUS, 304, -1, "Status"},
+  {MENU_SDCARD_REC, 304, -1, "Record"},
+  
   {3070, 307, 3, "<- parent menu"},
   {3071, 307, -1, "Auto mode"},
   {3072, 307, -1, "Basic info"},

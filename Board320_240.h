@@ -33,11 +33,18 @@ class Board320_240 : public BoardInterface {
     byte pinButtonMiddle = 0;
     byte pinSpeaker = 0;
     byte pinBrightness = 0;
-    // 
+    byte pinSdcardCs = 0;
+    byte pinSdcardMosi = 0;
+    byte pinSdcardMiso = 0;
+    byte pinSdcardSclk = 0;
+    //
     void initBoard() override;
     void afterSetup() override;
     void mainLoop() override;
     bool skipAdapterScan() override;
+    // SD card
+    bool sdcardMount() override;
+    void sdcardToggleRecording() override;
     // Basic GUI
     void setBrightness(byte lcdBrightnessPerc) override;
     void displayMessage(const char* row1, const char* row2) override;
@@ -59,7 +66,7 @@ class Board320_240 : public BoardInterface {
     void hideMenu() override;
     void menuMove(bool forward);
     void menuItemClick();
-    // 
+    //
     void loadTestData();
     //
 };

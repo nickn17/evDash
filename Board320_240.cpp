@@ -1,6 +1,7 @@
 #ifndef BOARD320_240_CPP
 #define BOARD320_240_CPP
 
+#include <SD.h>
 #include <analogWrite.h>
 #include <TFT_eSPI.h>
 #include <WiFi.h>
@@ -856,7 +857,8 @@ WL_CONNECTION_LOST: suffix = "CONNECTION_LOST"; break;
 WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
       }
       break;
-    case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on" : "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
+    case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "[on]" : "[off]", liveData->settings.gprsApn); suffix = tmpStr1; break;
+    case MENU_SDCARD:           sprintf(tmpStr1, "[%s]", (liveData->params.sdcardRecording) ? "RECORDING" : (liveData->settings.sdcardEnabled == 1) ? "on" : "off"); suffix = tmpStr1; break;
     case MENU_SCREEN_ROTATION:  suffix = (liveData->settings.displayRotation == 1) ? "[vertical]" : "[normal]"; break;
     case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
@@ -864,7 +866,12 @@ WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
     case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
     case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
     //
-    case MENU_WIFI_ENABLED: suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]"; break;
+    case MENU_SDCARD_ENABLED:   sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 1) ? "on" : "off"); suffix = tmpStr1; break;
+    case MENU_SDCARD_AUTOSTARTLOG: sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->settings.sdcardAutstartLog == 1) ? "on" : "off"); suffix = tmpStr1; break;
+    case MENU_SDCARD_MOUNT_STATUS: sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->params.sdcardInit) ? "READY" : "MOUNT"); suffix = tmpStr1; break;
+    case MENU_SDCARD_REC:       sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->params.sdcardRecording) ? "STOP" : "START"); suffix = tmpStr1; break;
+    //
+    case MENU_WIFI_ENABLED:     suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]"; break;
     case MENU_WIFI_SSID:        sprintf(tmpStr1, "%s", liveData->settings.wifiSsid); suffix = tmpStr1; break;
     case MENU_WIFI_PASSWORD:    sprintf(tmpStr1, "%s", liveData->settings.wifiPassword); suffix = tmpStr1; break;
     //
@@ -1006,6 +1013,11 @@ void Board320_240::menuItemClick() {
       case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_WIFI_SSID: return; break;
       case MENU_WIFI_PASSWORD: return; break;
+      // Sdcard
+      case MENU_SDCARD_ENABLED:   liveData->settings.sdcardEnabled = (liveData->settings.sdcardEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SDCARD_AUTOSTARTLOG:  liveData->settings.sdcardAutstartLog = (liveData->settings.sdcardAutstartLog == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SDCARD_MOUNT_STATUS:  sdcardMount(); break;
+      case MENU_SDCARD_REC:      sdcardToggleRecording(); showMenu(); return; break;
       // Distance
       case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
       case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
@@ -1044,7 +1056,7 @@ void Board320_240::menuItemClick() {
       liveData->menuItemSelected = 0;
       for (i = 0; i < liveData->menuItemsCount; ++i) {
         if (parentMenu == liveData->menuItems[i].parentId) {
-          if (liveData->menuItems[i].id == liveData->menuCurrent) 
+          if (liveData->menuItems[i].id == liveData->menuCurrent)
             break;
           liveData->menuItemSelected++;
         }
@@ -1128,6 +1140,14 @@ void Board320_240::redrawScreen() {
   }
 
   if (!displayScreenSpeedHud) {
+
+    // SDCARD recording
+    /*liveData->params.sdcardRecording*/
+    if (liveData->settings.sdcardEnabled == 1) {
+      spr.fillCircle(310, 10, 7, TFT_BLACK);
+      spr.fillCircle(310, 10, 6, TFT_RED);
+    }
+
     // BLE not connected
     if (!liveData->bleConnected && liveData->bleConnect) {
       // Print message
@@ -1218,7 +1238,7 @@ void Board320_240::mainLoop() {
       }
     }
   }
-  // Both left&right button (hide menu) 
+  // Both left&right button (hide menu)
   if (digitalRead(pinButtonLeft) == LOW && digitalRead(pinButtonRight) == LOW) {
     hideMenu();
   }
@@ -1229,6 +1249,50 @@ void Board320_240::mainLoop() {
 */
 bool Board320_240::skipAdapterScan() {
   return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonLeft) == LOW || digitalRead(pinButtonRight) == LOW;
+}
+
+/**
+   Mount sdcard
+*/
+bool Board320_240::sdcardMount() {
+
+  if (liveData->params.sdcardInit) {
+    Serial.print("SD card already mounted...");
+    return true;
+  }
+
+  int8_t countdown = 10;
+  while (1) {
+    Serial.print("Initializing SD card...");
+    /*
+      if (SD.begin(pinSdcardCs, pinSdcardMosi, pinSdcardMiso, pinSdcardSclk)) {
+      Serial.println("SD card found.");
+      liveData->params.sdcardInit = true;
+      return true;
+      }
+    */
+    //SPI.begin();
+    if (SD.begin(pinSdcardCs, SPI, SPI_FREQUENCY)) {
+      Serial.println("SD card found.");
+      liveData->params.sdcardInit = true;
+      return true;
+    }
+    Serial.println("Initialization failed!");
+    countdown--;
+    if (countdown <= 0) {
+      break;
+    }
+    delay(500);
+  }
+
+  return false;
+}
+
+/**
+   Toggle sdcard recording
+*/
+void Board320_240::sdcardToggleRecording() {
+
 }
 
 #endif // BOARD320_240_CPP

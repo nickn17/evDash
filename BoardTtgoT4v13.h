@@ -20,10 +20,10 @@
 //#define SPI_FREQUENCY  40000000   // Maximum for ILI9341
 #define SPI_READ_FREQUENCY  6000000 // 6 MHz is the maximum SPI read speed for the ST7789V
 
-#define SD_CS    13
-#define SD_MOSI  15
-#define SD_MISO  2
-#define SD_SCLK  14
+#define SDCARD_CS    13
+#define SDCARD_MOSI  15
+#define SDCARD_MISO  2
+#define SDCARD_SCLK  14
 
 #define BUTTON_LEFT 38
 #define BUTTON_MIDDLE 37
