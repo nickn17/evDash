@@ -1167,11 +1167,8 @@ void Board320_240::redrawScreen() {
       spr.fillCircle(310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
-                     TFT_BLUE :
-                     TFT_GREEN
-                     :
-                     TFT_YELLOW
-                    );
+                     (strlen(liveData->params.sdcardFilename) != 0) TFT_RED:  TFT_BLUE : TFT_GREEN : TFT_YELLOW
+                     );
     }
 
     // BLE not connected
@@ -1272,7 +1269,7 @@ void Board320_240::mainLoop() {
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify) {
     // create filename
-    if (liveData->params.operationTimeSec > 0) {
+    if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0) {
       sprintf(liveData->params.sdcardFilename, "/%llu.json", uint64_t(liveData->params.operationTimeSec / 60));
       Serial.println("Log filename: ");
       Serial.println(liveData->params.sdcardFilename);
