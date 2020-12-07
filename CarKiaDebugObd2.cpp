@@ -254,7 +254,7 @@ void CarKiaDebugObd2::parseRowMerged() {
   // Cluster module 7c6
   if (liveData->currentAtshRequest.equals("ATSH7C6")) {
     if (liveData->commandRequest.equals("22B002")) {
-      liveData->params.odoKm = float(strtol(liveData->responseRowMerged.substring(18, 24).c_str(), 0, 16));
+      liveData->params.odoKm = liveData->decFromResponse(18, 24);
     }
   }
 
@@ -273,10 +273,10 @@ void CarKiaDebugObd2::parseRowMerged() {
   // BMS 7e4
   if (liveData->currentAtshRequest.equals("ATSH7E4")) {
     if (liveData->commandRequest.equals("220101")) {
-      liveData->params.cumulativeEnergyChargedKWh = float(strtol(liveData->responseRowMerged.substring(82, 90).c_str(), 0, 16)) / 10.0;
+      liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
       if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
         liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
-      liveData->params.cumulativeEnergyDischargedKWh = float(strtol(liveData->responseRowMerged.substring(90, 98).c_str(), 0, 16)) / 10.0;
+      liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
       if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
         liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 2, true) / 10.0;

@@ -157,7 +157,7 @@ void CarKiaEniro::parseRowMerged() {
   if (liveData->currentAtshRequest.equals("ATSH7C6")) {
     if (liveData->commandRequest.equals("22B002")) {
       tempFloat = liveData->params.odoKm;
-      liveData->params.odoKm = float(strtol(liveData->responseRowMerged.substring(18, 24).c_str(), 0, 16));
+      liveData->params.odoKm = liveData->decFromResponse(18, 24);
       if (tempFloat != liveData->params.odoKm) 
         liveData->params.sdcardCanNotify = true;
     }
@@ -179,14 +179,14 @@ void CarKiaEniro::parseRowMerged() {
   if (liveData->currentAtshRequest.equals("ATSH7E4")) {
     if (liveData->commandRequest.equals("220101")) {
       liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
-      liveData->params.cumulativeEnergyChargedKWh = float(strtol(liveData->responseRowMerged.substring(82, 90).c_str(), 0, 16)) / 10.0;
+      liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
       if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
         liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
-      liveData->params.cumulativeEnergyDischargedKWh = float(strtol(liveData->responseRowMerged.substring(90, 98).c_str(), 0, 16)) / 10.0;
+      liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
       if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
         liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
-      liveData->params.availableChargePower = float(strtol(liveData->responseRowMerged.substring(16, 20).c_str(), 0, 16)) / 100.0;
-      liveData->params.availableDischargePower = float(strtol(liveData->responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
+      liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
+      liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
       //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);

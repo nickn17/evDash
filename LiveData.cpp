@@ -149,6 +149,13 @@ float LiveData::hexToDecFromResponse(byte from, byte to, byte bytes, bool signed
 }
 
 /**
+  Combination of responseRowMerged.substring -> strtol -> float
+ */
+float LiveData::decFromResponse(byte from, byte to, char **str_end, int base) {
+    return float(strtol(responseRowMerged.substring(from, to).c_str(), str_end, base));
+}
+
+/**
    Convert km to km or miles
 */
 float LiveData::km2distance(float inKm) {
