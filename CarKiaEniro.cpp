@@ -187,7 +187,7 @@ void CarKiaEniro::parseRowMerged() {
         liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.availableChargePower = float(strtol(liveData->responseRowMerged.substring(16, 20).c_str(), 0, 16)) / 100.0;
       liveData->params.availableDischargePower = float(strtol(liveData->responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
-      //liveData->params.isolationResistanceKOhm = liveData->hexToDec(liveData->responseRowMerged.substring(118, 122).c_str(), 2, true);
+      //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 2, true) / 10.0;
