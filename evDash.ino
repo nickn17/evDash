@@ -61,10 +61,10 @@
 
 #ifdef SIM800L_ENABLED
 #include <ArduinoJson.h>
-#include <SoftwareSerial.h>
 #include "SIM800L.h"
 
 SIM800L* sim800l;
+HardwareSerial SerialGPRS(2);
 #endif //SIM800L_ENABLED
 
 // Temporary variables
@@ -409,11 +409,12 @@ void startBleScan() {
 #ifdef SIM800L_ENABLED
 bool sim800lSetup() {
   Serial.println("Setting SIM800L module");
-  SoftwareSerial* serial = new SoftwareSerial(SIM800L_RX, SIM800L_TX);
-  serial->begin(9600);
-  sim800l = new SIM800L((Stream *)serial, SIM800L_RST, 512 , 512);
+  
+  SerialGPRS.begin(9600);
+  
+  sim800l = new SIM800L((Stream *)&SerialGPRS, SIM800L_RST, 512 , 512);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)serial, SIM800L_RST, 512 , 512, (Stream *)&Serial);
+  //sim800l = new SIM800L((Stream *)&SerialGPRS, SIM800L_RST, 512 , 512, (Stream *)&Serial);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
