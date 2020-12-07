@@ -20,6 +20,7 @@
   - esp32 board support
   - tft_espi
   - ArduinoJson
+  - TinyGPSPlus (m5stack GPS)
 
   SIM800L m5stack (https://github.com/kolaCZek)
   - SIM800L.h, SoftwareSerial.h

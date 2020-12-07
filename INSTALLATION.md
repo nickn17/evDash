@@ -18,7 +18,8 @@ Required libraries
 - ArduinoJson
 - TFT_eSPI
 - ESP32_AnalogWrite
-- esp32-micro-sdcard
+- esp32-micro-sdcard (arduino-cli)
+- TinyGPSPlus (m5stack GPS)
 
 Configure TFT eSPI
 
