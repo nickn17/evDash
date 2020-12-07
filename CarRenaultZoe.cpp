@@ -74,37 +74,37 @@ void CarRenaultZoe::parseRowMerged() {
   // LBC 79B
   if (liveData->currentAtshRequest.equals("ATSH79B")) {
     if (liveData->commandRequest.equals("2101")) {
-      liveData->params.batPowerAmp = liveData->hexToDec(liveData->responseRowMerged.substring(4, 8).c_str(), 2, false) - 5000;
+      liveData->params.batPowerAmp = liveData->hexToDecFromResponse(4, 8, 2, false) - 5000;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
-      liveData->params.auxVoltage = liveData->hexToDec(liveData->responseRowMerged.substring(56, 60).c_str(), 2, false) / 100.0;
-      liveData->params.availableChargePower = liveData->hexToDec(liveData->responseRowMerged.substring(84, 88).c_str(), 2, false) / 100.0;
-      liveData->params.batCellMinV = liveData->hexToDec(liveData->responseRowMerged.substring(24, 28).c_str(), 2, false) / 100.0;
-      liveData->params.batCellMaxV = liveData->hexToDec(liveData->responseRowMerged.substring(28, 32).c_str(), 2, false) / 100.0;
+      liveData->params.auxVoltage = liveData->hexToDecFromResponse(56, 60, 2, false) / 100.0;
+      liveData->params.availableChargePower = liveData->hexToDecFromResponse(84, 88, 2, false) / 100.0;
+      liveData->params.batCellMinV = liveData->hexToDecFromResponse(24, 28, 2, false) / 100.0;
+      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(28, 32, 2, false) / 100.0;
     }
     if (liveData->commandRequest.equals("2103")) {
       liveData->params.socPercPrevious = liveData->params.socPerc;
-      liveData->params.socPerc = liveData->hexToDec(liveData->responseRowMerged.substring(48, 52).c_str(), 2, false) / 100.0;
+      liveData->params.socPerc = liveData->hexToDecFromResponse(48, 52, 2, false) / 100.0;
     }
     if (liveData->commandRequest.equals("2104")) {
       for (uint16_t i = 0; i < 12; i++) {
-        liveData->params.batModuleTempC[i] = liveData->hexToDec(liveData->responseRowMerged.substring(8 + ( i * 6), 10 + (i * 6)).c_str(), 1, false) - 40;
+        liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(8 + ( i * 6), 10 + (i * 6), 1, false) - 40;
       }
       for (uint16_t i = 12; i < 24; i++) {
-        liveData->params.batModuleTempC[i] = liveData->hexToDec(liveData->responseRowMerged.substring(80 + ((i - 12) * 6), 82 + ((i - 12) * 6)).c_str(), 1, false) - 40;
+        liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(80 + ((i - 12) * 6), 82 + ((i - 12) * 6), 1, false) - 40;
       }
     }
     if (liveData->commandRequest.equals("2141")) {
       for (int i = 0; i < 62; i++) {
-        liveData->params.cellVoltage[i] = liveData->hexToDec(liveData->responseRowMerged.substring(4 + (i * 4), 8 + (i * 4)).c_str(), 2, false) / 1000;
+        liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(4 + (i * 4), 8 + (i * 4), 2, false) / 1000;
       }
     }
     if (liveData->commandRequest.equals("2142")) {
       for (int i = 0; i < 34; i++) {
-        liveData->params.cellVoltage[i + 62] = liveData->hexToDec(liveData->responseRowMerged.substring(4 + (i * 4), 8 + (i * 4)).c_str(), 2, false) / 1000;
+        liveData->params.cellVoltage[i + 62] = liveData->hexToDecFromResponse(4 + (i * 4), 8 + (i * 4), 2, false) / 1000;
       }
     }
     if (liveData->commandRequest.equals("2161")) {
-      liveData->params.sohPerc = liveData->hexToDec(liveData->responseRowMerged.substring(18, 20).c_str(), 2, false) / 2.0;
+      liveData->params.sohPerc = liveData->hexToDecFromResponse(18, 20, 2, false) / 2.0;
     }
   }
 
@@ -113,7 +113,7 @@ void CarRenaultZoe::parseRowMerged() {
     // ABS / ESP + AHB 7D1
     if (liveData->currentAtshRequest.equals("ATSH7D1")) {
       if (liveData->commandRequest.equals("22C101")) {
-        uint8_t driveMode = liveData->hexToDec(liveData->responseRowMerged.substring(22, 24).c_str(), 1, false);
+        uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
         liveData->params.forwardDriveMode = (driveMode == 4);
         liveData->params.reverseDriveMode = (driveMode == 2);
         liveData->params.parkModeOrNeutral  = (driveMode == 1);
@@ -123,18 +123,18 @@ void CarRenaultZoe::parseRowMerged() {
     // IGPM
     if (liveData->currentAtshRequest.equals("ATSH770")) {
       if (liveData->commandRequest.equals("22BC03")) {
-        tempByte = liveData->hexToDec(liveData->responseRowMerged.substring(16, 18).c_str(), 1, false);
+        tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
         liveData->params.ignitionOnPrevious = liveData->params.ignitionOn;
         liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
         if (liveData->params.ignitionOnPrevious && !liveData->params.ignitionOn)
           liveData->params.automaticShutdownTimer = liveData->params.currentTime;
 
-        liveData->params.lightInfo = liveData->hexToDec(liveData->responseRowMerged.substring(18, 20).c_str(), 1, false);
+        liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
         liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
         liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
       }
       if (liveData->commandRequest.equals("22BC06")) {
-        liveData->params.brakeLightInfo = liveData->hexToDec(liveData->responseRowMerged.substring(14, 16).c_str(), 1, false);
+        liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
         liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
       }
     }
@@ -142,58 +142,58 @@ void CarRenaultZoe::parseRowMerged() {
     // VMCU 7E2
     if (liveData->currentAtshRequest.equals("ATSH7E2")) {
       if (liveData->commandRequest.equals("2101")) {
-        liveData->params.speedKmh = liveData->hexToDec(liveData->responseRowMerged.substring(32, 36).c_str(), 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+        liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
         if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
           liveData->params.speedKmh = 0;
       }
       if (liveData->commandRequest.equals("2102")) {
-        liveData->params.auxPerc = liveData->hexToDec(liveData->responseRowMerged.substring(50, 52).c_str(), 1, false);
-        liveData->params.auxCurrentAmp = - liveData->hexToDec(liveData->responseRowMerged.substring(46, 50).c_str(), 2, true) / 1000.0;
+        liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
+        liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       }
     }
 
     // Cluster module 7c6
     if (liveData->currentAtshRequest.equals("ATSH7C6")) {
       if (liveData->commandRequest.equals("22B002")) {
-        liveData->params.odoKm = float(strtol(liveData->responseRowMerged.substring(18, 24).c_str(), 0, 16));
+        liveData->params.odoKm = liveData->decFromResponse(18, 24);
       }
     }
 
     // Aircon 7b3
     if (liveData->currentAtshRequest.equals("ATSH7B3")) {
       if (liveData->commandRequest.equals("220100")) {
-        liveData->params.indoorTemperature = (liveData->hexToDec(liveData->responseRowMerged.substring(16, 18).c_str(), 1, false) / 2) - 40;
-        liveData->params.outdoorTemperature = (liveData->hexToDec(liveData->responseRowMerged.substring(18, 20).c_str(), 1, false) / 2) - 40;
+        liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+        liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
       }
       if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00") {
-        liveData->params.coolantTemp1C = (liveData->hexToDec(liveData->responseRowMerged.substring(14, 16).c_str(), 1, false) / 2) - 40;
-        liveData->params.coolantTemp2C = (liveData->hexToDec(liveData->responseRowMerged.substring(16, 18).c_str(), 1, false) / 2) - 40;
+        liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
+        liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
       }
     }
 
     // BMS 7e4
     if (liveData->currentAtshRequest.equals("ATSH7E4")) {
       if (liveData->commandRequest.equals("220101")) {
-        liveData->params.cumulativeEnergyChargedKWh = float(strtol(liveData->responseRowMerged.substring(82, 90).c_str(), 0, 16)) / 10.0;
+        liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
         if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
           liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
-        liveData->params.cumulativeEnergyDischargedKWh = float(strtol(liveData->responseRowMerged.substring(90, 98).c_str(), 0, 16)) / 10.0;
+        liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
         if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
           liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
-        liveData->params.availableDischargePower = float(strtol(liveData->responseRowMerged.substring(20, 24).c_str(), 0, 16)) / 100.0;
-        //liveData->params.isolationResistanceKOhm = liveData->hexToDec(liveData->responseRowMerged.substring(118, 122).c_str(), 2, true);
-        liveData->params.batFanStatus = liveData->hexToDec(liveData->responseRowMerged.substring(60, 62).c_str(), 2, true);
-        liveData->params.batFanFeedbackHz = liveData->hexToDec(liveData->responseRowMerged.substring(62, 64).c_str(), 2, true);
-        liveData->params.auxVoltage = liveData->hexToDec(liveData->responseRowMerged.substring(64, 66).c_str(), 2, true) / 10.0;
-        liveData->params.batVoltage = liveData->hexToDec(liveData->responseRowMerged.substring(30, 34).c_str(), 2, false) / 10.0;
+        liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
+        //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
+        liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
+        liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 2, true) / 10.0;
+        liveData->params.batVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
         if (liveData->params.batPowerKw < 0) // Reset charging start time
           liveData->params.chargingStartTime = liveData->params.currentTime;
         liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
-        liveData->params.batModuleTempC[0] = liveData->hexToDec(liveData->responseRowMerged.substring(38, 40).c_str(), 1, true);
-        liveData->params.batModuleTempC[1] = liveData->hexToDec(liveData->responseRowMerged.substring(40, 42).c_str(), 1, true);
-        liveData->params.batModuleTempC[2] = liveData->hexToDec(liveData->responseRowMerged.substring(42, 44).c_str(), 1, true);
-        liveData->params.batModuleTempC[3] = liveData->hexToDec(liveData->responseRowMerged.substring(44, 46).c_str(), 1, true);
-        liveData->params.motorRpm = liveData->hexToDec(liveData->responseRowMerged.substring(112, 116).c_str(), 2, false);
+        liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
+        liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true);
+        liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
+        liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true);
+        liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
 
         // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
         liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -205,7 +205,7 @@ void CarRenaultZoe::parseRowMerged() {
         }
         liveData->params.batTempC = liveData->params.batMinC;
 
-        liveData->params.batInletC = liveData->hexToDec(liveData->responseRowMerged.substring(50, 52).c_str(), 1, true);
+        liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
         if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
           if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
             liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
@@ -220,26 +220,26 @@ void CarRenaultZoe::parseRowMerged() {
       // BMS 7e4
       if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF") {
         for (int i = 0; i < 32; i++) {
-          liveData->params.cellVoltage[i] = liveData->hexToDec(liveData->responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
+          liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
         }
       }
       // BMS 7e4
       if (liveData->commandRequest.equals("220103")) {
         for (int i = 0; i < 32; i++) {
-          liveData->params.cellVoltage[32 + i] = liveData->hexToDec(liveData->responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
+          liveData->params.cellVoltage[32 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
         }
       }
       // BMS 7e4
       if (liveData->commandRequest.equals("220104")) {
         for (int i = 0; i < 32; i++) {
-          liveData->params.cellVoltage[64 + i] = liveData->hexToDec(liveData->responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
+          liveData->params.cellVoltage[64 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
         }
       }
       // BMS 7e4
       if (liveData->commandRequest.equals("220105")) {
         liveData->params.socPercPrevious = liveData->params.socPerc;
-        liveData->params.sohPerc = liveData->hexToDec(liveData->responseRowMerged.substring(56, 60).c_str(), 2, false) / 10.0;
-        liveData->params.socPerc = liveData->hexToDec(liveData->responseRowMerged.substring(68, 70).c_str(), 1, false) / 2.0;
+        liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
+        liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
 
         // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
         if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
@@ -251,33 +251,33 @@ void CarRenaultZoe::parseRowMerged() {
             liveData->params.soc10time[index] = liveData->params.currentTime;
           }
         }
-        liveData->params.bmsUnknownTempA = liveData->hexToDec(liveData->responseRowMerged.substring(30, 32).c_str(), 1, true);
-        liveData->params.batHeaterC = liveData->hexToDec(liveData->responseRowMerged.substring(52, 54).c_str(), 1, true);
-        liveData->params.bmsUnknownTempB = liveData->hexToDec(liveData->responseRowMerged.substring(82, 84).c_str(), 1, true);
+        liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
+        liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
+        liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
         //
         for (int i = 30; i < 32; i++) { // ai/aj position
-          liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDec(liveData->responseRowMerged.substring(14 + (i * 2), 14 + (i * 2) + 2).c_str(), 1, false) / 50;
+          liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
         }
       }
       // BMS 7e4
       if (liveData->commandRequest.equals("220106")) {
-        liveData->params.coolingWaterTempC = liveData->hexToDec(liveData->responseRowMerged.substring(14, 16).c_str(), 1, false);
-        liveData->params.bmsUnknownTempC = liveData->hexToDec(liveData->responseRowMerged.substring(18, 20).c_str(), 1, true);
-        liveData->params.bmsUnknownTempD = liveData->hexToDec(liveData->responseRowMerged.substring(46, 48).c_str(), 1, true);
+        liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
+        liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
+        liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
       }
     }
 
     // TPMS 7a0
     if (liveData->currentAtshRequest.equals("ATSH7A0")) {
       if (liveData->commandRequest.equals("22c00b")) {
-        liveData->params.tireFrontLeftPressureBar = liveData->hexToDec(liveData->responseRowMerged.substring(14, 16).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-        liveData->params.tireFrontRightPressureBar = liveData->hexToDec(liveData->responseRowMerged.substring(22, 24).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-        liveData->params.tireRearRightPressureBar = liveData->hexToDec(liveData->responseRowMerged.substring(30, 32).c_str(), 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
-        liveData->params.tireRearLeftPressureBar = liveData->hexToDec(liveData->responseRowMerged.substring(38, 40).c_str(), 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-        liveData->params.tireFrontLeftTempC = liveData->hexToDec(liveData->responseRowMerged.substring(16, 18).c_str(), 2, false)  - 50;      // === OK Valid
-        liveData->params.tireFrontRightTempC = liveData->hexToDec(liveData->responseRowMerged.substring(24, 26).c_str(), 2, false) - 50;      // === OK Valid
-        liveData->params.tireRearRightTempC = liveData->hexToDec(liveData->responseRowMerged.substring(32, 34).c_str(), 2, false) - 50;     // === OK Valid
-        liveData->params.tireRearLeftTempC = liveData->hexToDec(liveData->responseRowMerged.substring(40, 42).c_str(), 2, false) - 50;     // === OK Valid
+        liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
+        liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
+        liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
+        liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
+        liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      // === OK Valid
+        liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      // === OK Valid
+        liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     // === OK Valid
+        liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     // === OK Valid
       }
     }
   */
