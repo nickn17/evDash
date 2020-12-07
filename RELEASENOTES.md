@@ -1,5 +1,8 @@
 # RELEASE NOTES
 
+### Next version
+- tech refactoring: `hexToDecFromResponse`, `decFromResponse`
+
 ### v2.1.0 2020-12-06
 - m5stack mute speaker
 - Settings v4 (wifi/gprs/sdcard/ntp/..)
