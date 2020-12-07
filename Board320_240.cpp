@@ -1167,7 +1167,11 @@ void Board320_240::redrawScreen() {
       spr.fillCircle(310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
-                     (strlen(liveData->params.sdcardFilename) != 0) TFT_RED:  TFT_BLUE : TFT_GREEN : TFT_YELLOW
+                     (strlen(liveData->params.sdcardFilename) != 0) ? 
+                        TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */:  
+                        TFT_BLUE /* recording started but waiting for data */ : 
+                        TFT_ORANGE /* sdcard init ready but recording not started*/ : 
+                        TFT_YELLOW /* failed to initialize sdcard */ 
                      );
     }
 
