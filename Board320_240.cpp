@@ -273,38 +273,43 @@ void Board320_240::drawSceneSpeed() {
   if (this->displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
-    if (this->tft.getRotation() != 5) {
-      this->tft.setRotation(5);
+    if (this->spr.getRotation() != 2) {
+      this->spr.setRotation(2);
     }
 
-    this->tft.fillScreen(TFT_BLACK);
-    this->tft.setTextDatum(TR_DATUM); // top-right alignment
-    this->tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
+//    this->spr.fillScreen(TFT_BLACK);
+    this->spr.setTextDatum(TR_DATUM); // top-right alignment
+    this->spr.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
-    this->tft.setTextSize(3);
+    this->spr.setTextSize(3);
     sprintf(this->tmpStr3, "0");
     if (this->liveData->params.speedKmh > 10)
       sprintf(this->tmpStr3, "%01.00f", this->liveData->km2distance(this->liveData->params.speedKmh));
-    this->tft.drawString(this->tmpStr3, 320, 0, 7);
+    this->spr.drawString(this->tmpStr3, 320, 0, 7);
 
     // Draw power kWh/100km (>25kmh) else kW
-    this->tft.setTextSize(1);
+    this->spr.setTextSize(1);
     if (this->liveData->params.speedKmh > 25 && this->liveData->params.batPowerKw < 0)
       sprintf(this->tmpStr3, "%01.01f", this->liveData->km2distance(this->liveData->params.batPowerKwh100));
     else
       sprintf(this->tmpStr3, "%01.01f", this->liveData->params.batPowerKw);
-    this->tft.drawString(this->tmpStr3, 320, 150, 7);
+    this->spr.drawString(this->tmpStr3, 320, 150, 7);
 
     // Draw soc%
     sprintf(this->tmpStr3, "%01.00f%", this->liveData->params.socPerc);
-    this->tft.drawString(this->tmpStr3, 170 , 150, 7);
+    this->spr.drawString(this->tmpStr3, 170 , 150, 7);
 
     // Cold gate cirlce
-    this->tft.fillCircle(40, 170, 35, (this->liveData->params.batTempC >= 15) ? ((this->liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    this->spr.fillCircle(40, 170, 35, (this->liveData->params.batTempC >= 15) ? ((this->liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    this->spr.setTextColor(TFT_WHITE, (this->liveData->params.batTempC >= 15) ? ((this->liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    this->spr.setFreeFont(&Roboto_Thin_24);
+    this->spr.setTextDatum(MC_DATUM);
+    sprintf(this->tmpStr3, "%01.00f", this->liveData->celsius2temperature(this->liveData->params.batTempC));
+    this->spr.drawString(this->tmpStr3, 40, 166, GFXFF);
 
     // Brake lights
-    this->tft.fillRect(0, 210, 320, 30, (this->liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+    this->spr.fillRect(0, 210, 320, 30, (this->liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
 
     return;
   }
@@ -1079,7 +1084,7 @@ void Board320_240::redrawScreen() {
     this->drawSceneDebug();
   }
 
-  if (!this->displayScreenSpeedHud) {
+  if (true) { //!this->displayScreenSpeedHud
     // BLE not connected
     if (!this->liveData->bleConnected && this->liveData->bleConnect) {
       // Print message
