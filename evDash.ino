@@ -635,13 +635,13 @@ void loop() {
     } else {
       line = line + ch;
     }
+  }
 
     // Can send next command from queue to OBD
     if (liveData->canSendNextAtCommand) {
       liveData->canSendNextAtCommand = false;
       doNextAtCommand();
     }
-  }
 
 #ifdef SIM800L_ENABLED
   if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {

@@ -51,7 +51,7 @@ class BoardInterface {
     // Sdcard
     virtual bool sdcardMount() {return false; }; 
     virtual void sdcardToggleRecording()=0;
-    bool serializeParamsToJson(File file);
+    bool serializeParamsToJson(File file, bool inclApiKey = false);
 };
 
 #endif // BOARDINTERFACE_H

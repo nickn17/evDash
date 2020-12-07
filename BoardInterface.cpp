@@ -210,11 +210,13 @@ void BoardInterface::customConsoleCommand(String cmd) {
 /**
  * Serialize parameters
  */
-bool BoardInterface::serializeParamsToJson(File file) {
+bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   
   StaticJsonDocument<1024> jsonData;
 
-  jsonData["apiKey"] = liveData->settings.remoteApiKey;
+  if (inclApiKey) 
+    jsonData["apiKey"] = liveData->settings.remoteApiKey;
+    
   jsonData["carType"] = liveData->settings.carType;
   jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
   jsonData["currTime"] = liveData->params.currentTime;
@@ -238,7 +240,7 @@ bool BoardInterface::serializeParamsToJson(File file) {
   jsonData["cellMinV"] = liveData->params.batCellMinV;
   jsonData["cellMaxV"] = liveData->params.batCellMaxV;
   jsonData["bMinC"] = round(liveData->params.batMinC);
-  jsonData["baxC"] = round(liveData->params.batMaxC);
+  jsonData["bMaxC"] = round(liveData->params.batMaxC);
   jsonData["bHeatC"] = round(liveData->params.batHeaterC);
   jsonData["bInletC"] = round(liveData->params.batInletC);
   jsonData["bFanSt"] = liveData->params.batFanStatus;
@@ -248,7 +250,7 @@ bool BoardInterface::serializeParamsToJson(File file) {
   jsonData["tmpC"] = round(liveData->params.bmsUnknownTempC);
   jsonData["tmpD"] = round(liveData->params.bmsUnknownTempD);
 
-  jsonData["auxP"] = liveData->params.auxPerc;
+  jsonData["auxPerc"] = liveData->params.auxPerc;
   jsonData["auxV"] = liveData->params.auxVoltage;
   jsonData["auxA"] = liveData->params.auxCurrentAmp;
   
