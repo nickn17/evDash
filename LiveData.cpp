@@ -20,6 +20,12 @@ void LiveData::initParams() {
   String tmpStr = "";
   tmpStr.toCharArray(params.sdcardFilename, tmpStr.length() + 1);
   params.sdcardCanNotify = false;
+  // Gps
+  params.currTimeSyncWithGps = false;
+  params.gpsLat = -1;
+  params.gpsLon = -1;
+  params.gpsSat = 0;
+  params.gpsAlt = -1;
   // Car data
   params.ignitionOn = false;
   params.ignitionOnPrevious = false;

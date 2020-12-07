@@ -87,7 +87,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 4;
+  liveData->settings.settingsVersion = 5;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -126,6 +126,7 @@ void BoardInterface::loadSettings() {
   tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
   liveData->settings.headlightsReminder = 0;
+  liveData->settings.gpsHwSerialPort = 255; // off
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -174,7 +175,11 @@ void BoardInterface::loadSettings() {
         tmpStr.toCharArray(liveData->tmpSettings.remoteApiUrl, tmpStr.length() + 1);
         tmpStr = "example";
         tmpStr.toCharArray(liveData->tmpSettings.remoteApiKey, tmpStr.length() + 1);
-        liveData->settings.headlightsReminder = 0;
+        liveData->tmpSettings.headlightsReminder = 0;
+      }
+      if (liveData->tmpSettings.settingsVersion == 4) {
+        liveData->tmpSettings.settingsVersion = 5;
+        liveData->tmpSettings.gpsHwSerialPort = 255; // off
       }
 
       // Save upgraded structure
@@ -231,7 +236,7 @@ void BoardInterface::customConsoleCommand(String cmd) {
  */
 bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   
-  StaticJsonDocument<1024> jsonData;
+  StaticJsonDocument<1500> jsonData;
 
   if (inclApiKey) 
     jsonData["apiKey"] = liveData->settings.remoteApiKey;
@@ -240,6 +245,11 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
   jsonData["currTime"] = liveData->params.currentTime;
   jsonData["opTime"] = liveData->params.operationTimeSec;
+
+  jsonData["gpsSat"] = liveData->params.gpsSat;
+  jsonData["lat"] = liveData->params.gpsLat;
+  jsonData["lon"] = liveData->params.gpsLon;
+  jsonData["alt"] = liveData->params.gpsAlt;
    
   jsonData["socPerc"] = liveData->params.socPerc;
   jsonData["sohPerc"] = liveData->params.sohPerc;

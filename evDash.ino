@@ -2,7 +2,7 @@
    Project renamed from eNiroDashboard to evDash
 
   !! working only with OBD BLE 4.0 adapters
-  !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
+  !! Supported adapter is Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
 
   Serial console commands
@@ -659,14 +659,6 @@ void loop() {
 #endif // SIM800L_ENABLED
 
   board->mainLoop();
-
-  // currentTime & 1ms delay
-  struct tm now;
-  getLocalTime(&now, 0);
-  liveData->params.currentTime = mktime(&now);
-  // Shutdown when car is off
-  if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
-    board->shutdownDevice();
   if (board->scanDevices) {
     board->scanDevices = false;
     startBleScan();

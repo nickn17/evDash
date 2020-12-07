@@ -14,6 +14,7 @@
 
 //
 #include <TFT_eSPI.h>
+#include <TinyGPS++.h>
 #include "BoardInterface.h"
 
 class Board320_240 : public BoardInterface {
@@ -23,6 +24,8 @@ class Board320_240 : public BoardInterface {
     TFT_eSPI tft = TFT_eSPI();
     TFT_eSprite spr = TFT_eSprite(&tft);
     //SPIClass spiSD(HSPI);
+    HardwareSerial* gpsHwUart = NULL;
+    TinyGPSPlus gps;
     char tmpStr1[20];
     char tmpStr2[20];
     char tmpStr3[20];
@@ -46,6 +49,8 @@ class Board320_240 : public BoardInterface {
     // SD card
     bool sdcardMount() override;
     void sdcardToggleRecording() override;
+    // GPS
+    void syncGPS();
     // Basic GUI
     void setBrightness(byte lcdBrightnessPerc) override;
     void displayMessage(const char* row1, const char* row2) override;

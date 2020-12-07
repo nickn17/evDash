@@ -7,6 +7,7 @@
 #include <TFT_eSPI.h>
 //#include <WiFi.h>
 //#include <WiFiClient.h>
+#include <sys/time.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -61,6 +62,12 @@ void Board320_240::afterSetup() {
       WiFi.mode(WIFI_STA);
       WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
       Serial.println("WiFi init completed...");*/
+  }
+
+  // Init GPS
+  if (liveData->settings.gpsHwSerialPort <= 2) {
+    gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
+    gpsHwUart->begin(9600);
   }
 
   // SD card
@@ -866,13 +873,13 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     /*case MENU_WIFI:
       suffix = "n/a";
       switch (WiFi.status()) {
-WL_CONNECTED: suffix = "CONNECTED"; break;
-WL_NO_SHIELD: suffix = "NO_SHIELD"; break;
-WL_IDLE_STATUS: suffix = "IDLE_STATUS"; break;
-WL_SCAN_COMPLETED: suffix = "SCAN_COMPLETED"; break;
-WL_CONNECT_FAILED: suffix = "CONNECT_FAILED"; break;
-WL_CONNECTION_LOST: suffix = "CONNECTION_LOST"; break;
-WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
+      WL_CONNECTED: suffix = "CONNECTED"; break;
+      WL_NO_SHIELD: suffix = "NO_SHIELD"; break;
+      WL_IDLE_STATUS: suffix = "IDLE_STATUS"; break;
+      WL_SCAN_COMPLETED: suffix = "SCAN_COMPLETED"; break;
+      WL_CONNECT_FAILED: suffix = "CONNECT_FAILED"; break;
+      WL_CONNECTION_LOST: suffix = "CONNECTION_LOST"; break;
+      WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
       }
       break;*/
     case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on" : "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
@@ -883,6 +890,7 @@ WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
     case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
     case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
     case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
+    case MENU_GPS:              sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);  suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1; break;
     //
     case MENU_SDCARD_ENABLED:   sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 1) ? "on" : "off"); suffix = tmpStr1; break;
     case MENU_SDCARD_AUTOSTARTLOG: sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->settings.sdcardAutstartLog == 1) ? "on" : "off"); suffix = tmpStr1; break;
@@ -1029,6 +1037,7 @@ void Board320_240::menuItemClick() {
       // Pre-drawn charg.graphs off/on
       case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_GPS: liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
       // Wifi menu
       case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_WIFI_SSID: return; break;
@@ -1169,12 +1178,12 @@ void Board320_240::redrawScreen() {
       spr.fillCircle(310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
-                     (strlen(liveData->params.sdcardFilename) != 0) ? 
-                        TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */:  
-                        TFT_BLUE /* recording started but waiting for data */ : 
-                        TFT_ORANGE /* sdcard init ready but recording not started*/ : 
-                        TFT_YELLOW /* failed to initialize sdcard */ 
-                     );
+                     (strlen(liveData->params.sdcardFilename) != 0) ?
+                     TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ :
+                     TFT_BLUE /* recording started but waiting for data */ :
+                     TFT_ORANGE /* sdcard init ready but recording not started*/ :
+                     TFT_YELLOW /* failed to initialize sdcard */
+                    );
     }
 
     // BLE not connected
@@ -1272,27 +1281,50 @@ void Board320_240::mainLoop() {
     hideMenu();
   }
 
+  // GPS process
+  if (gpsHwUart != NULL) {
+    unsigned long start = millis();
+    do {
+      while (gpsHwUart->available())
+        gps.encode(gpsHwUart->read());
+    } while (millis() - start < 20);
+    //
+    syncGPS();
+  }
+
+  // currentTime
+  struct tm now;
+  getLocalTime(&now, 0);
+  liveData->params.currentTime = mktime(&now);
+
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify) {
+
+    //Serial.println(&now, "%y%m%d%H%M");
+      
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0) {
       sprintf(liveData->params.sdcardFilename, "/%llu.json", uint64_t(liveData->params.operationTimeSec / 60));
-      Serial.println("Log filename: ");
+      Serial.print("Log filename by opTimeSec: ");
+      Serial.println(liveData->params.sdcardFilename);
+    }
+    if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardFilename) < 15) {
+      strftime(liveData->params.sdcardFilename, sizeof(liveData->params.sdcardFilename), "/%y%m%d%H%M.json", &now);
+      Serial.print("Log filename by GPS: ");
       Serial.println(liveData->params.sdcardFilename);
     }
 
     // append buffer, clear buffer & notify state
     if (strlen(liveData->params.sdcardFilename) != 0) {
-  
       liveData->params.sdcardCanNotify = false;
       File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
       if (!file) {
         Serial.println("Failed to open file for appending");
         File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
-      } 
+      }
       if (!file) {
         Serial.println("Failed to create file");
-      } 
+      }
       if (file) {
         Serial.println("Save buffer to SD card");
         serializeParamsToJson(file);
@@ -1301,6 +1333,10 @@ void Board320_240::mainLoop() {
       }
     }
   }
+
+  // Shutdown when car is off
+  if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
+    shutdownDevice();  
 }
 
 /**
@@ -1378,6 +1414,39 @@ void Board320_240::sdcardToggleRecording() {
   } else {
     String tmpStr = "";
     tmpStr.toCharArray(liveData->params.sdcardFilename, tmpStr.length() + 1);
+  }
+}
+
+/**
+   Sync gps data
+*/
+void Board320_240::syncGPS() {
+
+  if (gps.location.isValid()) {
+    liveData->params.gpsLat = gps.location.lat();
+    liveData->params.gpsLon = gps.location.lng();
+    if (gps.altitude.isValid())
+      liveData->params.gpsAlt = gps.altitude.meters();
+  }
+  if (gps.satellites.isValid()) {
+    liveData->params.gpsSat = gps.satellites.value();
+    //Serial.print("GPS satellites: ");
+    //Serial.println(liveData->params.gpsSat);
+  }
+  if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid()) {
+    liveData->params.currTimeSyncWithGps = true;
+
+    struct tm tm;
+    tm.tm_year = gps.date.year() - 1900;
+    tm.tm_mon = gps.date.month() - 1;
+    tm.tm_mday = gps.date.day();
+    tm.tm_hour = gps.time.hour();
+    tm.tm_min = gps.time.minute();
+    tm.tm_sec = gps.time.second();
+    time_t t = mktime(&tm);
+    printf("%02d%02d%02d%02d%02d%02d\n", gps.date.year() - 2000, gps.date.month() - 1, gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
+    struct timeval now = { .tv_sec = t };
+    settimeofday(&now, NULL);
   }
 }
 

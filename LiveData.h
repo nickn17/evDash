@@ -42,6 +42,12 @@ typedef struct {
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
+  // GPS
+  bool currTimeSyncWithGps;
+  float gpsLat;
+  float gpsLon;
+  byte  gpsSat; // satellites count
+  int16_t gpsAlt;    
   // SD card
   bool sdcardInit;
   bool sdcardRecording;
@@ -136,7 +142,7 @@ typedef struct {
 // Setting stored to flash
 typedef struct {
   byte initFlag; // 183 value
-  byte settingsVersion; // current 4
+  byte settingsVersion; // current 5
   // === settings version 1
   // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
@@ -176,7 +182,10 @@ typedef struct {
   char remoteApiUrl[64];
   char remoteApiKey[32];
   //
-  bool headlightsReminder;
+  byte headlightsReminder;
+  // === settings version 5
+  // =================================
+  byte gpsHwSerialPort; // 255-off, 0,1,2 - hw serial
   //  
 } SETTINGS_STRUC;
 
