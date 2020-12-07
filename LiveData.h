@@ -19,6 +19,10 @@
 #define CAR_RENAULT_ZOE           5
 #define CAR_DEBUG_OBD2_KIA        999
 
+// 
+#define COMM_TYPE_OBD2BLE4  0
+#define COMM_TYPE_OBD2CAN   1
+
 // SCREENS
 #define SCREEN_BLANK  0
 #define SCREEN_AUTO   1
@@ -179,7 +183,7 @@ typedef struct {
 
 //
 class LiveData {
-  private:
+  protected:
   public:
     // Command loop
     uint16_t commandQueueCount;

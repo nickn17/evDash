@@ -7,6 +7,8 @@
 #include <EEPROM.h>
 #include <BLEDevice.h>
 #include "BoardInterface.h"
+#include "CommObd2Ble4.h";
+#include "CommObd2Can.h";
 #include "LiveData.h"
 
 /**
@@ -185,6 +187,23 @@ void BoardInterface::loadSettings() {
   }
 }
 
+/**
+ * After setup
+ */
+void BoardInterface::afterSetup() {
+
+  // Init Comm iterface
+  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) { 
+    commInterface = new CommObd2Ble4();
+  } else
+  if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
+    commInterface = new CommObd2Ble4();
+    //commInterface = new CommObd2Can();
+  }
+  //commInterface->initComm(liveData, NULL);
+  commInterface->connectDevice();
+}
+    
 /**
    Custom commands
 */

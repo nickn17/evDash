@@ -69,6 +69,8 @@ void Board320_240::afterSetup() {
       sdcardToggleRecording();
     }
   }
+
+  BoardInterface::afterSetup();
 }
 
 /**

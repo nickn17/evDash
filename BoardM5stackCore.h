@@ -37,7 +37,7 @@
 
 class BoardM5stackCore : public Board320_240 {
 
-  private:
+  protected:
   public:
     void initBoard() override;
     void mainLoop() override;

@@ -18,7 +18,7 @@
 
 class Board320_240 : public BoardInterface {
 
-  private:
+  protected:
     // TFT, SD SPI
     TFT_eSPI tft = TFT_eSPI();
     TFT_eSprite spr = TFT_eSprite(&tft);

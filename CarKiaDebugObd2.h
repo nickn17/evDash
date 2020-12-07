@@ -5,7 +5,7 @@
 
 class CarKiaDebugObd2 : public CarInterface {
   
-  private:
+  protected:
     
   public:
     void activateCommandQueue() override;

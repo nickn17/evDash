@@ -39,7 +39,6 @@
 ////////////////////////////////////////////////////////////
 
 #include <SPI.h>
-#include <BLEDevice.h>
 #include "BoardInterface.h"
 
 #ifdef BOARD_TTGO_T4
@@ -49,6 +48,7 @@
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
 
+#include <BLEDevice.h>
 #include <sys/time.h>
 #include "config.h"
 #include "LiveData.h"
@@ -65,9 +65,6 @@
 
 SIM800L* sim800l;
 #endif //SIM800L_ENABLED
-
-// PLEASE CHANGE THIS SETTING for your BLE4
-uint32_t PIN = 1234;
 
 // Temporary variables
 char ch;
@@ -217,6 +214,8 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       }
     }
 };
+
+uint32_t PIN = 1234;
 
 /**
   BLE Security
@@ -637,11 +636,11 @@ void loop() {
     }
   }
 
-    // Can send next command from queue to OBD
-    if (liveData->canSendNextAtCommand) {
-      liveData->canSendNextAtCommand = false;
-      doNextAtCommand();
-    }
+  // Can send next command from queue to OBD
+  if (liveData->canSendNextAtCommand) {
+    liveData->canSendNextAtCommand = false;
+    doNextAtCommand();
+  }
 
 #ifdef SIM800L_ENABLED
   if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {

@@ -5,7 +5,7 @@
 
 class CarHyundaiIoniq : public CarInterface {
   
-  private:
+  protected:
     
   public:
     void activateCommandQueue() override;

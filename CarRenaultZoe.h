@@ -5,7 +5,7 @@
 
 class CarRenaultZoe : public CarInterface {
   
-  private:
+  protected:
     
   public:
     void activateCommandQueue() override;

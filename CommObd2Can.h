@@ -5,7 +5,7 @@
 
 class CommObd2Can : public CommInterface {
   
-  private:
+  protected:
   public:
 };
 

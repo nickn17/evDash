@@ -2,11 +2,18 @@
 #define COMMINTERFACE_H
 
 #include "LiveData.h"
+//#include "BoardInterface.h"
 
 class CommInterface {
   
-  private:
+  protected:
+    LiveData* liveData;   
+    //BoardInterface* board;   
   public:
+    void initComm(LiveData* pLiveData/*, BoardInterface* pBoard**/);
+    virtual void connectDevice() = 0;
+    virtual void disconnectDevice() = 0;
+    virtual void scanDevices() = 0;
 };
 
 #endif // COMMINTERFACE_H

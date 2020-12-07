@@ -36,7 +36,7 @@
 //
 class BoardTtgoT4v13 : public Board320_240 {
   
-  private:   
+  protected:   
   public:
     void initBoard() override;
   

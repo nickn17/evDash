@@ -5,7 +5,7 @@
 
 class CarInterface {
   
-  private:
+  protected:
   public:
     LiveData* liveData;   
     void setLiveData(LiveData* pLiveData); 
