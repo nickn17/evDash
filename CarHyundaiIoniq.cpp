@@ -111,7 +111,7 @@ void CarHyundaiIoniq::parseRowMerged() {
     }
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00") {
       liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
-      liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18).c_str(), 1, false) / 2) - 40;
+      liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
     }
   }
 
