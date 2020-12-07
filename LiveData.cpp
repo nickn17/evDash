@@ -139,6 +139,16 @@ float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
 }
 
 /**
+  Parsed from merged response row:
+  Hex to dec (1-2 byte values, signed/unsigned)
+  For 4 byte change int to long and add part for signed numbers
+*/
+
+float LiveData::hexToDecFromResponse(byte from, byte to, byte bytes, bool signedNum) {
+    return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
+}
+
+/**
    Convert km to km or miles
 */
 float LiveData::km2distance(float inKm) {

@@ -222,6 +222,7 @@ class LiveData {
     //
     void initParams();
     float hexToDec(String hexString, byte bytes = 2, bool signedNum = true);
+    float hexToDecFromResponse(byte from, byte to, byte bytes = 2, bool signedNum = true);
     float km2distance(float inKm);
     float celsius2temperature(float inCelsius);
     float bar2pressure(float inBar);
