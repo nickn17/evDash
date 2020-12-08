@@ -1272,6 +1272,8 @@ void Board320_240::mainLoop() {
         if (liveData->settings.debugScreen == 1 && displayScreen == SCREEN_DEBUG) {
           debugCommandIndex = (debugCommandIndex >= liveData->commandQueueCount) ? liveData->commandQueueLoopFrom : debugCommandIndex + 1;
           redrawScreen();
+          // log every queue loop (temp)
+          liveData->params.sdcardCanNotify = true;
         }
 
       }
