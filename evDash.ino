@@ -23,7 +23,7 @@
   - TinyGPSPlus (m5stack GPS)
 
   SIM800L m5stack (https://github.com/kolaCZek)
-  - SIM800L.h, SoftwareSerial.h
+  - SIM800L.h
 */
 
 ////////////////////////////////////////////////////////////

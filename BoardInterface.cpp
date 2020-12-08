@@ -36,6 +36,13 @@ void BoardInterface::shutdownDevice() {
   displayMessage("Shutdown in 3 sec.", "");
   delay(3000);
 
+#ifdef SIM800L_ENABLED
+  if(sim800l->isConnectedGPRS()) {
+    sim800l->disconnectGPRS();
+  }
+  sim800l->setPowerMode(MINIMUM);
+#endif //SIM800L_ENABLED
+
   setCpuFrequencyMhz(80);
   setBrightness(0);
   //WiFi.disconnect(true);
