@@ -114,10 +114,6 @@ void CarKiaEniro::parseRowMerged() {
 
   // ABS / ESP + AHB 7D1
   if (liveData->currentAtshRequest.equals("ATSH7D1")) {
-    // Init debug data
-    tmpStr = "";
-    tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
-    //
     if (liveData->commandRequest.equals("22C101")) {
       uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
       liveData->params.forwardDriveMode = (driveMode == 4);
@@ -277,7 +273,7 @@ void CarKiaEniro::parseRowMerged() {
         liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
       // log 220105 to sdcard
-      tmpStr = String(liveData->params.debugData) + liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged + '\n';
+      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
     }
     // BMS 7e4
@@ -286,8 +282,8 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
       // log 220106 to sdcard
-      tmpStr = String(liveData->params.debugData) + liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged + '\n';
-      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
+      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
+      tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
     }
   }
 

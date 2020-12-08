@@ -112,6 +112,7 @@ void LiveData::initParams() {
   // 
   tmpStr = "";
   tmpStr.toCharArray(params.debugData, tmpStr.length() + 1);
+  tmpStr.toCharArray(params.debugData2, tmpStr.length() + 1);
 
   // Menu
   menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);

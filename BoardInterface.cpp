@@ -296,7 +296,8 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["tRrC"] = liveData->params.tireRearRightTempC;
   jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
 
-  jsonData["debugData"] = liveData->params.debugData;
+  jsonData["debug"] = liveData->params.debugData;
+  jsonData["debug2"] = liveData->params.debugData2;
 
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);
