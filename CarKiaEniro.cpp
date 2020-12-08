@@ -110,9 +110,14 @@ void CarKiaEniro::parseRowMerged() {
 
   bool tempByte;
   float tempFloat;
+  String tmpStr;
 
   // ABS / ESP + AHB 7D1
   if (liveData->currentAtshRequest.equals("ATSH7D1")) {
+    // Init debug data
+    tmpStr = "";
+    tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
+    //
     if (liveData->commandRequest.equals("22C101")) {
       uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
       liveData->params.forwardDriveMode = (driveMode == 4);
@@ -158,8 +163,7 @@ void CarKiaEniro::parseRowMerged() {
     if (liveData->commandRequest.equals("22B002")) {
       tempFloat = liveData->params.odoKm;
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      if (tempFloat != liveData->params.odoKm) 
-        liveData->params.sdcardCanNotify = true;
+      //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
     }
   }
 
@@ -253,8 +257,7 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
       liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
-      if (liveData->params.socPercPrevious != liveData->params.socPerc)
-        liveData->params.sdcardCanNotify = true;
+      // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
@@ -273,12 +276,18 @@ void CarKiaEniro::parseRowMerged() {
       for (int i = 30; i < 32; i++) { // ai/aj position
         liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
+      // log 220105 to sdcard
+      tmpStr = String(liveData->params.debugData) + liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged + '\n';
+      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220106")) {
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
+      // log 220106 to sdcard
+      tmpStr = String(liveData->params.debugData) + liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged + '\n';
+      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
     }
   }
 

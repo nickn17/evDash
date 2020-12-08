@@ -109,6 +109,9 @@ void LiveData::initParams() {
     params.chargingGraphHeaterTempC[i] = -100;
     params.chargingGraphWaterCoolantTempC[i] = -100;
   }
+  // 
+  tmpStr = "";
+  tmpStr.toCharArray(params.debugData, tmpStr.length() + 1);
 
   // Menu
   menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);

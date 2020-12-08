@@ -130,6 +130,7 @@ typedef struct {
   float soc10odo[11]; // odo history
   time_t soc10time[11]; // time for avg speed
   // additional
+  char debugData[256];
   /*
     uint8_t bmsMainRelay;
     uint8_t highVoltageCharging;

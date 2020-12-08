@@ -85,6 +85,8 @@ bool doNextAtCommand() {
   if (liveData->commandQueueIndex >= liveData->commandQueueCount) {
     liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
     board->redrawScreen();
+    // log every queue loop (temp)
+    liveData->params.sdcardCanNotify = true;
   }
 
   // Send AT command to obd

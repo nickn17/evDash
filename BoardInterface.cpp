@@ -193,22 +193,21 @@ void BoardInterface::loadSettings() {
 }
 
 /**
- * After setup
- */
+   After setup
+*/
 void BoardInterface::afterSetup() {
 
   // Init Comm iterface
-  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) { 
+  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {
     commInterface = new CommObd2Ble4();
-  } else
-  if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
+  } else if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
     commInterface = new CommObd2Ble4();
     //commInterface = new CommObd2Can();
   }
   //commInterface->initComm(liveData, NULL);
   commInterface->connectDevice();
 }
-    
+
 /**
    Custom commands
 */
@@ -232,15 +231,15 @@ void BoardInterface::customConsoleCommand(String cmd) {
 }
 
 /**
- * Serialize parameters
- */
+   Serialize parameters
+*/
 bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
-  
-  StaticJsonDocument<1500> jsonData;
 
-  if (inclApiKey) 
+  StaticJsonDocument<2048> jsonData;
+
+  if (inclApiKey)
     jsonData["apiKey"] = liveData->settings.remoteApiKey;
-    
+
   jsonData["carType"] = liveData->settings.carType;
   jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
   jsonData["currTime"] = liveData->params.currentTime;
@@ -250,14 +249,14 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["lat"] = liveData->params.gpsLat;
   jsonData["lon"] = liveData->params.gpsLon;
   jsonData["alt"] = liveData->params.gpsAlt;
-   
+
   jsonData["socPerc"] = liveData->params.socPerc;
   jsonData["sohPerc"] = liveData->params.sohPerc;
   jsonData["powKwh100"] = liveData->params.batPowerKwh100;
   jsonData["speedKmh"] = liveData->params.speedKmh;
   jsonData["motorRpm"] = liveData->params.motorRpm;
   jsonData["odoKm"] = liveData->params.odoKm;
-  
+
   jsonData["batPowKw"] = liveData->params.batPowerKw;
   jsonData["batPowA"] = liveData->params.batPowerAmp;
   jsonData["batV"] = liveData->params.batVoltage;
@@ -265,7 +264,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["cedKwh"] = liveData->params.cumulativeEnergyDischargedKWh;
   jsonData["maxChKw"] = liveData->params.availableChargePower;
   jsonData["maxDisKw"] = liveData->params.availableDischargePower;
-  
+
   jsonData["cellMinV"] = liveData->params.batCellMinV;
   jsonData["cellMaxV"] = liveData->params.batCellMaxV;
   jsonData["bMinC"] = round(liveData->params.batMinC);
@@ -282,7 +281,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["auxPerc"] = liveData->params.auxPerc;
   jsonData["auxV"] = liveData->params.auxVoltage;
   jsonData["auxA"] = liveData->params.auxCurrentAmp;
-  
+
   jsonData["inC"] = liveData->params.indoorTemperature;
   jsonData["outC"] = liveData->params.outdoorTemperature;
   jsonData["c1C"] = liveData->params.coolantTemp1C;
@@ -296,6 +295,8 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["tRlBar"] = round(liveData->params.tireRearLeftPressureBar * 10) / 10;
   jsonData["tRrC"] = liveData->params.tireRearRightTempC;
   jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
+
+  jsonData["debugData"] = liveData->params.debugData;
 
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);

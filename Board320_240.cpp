@@ -1128,21 +1128,23 @@ void Board320_240::redrawScreen() {
   // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
   if (displayScreen == SCREEN_AUTO) {
     if (liveData->params.speedKmh > 5) {
-      if (displayScreenAutoMode != 3) {
-        displayScreenAutoMode = 3;
+      if (displayScreenAutoMode != SCREEN_SPEED) {
+        displayScreenAutoMode = SCREEN_SPEED;
       }
       drawSceneSpeed();
     } else if (liveData->params.batPowerKw > 1) {
-      if (displayScreenAutoMode != 5) {
-        displayScreenAutoMode = 5;
+      if (displayScreenAutoMode != SCREEN_CHARGING) {
+        displayScreenAutoMode = SCREEN_CHARGING;
       }
       drawSceneChargingGraph();
     } else {
-      if (displayScreenAutoMode != 2) {
-        displayScreenAutoMode = 2;
+      if (displayScreenAutoMode != SCREEN_DASH) {
+        displayScreenAutoMode = SCREEN_DASH;
       }
       drawSceneMain();
     }
+  } else {
+     displayScreenAutoMode = SCREEN_DASH;
   }
   // 2. Main screen
   if (displayScreen == SCREEN_DASH) {
@@ -1174,9 +1176,8 @@ void Board320_240::redrawScreen() {
     // SDCARD recording
     /*liveData->params.sdcardRecording*/
     if (liveData->settings.sdcardEnabled == 1) {
-      spr.fillCircle(310, 10, 4, TFT_BLACK);
-
-      spr.fillCircle(310, 10, 3,
+      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
+      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
                      (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1185,6 +1186,15 @@ void Board320_240::redrawScreen() {
                      TFT_ORANGE /* sdcard init ready but recording not started*/ :
                      TFT_YELLOW /* failed to initialize sdcard */
                     );
+    }
+    if (gpsHwUart != NULL && (displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED)) {
+      spr.drawCircle(180, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+      spr.setTextSize(1);
+      spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
+      spr.setTextDatum(TL_DATUM);
+      sprintf(tmpStr1, "%d", liveData->params.gpsSat);
+      spr.drawString(tmpStr1, 194, 2, 2);
+      
     }
 
     // BLE not connected
@@ -1197,7 +1207,7 @@ void Board320_240::redrawScreen() {
       spr.drawString("Press middle button to menu.", 0, 200, 2);
       spr.drawString(APP_VERSION, 0, 220, 2);
     }
-
+    
     spr.pushSprite(0, 0);
   }
 }
@@ -1272,8 +1282,6 @@ void Board320_240::mainLoop() {
         if (liveData->settings.debugScreen == 1 && displayScreen == SCREEN_DEBUG) {
           debugCommandIndex = (debugCommandIndex >= liveData->commandQueueCount) ? liveData->commandQueueLoopFrom : debugCommandIndex + 1;
           redrawScreen();
-          // log every queue loop (temp)
-          liveData->params.sdcardCanNotify = true;
         }
 
       }
