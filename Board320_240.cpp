@@ -936,8 +936,9 @@ void Board320_240::showMenu() {
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId) {
       if (tmpCurrMenuItem >= liveData->menuItemOffset) {
-        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, (liveData->menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
-        spr.setTextColor((liveData->menuItemSelected == tmpCurrMenuItem) ? TFT_WHITE : TFT_WHITE, (liveData->menuItemSelected == tmpCurrMenuItem) ? TFT_DARKGREEN2 : TFT_BLACK);
+        bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
+        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
+        spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
         posY += spr.fontHeight();
       }
@@ -964,15 +965,15 @@ void Board320_240::hideMenu() {
 */
 void Board320_240::menuMove(bool forward) {
 
+  uint16_t tmpCount = 0;
+  for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
+    if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
+      tmpCount++;
+  }
   if (forward) {
-    uint16_t tmpCount = 0;
-    for (uint16_t i = 0; i < liveData->menuItemsCount; ++i) {
-      if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
-        tmpCount++;
-    }
-    liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1 ) ? tmpCount - 1 : liveData->menuItemSelected + 1;
+    liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1 ) ? 0 : liveData->menuItemSelected + 1;
   } else {
-    liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? 0 : liveData->menuItemSelected - 1;
+    liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? tmpCount - 1 : liveData->menuItemSelected - 1;
   }
   showMenu();
 }
