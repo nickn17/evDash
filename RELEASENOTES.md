@@ -4,6 +4,7 @@
 - tech refactoring: `hexToDecFromResponse`, `decFromResponse`
 - added support for GPS module on HW UART (user HWUART=2 for m5stack NEO-M8N)
 - sd card logging - added gps sat/lat/lot/alt + SD filename + time is synchronized from GPS
+- menu cycling
 
 ### v2.1.0 2020-12-06
 - m5stack mute speaker
