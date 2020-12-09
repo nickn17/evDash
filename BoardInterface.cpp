@@ -33,8 +33,12 @@ void BoardInterface::shutdownDevice() {
 
   Serial.println("Shutdown.");
 
-  displayMessage("Shutdown in 3 sec.", "");
-  delay(3000);
+  char msg[20];
+  for (int i = 3; i >= 1; i--) {
+    sprintf(msg, "Shutdown in %d sec.", i);
+    displayMessage(msg, "");
+    delay(1000);
+  }
 
 #ifdef SIM800L_ENABLED
   if(sim800l->isConnectedGPRS()) {
