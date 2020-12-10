@@ -868,7 +868,8 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case 104: prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_39) ? ">" : ""; break;
     case 105: prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : ""; break;
     case 106: prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : ""; break;
-    case 107: prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : ""; break;
+    case 107: prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : ""; break;
+    case 120: prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : ""; break;
     //
     /*case MENU_WIFI:
       suffix = "n/a";

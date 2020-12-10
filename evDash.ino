@@ -57,6 +57,7 @@
 #include "CarKiaEniro.h"
 #include "CarHyundaiIoniq.h"
 #include "CarRenaultZoe.h"
+#include "CarKiaNiroPhev.h"
 #include "CarKiaDebugObd2.h"
 
 #ifdef SIM800L_ENABLED
@@ -553,6 +554,8 @@ void setup(void) {
     car = new CarKiaEniro();
   } else if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     car = new CarHyundaiIoniq();
+  } else if (liveData->settings.carType == CAR_KIA_NIRO_PHEV) {
+    car = new CarKiaNiroPhev();
   } else if (liveData->settings.carType == CAR_RENAULT_ZOE) {
     car = new CarRenaultZoe();
   } else {

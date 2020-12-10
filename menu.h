@@ -21,7 +21,8 @@ MENU_ITEM menuItemsSource[100] = {
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
   {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
-  {107, 1, -1,  "Debug OBD2 Kia"},
+  {107, 1, -1,  "Kia Niro PHEV 8.9kWh"},
+  {120, 1, -1,  "Debug OBD2 Kia"},
 
   {300, 3, 0, "<- parent menu"},
   // {MENU_WIFI, 3, -1, "[dev] WiFi network"},

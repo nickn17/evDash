@@ -5,6 +5,7 @@
 - added support for GPS module on HW UART (user HWUART=2 for m5stack NEO-M8N)
 - sd card logging - added gps sat/lat/lot/alt + SD filename + time is synchronized from GPS
 - small improvements: menu cycling, shutdown timer
+- added Kia Niro PHEV 8.9kWh support
 
 ### v2.1.0 2020-12-06
 - m5stack mute speaker
