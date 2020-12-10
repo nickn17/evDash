@@ -1023,7 +1023,8 @@ void Board320_240::menuItemClick() {
       case 104: liveData->settings.carType = CAR_KIA_ENIRO_2020_39; showMenu(); return; break;
       case 105: liveData->settings.carType = CAR_HYUNDAI_KONA_2020_39; showMenu(); return; break;
       case 106: liveData->settings.carType = CAR_RENAULT_ZOE; showMenu(); return; break;
-      case 107: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; showMenu(); return; break;
+      case 107: liveData->settings.carType = CAR_KIA_NIRO_PHEV; showMenu(); return; break;
+      case 120: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; showMenu(); return; break;
       // Screen orientation
       case MENU_SCREEN_ROTATION: liveData->settings.displayRotation = (liveData->settings.displayRotation == 1) ? 3 : 1; tft.setRotation(liveData->settings.displayRotation); showMenu(); return; break;
       // Default screen
