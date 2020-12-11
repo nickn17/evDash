@@ -1311,7 +1311,8 @@ void Board320_240::mainLoop() {
   liveData->params.currentTime = mktime(&now);
 
   // SD card recording
-  if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify) {
+  if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
+    (liveData->params.odoKm != -1 && liveData->params.socPerc != -1)) {
 
     //Serial.println(&now, "%y%m%d%H%M");
       
