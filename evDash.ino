@@ -31,8 +31,8 @@
 ////////////////////////////////////////////////////////////
 
 // Boards
-//#define BOARD_TTGO_T4
-#define BOARD_M5STACK_CORE
+#define BOARD_TTGO_T4
+//#define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
 
@@ -498,7 +498,6 @@ bool sendDataViaGPRS() {
   jsonData["batInletC"] = liveData->params.batInletC;
   jsonData["batFanStatus"] = liveData->params.batFanStatus;
   jsonData["speedKmh"] = liveData->params.speedKmh;
-  jsonData["odoKm"] = liveData->params.odoKm;
   jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
   jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 

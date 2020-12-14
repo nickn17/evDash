@@ -1,6 +1,8 @@
 # RELEASE NOTES
 
 ### Next version
+
+### v2.1.1 2020-12-14
 - tech refactoring: `hexToDecFromResponse`, `decFromResponse`
 - added support for GPS module on HW UART (user HWUART=2 for m5stack NEO-M8N)
 - sd card logging - added gps sat/lat/lot/alt + SD filename + time is synchronized from GPS
