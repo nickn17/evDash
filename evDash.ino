@@ -455,6 +455,11 @@ bool sim800lSetup() {
 bool sendDataViaGPRS() {
   Serial.println("Sending data via GPRS");
 
+  if(liveData->params.socPerc < 0) {
+    Serial.println("No valid data, skipping data send");
+    return false;
+  }
+
   NetworkRegistration network = sim800l->getRegistrationStatus();
   if (network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
     Serial.println("SIM800L module not connected to network, skipping data send");
@@ -498,6 +503,7 @@ bool sendDataViaGPRS() {
   jsonData["batInletC"] = liveData->params.batInletC;
   jsonData["batFanStatus"] = liveData->params.batFanStatus;
   jsonData["speedKmh"] = liveData->params.speedKmh;
+  jsonData["odoKm"] = liveData->params.odoKm;
   jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
   jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
