@@ -5,7 +5,7 @@
 #include "LiveData.h"
 
 void CarInterface::setLiveData(LiveData* pLiveData) {
-  this->liveData = pLiveData;
+  liveData = pLiveData;
 }
 
 void CarInterface::activateCommandQueue() {

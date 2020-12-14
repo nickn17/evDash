@@ -4,7 +4,9 @@ Supported devices
 1. LILYGO TTGO T4 v1.3
 2. M5STACK CORE1 IOT Development Kit
 
-Working only with electric vehicles (Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV). Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. See Release notes, quick installation via flash tool bellow. 
+Working only with electric vehicles 
+Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV, Kia Niro Phev 8.9kWh
+Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. See Release notes, quick installation via flash tool bellow. 
 
 Use it at your own risk!
 Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)

@@ -1,18 +1,29 @@
 /*
- * 2020-12-02 
- * Project renamed from eNiroDashboard to evDash
- * 
+   Project renamed from eNiroDashboard to evDash
+
   !! working only with OBD BLE 4.0 adapters
-  !! Supported adapter is  Vgate ICar Pro (must be BLE4.0 version)
+  !! Supported adapter is Vgate ICar Pro (must be BLE4.0 version)
   !! Not working with standard BLUETOOTH 3 adapters
+
+  Serial console commands
+
+    serviceUUID=xxx
+    charTxUUID=xxx
+    charRxUUID=xxx
+    wifiSsid=xxx
+    wifiPassword=xxx
+    gprsApn=xxx
+    remoteApiUrl=xxx
+    remoteApiKey=xxx
 
   Required libraries
   - esp32 board support
   - tft_espi
   - ArduinoJson
+  - TinyGPSPlus (m5stack GPS)
 
   SIM800L m5stack (https://github.com/kolaCZek)
-  - SIM800L.h, SoftwareSerial.h
+  - SIM800L.h
 */
 
 ////////////////////////////////////////////////////////////
@@ -24,13 +35,11 @@
 //#define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
-//#define SD_ENABLED
 
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
 #include <SPI.h>
-#include <BLEDevice.h>
 #include "BoardInterface.h"
 
 #ifdef BOARD_TTGO_T4
@@ -40,29 +49,24 @@
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
 
-#ifdef SD_ENABLED
-#include <mySD.h>
-//#include <SD.h>
-#endif
-
+#include <BLEDevice.h>
 #include <sys/time.h>
 #include "config.h"
 #include "LiveData.h"
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
 #include "CarHyundaiIoniq.h"
+#include "CarRenaultZoe.h"
+#include "CarKiaNiroPhev.h"
 #include "CarKiaDebugObd2.h"
 
 #ifdef SIM800L_ENABLED
 #include <ArduinoJson.h>
-#include <SoftwareSerial.h>
 #include "SIM800L.h"
 
 SIM800L* sim800l;
+HardwareSerial SerialGPRS(2);
 #endif //SIM800L_ENABLED
-
-// PLEASE CHANGE THIS SETTING for your BLE4
-uint32_t PIN = 1234;
 
 // Temporary variables
 char ch;
@@ -82,6 +86,8 @@ bool doNextAtCommand() {
   if (liveData->commandQueueIndex >= liveData->commandQueueCount) {
     liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
     board->redrawScreen();
+    // log every queue loop (temp)
+    liveData->params.sdcardCanNotify = true;
   }
 
   // Send AT command to obd
@@ -212,6 +218,8 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       }
     }
 };
+
+uint32_t PIN = 1234;
 
 /**
   BLE Security
@@ -365,7 +373,7 @@ void startBleScan() {
 
   liveData->foundMyBleDevice = NULL;
   liveData->scanningDeviceIndex = 0;
-  board->displayMessage(" > Scanning BLE4 devices", "40 seconds");
+  board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
   // Start scanning
   Serial.println("Scanning BLE devices...");
@@ -402,11 +410,14 @@ void startBleScan() {
   SIM800L
 */
 #ifdef SIM800L_ENABLED
-bool sim800lSetup() {  
+bool sim800lSetup() {
   Serial.println("Setting SIM800L module");
-  SoftwareSerial* serial = new SoftwareSerial(SIM800L_RX, SIM800L_TX);
-  serial->begin(9600);
-  sim800l = new SIM800L((Stream *)serial, SIM800L_RST, 512 , 512);
+  
+  SerialGPRS.begin(9600);
+  
+  sim800l = new SIM800L((Stream *)&SerialGPRS, SIM800L_RST, 512 , 512);
+  // SIM800L DebugMode:
+  //sim800l = new SIM800L((Stream *)&SerialGPRS, SIM800L_RST, 512 , 512, (Stream *)&Serial);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
@@ -415,26 +426,26 @@ bool sim800lSetup() {
     sim800l_ready = sim800l->isReady();
   }
 
-  if(!sim800l_ready) {
+  if (!sim800l_ready) {
     Serial.println("Problem to initialize SIM800L module");
   } else {
     Serial.println("SIM800L module initialized");
-    
+
     Serial.print("Setting GPRS APN to: ");
     Serial.println(liveData->settings.gprsApn);
 
     bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
-    for(uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
-      Serial.println("Problem to set GPRS connection, retry in 1 sec");
+    for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
+     Serial.println("Problem to set GPRS APN, retry in 1 sec");
       delay(1000);
       sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     }
 
-    if(sim800l_gprs) {
+    if (sim800l_gprs) {
       liveData->params.sim800l_enabled = true;
-      Serial.println("GPRS OK");
+      Serial.println("GPRS APN set OK");
     } else {
-      Serial.println("Problem to set GPRS");
+      Serial.println("Problem to set GPRS APN");
     }
   }
 
@@ -446,61 +457,67 @@ bool sendDataViaGPRS() {
 
   NetworkRegistration network = sim800l->getRegistrationStatus();
   if (network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
-    Serial.println("SIM800L module not connected to network!");
+    Serial.println("SIM800L module not connected to network, skipping data send");
     return false;
   }
 
-  bool connected = sim800l->connectGPRS();
-  for (uint8_t i = 0; i < 5 && !connected; i++) {
-    delay(1000);
-    connected = sim800l->connectGPRS();
-  }
+  if(!sim800l->isConnectedGPRS()) {
+    Serial.println("GPRS not connected... Connecting");
+    bool connected = sim800l->connectGPRS();
+    for (uint8_t i = 0; i < 5 && !connected; i++) {
+      Serial.println("Problem to connect GPRS, retry in 1 sec");
+      delay(1000);
+      connected = sim800l->connectGPRS();
+    }
+    if(connected) {
+      Serial.println("GPRS connected!");
+    } else {
+      Serial.println("GPRS not connected! Reseting SIM800L module!");
+      sim800l->reset();
+      sim800lSetup();
 
-  if (!connected) {
-    Serial.println("GPRS not connected! Reseting SIM800L module!");
-    sim800l->reset();
-    sim800lSetup();
-
-    return false;
+      return false;
+    }
   }
 
   Serial.println("Start HTTP POST...");
 
-  StaticJsonDocument<250> jsonData;
+  StaticJsonDocument<512> jsonData;
 
-  jsonData["akey"] = liveData->settings.remoteApiKey;
-  jsonData["soc"] = liveData->params.socPerc;
-  jsonData["soh"] = liveData->params.sohPerc;
-  jsonData["batK"] = liveData->params.batPowerKw;
-  jsonData["batA"] = liveData->params.batPowerAmp;
-  jsonData["batV"] = liveData->params.batVoltage;
-  jsonData["auxV"] = liveData->params.auxVoltage;
-  jsonData["MinC"] = liveData->params.batMinC;
-  jsonData["MaxC"] = liveData->params.batMaxC;
-  jsonData["InlC"] = liveData->params.batInletC;
-  jsonData["fan"] = liveData->params.batFanStatus;
-  jsonData["cumCh"] = liveData->params.cumulativeEnergyChargedKWh;
-  jsonData["cumD"] = liveData->params.cumulativeEnergyDischargedKWh;
+  jsonData["apikey"] = liveData->settings.remoteApiKey;
+  jsonData["carType"] = liveData->settings.carType;
+  jsonData["socPerc"] = liveData->params.socPerc;
+  jsonData["sohPerc"] = liveData->params.sohPerc;
+  jsonData["batPowerKw"] = liveData->params.batPowerKw;
+  jsonData["batPowerAmp"] = liveData->params.batPowerAmp;
+  jsonData["batVoltage"] = liveData->params.batVoltage;
+  jsonData["auxVoltage"] = liveData->params.auxVoltage;
+  jsonData["auxAmp"] = liveData->params.auxCurrentAmp;
+  jsonData["batMinC"] = liveData->params.batMinC;
+  jsonData["batMaxC"] = liveData->params.batMaxC;
+  jsonData["batInletC"] = liveData->params.batInletC;
+  jsonData["batFanStatus"] = liveData->params.batFanStatus;
+  jsonData["speedKmh"] = liveData->params.speedKmh;
+  jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
+  jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
-  char payload[200];
+  char payload[512];
   serializeJson(jsonData, payload);
 
   Serial.print("Sending payload: ");
   Serial.println(payload);
 
   Serial.print("Remote API server: ");
-  Serial.println(liveData->settings.remoteApiSrvr);
+  Serial.println(liveData->settings.remoteApiUrl);
 
-  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiSrvr, "application/json", payload, 10000, 10000);
-  if(rc == 200) {
-    Serial.println(F("HTTP POST successful"));
+  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 10000, 10000);
+  if (rc == 200) {
+    Serial.println("HTTP POST successful");
   } else {
     // Failed...
-    Serial.print(F("HTTP POST error: "));
+    Serial.print("HTTP POST error: ");
     Serial.println(rc);
   }
-
-  sim800l->disconnectGPRS();
 
   return true;
 }
@@ -517,6 +534,7 @@ void setup(void) {
   Serial.println("Booting device...");
 
   // Init settings/params, board library
+  line = "";
   liveData = new LiveData();
   liveData->initParams();
 
@@ -536,6 +554,10 @@ void setup(void) {
     car = new CarKiaEniro();
   } else if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
     car = new CarHyundaiIoniq();
+  } else if (liveData->settings.carType == CAR_KIA_NIRO_PHEV) {
+    car = new CarKiaNiroPhev();
+  } else if (liveData->settings.carType == CAR_RENAULT_ZOE) {
+    car = new CarRenaultZoe();
   } else {
     // if (liveData->settings.carType == CAR_DEBUG_OBD2_KIA)
     car = new CarKiaDebugObd2();
@@ -556,27 +578,9 @@ void setup(void) {
   getLocalTime(&now, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
-  // Hold right button
-  board->afterSetup();
-
-  #ifdef SD_ENABLED
-  // Init SDCARD
-  /*if (!SD.begin(SD_CS, SD_MOSI, SD_MISO, SD_SCLK)) {
-    Serial.println("SDCARD initialization failed!");
-    } else {
-    Serial.println("SDCARD initialization done.");
-    }
-    /*spiSD.begin(SD_SCLK,SD_MISO,SD_MOSI,SD_CS);
-    if(!SD.begin( SD_CS, spiSD, 27000000)){
-    Serial.println("SDCARD initialization failed!");
-    } else {
-    Serial.println("SDCARD initialization done.");
-    }*/
-  #endif
-
   // Start BLE connection
-  line = "";
   Serial.println("Start BLE with PIN auth");
+  ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
   BLEDevice::init("");
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we have detected a new device.
@@ -589,13 +593,17 @@ void setup(void) {
   liveData->pBLEScan->setActiveScan(true);
 
   // Skip BLE scan if middle button pressed
-  if (!board->skipAdapterScan()) {
+  if (strcmp(liveData->settings.obdMacAddress, "00:00:00:00:00:00") != 0 && !board->skipAdapterScan()) {
+    Serial.println(liveData->settings.obdMacAddress);
     startBleScan();
   }
 
 #ifdef SIM800L_ENABLED
   sim800lSetup();
 #endif //SIM800L_ENABLED
+
+  // Hold right button
+  board->afterSetup();
 
   // End
   Serial.println("Device setup completed");
@@ -627,40 +635,35 @@ void loop() {
   }
 
   // Send command from TTY to OBD2
-  if (liveData->bleConnected) {
-    if (Serial.available()) {
-      ch = Serial.read();
+  if (Serial.available()) {
+    ch = Serial.read();
+    if (ch == '\r' || ch == '\n') {
+      board->customConsoleCommand(line);
       line = line + ch;
-      if (ch == '\r' || ch == '\n') {
-        Serial.println(line);
+      Serial.println(line);
+      if (liveData->bleConnected) {
         liveData->pRemoteCharacteristicWrite->writeValue(line.c_str(), line.length());
-        line = "";
       }
-    }
-
-    // Can send next command from queue to OBD
-    if (liveData->canSendNextAtCommand) {
-      liveData->canSendNextAtCommand = false;
-      doNextAtCommand();
+      line = "";
+    } else {
+      line = line + ch;
     }
   }
 
+  // Can send next command from queue to OBD
+  if (liveData->canSendNextAtCommand) {
+    liveData->canSendNextAtCommand = false;
+    doNextAtCommand();
+  }
+
 #ifdef SIM800L_ENABLED
-  if(liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
+  if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
     sendDataViaGPRS();
     liveData->params.lastDataSent = liveData->params.currentTime;
   }
 #endif // SIM800L_ENABLED
 
   board->mainLoop();
-
-  // currentTime & 1ms delay
-  struct tm now;
-  getLocalTime(&now, 0);
-  liveData->params.currentTime = mktime(&now);
-  // Shutdown when car is off
-  if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
-    board->shutdownDevice();
   if (board->scanDevices) {
     board->scanDevices = false;
     startBleScan();

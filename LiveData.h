@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <WString.h>
-#include <String.h>
+#include <string.h>
 #include <sys/time.h>
 #include <BLEDevice.h>
 #include "config.h"
@@ -17,7 +17,12 @@
 #define CAR_KIA_ENIRO_2020_39     3
 #define CAR_HYUNDAI_KONA_2020_39  4
 #define CAR_RENAULT_ZOE           5
+#define CAR_KIA_NIRO_PHEV         6
 #define CAR_DEBUG_OBD2_KIA        999
+
+// 
+#define COMM_TYPE_OBD2BLE4  0
+#define COMM_TYPE_OBD2CAN   1
 
 // SCREENS
 #define SCREEN_BLANK  0
@@ -31,15 +36,28 @@
 
 // Structure with realtime values
 typedef struct {
+  // System
   time_t currentTime;
   time_t chargingStartTime;
   time_t automaticShutdownTimer;
-#ifdef SIM800L_ENABLED
+  // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
-#endif //SIM800L_ENABLED
+  // GPS
+  bool currTimeSyncWithGps;
+  float gpsLat;
+  float gpsLon;
+  byte  gpsSat; // satellites count
+  int16_t gpsAlt;    
+  // SD card
+  bool sdcardInit;
+  bool sdcardRecording;
+  char sdcardFilename[32];
+  // Car params
   bool ignitionOn;
   bool ignitionOnPrevious;
+  uint64_t operationTimeSec;
+  bool sdcardCanNotify;
   bool forwardDriveMode;
   bool reverseDriveMode;
   bool parkModeOrNeutral;
@@ -77,7 +95,7 @@ typedef struct {
   float batMinC;
   float batMaxC;
   uint16_t batModuleTempCount;
-  float batModuleTempC[12];
+  float batModuleTempC[25];
   float coolingWaterTempC;
   float coolantTemp1C;
   float coolantTemp2C;
@@ -113,20 +131,23 @@ typedef struct {
   float soc10odo[11]; // odo history
   time_t soc10time[11]; // time for avg speed
   // additional
+  char debugData[256];
+  char debugData2[256];
   /*
-    uint8_t bmsIgnition;
     uint8_t bmsMainRelay;
     uint8_t highVoltageCharging;
     float inverterCapacitorVoltage;
     float normalChargePort;
     float rapidChargePort;
-    float operationTimeHours;*/
+    ;*/
 } PARAMS_STRUC;
 
 // Setting stored to flash
 typedef struct {
   byte initFlag; // 183 value
-  byte settingsVersion; // current 3
+  byte settingsVersion; // current 5
+  // === settings version 1
+  // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
   char obdMacAddress[20];
   char serviceUUID[40];
@@ -136,22 +157,45 @@ typedef struct {
   char distanceUnit; // k - kilometers
   char temperatureUnit; // c - celsius
   char pressureUnit; // b - bar
-  // version 2
+  // === settings version 3
+  // =================================
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
   byte debugScreen; // 0 - off, 1 - on
   byte predrawnChargingGraphs; // 0 - off, 1 - on
-#ifdef SIM800L_ENABLED
+  // === settings version 4
+  // =================================
+  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN 
+  // Wifi
+  byte wifiEnabled; // 0/1 
+  char wifiSsid[32];
+  char wifiPassword[32];
+  // NTP
+  byte ntpEnabled; // 0/1 
+  byte ntpTimezone;
+  byte ntpDaySaveTime; // 0/1
+  // SDcard logging
+  byte sdcardEnabled; // 0/1 
+  byte sdcardAutstartLog; // 0/1   
+  // GPRS SIM800L 
+  byte gprsEnabled; // 0/1 
   char gprsApn[64];
-  char remoteApiSrvr[64];
-  char remoteApiKey[13];
-#endif //SIM800L_ENABLED
+  // Remote upload
+  byte remoteUploadEnabled; // 0/1 
+  char remoteApiUrl[64];
+  char remoteApiKey[32];
+  //
+  byte headlightsReminder;
+  // === settings version 5
+  // =================================
+  byte gpsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  //  
 } SETTINGS_STRUC;
 
 
 //
 class LiveData {
-  private:
+  protected:
   public:
     // Command loop
     uint16_t commandQueueCount;
@@ -165,7 +209,7 @@ class LiveData {
     String currentAtshRequest = "";
     // Menu
     bool menuVisible = false;
-    uint8_t  menuItemsCount = 78;
+    uint8_t  menuItemsCount;
     uint16_t menuCurrent = 0;
     uint8_t  menuItemSelected = 0;
     uint8_t  menuItemOffset = 0;
@@ -190,6 +234,8 @@ class LiveData {
     //
     void initParams();
     float hexToDec(String hexString, byte bytes = 2, bool signedNum = true);
+    float hexToDecFromResponse(byte from, byte to, byte bytes = 2, bool signedNum = true);
+    float decFromResponse(byte from, byte to, char **str_end = 0, int base = 16);
     float km2distance(float inKm);
     float celsius2temperature(float inCelsius);
     float bar2pressure(float inBar);

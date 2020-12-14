@@ -10,15 +10,29 @@
 */
 void BoardM5stackCore::initBoard() {
 
-  this->invertDisplay = true;
-  this->pinButtonLeft = BUTTON_LEFT;
-  this->pinButtonRight = BUTTON_RIGHT;
-  this->pinButtonMiddle = BUTTON_MIDDLE;
-  this->pinSpeaker = SPEAKER_PIN;
-  this->pinBrightness = TFT_BL;
-
-  Board320_240::initBoard();
+  invertDisplay = true;
   
+  pinButtonLeft = BUTTON_LEFT;
+  pinButtonRight = BUTTON_RIGHT;
+  pinButtonMiddle = BUTTON_MIDDLE;
+  pinSpeaker = SPEAKER_PIN;
+  pinBrightness = TFT_BL;
+  pinSdcardCs = SDCARD_CS;
+  pinSdcardMosi = SDCARD_MOSI;
+  pinSdcardMiso = SDCARD_MISO;
+  pinSdcardSclk = SDCARD_SCLK;
+
+  // Mute speaker
+  //ledcWriteTone(TONE_PIN_CHANNEL, 0);
+  digitalWrite(SPEAKER_PIN, 0);
+
+  //
+  Board320_240::initBoard();
+}
+
+void BoardM5stackCore::mainLoop() {
+
+  Board320_240::mainLoop();
 }
 
 #endif // BOARDM5STACKCORE_CPP

@@ -10,95 +10,113 @@
 */
 void LiveData::initParams() {
 
-  this->params.automaticShutdownTimer = 0;
-#ifdef SIM800L_ENABLED
-  this->params.lastDataSent = 0;
-  this->params.sim800l_enabled = false;
-#endif //SIM800L_ENABLED
-  this->params.ignitionOn = false;
-  this->params.ignitionOnPrevious = false;
-  this->params.chargingStartTime = this->params.currentTime = 0;
-  this->params.lightInfo = 0;
-  this->params.headLights = false;
-  this->params.dayLights = false;
-  this->params.brakeLights = false;
-  this->params.brakeLightInfo = 0;
-  this->params.forwardDriveMode = false;
-  this->params.reverseDriveMode = false;
-  this->params.parkModeOrNeutral = false;
-  this->params.espState = 0;
-  this->params.speedKmh = -1;
-  this->params.motorRpm = -1;
-  this->params.odoKm = -1;
-  this->params.socPerc = -1;
-  this->params.socPercPrevious = -1;
-  this->params.sohPerc = -1;
-  this->params.cumulativeEnergyChargedKWh = -1;
-  this->params.cumulativeEnergyChargedKWhStart = -1;
-  this->params.cumulativeEnergyDischargedKWh = -1;
-  this->params.cumulativeEnergyDischargedKWhStart = -1;
-  this->params.availableChargePower = -1;
-  this->params.availableDischargePower = -1;
-  this->params.isolationResistanceKOhm = -1;
-  this->params.batPowerAmp = -1;
-  this->params.batPowerKw = -1;
-  this->params.batPowerKwh100 = -1;
-  this->params.batVoltage = -1;
-  this->params.batCellMinV = -1;
-  this->params.batCellMaxV = -1;
-  this->params.batTempC = -1;
-  this->params.batHeaterC = -1;
-  this->params.batInletC = -1;
-  this->params.batFanStatus = -1;
-  this->params.batFanFeedbackHz = -1;
-  this->params.batMinC = -1;
-  this->params.batMaxC = -1;
+  params.automaticShutdownTimer = 0;
+  // SIM
+  params.lastDataSent = 0;
+  params.sim800l_enabled = false;
+  // SD card
+  params.sdcardInit = false;
+  params.sdcardRecording = false;
+  String tmpStr = "";
+  tmpStr.toCharArray(params.sdcardFilename, tmpStr.length() + 1);
+  params.sdcardCanNotify = false;
+  // Gps
+  params.currTimeSyncWithGps = false;
+  params.gpsLat = -1;
+  params.gpsLon = -1;
+  params.gpsSat = 0;
+  params.gpsAlt = -1;
+  // Car data
+  params.ignitionOn = false;
+  params.ignitionOnPrevious = false;
+  params.operationTimeSec = 0;
+  params.chargingStartTime = params.currentTime = 0;
+  params.lightInfo = 0;
+  params.headLights = false;
+  params.dayLights = false;
+  params.brakeLights = false;
+  params.brakeLightInfo = 0;
+  params.forwardDriveMode = false;
+  params.reverseDriveMode = false;
+  params.parkModeOrNeutral = false;
+  params.espState = 0;
+  params.speedKmh = -1;
+  params.motorRpm = -1;
+  params.odoKm = -1;
+  params.socPerc = -1;
+  params.socPercPrevious = -1;
+  params.sohPerc = -1;
+  params.cumulativeEnergyChargedKWh = -1;
+  params.cumulativeEnergyChargedKWhStart = -1;
+  params.cumulativeEnergyDischargedKWh = -1;
+  params.cumulativeEnergyDischargedKWhStart = -1;
+  params.availableChargePower = -1;
+  params.availableDischargePower = -1;
+  params.isolationResistanceKOhm = -1;
+  params.batPowerAmp = -1;
+  params.batPowerKw = -1;
+  params.batPowerKwh100 = -1;
+  params.batVoltage = -1;
+  params.batCellMinV = -1;
+  params.batCellMaxV = -1;
+  params.batTempC = -1;
+  params.batHeaterC = -1;
+  params.batInletC = -1;
+  params.batFanStatus = -1;
+  params.batFanFeedbackHz = -1;
+  params.batMinC = -1;
+  params.batMaxC = -1;
   for (int i = 0; i < 12; i++) {
-    this->params.batModuleTempC[i] = 0;
+    params.batModuleTempC[i] = 0;
   }
-  this->params.batModuleTempC[0] = -1;
-  this->params.batModuleTempC[1] = -1;
-  this->params.batModuleTempC[2] = -1;
-  this->params.batModuleTempC[3] = -1;
-  this->params.coolingWaterTempC = -1;
-  this->params.coolantTemp1C = -1;
-  this->params.coolantTemp2C = -1;
-  this->params.bmsUnknownTempA = -1;
-  this->params.bmsUnknownTempB = -1;
-  this->params.bmsUnknownTempC = -1;
-  this->params.bmsUnknownTempD = -1;
-  this->params.auxPerc = -1;
-  this->params.auxCurrentAmp = -1;
-  this->params.auxVoltage = -1;
-  this->params.indoorTemperature = -1;
-  this->params.outdoorTemperature = -1;
-  this->params.tireFrontLeftTempC = -1;
-  this->params.tireFrontLeftPressureBar = -1;
-  this->params.tireFrontRightTempC = -1;
-  this->params.tireFrontRightPressureBar = -1;
-  this->params.tireRearLeftTempC = -1;
-  this->params.tireRearLeftPressureBar = -1;
-  this->params.tireRearRightTempC = -1;
-  this->params.tireRearRightPressureBar = -1;
+  params.batModuleTempC[0] = -1;
+  params.batModuleTempC[1] = -1;
+  params.batModuleTempC[2] = -1;
+  params.batModuleTempC[3] = -1;
+  params.coolingWaterTempC = -1;
+  params.coolantTemp1C = -1;
+  params.coolantTemp2C = -1;
+  params.bmsUnknownTempA = -1;
+  params.bmsUnknownTempB = -1;
+  params.bmsUnknownTempC = -1;
+  params.bmsUnknownTempD = -1;
+  params.auxPerc = -1;
+  params.auxCurrentAmp = -1;
+  params.auxVoltage = -1;
+  params.indoorTemperature = -1;
+  params.outdoorTemperature = -1;
+  params.tireFrontLeftTempC = -1;
+  params.tireFrontLeftPressureBar = -1;
+  params.tireFrontRightTempC = -1;
+  params.tireFrontRightPressureBar = -1;
+  params.tireRearLeftTempC = -1;
+  params.tireRearLeftPressureBar = -1;
+  params.tireRearRightTempC = -1;
+  params.tireRearRightPressureBar = -1;
   for (int i = 0; i <= 10; i++) {
-    this->params.soc10ced[i] = this->params.soc10cec[i] = this->params.soc10odo[i] = -1;
-    this->params.soc10time[i] = 0;
+    params.soc10ced[i] = params.soc10cec[i] = params.soc10odo[i] = -1;
+    params.soc10time[i] = 0;
   }
   for (int i = 0; i < 98; i++) {
-    this->params.cellVoltage[i] = 0;
+    params.cellVoltage[i] = 0;
   }
-  this->params.cellCount = 0;
+  params.cellCount = 0;
   for (int i = 0; i <= 100; i++) {
-    this->params.chargingGraphMinKw[i] = -1;
-    this->params.chargingGraphMaxKw[i] = -1;
-    this->params.chargingGraphBatMinTempC[i] = -100;
-    this->params.chargingGraphBatMaxTempC[i] = -100;
-    this->params.chargingGraphHeaterTempC[i] = -100;
-    this->params.chargingGraphWaterCoolantTempC[i] = -100;
+    params.chargingGraphMinKw[i] = -1;
+    params.chargingGraphMaxKw[i] = -1;
+    params.chargingGraphBatMinTempC[i] = -100;
+    params.chargingGraphBatMaxTempC[i] = -100;
+    params.chargingGraphHeaterTempC[i] = -100;
+    params.chargingGraphWaterCoolantTempC[i] = -100;
   }
+  // 
+  tmpStr = "";
+  tmpStr.toCharArray(params.debugData, tmpStr.length() + 1);
+  tmpStr.toCharArray(params.debugData2, tmpStr.length() + 1);
 
   // Menu
-  this->menuItems = menuItemsSource;
+  menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);
+  menuItems = menuItemsSource;
 }
 
 /**
@@ -131,24 +149,41 @@ float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
 }
 
 /**
+  Parsed from merged response row:
+  Hex to dec (1-2 byte values, signed/unsigned)
+  For 4 byte change int to long and add part for signed numbers
+*/
+
+float LiveData::hexToDecFromResponse(byte from, byte to, byte bytes, bool signedNum) {
+    return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
+}
+
+/**
+  Combination of responseRowMerged.substring -> strtol -> float
+ */
+float LiveData::decFromResponse(byte from, byte to, char **str_end, int base) {
+    return float(strtol(responseRowMerged.substring(from, to).c_str(), str_end, base));
+}
+
+/**
    Convert km to km or miles
 */
 float LiveData::km2distance(float inKm) {
-  return (this->settings.distanceUnit == 'k') ? inKm : inKm / 1.609344;
+  return (settings.distanceUnit == 'k') ? inKm : inKm / 1.609344;
 }
 
 /**
    Convert celsius to celsius or farenheit
 */
 float LiveData::celsius2temperature(float inCelsius) {
-  return (this->settings.temperatureUnit == 'c') ? inCelsius : (inCelsius * 1.8) + 32;
+  return (settings.temperatureUnit == 'c') ? inCelsius : (inCelsius * 1.8) + 32;
 }
 
 /**
    Convert bar to bar or psi
 */
 float LiveData::bar2pressure(float inBar) {
-  return (this->settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
+  return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
 }
 
 

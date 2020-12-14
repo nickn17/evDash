@@ -1,9 +1,9 @@
-#ifndef CARKIADEBUGOBD2_H
-#define CARKIADEBUGOBD2_H
+#ifndef CARRENAULTZOE_H
+#define CARRENAULTZOE_H
 
 #include "CarInterface.h"
 
-class CarKiaDebugObd2 : public CarInterface {
+class CarRenaultZoe : public CarInterface {
   
   protected:
     
@@ -13,4 +13,4 @@ class CarKiaDebugObd2 : public CarInterface {
     void loadTestData() override;  
 };
 
-#endif // CARKIADEBUGOBD2_H
+#endif // CARRENAULTZOE_H

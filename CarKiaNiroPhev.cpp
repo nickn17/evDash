@@ -1,17 +1,17 @@
-#ifndef CARHYUNDAIIONIQ_CPP
-#define CARHYUNDAIIONIQ_CPP
+#ifndef CARKIANIROPHEV_CPP
+#define CARKIANIROPHEV_CPP
 
-#include "CarHyundaiIoniq.h"
+#include "CarKiaNiroPhev.h"
 
-#define commandQueueCountHyundaiIoniq 25
-#define commandQueueLoopFromHyundaiIoniq 8
+#define commandQueueCountKiaNiroPhev 25
+#define commandQueueLoopFromKiaNiroPhev 8
 
 /**
    activateliveData->commandQueue
 */
-void CarHyundaiIoniq::activateCommandQueue() {
+void CarKiaNiroPhev::activateCommandQueue() {
 
-  String commandQueueHyundaiIoniq[commandQueueCountHyundaiIoniq] = {
+  String commandQueueKiaNiroPhev[commandQueueCountKiaNiroPhev] = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
     "AT E0",     // Echo off
@@ -63,25 +63,25 @@ void CarHyundaiIoniq::activateCommandQueue() {
   };
 
   // 28kWh version
-  liveData->params.batteryTotalAvailableKWh = 28;
-  liveData->params.batModuleTempCount = 12;
+  liveData->params.batteryTotalAvailableKWh = 8.9;
+  liveData->params.batModuleTempCount = 5;
 
   //  Empty and fill command queue
   for (int i = 0; i < 300; i++) {
     liveData->commandQueue[i] = "";
   }
-  for (int i = 0; i < commandQueueCountHyundaiIoniq; i++) {
-    liveData->commandQueue[i] = commandQueueHyundaiIoniq[i];
+  for (int i = 0; i < commandQueueCountKiaNiroPhev; i++) {
+    liveData->commandQueue[i] = commandQueueKiaNiroPhev[i];
   }
 
-  liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq;
-  liveData->commandQueueCount = commandQueueCountHyundaiIoniq;
+  liveData->commandQueueLoopFrom = commandQueueLoopFromKiaNiroPhev;
+  liveData->commandQueueCount = commandQueueCountKiaNiroPhev;
 }
 
 /**
    parseRowMerged
 */
-void CarHyundaiIoniq::parseRowMerged() {
+void CarKiaNiroPhev::parseRowMerged() {
 
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
@@ -218,7 +218,6 @@ void CarHyundaiIoniq::parseRowMerged() {
       }
     }
     // BMS 7e4
-    // IONIQ FAILED
     if (liveData->commandRequest.equals("2106")) {
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
     }
@@ -243,7 +242,7 @@ void CarHyundaiIoniq::parseRowMerged() {
 /**
    loadTestData
 */
-void CarHyundaiIoniq::loadTestData() {
+void CarKiaNiroPhev::loadTestData() {
 
   // VMCU ATSH7E2
   liveData->currentAtshRequest = "ATSH7E2";
@@ -378,4 +377,4 @@ void CarHyundaiIoniq::loadTestData() {
 
 }
 
-#endif //CARHYUNDAIIONIQ_CPP
+#endif //CARKIANIROPHEV_CPP

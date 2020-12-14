@@ -1,9 +1,9 @@
-#ifndef CARHYUNDAIIONIQ_H
-#define CARHYUNDAIIONIQ_H
+#ifndef CARKIANIROPHEV_H
+#define CARKIANIROPHEV_H
 
 #include "CarInterface.h"
 
-class CarHyundaiIoniq : public CarInterface {
+class CarKiaNiroPhev: public CarInterface {
   
   protected:
     
