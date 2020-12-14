@@ -32,14 +32,13 @@ void CarRenaultZoe::activateCommandQueue() {
     ////"AT AT0",     // disabled adaptive timing
     "AT DP",
     "AT ST16",    // reduced timeout to 1, orig.16
-    "atfcsd300010",
-    "atfcsm1",    // Allow long messages
-
     // Loop from (RENAULT ZOE)
 
     // LBC Lithium battery controller
     "ATSH79B",
     "ATFCSH79B",
+    "atfcsd300010",
+    "atfcsm1",
     "2101",
     "2103",
     "2104",

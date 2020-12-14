@@ -31,8 +31,8 @@
 ////////////////////////////////////////////////////////////
 
 // Boards
-#define BOARD_TTGO_T4
-//#define BOARD_M5STACK_CORE
+//#define BOARD_TTGO_T4
+#define BOARD_M5STACK_CORE
 
 //#define SIM800L_ENABLED
 
