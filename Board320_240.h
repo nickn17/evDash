@@ -16,6 +16,8 @@
 #include <TFT_eSPI.h>
 #include <TinyGPS++.h>
 #include "BoardInterface.h"
+#include <SD.h>
+#include <SPI.h>
 
 class Board320_240 : public BoardInterface {
 
@@ -23,7 +25,6 @@ class Board320_240 : public BoardInterface {
     // TFT, SD SPI
     TFT_eSPI tft = TFT_eSPI();
     TFT_eSprite spr = TFT_eSprite(&tft);
-    //SPIClass spiSD(HSPI);
     HardwareSerial* gpsHwUart = NULL;
     TinyGPSPlus gps;
     char tmpStr1[20];

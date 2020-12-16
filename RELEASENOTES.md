@@ -1,6 +1,8 @@
 # RELEASE NOTES
 
 ### Next version
+- removed debug screen
+- sdcard working only with m5stack
 
 ### v2.1.1 2020-12-14
 - tech refactoring: `hexToDecFromResponse`, `decFromResponse`

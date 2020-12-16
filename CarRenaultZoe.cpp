@@ -9,8 +9,8 @@
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
 
-#define commandQueueCountRenaultZoe 18
-#define commandQueueLoopFromRenaultZoe 11
+#define commandQueueCountRenaultZoe 28
+#define commandQueueLoopFromRenaultZoe 9
 
 /**
    activateCommandQueue
@@ -32,6 +32,7 @@ void CarRenaultZoe::activateCommandQueue() {
     ////"AT AT0",     // disabled adaptive timing
     "AT DP",
     "AT ST16",    // reduced timeout to 1, orig.16
+
     // Loop from (RENAULT ZOE)
 
     // LBC Lithium battery controller
@@ -45,6 +46,18 @@ void CarRenaultZoe::activateCommandQueue() {
     "2141",
     "2142",
     "2161",
+
+    // CLUSTER Instrument panel
+    "ATSH743",
+    "ATFCSH743",
+    "atfcsd300010",
+    "atfcsm1",
+    "220201",
+    "220202",
+    "220203",
+    "220204",
+    "220205",
+    "220206",
   };
 
   //

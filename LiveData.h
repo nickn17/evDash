@@ -32,7 +32,6 @@
 #define SCREEN_CELLS  4
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
-#define SCREEN_DEBUG  7
 
 // Structure with realtime values
 typedef struct {

@@ -99,6 +99,7 @@ bool doNextAtCommand() {
   Serial.print(">>> ");
   Serial.println(liveData->commandRequest);
   String tmpStr = liveData->commandRequest + "\r";
+  liveData->responseRowMerged = "";
   liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
   liveData->commandQueueIndex++;
 
@@ -116,9 +117,6 @@ bool parseRow() {
 
   // Merge 0:xxxx 1:yyyy 2:zzzz to single xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
-    if (liveData->responseRow.charAt(0) == '0') {
-      liveData->responseRowMerged = "";
-    }
     liveData->responseRowMerged += liveData->responseRow.substring(2);
   }
 
@@ -132,15 +130,6 @@ bool parseRowMerged() {
 
   Serial.print("merged:");
   Serial.println(liveData->responseRowMerged);
-
-  // Catch output for debug screen
-  if (board->displayScreen == SCREEN_DEBUG) {
-    if (board->debugCommandIndex == liveData->commandQueueIndex) {
-      board->debugAtshRequest = liveData->currentAtshRequest;
-      board->debugCommandRequest = liveData->commandRequest;
-      board->debugLastString  = liveData->responseRowMerged;
-    }
-  }
 
   // Parse by selected car interface
   car->parseRowMerged();
@@ -202,8 +191,8 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       }
       /*
         if (advertisedDevice.getServiceDataUUID().toString() != "<NULL>") {
-        Serial.print("ServiceDataUUID: ");
-        Serial.println(advertisedDevice.getServiceDataUUID().toString().c_str());
+          Serial.print("ServiceDataUUID: ");
+          Serial.println(advertisedDevice.getServiceDataUUID().toString().c_str());
         if (advertisedDevice.getServiceUUID().toString() != "<NULL>") {
           Serial.print("ServiceUUID: ");
           Serial.println(advertisedDevice.getServiceUUID().toString().c_str());
@@ -412,9 +401,9 @@ void startBleScan() {
 #ifdef SIM800L_ENABLED
 bool sim800lSetup() {
   Serial.println("Setting SIM800L module");
-  
+
   SerialGPRS.begin(9600);
-  
+
   sim800l = new SIM800L((Stream *)&SerialGPRS, SIM800L_RST, 512 , 512);
   // SIM800L DebugMode:
   //sim800l = new SIM800L((Stream *)&SerialGPRS, SIM800L_RST, 512 , 512, (Stream *)&Serial);
@@ -436,7 +425,7 @@ bool sim800lSetup() {
 
     bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
-     Serial.println("Problem to set GPRS APN, retry in 1 sec");
+      Serial.println("Problem to set GPRS APN, retry in 1 sec");
       delay(1000);
       sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     }
@@ -466,7 +455,7 @@ bool sendDataViaGPRS() {
     return false;
   }
 
-  if(!sim800l->isConnectedGPRS()) {
+  if (!sim800l->isConnectedGPRS()) {
     Serial.println("GPRS not connected... Connecting");
     bool connected = sim800l->connectGPRS();
     for (uint8_t i = 0; i < 5 && !connected; i++) {
@@ -474,7 +463,7 @@ bool sendDataViaGPRS() {
       delay(1000);
       connected = sim800l->connectGPRS();
     }
-    if(connected) {
+    if (connected) {
       Serial.println("GPRS connected!");
     } else {
       Serial.println("GPRS not connected! Reseting SIM800L module!");
@@ -571,7 +560,6 @@ void setup(void) {
   car->setLiveData(liveData);
   car->activateCommandQueue();
   board->attachCar(car);
-  board->debugCommandIndex = liveData->commandQueueLoopFrom;
 
   // Redraw screen
   board->redrawScreen();

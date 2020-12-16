@@ -1,8 +1,8 @@
 # evDash (old enirodashboard)
 
 Supported devices
-1. LILYGO TTGO T4 v1.3
-2. M5STACK CORE1 IOT Development Kit
+1. M5STACK CORE1 IOT Development Kit (best option)
+2. LILYGO TTGO T4 v1.3 (!!! limited support, no SDcard/GSM/GPS/CAN module)
 
 Working only with electric vehicles 
 Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV, Kia Niro Phev 8.9kWh

@@ -24,12 +24,6 @@ class BoardInterface {
     bool testDataMode = false;
     bool scanDevices = false;
     String sdcardRecordBuffer = "";
-    // Debug screen - next command with right button
-    uint16_t debugCommandIndex = 0;
-    String debugAtshRequest = "ATSH7E4";
-    String debugCommandRequest = "220101";
-    String debugLastString = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
-    String debugPreviousString = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
     //
     void setLiveData(LiveData* pLiveData);
     void attachCar(CarInterface* pCarInterface);

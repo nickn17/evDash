@@ -55,13 +55,13 @@ void Board320_240::afterSetup() {
   if (liveData->settings.wifiEnabled == 1) {
 
     /*Serial.print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
-      Serial.println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
+        Serial.println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
 
-      Serial.println("WiFi init...");
+        Serial.println("WiFi init...");
       WiFi.enableSTA(true);
       WiFi.mode(WIFI_STA);
       WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
-      Serial.println("WiFi init completed...");*/
+        Serial.println("WiFi init completed...");*/
   }
 
   // Init GPS
@@ -815,41 +815,6 @@ void Board320_240::drawSceneSoc10Table() {
 }
 
 /**
-  DEBUG screen
-*/
-void Board320_240::drawSceneDebug() {
-
-  int32_t posx, posy;
-  String chHex, chHex2;
-  uint8_t chByte;
-
-  spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextColor(TFT_SILVER, TFT_TEMP);
-  spr.setTextDatum(TL_DATUM);
-  spr.drawString(debugAtshRequest, 0, 0, 2);
-  spr.drawString(debugCommandRequest, 128, 0, 2);
-  spr.drawString(liveData->commandRequest, 256, 0, 2);
-  spr.setTextDatum(TR_DATUM);
-
-  for (int i = 0; i < debugLastString.length() / 2; i++) {
-    chHex = debugLastString.substring(i * 2, (i * 2) + 2);
-    chHex2 = debugPreviousString.substring(i * 2, (i * 2) + 2);
-    spr.setTextColor(((chHex.equals(chHex2)) ?  TFT_SILVER : TFT_GREEN), TFT_TEMP);
-    chByte = liveData->hexToDec(chHex.c_str(), 1, false);
-    posx = (((i) % 10) * 32) + 24;
-    posy = ((floor((i) / 10)) * 32) + 24;
-    sprintf(tmpStr1, "%03d", chByte);
-    spr.drawString(tmpStr1, posx + 4, posy, 2);
-
-    spr.setTextColor(TFT_YELLOW, TFT_TEMP);
-    sprintf(tmpStr1, "%c", (char)chByte);
-    spr.drawString(tmpStr1, posx + 4, posy + 13, 2);
-  }
-
-  debugPreviousString = debugLastString;
-}
-
-/**
    Modify caption
 */
 String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
@@ -1146,7 +1111,7 @@ void Board320_240::redrawScreen() {
       drawSceneMain();
     }
   } else {
-     displayScreenAutoMode = SCREEN_DASH;
+    displayScreenAutoMode = SCREEN_DASH;
   }
   // 2. Main screen
   if (displayScreen == SCREEN_DASH) {
@@ -1167,10 +1132,6 @@ void Board320_240::redrawScreen() {
   // 6. SOC10% table (CEC-CED)
   if (displayScreen == SCREEN_SOC10) {
     drawSceneSoc10Table();
-  }
-  // 7. DEBUG SCREEN
-  if (displayScreen == SCREEN_DEBUG) {
-    drawSceneDebug();
   }
 
   if (!displayScreenSpeedHud) {
@@ -1196,7 +1157,7 @@ void Board320_240::redrawScreen() {
       spr.setTextDatum(TL_DATUM);
       sprintf(tmpStr1, "%d", liveData->params.gpsSat);
       spr.drawString(tmpStr1, 194, 2, 2);
-      
+
     }
 
     // BLE not connected
@@ -1209,7 +1170,7 @@ void Board320_240::redrawScreen() {
       spr.drawString("Press middle button to menu.", 0, 200, 2);
       spr.drawString(APP_VERSION, 0, 220, 2);
     }
-    
+
     spr.pushSprite(0, 0);
   }
 }
@@ -1281,11 +1242,6 @@ void Board320_240::mainLoop() {
           displayScreenSpeedHud = !displayScreenSpeedHud;
           redrawScreen();
         }
-        if (liveData->settings.debugScreen == 1 && displayScreen == SCREEN_DEBUG) {
-          debugCommandIndex = (debugCommandIndex >= liveData->commandQueueCount) ? liveData->commandQueueLoopFrom : debugCommandIndex + 1;
-          redrawScreen();
-        }
-
       }
     }
   }
@@ -1312,10 +1268,10 @@ void Board320_240::mainLoop() {
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
-    (liveData->params.odoKm != -1 && liveData->params.socPerc != -1)) {
+      (liveData->params.odoKm != -1 && liveData->params.socPerc != -1)) {
 
     //Serial.println(&now, "%y%m%d%H%M");
-      
+
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0) {
       sprintf(liveData->params.sdcardFilename, "/%llu.json", uint64_t(liveData->params.operationTimeSec / 60));
@@ -1350,7 +1306,7 @@ void Board320_240::mainLoop() {
 
   // Shutdown when car is off
   if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
-    shutdownDevice();  
+    shutdownDevice();
 }
 
 /**
@@ -1371,10 +1327,20 @@ bool Board320_240::sdcardMount() {
   }
 
   int8_t countdown = 3;
+  bool SdState;
+
   while (1) {
     Serial.print("Initializing SD card...");
+#ifdef BOARD_TTGO_T4
+    SPIClass * hspi = new SPIClass(HSPI);
+    spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
+    SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
+#endif // BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_COREM5STACK
+    SdState = SD.begin(pinSdcardCs);
+#endif // BOARD_M5STACK_CORE
 
-    if (SD.begin(pinSdcardCs)) {
+    if (SdState) {
 
       uint8_t cardType = SD.cardType();
       if (cardType == CARD_NONE) {
