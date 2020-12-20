@@ -81,12 +81,13 @@ void CommObd2Can::executeCommand(String cmd) {
     return;
   }
 
-  // pid
+  // Send command
   liveData->responseRowMerged = "";
   liveData->currentAtshRequest.replace(" ", "");
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", "");
   sendPID(liveData->hexToDec(atsh, 2, false), cmd);
+  
   //delay(delayTxRx);
 }
 
