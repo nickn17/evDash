@@ -51,7 +51,8 @@ void BoardInterface::shutdownDevice() {
   setBrightness(0);
   //WiFi.disconnect(true);
   //WiFi.mode(WIFI_OFF);
-  btStop();
+
+  commInterface->disconnectDevice();  
   //adc_power_off();
   //esp_wifi_stop();
   esp_bt_controller_disable();
@@ -209,13 +210,19 @@ void BoardInterface::loadSettings() {
 void BoardInterface::afterSetup() {
 
   // Init Comm iterface
+  Serial.print("Init communication device: ");
+  Serial.println(liveData->settings.commType);
+  
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {
     commInterface = new CommObd2Ble4();
   } else if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
-    commInterface = new CommObd2Ble4();
-    //commInterface = new CommObd2Can();
+    commInterface = new CommObd2Can();
+  } else if (liveData->settings.commType == COMM_TYPE_OBD2BT3) {
+    //commInterface = new CommObd2Bt3();
+    Serial.println("BT3 not implemented");
   }
-  //commInterface->initComm(liveData, NULL);
+
+  commInterface->initComm(liveData, this);
   commInterface->connectDevice();
 }
 
@@ -240,6 +247,15 @@ void BoardInterface::customConsoleCommand(String cmd) {
   if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
 }
+
+/**
+ * Parser response from obd2/can
+ */
+void BoardInterface::parseRowMerged() {
+  
+  carInterface->parseRowMerged();
+}
+
 
 /**
    Serialize parameters

@@ -66,6 +66,8 @@ void Board320_240::afterSetup() {
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2) {
+    Serial.print("GPS initialization on hw uart: "); 
+    Serial.println(liveData->settings.gpsHwSerialPort);
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
   }
@@ -73,10 +75,13 @@ void Board320_240::afterSetup() {
   // SD card
   if (liveData->settings.sdcardEnabled == 1) {
     if (sdcardMount() && liveData->settings.sdcardAutstartLog == 1) {
+      Serial.println("Toggle recording on SD card");
       sdcardToggleRecording();
     }
   }
 
+  // Init from parent class
+  Serial.println("BoardInterface::afterSetup");
   BoardInterface::afterSetup();
 }
 
@@ -1032,7 +1037,7 @@ void Board320_240::menuItemClick() {
       case 4031: liveData->settings.pressureUnit = 'b'; showParentMenu = true; break;
       case 4032: liveData->settings.pressureUnit = 'p'; showParentMenu = true; break;
       // Pair ble device
-      case 2: scanDevices = true; /*startBleScan(); */return;
+      case 2: scanDevices = true; commInterface->scanDevices(); return;
       // Reset settings
       case 8: resetSettings(); hideMenu(); return;
       // Save settings
@@ -1187,6 +1192,8 @@ void Board320_240::redrawScreen() {
 */
 void Board320_240::loadTestData() {
 
+  Serial.println("Loading test data");
+  
   testDataMode = true; // skip lights off message
   carInterface->loadTestData();
   redrawScreen();
@@ -1314,6 +1321,9 @@ void Board320_240::mainLoop() {
   // Shutdown when car is off
   if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
     shutdownDevice();
+
+  // Read data from BLE/CAN
+  commInterface->mainLoop();    
 }
 
 /**

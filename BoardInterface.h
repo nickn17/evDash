@@ -35,6 +35,7 @@ class BoardInterface {
     virtual void displayMessage(const char* row1, const char* row2)=0;
     virtual void setBrightness(byte lcdBrightnessPerc)=0;
     virtual void redrawScreen()=0;
+    void parseRowMerged();
     // Menu
     virtual void showMenu()=0;
     virtual void hideMenu()=0;

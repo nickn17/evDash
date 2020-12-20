@@ -242,6 +242,5 @@ class LiveData {
     float bar2pressure(float inBar);
 };
 
-
 //
 #endif // LIVEDATA_H
