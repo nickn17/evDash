@@ -844,6 +844,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case 105: prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : ""; break;
     case 106: prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : ""; break;
     case 107: prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : ""; break;
+    case 108: prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : ""; break;
     case 120: prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : ""; break;
     //
     case MENU_ADAPTER_BLE4: prefix = (liveData->settings.commType == COMM_TYPE_OBD2BLE4) ? ">" : ""; break;
@@ -1002,6 +1003,7 @@ void Board320_240::menuItemClick() {
       case 105: liveData->settings.carType = CAR_HYUNDAI_KONA_2020_39; showMenu(); return; break;
       case 106: liveData->settings.carType = CAR_RENAULT_ZOE; showMenu(); return; break;
       case 107: liveData->settings.carType = CAR_KIA_NIRO_PHEV; showMenu(); return; break;
+      case 108: liveData->settings.carType = CAR_BMW_I3_2014; showMenu(); return; break;
       case 120: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; showMenu(); return; break;
       // Comm type
       case MENU_ADAPTER_BLE4: liveData->settings.commType = COMM_TYPE_OBD2BLE4; showMenu(); return; break;
