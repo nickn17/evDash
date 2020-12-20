@@ -6,6 +6,7 @@ MENU_ITEM menuItemsSource[100] = {
 
   {0, 0, 0, "<- exit menu"},
   {MENU_VEHICLE_TYPE, 0, -1, "Vehicle type"},
+  {MENU_ADAPTER_TYPE, 0, -1, "Adapter type"},
   {2, 0, -1, "Select OBD2 BLE4 adapter"},
   {3, 0, -1, "Others"},
   {4, 0, -1, "Units"},
@@ -25,6 +26,11 @@ MENU_ITEM menuItemsSource[100] = {
   {108, 1, -1,  "BMW i3 2014 22kWh (DEV)"},
   {120, 1, -1,  "Debug OBD2 Kia"},
 
+  {MENU_ADAPTER_BLE4-1, MENU_ADAPTER_TYPE, 0, "<- parent menu"},
+  {MENU_ADAPTER_BLE4, MENU_ADAPTER_TYPE, -1, "Bluetooth 4 (BLE4)"},
+  {MENU_ADAPTER_CAN, MENU_ADAPTER_TYPE, -1,  "CAN bus (MCP2515-1/SO)"},
+  {MENU_ADAPTER_BT3, MENU_ADAPTER_TYPE, -1,  "Bluetooth 3 (dev)"},
+  
   {300, 3, 0, "<- parent menu"},
   // {MENU_WIFI, 3, -1, "[dev] WiFi network"},
   {MENU_SDCARD, 3, -1, "SD card"},
