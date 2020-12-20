@@ -1,9 +1,7 @@
 /*
    Project renamed from eNiroDashboard to evDash
 
-  !! working only with OBD BLE 4.0 adapters
-  !! Supported adapter is Vgate ICar Pro (must be BLE4.0 version)
-  !! Not working with standard BLUETOOTH 3 adapters
+  !! Supported BLE4 adapter is Vgate ICar Pro BLE4 version
 
   Serial console commands
 
@@ -221,21 +219,29 @@ void setup(void) {
   board->initBoard();
 
   // Car interface
-  if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 ||
-      liveData->settings.carType == CAR_KIA_ENIRO_2020_39 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) {
-    car = new CarKiaEniro();
-  } else if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
-    car = new CarHyundaiIoniq();
-  } else if (liveData->settings.carType == CAR_KIA_NIRO_PHEV) {
-    car = new CarKiaNiroPhev();
-  } else if(liveData->settings.carType == CAR_RENAULT_ZOE) {
-	car = new CarRenaultZoe();
-  } else if(liveData->settings.carType == CAR_BMW_I3_2014) {
-    car = new CarBmwI3();
-  } else {
-    // if (liveData->settings.carType == CAR_DEBUG_OBD2_KIA)
-    car = new CarKiaDebugObd2();
+  switch (liveData->settings.carType) {
+    case CAR_KIA_ENIRO_2020_64:
+    case CAR_HYUNDAI_KONA_2020_64:
+    case CAR_KIA_ENIRO_2020_39:
+    case CAR_HYUNDAI_KONA_2020_39:
+      car = new CarKiaEniro();
+      break;
+    case CAR_HYUNDAI_IONIQ_2018:
+      car = new CarHyundaiIoniq();
+      break;
+    case CAR_KIA_NIRO_PHEV:
+      car = new CarKiaNiroPhev();
+      break;
+    case CAR_RENAULT_ZOE:
+      car = new CarRenaultZoe();
+      break;
+    case CAR_BMW_I3_2014:
+      car = new CarBmwI3();
+      break;
+    default:
+      car = new CarKiaDebugObd2();
   }
+
   car->setLiveData(liveData);
   car->activateCommandQueue();
   board->attachCar(car);
