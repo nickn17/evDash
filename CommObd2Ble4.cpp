@@ -332,7 +332,7 @@ void CommObd2Ble4::mainLoop() {
       board->displayMessage(" > Processing init AT cmds", "");
 
       // Serve first command (ATZ)
-      doNextAtCommand();
+      doNextQueueCommand();
       
     } else {
       Serial.println("We have failed to connect to the server; there is nothing more we will do.");
