@@ -54,17 +54,18 @@ void CommObd2Can::mainLoop() {
 
   CommInterface::mainLoop();
 
-  // Receive
-  /*    byte b = receivePID(0);
-    if (b == 0x10) {
-    Serial.println("CONTINUE");
-    sendPID(0x01, 0x00);
+  // Read data
+  byte b = receivePID();
+  if (b & 0xf0 == 0x10) { // First frame, request another
+    sendFlowControlFrame();
     delay(10);
-    for (byte i = 0; i < 20; i++) {
-      receivePID(0);
+    for (byte i = 0; i < 50; i++) {
+      receivePID();
+      if (rxRemaining <= 0)
+        break;
       delay(10);
     }
-  */
+  }
 }
 
 /**
@@ -72,18 +73,20 @@ void CommObd2Can::mainLoop() {
 */
 void CommObd2Can::executeCommand(String cmd) {
 
+  Serial.print("executeCommand ");
+  Serial.println(cmd);
+
   if (cmd.startsWith("AT")) {
-   liveData->canSendNextAtCommand = true;
+    liveData->canSendNextAtCommand = true;
     return;
   }
 
   // pid
-  /*String atsh = liveData->currentAtshRequest;
-  atsh = atsh.replace(" ", "");
-  atsh = atsh.substring(4); // remove ATSH
-  String tmpCmd = cmd;
-  tmpCmd = tmpCmd.replace(" ", "");
-  sendPID(liveData->hexToDec(liveData->currentAtshRequest, 2, false), tmpCmd);*/
+  liveData->responseRowMerged = "";
+  liveData->currentAtshRequest.replace(" ", "");
+  String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
+  cmd.replace(" ", "");
+  sendPID(liveData->hexToDec(atsh, 2, false), cmd);
   //delay(delayTxRx);
 }
 
@@ -95,30 +98,32 @@ void CommObd2Can::sendPID(uint16_t pid, String cmd) {
   unsigned char tmp[8];
   String tmpStr;
 
-/*  tmp[0] = cmd.length() / 2;
+  tmp[0] = cmd.length() / 2;
   for (byte i = 1; i < 8; i++) {
     tmp[i] = 0x00;
   }
   for (byte i = 0; i < 7; i++) {
     tmpStr = cmd;
-    tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2);
+    tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
     if (tmpStr != "") {
-    tmp[i + 1] = liveData->hexToDec(tmpString, 1, false);
+      tmp[i + 1] = liveData->hexToDec(tmpStr, 1, false);
     }
   }
 
+  lastPid = pid;
   byte sndStat = CAN->sendMsgBuf(pid, 0, 8, tmp); // 11 bit
   //  byte sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
     Serial.print("SENT ");
-    for (byte i = 0; i < 8; i++) {
-      sprintf(msgString, " 0x%.2X", tmp[i]);
-      Serial.print(msgString);
-    }
-    Serial.println("");
   }   else {
-    Serial.print("Error Sending PID2 0x");
-  }*/
+    Serial.print("Error sending PID ");
+  }
+  Serial.print(pid);
+  for (byte i = 0; i < 8; i++) {
+    sprintf(msgString, " 0x%.2X", tmp[i]);
+    Serial.print(msgString);
+  }
+  Serial.println("");
 }
 
 /**
@@ -127,41 +132,41 @@ void CommObd2Can::sendPID(uint16_t pid, String cmd) {
 void CommObd2Can::sendFlowControlFrame() {
 
   unsigned char tmp[8];
-/*
+
   Serial.println("Flow control frame");
   tmp[0] = 0x30;
   for (byte i = 1; i < 8; i++) {
     tmp[i] = 0x00;
   }
 
-  byte sndStat = CAN->sendMsgBuf(pid, 0, 8, tmp); // 11 bit
-  //  byte sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
+  byte sndStat = CAN->sendMsgBuf(lastPid, 0, 8, tmp); // 11 bit
   if (sndStat == CAN_OK)  {
-    Serial.print("SENT ");
-    for (byte i = 0; i < 8; i++) {
-      sprintf(msgString, " 0x%.2X", tmp[i]);
-      Serial.print(msgString);
-    }
-    Serial.println("");
+    Serial.print("Flow control frame sent ");
   }   else {
-    Serial.print("Error Sending PID2 0x");
-  }*/
+    Serial.print("Error sending flow control frame ");
+  }
+  Serial.print(lastPid);
+  for (byte i = 0; i < 8; i++) {
+    sprintf(msgString, " 0x%.2X", tmp[i]);
+    Serial.print(msgString);
+  }
+  Serial.println("");
 }
 
 /**
- * Receive PID
- */
-/*byte CommObd2Can::receivePID() {
+   Receive PID
+*/
+byte CommObd2Can::receivePID() {
 
-  if (!digitalRead(CAN_INT))                        // If CAN0_INT pin is low, read receive buffer
+  if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
     Serial.print(" CAN READ ");
-    CAN->readMsgBuf(&rxId, &len, rxBuf);      // Read data: len = data length, buf = data byte(s)
+    CAN->readMsgBuf(&rxId, &rxLen, rxBuf);      // Read data: len = data length, buf = data byte(s)
 
     if ((rxId & 0x80000000) == 0x80000000)    // Determine if ID is standard (11 bits) or extended (29 bits)
-      sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), len);
+      sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), rxLen);
     else
-      sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
+      sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, rxLen);
 
     Serial.print(msgString);
 
@@ -169,16 +174,75 @@ void CommObd2Can::sendFlowControlFrame() {
       sprintf(msgString, " REMOTE REQUEST FRAME");
       Serial.print(msgString);
     } else {
-      for (byte i = 0; i < len; i++) {
+      for (byte i = 0; i < rxLen; i++) {
         sprintf(msgString, " 0x%.2X", rxBuf[i]);
         Serial.print(msgString);
       }
     }
 
     Serial.println();
+    processFrame();
   } else {
-    Serial.println(" CAN NOT READ ");
+    //Serial.println(" CAN NOT READ ");
+    return 0xff;
   }
-  
+
   return rxBuf[0];
-}*/
+}
+
+/**
+   Process can frame
+   https://en.wikipedia.org/wiki/ISO_15765-2
+*/
+bool CommObd2Can::processFrame() {
+
+  byte frameType = (rxBuf[0] & 0xf0) >> 4;
+  byte start = 1; // Single and Consecutive starts with pos 1
+  byte index = 0; // 0 - f
+
+  liveData->responseRow = "";
+  switch (frameType) {
+    // Single frame
+    case 0:
+      rxRemaining = (rxBuf[1] & 0x0f);
+      break;
+    // First frame
+    case 1:
+      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1];
+      liveData->responseRow = "0:";
+      start = 2;
+      break;
+    // Consecutive frames
+    case 2:
+      index = (rxBuf[0] & 0x0f);
+      sprintf(msgString, "%.1X:", index);
+      liveData->responseRow = msgString; // convert 0..15 to ascii 0..F);
+      break;
+  }
+
+  Serial.print("> frametype:");
+  Serial.print(frameType);
+  Serial.print(", r: ");
+  Serial.print(rxRemaining);
+  Serial.print("   ");
+
+  for (byte i = start; i < rxLen; i++) {
+    sprintf(msgString, "%.2X", rxBuf[i]);
+    liveData->responseRow += msgString;
+    rxRemaining--;
+  }
+
+  parseResponse();
+
+  // Send command to board module (obd2 simulation)
+  if (rxRemaining <= 0) {
+    Serial.print("merged:");
+    Serial.println(liveData->responseRowMerged);
+    board->parseRowMerged();
+    liveData->responseRowMerged = "";
+    liveData->canSendNextAtCommand = true;
+    return false;
+  }
+
+  return true;
+}

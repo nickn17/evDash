@@ -42,6 +42,11 @@ void CarKiaEniro::activateCommandQueue() {
 
     // Loop from (KIA ENIRO)
 
+    // VMCU
+    "ATSH7E2",
+    "2101",     // speed, ...
+    "2102",     // aux, ...
+
     // ABS / ESP + AHB
     "ATSH7D1",
     "22C101",     // brake, park/drive mode
@@ -50,11 +55,6 @@ void CarKiaEniro::activateCommandQueue() {
     "ATSH770",
     "22BC03",     // low beam
     "22BC06",     // brake light
-
-    // VMCU
-    "ATSH7E2",
-    "2101",     // speed, ...
-    "2102",     // aux, ...
 
     // BMS
     "ATSH7E4",
@@ -84,6 +84,7 @@ void CarKiaEniro::activateCommandQueue() {
   liveData->params.batModuleTempCount = 4;
   liveData->params.batteryTotalAvailableKWh = 64;
   // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
+  // Calculates based on nick.n17 dashboard data
   if (liveData->settings.carType == CAR_KIA_ENIRO_2020_39 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) {
     liveData->params.batteryTotalAvailableKWh = 39.2;
   }
@@ -451,4 +452,3 @@ void CarKiaEniro::loadTestData() {
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
 }
-

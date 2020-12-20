@@ -11,9 +11,11 @@ class CommObd2Can : public CommInterface {
     byte pinCanCs = 12;
     MCP_CAN* CAN;
     long unsigned int rxId;
-    unsigned char len = 0;
-    unsigned char rxBuf[512];
+    unsigned char rxLen = 0;
+    unsigned char rxBuf[32];
+    int16_t rxRemaining; // Remaining bytes to complete message
     char msgString[128];                        // Array to store serial string
+    uint16_t lastPid;
   public:
     void connectDevice() override;
     void disconnectDevice() override;
@@ -23,9 +25,6 @@ class CommObd2Can : public CommInterface {
     //
     void sendPID(uint16_t pid, String cmd);
     void sendFlowControlFrame();
-    /* void startBleScan();
-      bool connectToServer(BLEAddress pAddress);
-      bool doNextAtCommand();
-      bool parseRow();
-      bool parseRowMerged(); */
+    byte receivePID();
+    bool processFrame();
 };
