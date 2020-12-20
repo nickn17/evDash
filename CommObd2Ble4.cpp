@@ -354,5 +354,7 @@ void CommObd2Ble4::mainLoop() {
 void CommObd2Ble4::executeCommand(String cmd) {
 
   String tmpStr = cmd + "\r";
-  liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
+  if (liveData->bleConnected) {
+    liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
+  }
 }

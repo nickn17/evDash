@@ -25,9 +25,7 @@ void CommInterface::mainLoop() {
       board->customConsoleCommand(response);
       response = response + ch;
       Serial.println(response);
-      if (liveData->bleConnected) {
-        executeCommand(response);
-      }
+      executeCommand(response);
       response = "";
     } else {
       response = response + ch;

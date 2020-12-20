@@ -8,7 +8,8 @@ class CommObd2Can : public CommInterface {
 
   protected:
     byte pinCanInt = 15;
-    //MCP_CAN CAN(12); // Set CS to pin 10
+    byte pinCanCs = 12;
+    MCP_CAN* CAN;
     long unsigned int rxId;
     unsigned char len = 0;
     unsigned char rxBuf[512];
@@ -20,6 +21,8 @@ class CommObd2Can : public CommInterface {
     void mainLoop() override;
     void executeCommand(String cmd) override;
     //
+    void sendPID(uint16_t pid, String cmd);
+    void sendFlowControlFrame();
     /* void startBleScan();
       bool connectToServer(BLEAddress pAddress);
       bool doNextAtCommand();
