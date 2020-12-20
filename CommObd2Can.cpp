@@ -56,7 +56,7 @@ void CommObd2Can::mainLoop() {
 
   // Read data
   byte b = receivePID();
-  if (b & 0xf0 == 0x10) { // First frame, request another
+  if ((b & 0xf0) == 0x10) { // First frame, request another
     sendFlowControlFrame();
     delay(10);
     for (byte i = 0; i < 50; i++) {
@@ -76,16 +76,16 @@ void CommObd2Can::executeCommand(String cmd) {
   Serial.print("executeCommand ");
   Serial.println(cmd);
 
-  if (cmd.startsWith("AT")) {
+  if (cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     liveData->canSendNextAtCommand = true;
     return;
   }
 
   // Send command
   liveData->responseRowMerged = "";
-  liveData->currentAtshRequest.replace(" ", "");
+  liveData->currentAtshRequest.replace(" ", ""); // remove possible spaces
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
-  cmd.replace(" ", "");
+  cmd.replace(" ", ""); // remove possible spaces
   sendPID(liveData->hexToDec(atsh, 2, false), cmd);
   
   //delay(delayTxRx);
@@ -96,23 +96,21 @@ void CommObd2Can::executeCommand(String cmd) {
 */
 void CommObd2Can::sendPID(uint16_t pid, String cmd) {
 
-  unsigned char tmp[8];
+  byte txBuf[8] = { 0 }; // init with zeroes
   String tmpStr;
 
-  tmp[0] = cmd.length() / 2;
-  for (byte i = 1; i < 8; i++) {
-    tmp[i] = 0x00;
-  }
+  txBuf[0] = cmd.length() / 2;
+
   for (byte i = 0; i < 7; i++) {
     tmpStr = cmd;
     tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
     if (tmpStr != "") {
-      tmp[i + 1] = liveData->hexToDec(tmpStr, 1, false);
+      txBuf[i + 1] = liveData->hexToDec(tmpStr, 1, false);
     }
   }
 
   lastPid = pid;
-  byte sndStat = CAN->sendMsgBuf(pid, 0, 8, tmp); // 11 bit
+  const byte sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
   //  byte sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
     Serial.print("SENT ");
@@ -121,7 +119,7 @@ void CommObd2Can::sendPID(uint16_t pid, String cmd) {
   }
   Serial.print(pid);
   for (byte i = 0; i < 8; i++) {
-    sprintf(msgString, " 0x%.2X", tmp[i]);
+    sprintf(msgString, " 0x%.2X", txBuf[i]);
     Serial.print(msgString);
   }
   Serial.println("");
@@ -132,15 +130,10 @@ void CommObd2Can::sendPID(uint16_t pid, String cmd) {
 */
 void CommObd2Can::sendFlowControlFrame() {
 
-  unsigned char tmp[8];
-
+  byte txBuf[8] = { 0x30, 0, 0, 0, 0, 0, 0, 0 };
   Serial.println("Flow control frame");
-  tmp[0] = 0x30;
-  for (byte i = 1; i < 8; i++) {
-    tmp[i] = 0x00;
-  }
-
-  byte sndStat = CAN->sendMsgBuf(lastPid, 0, 8, tmp); // 11 bit
+  
+  const byte sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
     Serial.print("Flow control frame sent ");
   }   else {
@@ -148,7 +141,8 @@ void CommObd2Can::sendFlowControlFrame() {
   }
   Serial.print(lastPid);
   for (byte i = 0; i < 8; i++) {
-    sprintf(msgString, " 0x%.2X", tmp[i]);
+  //for (auto txByte : txBuf) {
+    sprintf(msgString, " 0x%.2X", txBuf[i]);
     Serial.print(msgString);
   }
   Serial.println("");
