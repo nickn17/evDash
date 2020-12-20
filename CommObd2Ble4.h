@@ -18,5 +18,5 @@ class CommObd2Ble4 : public CommInterface {
     bool connectToServer(BLEAddress pAddress);
     bool doNextAtCommand();
     bool parseRow();
-    bool parseRowMerged();
+    //
 };

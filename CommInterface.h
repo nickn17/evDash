@@ -11,7 +11,7 @@ class CommInterface {
     LiveData* liveData;   
     BoardInterface* board;   
     char ch;
-    String line;
+    String response;
   public:
     void initComm(LiveData* pLiveData, BoardInterface* pBoard);
     virtual void connectDevice() = 0;

@@ -21,7 +21,7 @@ class MyClientCallback : public BLEClientCallbacks {
     void onDisconnect(BLEClient* pclient) {
       //connected = false;
       Serial.println("onDisconnect");
-      
+
       boardObj->displayMessage("BLE disconnected", "");
     }
 };
@@ -54,15 +54,15 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
         }
         liveDataObj->scanningDeviceIndex++;
       }
-      
-//        if (advertisedDevice.getServiceDataUUID().toString() != "<NULL>") {
-//          Serial.print("ServiceDataUUID: ");
-//          Serial.println(advertisedDevice.getServiceDataUUID().toString().c_str());
-//        if (advertisedDevice.getServiceUUID().toString() != "<NULL>") {
-//          Serial.print("ServiceUUID: ");
-//          Serial.println(advertisedDevice.getServiceUUID().toString().c_str());
-//        }
-//        }
+
+      //        if (advertisedDevice.getServiceDataUUID().toString() != "<NULL>") {
+      //          Serial.print("ServiceDataUUID: ");
+      //          Serial.println(advertisedDevice.getServiceDataUUID().toString().c_str());
+      //        if (advertisedDevice.getServiceUUID().toString() != "<NULL>") {
+      //          Serial.print("ServiceUUID: ");
+      //          Serial.println(advertisedDevice.getServiceUUID().toString().c_str());
+      //        }
+      //        }
 
       if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)) &&
           (strcmp(advertisedDevice.getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0)) {
@@ -107,7 +107,7 @@ class MySecurity : public BLESecurityCallbacks {
         liveDataObj->bleConnect = false;
       }
     }
-    
+
 };
 
 /**
@@ -117,7 +117,7 @@ static void notifyCallback (BLERemoteCharacteristic * pBLERemoteCharacteristic, 
 
   char ch;
 
-  // Parse multi line response to single lines
+  // Parse multiframes to single response
   liveDataObj->responseRow = "";
   for (int i = 0; i <= length; i++) {
     ch = pData[i];
@@ -129,7 +129,9 @@ static void notifyCallback (BLERemoteCharacteristic * pBLERemoteCharacteristic, 
       liveDataObj->responseRow += ch;
       if (liveDataObj->responseRow == ">") {
         if (liveDataObj->responseRowMerged != "") {
-          commObj->parseRowMerged();
+          Serial.print("merged:");
+          Serial.println(liveDataObj->responseRowMerged);
+          boardObj->parseRowMerged();
         }
         liveDataObj->responseRowMerged = "";
         liveDataObj->canSendNextAtCommand = true;
@@ -146,8 +148,7 @@ void CommObd2Ble4::connectDevice() {
   commObj = this;
   liveDataObj = liveData;
   boardObj = board;
-  line = "";
- 
+
   Serial.println("BLE4 connectDevice");
 
   // Start BLE connection
@@ -183,7 +184,7 @@ void CommObd2Ble4::disconnectDevice() {
    Scan device list, from menu
 */
 void CommObd2Ble4::scanDevices() {
-  
+
   Serial.println("COMM scanDevices");
   startBleScan();
 }
@@ -313,10 +314,10 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 }
 
 /**
- * Main loop
- */
+   Main loop
+*/
 void CommObd2Ble4::mainLoop() {
-  
+
   // Connect BLE device
   if (liveData->bleConnect == true && liveData->foundMyBleDevice != NULL) {
     liveData->pServerAddress = new BLEAddress(liveData->settings.obdMacAddress);
@@ -341,15 +342,15 @@ void CommObd2Ble4::mainLoop() {
   if (Serial.available()) {
     ch = Serial.read();
     if (ch == '\r' || ch == '\n') {
-      board->customConsoleCommand(line);
-      line = line + ch;
-      Serial.println(line);
+      board->customConsoleCommand(response);
+      response = response + ch;
+      Serial.println(response);
       if (liveData->bleConnected) {
-        liveData->pRemoteCharacteristicWrite->writeValue(line.c_str(), line.length());
+        liveData->pRemoteCharacteristicWrite->writeValue(response.c_str(), response.length());
       }
-      line = "";
+      response = "";
     } else {
-      line = line + ch;
+      response = response + ch;
     }
   }
 
@@ -394,34 +395,19 @@ bool CommObd2Ble4::doNextAtCommand() {
 
   return true;
 }
-    
+
 /**
-  Parse result from OBD, create single line liveData->responseRowMerged
+  Parse result from OBD, merge frames to sigle response
 */
 bool CommObd2Ble4::parseRow() {
 
-  // Simple 1 line responses
-  Serial.print("");
+  // 1 frame data
   Serial.println(liveData->responseRow);
 
   // Merge 0:xxxx 1:yyyy 2:zzzz to single xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
     liveData->responseRowMerged += liveData->responseRow.substring(2);
   }
-
-  return true;
-}
-
-/**
-  Parse merged row (after merge completed)
-*/
-bool CommObd2Ble4::parseRowMerged() {
-
-  Serial.print("merged:");
-  Serial.println(liveData->responseRowMerged);
-
-  // Parse by selected car interface
-  board->parseRowMerged();
 
   return true;
 }

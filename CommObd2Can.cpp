@@ -7,8 +7,6 @@
 */
 void CommObd2Can::connectDevice() {
 
-  line = "";
- 
   Serial.println("CAN connectDevice");
 }
 
