@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config.h";
+#include "config.h"
 
 MENU_ITEM menuItemsSource[100] = {
 
