@@ -18,6 +18,7 @@
 #define CAR_HYUNDAI_KONA_2020_39  4
 #define CAR_RENAULT_ZOE           5
 #define CAR_KIA_NIRO_PHEV         6
+#define CAR_BMW_I3_2014           7
 #define CAR_DEBUG_OBD2_KIA        999
 
 // 

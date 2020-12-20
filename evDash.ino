@@ -59,6 +59,7 @@
 #include "CarRenaultZoe.h"
 #include "CarKiaNiroPhev.h"
 #include "CarKiaDebugObd2.h"
+#include "CarBmwI3.h"
 
 #ifdef SIM800L_ENABLED
 #include <ArduinoJson.h>
@@ -551,8 +552,10 @@ void setup(void) {
     car = new CarHyundaiIoniq();
   } else if (liveData->settings.carType == CAR_KIA_NIRO_PHEV) {
     car = new CarKiaNiroPhev();
-  } else if (liveData->settings.carType == CAR_RENAULT_ZOE) {
-    car = new CarRenaultZoe();
+  } else if(liveData->settings.carType == CAR_RENAULT_ZOE) {
+	car = new CarRenaultZoe();
+  } else if(liveData->settings.carType == CAR_BMW_I3_2014) {
+    car = new CarBmwI3();
   } else {
     // if (liveData->settings.carType == CAR_DEBUG_OBD2_KIA)
     car = new CarKiaDebugObd2();
