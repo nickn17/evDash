@@ -18,6 +18,7 @@ class CommObd2Can : public CommInterface {
     void disconnectDevice() override;
     void scanDevices() override;
     void mainLoop() override;
+    void executeCommand(String cmd) override;
     //
     /* void startBleScan();
       bool connectToServer(BLEAddress pAddress);

@@ -333,81 +333,26 @@ void CommObd2Ble4::mainLoop() {
 
       // Serve first command (ATZ)
       doNextAtCommand();
+      
     } else {
       Serial.println("We have failed to connect to the server; there is nothing more we will do.");
     }
   }
 
-  // Send command from TTY to OBD2
-  if (Serial.available()) {
-    ch = Serial.read();
-    if (ch == '\r' || ch == '\n') {
-      board->customConsoleCommand(response);
-      response = response + ch;
-      Serial.println(response);
-      if (liveData->bleConnected) {
-        liveData->pRemoteCharacteristicWrite->writeValue(response.c_str(), response.length());
-      }
-      response = "";
-    } else {
-      response = response + ch;
-    }
-  }
-
-  // Can send next command from queue to OBD
-  if (liveData->canSendNextAtCommand) {
-    liveData->canSendNextAtCommand = false;
-    doNextAtCommand();
-  }
+  // Parent declaration
+  CommInterface::mainLoop();
 
   if (board->scanDevices) {
     board->scanDevices = false;
     startBleScan();
   }
-
 }
 
 /**
-  Do next AT command from queue
-*/
-bool CommObd2Ble4::doNextAtCommand() {
+ * Send command
+ */
+void CommObd2Ble4::executeCommand(String cmd) {
 
-  // Restart loop with AT commands
-  if (liveData->commandQueueIndex >= liveData->commandQueueCount) {
-    liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
-    board->redrawScreen();
-    // log every queue loop (temp)
-    liveData->params.sdcardCanNotify = true;
-  }
-
-  // Send AT command to obd
-  liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex];
-  if (liveData->commandRequest.startsWith("ATSH")) {
-    liveData->currentAtshRequest = liveData->commandRequest;
-  }
-
-  Serial.print(">>> ");
-  Serial.println(liveData->commandRequest);
-  String tmpStr = liveData->commandRequest + "\r";
-  liveData->responseRowMerged = "";
+  String tmpStr = cmd + "\r";
   liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
-  liveData->commandQueueIndex++;
-
-  return true;
-}
-
-/**
-  Parse result from OBD, merge frames to sigle response
-*/
-bool CommObd2Ble4::parseRow() {
-
-  // 1 frame data
-  Serial.println(liveData->responseRow);
-
-  // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
-  if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
-    liveData->responseRowMerged += liveData->responseRow.substring(2);
-  }
-
-  return true;
 }

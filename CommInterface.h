@@ -17,5 +17,9 @@ class CommInterface {
     virtual void connectDevice() = 0;
     virtual void disconnectDevice() = 0;
     virtual void scanDevices() = 0;
-    virtual void mainLoop() = 0;
+    virtual void mainLoop();
+    virtual void executeCommand(String cmd) = 0;
+    // 
+    bool doNextQueueCommand();    
+    bool parseResponse();
 };

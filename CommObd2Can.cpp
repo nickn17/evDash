@@ -46,5 +46,27 @@ void CommObd2Can::scanDevices() {
    Main loop
 */
 void CommObd2Can::mainLoop() {
+  
+  CommInterface::mainLoop();
+}
 
+/**
+ * Send command to CAN bus
+ */
+void executeCommand(String cmd) {
+
+  /**
+   *   Serial.println("BMS 220101");
+  sendPID(0x00, 0x00);
+  delay(delayTxRx);
+  byte b = receivePID(0);
+  if (b == 0x10) {
+    Serial.println("CONTINUE");
+    sendPID(0x01, 0x00);
+    delay(10);
+    for (byte i = 0; i < 20; i++) {
+      receivePID(0);
+      delay(10);
+    }
+  }*/
 }
