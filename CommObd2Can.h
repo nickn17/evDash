@@ -4,15 +4,17 @@
 #include "CommInterface.h"
 #include <mcp_can.h>
 
+#include <memory>
+
 class CommObd2Can : public CommInterface {
 
   protected:
-    byte pinCanInt = 15;
-    byte pinCanCs = 12;
-    MCP_CAN* CAN;
+    const uint8_t pinCanInt = 15;
+    const uint8_t pinCanCs = 12;
+	std::unique_ptr <MCP_CAN> CAN;
     long unsigned int rxId;
     unsigned char rxLen = 0;
-    unsigned char rxBuf[32];
+    uint8_t rxBuf[32];
     int16_t rxRemaining; // Remaining bytes to complete message
     char msgString[128];                        // Array to store serial string
     uint16_t lastPid;
@@ -23,8 +25,8 @@ class CommObd2Can : public CommInterface {
     void mainLoop() override;
     void executeCommand(String cmd) override;
     //
-    void sendPID(uint16_t pid, String cmd);
+    void sendPID(const uint16_t pid, const String& cmd);
     void sendFlowControlFrame();
-    byte receivePID();
+    uint8_t receivePID();
     bool processFrame();
 };

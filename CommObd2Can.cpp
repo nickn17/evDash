@@ -10,7 +10,13 @@ void CommObd2Can::connectDevice() {
 
   Serial.println("CAN connectDevice");
 
-  CAN = new MCP_CAN(pinCanCs);
+//CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
+  CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  if (CAN == nullptr) {
+    Serial.println("Error: Not enough memory to instantiate CAN class");
+    Serial.println("init_can() failed");
+    return;
+  }
 
   // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
   if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK) {
@@ -22,7 +28,12 @@ void CommObd2Can::connectDevice() {
     return;
   }
 
-  CAN->setMode(MCP_NORMAL);                     // Set operation mode to normal so the MCP2515 sends acks to received data.
+  if (MCP2515_OK != CAN->setMode(MCP_NORMAL)) {  // Set operation mode to normal so the MCP2515 sends acks to received data.
+	Serial.println("Error: CAN->setMode(MCP_NORMAL) failed");
+    board->displayMessage(" > CAN init failed", "");
+    return;
+  }
+	
   pinMode(pinCanInt, INPUT);                    // Configuring pin for /INT input
 
   // Serve first command (ATZ)
@@ -55,11 +66,11 @@ void CommObd2Can::mainLoop() {
   CommInterface::mainLoop();
 
   // Read data
-  byte b = receivePID();
-  if ((b & 0xf0) == 0x10) { // First frame, request another
+  const uint8_t firstByte = receivePID();
+  if ((firstByte & 0xf0) == 0x10) { // First frame, request another
     sendFlowControlFrame();
     delay(10);
-    for (byte i = 0; i < 50; i++) {
+    for (uint8_t i = 0; i < 50; i++) {
       receivePID();
       if (rxRemaining <= 0)
         break;
@@ -93,15 +104,16 @@ void CommObd2Can::executeCommand(String cmd) {
 
 /**
    Send PID
+   remark: parameter cmd as const reference to aviod copying
 */
-void CommObd2Can::sendPID(uint16_t pid, String cmd) {
-
-  byte txBuf[8] = { 0 }; // init with zeroes
+void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
+  
+  uint8_t txBuf[8] = { 0 }; // init with zeroes
   String tmpStr;
 
   txBuf[0] = cmd.length() / 2;
 
-  for (byte i = 0; i < 7; i++) {
+  for (uint8_t i = 0; i < 7; i++) {
     tmpStr = cmd;
     tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
     if (tmpStr != "") {
@@ -110,15 +122,15 @@ void CommObd2Can::sendPID(uint16_t pid, String cmd) {
   }
 
   lastPid = pid;
-  const byte sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
-  //  byte sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
+  const uint8_t sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
+  //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
     Serial.print("SENT ");
   }   else {
     Serial.print("Error sending PID ");
   }
   Serial.print(pid);
-  for (byte i = 0; i < 8; i++) {
+  for (uint8_t i = 0; i < 8; i++) {
     sprintf(msgString, " 0x%.2X", txBuf[i]);
     Serial.print(msgString);
   }
@@ -130,19 +142,18 @@ void CommObd2Can::sendPID(uint16_t pid, String cmd) {
 */
 void CommObd2Can::sendFlowControlFrame() {
 
-  byte txBuf[8] = { 0x30, 0, 0, 0, 0, 0, 0, 0 };
+  uint8_t txBuf[8] = { 0x30, 0, 0, 0, 0, 0, 0, 0 };
   Serial.println("Flow control frame");
   
-  const byte sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
+  const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
     Serial.print("Flow control frame sent ");
   }   else {
     Serial.print("Error sending flow control frame ");
   }
   Serial.print(lastPid);
-  for (byte i = 0; i < 8; i++) {
-  //for (auto txByte : txBuf) {
-    sprintf(msgString, " 0x%.2X", txBuf[i]);
+  for (auto txByte : txBuf) {
+    sprintf(msgString, " 0x%.2X", txByte);
     Serial.print(msgString);
   }
   Serial.println("");
@@ -151,7 +162,7 @@ void CommObd2Can::sendFlowControlFrame() {
 /**
    Receive PID
 */
-byte CommObd2Can::receivePID() {
+uint8_t CommObd2Can::receivePID() {
 
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
@@ -169,7 +180,7 @@ byte CommObd2Can::receivePID() {
       sprintf(msgString, " REMOTE REQUEST FRAME");
       Serial.print(msgString);
     } else {
-      for (byte i = 0; i < rxLen; i++) {
+      for (uint8_t i = 0; i < rxLen; i++) {
         sprintf(msgString, " 0x%.2X", rxBuf[i]);
         Serial.print(msgString);
       }
@@ -191,9 +202,9 @@ byte CommObd2Can::receivePID() {
 */
 bool CommObd2Can::processFrame() {
 
-  byte frameType = (rxBuf[0] & 0xf0) >> 4;
-  byte start = 1; // Single and Consecutive starts with pos 1
-  byte index = 0; // 0 - f
+  const uint8_t frameType = (rxBuf[0] & 0xf0) >> 4;
+  uint8_t start = 1; // Single and Consecutive starts with pos 1
+  uint8_t index = 0; // 0 - f
 
   liveData->responseRow = "";
   switch (frameType) {
@@ -221,7 +232,7 @@ bool CommObd2Can::processFrame() {
   Serial.print(rxRemaining);
   Serial.print("   ");
 
-  for (byte i = start; i < rxLen; i++) {
+  for (uint8_t i = start; i < rxLen; i++) {
     sprintf(msgString, "%.2X", rxBuf[i]);
     liveData->responseRow += msgString;
     rxRemaining--;
