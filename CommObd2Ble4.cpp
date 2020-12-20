@@ -123,7 +123,7 @@ static void notifyCallback (BLERemoteCharacteristic * pBLERemoteCharacteristic, 
     ch = pData[i];
     if (ch == '\r'  || ch == '\n' || ch == '\0') {
       if (liveDataObj->responseRow != "")
-        commObj->parseRow();
+        commObj->parseResponse();
       liveDataObj->responseRow = "";
     } else {
       liveDataObj->responseRow += ch;
