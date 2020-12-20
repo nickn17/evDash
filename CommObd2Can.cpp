@@ -76,7 +76,7 @@ void CommObd2Can::executeCommand(String cmd) {
   Serial.print("executeCommand ");
   Serial.println(cmd);
 
-  if (cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
+  if (cmd == "" || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     liveData->canSendNextAtCommand = true;
     return;
   }
