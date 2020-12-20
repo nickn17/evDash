@@ -836,6 +836,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case 107: prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : ""; break;
     case 120: prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : ""; break;
     //
+    case MENU_ADAPTER_BLE4: prefix = (liveData->settings.commType == COMM_TYPE_OBD2BLE4) ? ">" : ""; break;
+    case MENU_ADAPTER_CAN:  prefix = (liveData->settings.commType == COMM_TYPE_OBD2CAN) ? ">" : ""; break;
+    case MENU_ADAPTER_BT3:  prefix = (liveData->settings.commType == COMM_TYPE_OBD2BT3) ? ">" : ""; break;
     /*case MENU_WIFI:
       suffix = "n/a";
       switch (WiFi.status()) {
@@ -990,6 +993,10 @@ void Board320_240::menuItemClick() {
       case 106: liveData->settings.carType = CAR_RENAULT_ZOE; showMenu(); return; break;
       case 107: liveData->settings.carType = CAR_KIA_NIRO_PHEV; showMenu(); return; break;
       case 120: liveData->settings.carType = CAR_DEBUG_OBD2_KIA; showMenu(); return; break;
+      // Comm type
+      case MENU_ADAPTER_BLE4: liveData->settings.commType = COMM_TYPE_OBD2BLE4; showMenu(); return; break;
+      case MENU_ADAPTER_CAN: liveData->settings.commType = COMM_TYPE_OBD2CAN; showMenu(); return; break;
+      case MENU_ADAPTER_BT3: liveData->settings.commType = COMM_TYPE_OBD2BT3; showMenu(); return; break;
       // Screen orientation
       case MENU_SCREEN_ROTATION: liveData->settings.displayRotation = (liveData->settings.displayRotation == 1) ? 3 : 1; tft.setRotation(liveData->settings.displayRotation); showMenu(); return; break;
       // Default screen
@@ -1327,16 +1334,17 @@ bool Board320_240::sdcardMount() {
   }
 
   int8_t countdown = 3;
-  bool SdState;
+  bool SdState = false;
 
   while (1) {
     Serial.print("Initializing SD card...");
+
 #ifdef BOARD_TTGO_T4
     SPIClass * hspi = new SPIClass(HSPI);
     spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
     SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
 #endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_COREM5STACK
+#ifdef BOARD_M5STACK_CORE
     SdState = SD.begin(pinSdcardCs);
 #endif // BOARD_M5STACK_CORE
 

@@ -67,8 +67,13 @@ typedef struct {
 } MENU_ITEM;
 
 #define MENU_VEHICLE_TYPE 1
+#define MENU_ADAPTER_TYPE 5
 #define MENU_SAVE_SETTINGS 9
 #define MENU_APP_VERSION 10
+//
+#define MENU_ADAPTER_BLE4 501
+#define MENU_ADAPTER_CAN 502
+#define MENU_ADAPTER_BT3 503
 //
 #define MENU_WIFI 301
 #define MENU_GPRS 302

@@ -23,6 +23,7 @@
 // 
 #define COMM_TYPE_OBD2BLE4  0
 #define COMM_TYPE_OBD2CAN   1
+#define COMM_TYPE_OBD2BT3   2
 
 // SCREENS
 #define SCREEN_BLANK  0
@@ -164,7 +165,7 @@ typedef struct {
   byte predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
-  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN 
+  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - BT3
   // Wifi
   byte wifiEnabled; // 0/1 
   char wifiSsid[32];
