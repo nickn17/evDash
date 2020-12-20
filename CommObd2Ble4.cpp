@@ -1,6 +1,3 @@
-#ifndef COMMOBD2BLE4_CPP
-#define COMMOBD2BLE4_CPP
-
 #include <BLEDevice.h>
 #include "CommObd2Ble4.h"
 #include "BoardInterface.h"
@@ -428,5 +425,3 @@ bool CommObd2Ble4::parseRowMerged() {
 
   return true;
 }
-
-#endif // COMMOBD2BLE4_CPP

@@ -1,5 +1,4 @@
-#ifndef CARRENAULTZOE_H
-#define CARRENAULTZOE_H
+#pragma once
 
 #include "CarInterface.h"
 
@@ -12,5 +11,3 @@ class CarRenaultZoe : public CarInterface {
     void parseRowMerged() override;
     void loadTestData() override;  
 };
-
-#endif // CARRENAULTZOE_H

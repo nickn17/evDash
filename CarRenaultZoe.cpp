@@ -1,6 +1,3 @@
-#ifndef CARRENAULTZOE_CPP
-#define CARRENAULTZOE_CPP
-
 #include <Arduino.h>
 #include <stdint.h>
 #include <WString.h>
@@ -519,5 +516,3 @@ void CarRenaultZoe::loadTestData() {
     liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
   */
 }
-
-#endif // CARRENAULTZOE_CPP

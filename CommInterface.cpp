@@ -1,6 +1,3 @@
-#ifndef COMMINTERFACE_CPP
-#define COMMINTERFACE_CPP
-
 #include "CommInterface.h"
 #include "BoardInterface.h"
 //#include "CarInterface.h"
@@ -10,5 +7,3 @@ void CommInterface::initComm(LiveData* pLiveData, BoardInterface* pBoard) {
     liveData = pLiveData;   
     board = pBoard;   
 }
-    
-#endif // COMMINTERFACE_CPP

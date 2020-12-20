@@ -1,5 +1,3 @@
-#pragma once
-
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include "BoardTtgoT4v13.h"

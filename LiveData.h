@@ -1,6 +1,4 @@
-
-#ifndef LIVEDATA_H
-#define LIVEDATA_H
+#pragma once
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -242,5 +240,3 @@ class LiveData {
     float bar2pressure(float inBar);
 };
 
-//
-#endif // LIVEDATA_H

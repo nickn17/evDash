@@ -1,5 +1,4 @@
-#ifndef COMMOBD2CAN_H
-#define COMMOBD2CAN_H
+#pragma once
 
 #include "LiveData.h"
 #include "CommInterface.h"
@@ -20,4 +19,3 @@ class CommObd2Can : public CommInterface {
     bool parseRowMerged(); */
 };
 
-#endif // COMMOBD2CAN_H

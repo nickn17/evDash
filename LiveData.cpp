@@ -1,7 +1,3 @@
-
-#ifndef LIVEDATA_CPP
-#define LIVEDATA_CPP
-
 #include "LiveData.h"
 #include "menu.h"
 
@@ -186,8 +182,3 @@ float LiveData::bar2pressure(float inBar) {
   return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
 }
 
-
-
-
-//
-#endif // LIVEDATA_CPP

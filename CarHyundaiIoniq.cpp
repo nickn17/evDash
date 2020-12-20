@@ -1,5 +1,3 @@
-#pragma once
-
 #include "CarHyundaiIoniq.h"
 
 #define commandQueueCountHyundaiIoniq 25

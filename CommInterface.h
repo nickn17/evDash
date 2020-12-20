@@ -1,5 +1,4 @@
-#ifndef COMMINTERFACE_H
-#define COMMINTERFACE_H
+#pragma once
 
 #include "LiveData.h"
 //#include "BoardInterface.h"
@@ -20,5 +19,3 @@ class CommInterface {
     virtual void scanDevices() = 0;
     virtual void mainLoop() = 0;
 };
-
-#endif // COMMINTERFACE_H

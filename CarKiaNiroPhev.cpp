@@ -1,6 +1,3 @@
-#ifndef CARKIANIROPHEV_CPP
-#define CARKIANIROPHEV_CPP
-
 #include "CarKiaNiroPhev.h"
 
 #define commandQueueCountKiaNiroPhev 25
@@ -376,5 +373,3 @@ void CarKiaNiroPhev::loadTestData() {
   */
 
 }
-
-#endif //CARKIANIROPHEV_CPP

@@ -1,6 +1,3 @@
-#ifndef CARKIAENIRO_CPP
-#define CARKIAENIRO_CPP
-
 /* 
  *    eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
   >= 35°C BMS allows max 180A
@@ -455,4 +452,3 @@ void CarKiaEniro::loadTestData() {
 
 }
 
-#endif // CARKIAENIRO_CPP

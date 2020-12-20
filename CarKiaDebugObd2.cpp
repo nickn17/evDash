@@ -1,6 +1,3 @@
-#ifndef CARKIADEBUGOBD2_CPP
-#define CARKIADEBUGOBD2_CPP
-
 #include "CarKiaDebugObd2.h"
 
 #define commandQueueCountDebugObd2Kia 256
@@ -516,5 +513,3 @@ void CarKiaDebugObd2::loadTestData() {
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
 }
-
-#endif // CARKIADEBUGOBD2_CPP

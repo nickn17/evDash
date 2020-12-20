@@ -1,5 +1,4 @@
-#ifndef COMMOBD2BLE4_H
-#define COMMOBD2BLE4_H
+#pragma once
 
 #include <BLEDevice.h>
 #include "LiveData.h"
@@ -21,5 +20,3 @@ class CommObd2Ble4 : public CommInterface {
     bool parseRow();
     bool parseRowMerged();
 };
-
-#endif // COMMOBD2BLE4_H

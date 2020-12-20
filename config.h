@@ -1,5 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <BLEDevice.h>
 
@@ -102,4 +101,3 @@ typedef struct {
 #define MENU_SDCARD_REC 3044
 // 
 
-#endif // CONFIG_H

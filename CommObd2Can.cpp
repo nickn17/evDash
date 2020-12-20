@@ -1,6 +1,3 @@
-#ifndef COMMINTERFACE_CPP
-#define COMMINTERFACE_CPP
-
 #include "CommObd2Can.h"
 #include "BoardInterface.h"
 #include "LiveData.h"
@@ -37,5 +34,3 @@ void CommObd2Can::scanDevices() {
 void CommObd2Can::mainLoop() {
   
 }
-
-#endif // COMMINTERFACE_CPP
