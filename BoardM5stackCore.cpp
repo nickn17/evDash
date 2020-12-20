@@ -1,5 +1,4 @@
-#ifndef BOARDM5STACKCORE_CPP
-#define BOARDM5STACKCORE_CPP
+#pragma once
 
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -34,5 +33,3 @@ void BoardM5stackCore::mainLoop() {
 
   Board320_240::mainLoop();
 }
-
-#endif // BOARDM5STACKCORE_CPP

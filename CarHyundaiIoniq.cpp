@@ -1,5 +1,4 @@
-#ifndef CARHYUNDAIIONIQ_CPP
-#define CARHYUNDAIIONIQ_CPP
+#pragma once
 
 #include "CarHyundaiIoniq.h"
 
@@ -377,5 +376,3 @@ void CarHyundaiIoniq::loadTestData() {
   */
 
 }
-
-#endif //CARHYUNDAIIONIQ_CPP

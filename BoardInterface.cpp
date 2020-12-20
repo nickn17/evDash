@@ -1,5 +1,4 @@
-#ifndef BOARDINTERFACE_CPP
-#define BOARDINTERFACE_CPP
+#pragma once
 
 #define ARDUINOJSON_USE_LONG_LONG 1
 
@@ -329,5 +328,3 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);
 }
-
-#endif // BOARDINTERFACE_CPP

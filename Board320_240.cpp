@@ -1,5 +1,4 @@
-#ifndef BOARD320_240_CPP
-#define BOARD320_240_CPP
+#pragma once
 
 #include <SD.h>
 #include <FS.h>
@@ -29,7 +28,6 @@ void Board320_240::initBoard() {
   struct tm now;
   getLocalTime(&now, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
-
 
   // Init display
   Serial.println("Init tft display");
@@ -1456,5 +1454,3 @@ void Board320_240::syncGPS() {
     settimeofday(&now, NULL);
   }
 }
-
-#endif // BOARD320_240_CPP

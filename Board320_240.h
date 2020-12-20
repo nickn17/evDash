@@ -1,5 +1,4 @@
-#ifndef BOARD320_240_H
-#define BOARD320_240_H
+#pragma once
 
 // TFT COMMON
 #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
@@ -77,5 +76,3 @@ class Board320_240 : public BoardInterface {
     void loadTestData();
     //
 };
-
-#endif // BOARD320_240_H

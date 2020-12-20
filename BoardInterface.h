@@ -1,5 +1,4 @@
-#ifndef BOARDINTERFACE_H
-#define BOARDINTERFACE_H
+#pragma once
 
 #include <FS.h>
 #include "LiveData.h"
@@ -50,5 +49,3 @@ class BoardInterface {
     virtual void sdcardToggleRecording()=0;
     bool serializeParamsToJson(File file, bool inclApiKey = false);
 };
-
-#endif // BOARDINTERFACE_H
