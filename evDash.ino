@@ -47,7 +47,6 @@
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
 
-#include <sys/time.h>
 #include "config.h"
 #include "LiveData.h"
 #include "CarInterface.h"
@@ -204,10 +203,11 @@ void setup(void) {
   Serial.println("");
   Serial.println("Booting device...");
 
-  // Init settings/params, board library
+  // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
 
+  // Init board
 #ifdef BOARD_TTGO_T4
   board = new BoardTtgoT4v13();
 #endif // BOARD_TTGO_T4
@@ -218,7 +218,7 @@ void setup(void) {
   board->loadSettings();
   board->initBoard();
 
-  // Car interface
+  // Init selected car interface
   switch (liveData->settings.carType) {
     case CAR_KIA_ENIRO_2020_39:
     case CAR_KIA_ENIRO_2020_64:
@@ -248,14 +248,6 @@ void setup(void) {
 
   // Redraw screen
   board->redrawScreen();
-
-  // Init time library
-  struct timeval tv;
-  tv.tv_sec = 1589011873;
-  settimeofday(&tv, NULL);
-  struct tm now;
-  getLocalTime(&now, 0);
-  liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
 #ifdef SIM800L_ENABLED
   sim800lSetup();

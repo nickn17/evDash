@@ -22,6 +22,15 @@ void Board320_240::initBoard() {
   pinMode(pinButtonLeft, INPUT);
   pinMode(pinButtonRight, INPUT);
 
+  // Init time library
+  struct timeval tv;
+  tv.tv_sec = 1589011873;
+  settimeofday(&tv, NULL);
+  struct tm now;
+  getLocalTime(&now, 0);
+  liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
+
+
   // Init display
   Serial.println("Init tft display");
   tft.begin();
