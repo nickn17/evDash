@@ -72,13 +72,12 @@ void CommObd2Can::mainLoop() {
     delay(10);
     for (uint8_t i = 0; i < 50; i++) {
       receivePID();
-      if (rxRemaining <= 0)
+      if (rxRemaining <= 2)
         break;
       delay(10);
     }
     delay(30);
   }
-  Serial.println(liveData->params.currentTime );
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 500) {
     Serial.print("CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
@@ -95,6 +94,7 @@ void CommObd2Can::executeCommand(String cmd) {
   Serial.println(cmd);
 
   if (cmd.equals("") || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
+    lastDataSent = 0;
     liveData->canSendNextAtCommand = true;
     return;
   }
@@ -105,7 +105,7 @@ void CommObd2Can::executeCommand(String cmd) {
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", ""); // remove possible spaces
   sendPID(liveData->hexToDec(atsh, 2, false), cmd);
-   delay(40);
+  delay(40);
 }
 
 /**
@@ -215,13 +215,13 @@ bool CommObd2Can::processFrame() {
   switch (frameType) {
     // Single frame
     case 0:
-      rxRemaining = (rxBuf[1] & 0x0f) + 1;
+      rxRemaining = (rxBuf[1] & 0x0f);
       break;
     // First frame
     case 1:
-      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1] + 1;
+      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1];
       liveData->responseRowMerged = "";
-      for (uint16_t i = 0; i < 62; i++)
+      for (uint16_t i = 0; i < rxRemaining - 1; i++)
         liveData->responseRowMerged += "00";
       liveData->responseRow = "0:";
       start = 2;
@@ -264,8 +264,8 @@ bool CommObd2Can::processFrame() {
     Serial.println(liveData->responseRowMerged);
   }
 
-  // Send command to board module (obd2 simulation)
-  if (rxRemaining <= 0) {
+  // Send response to board module
+  if (rxRemaining <= 2) {
     Serial.print("merged:");
     Serial.println(liveData->responseRowMerged);
     board->parseRowMerged();

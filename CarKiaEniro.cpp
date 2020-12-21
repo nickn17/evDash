@@ -17,7 +17,7 @@
 #include "CarKiaEniro.h"
 
 #define commandQueueCountKiaENiro 30
-#define commandQueueLoopFromKiaENiro 10
+#define commandQueueLoopFromKiaENiro 8
 
 /**
  * activateCommandQueue
