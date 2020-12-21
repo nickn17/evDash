@@ -17,6 +17,7 @@
 #include "BoardInterface.h"
 #include <SD.h>
 #include <SPI.h>
+#include "SIM800L.h"
 
 class Board320_240 : public BoardInterface {
 
@@ -25,6 +26,8 @@ class Board320_240 : public BoardInterface {
     TFT_eSPI tft = TFT_eSPI();
     TFT_eSprite spr = TFT_eSprite(&tft);
     HardwareSerial* gpsHwUart = NULL;
+    HardwareSerial* gprsHwUart = NULL;
+    SIM800L* sim800l;
     TinyGPSPlus gps;
     char tmpStr1[20];
     char tmpStr2[20];
@@ -51,6 +54,9 @@ class Board320_240 : public BoardInterface {
     void sdcardToggleRecording() override;
     // GPS
     void syncGPS();
+    // SIM800L
+    bool sim800lSetup();
+    bool sendDataViaGPRS();
     // Basic GUI
     void setBrightness(byte lcdBrightnessPerc) override;
     void displayMessage(const char* row1, const char* row2) override;

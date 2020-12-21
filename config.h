@@ -47,13 +47,8 @@
 ////////////////////////////////////////////////////////////
 // SIM800L
 /////////////////////////////////////////////////////////////
-
-#ifdef SIM800L_ENABLED
-#define SIM800L_RX 16
-#define SIM800L_TX 17
 #define SIM800L_RST 5
 #define SIM800L_TIMER 60
-#endif //SIM800L_ENABLED
 
 // MENU ITEM
 typedef struct {
@@ -100,4 +95,3 @@ typedef struct {
 #define MENU_SDCARD_MOUNT_STATUS 3043
 #define MENU_SDCARD_REC 3044
 // 
-

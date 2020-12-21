@@ -8,6 +8,8 @@
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
+#include <ArduinoJson.h>
+#include "SIM800L.h"
 
 /**
    Init board
@@ -83,6 +85,11 @@ void Board320_240::afterSetup() {
       Serial.println("Toggle recording on SD card");
       sdcardToggleRecording();
     }
+  }
+
+  // Init SIM800L
+  if (liveData->settings.gprsHwSerialPort <= 2) {
+    sim800lSetup();
   }
 
   // Init from parent class
@@ -862,7 +869,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
       WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
       }
       break;*/
-    case MENU_GPRS:             sprintf(tmpStr1, "[%s] %s", (liveData->settings.gprsEnabled == 1) ? "on" : "off", liveData->settings.gprsApn); suffix = tmpStr1; break;
+    case MENU_GPRS:             sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);  suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1; break;
     case MENU_SDCARD:           sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024)); suffix = tmpStr1; break;
     case MENU_SCREEN_ROTATION:  suffix = (liveData->settings.displayRotation == 1) ? "[vertical]" : "[normal]"; break;
     case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
@@ -1024,6 +1031,7 @@ void Board320_240::menuItemClick() {
       // Pre-drawn charg.graphs off/on
       case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_GPRS: liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
       case MENU_GPS: liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
       // Wifi menu
       case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
@@ -1282,6 +1290,12 @@ void Board320_240::mainLoop() {
     syncGPS();
   }
 
+  // SIM800L
+  if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
+    sendDataViaGPRS();
+    liveData->params.lastDataSent = liveData->params.currentTime;
+  }
+
   // currentTime
   struct tm now;
   getLocalTime(&now, 0);
@@ -1330,7 +1344,7 @@ void Board320_240::mainLoop() {
     shutdownDevice();
 
   // Read data from BLE/CAN
-  commInterface->mainLoop();    
+  commInterface->mainLoop();
 }
 
 /**
@@ -1453,4 +1467,128 @@ void Board320_240::syncGPS() {
     struct timeval now = { .tv_sec = t };
     settimeofday(&now, NULL);
   }
+}
+
+
+/**
+  SIM800L
+*/
+bool Board320_240::sim800lSetup() {
+  Serial.print("Setting SIM800L module. HW port: ");
+  Serial.println(liveData->settings.gprsHwSerialPort);
+
+  gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
+  gprsHwUart->begin(9600);
+
+  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512);
+  // SIM800L DebugMode:
+  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512, (Stream *)&Serial);
+
+  bool sim800l_ready = sim800l->isReady();  
+  for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
+    Serial.println("Problem to initialize SIM800L module, retry in 1 sec");
+    delay(1000);
+    sim800l_ready = sim800l->isReady();
+  }
+
+  if (!sim800l_ready) {
+    Serial.println("Problem to initialize SIM800L module");
+  } else {
+    Serial.println("SIM800L module initialized");
+
+    Serial.print("Setting GPRS APN to: ");
+    Serial.println(liveData->settings.gprsApn);
+
+    bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
+    for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
+      Serial.println("Problem to set GPRS APN, retry in 1 sec");
+      delay(1000);
+      sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
+    }
+
+    if (sim800l_gprs) {
+      liveData->params.sim800l_enabled = true;
+      Serial.println("GPRS APN set OK");
+    } else {
+      Serial.println("Problem to set GPRS APN");
+    }
+  }
+
+  return true;
+}
+
+bool Board320_240::sendDataViaGPRS() {
+  Serial.println("Sending data via GPRS");
+
+  if (liveData->params.socPerc < 0) {
+    Serial.println("No valid data, skipping data send");
+    return false;
+  }
+
+  NetworkRegistration network = sim800l->getRegistrationStatus();
+  if (network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
+    Serial.println("SIM800L module not connected to network, skipping data send");
+    return false;
+  }
+
+  if (!sim800l->isConnectedGPRS()) {
+    Serial.println("GPRS not connected... Connecting");
+    bool connected = sim800l->connectGPRS();
+    for (uint8_t i = 0; i < 5 && !connected; i++) {
+      Serial.println("Problem to connect GPRS, retry in 1 sec");
+      delay(1000);
+      connected = sim800l->connectGPRS();
+    }
+    if (connected) {
+      Serial.println("GPRS connected!");
+    } else {
+      Serial.println("GPRS not connected! Reseting SIM800L module!");
+      sim800l->reset();
+      sim800lSetup();
+
+      return false;
+    }
+  }
+
+  Serial.println("Start HTTP POST...");
+
+  StaticJsonDocument<512> jsonData;
+
+  jsonData["apikey"] = liveData->settings.remoteApiKey;
+  jsonData["carType"] = liveData->settings.carType;
+  jsonData["socPerc"] = liveData->params.socPerc;
+  jsonData["sohPerc"] = liveData->params.sohPerc;
+  jsonData["batPowerKw"] = liveData->params.batPowerKw;
+  jsonData["batPowerAmp"] = liveData->params.batPowerAmp;
+  jsonData["batVoltage"] = liveData->params.batVoltage;
+  jsonData["auxVoltage"] = liveData->params.auxVoltage;
+  jsonData["auxAmp"] = liveData->params.auxCurrentAmp;
+  jsonData["batMinC"] = liveData->params.batMinC;
+  jsonData["batMaxC"] = liveData->params.batMaxC;
+  jsonData["batInletC"] = liveData->params.batInletC;
+  jsonData["batFanStatus"] = liveData->params.batFanStatus;
+  jsonData["speedKmh"] = liveData->params.speedKmh;
+  jsonData["odoKm"] = liveData->params.odoKm;
+  jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
+  jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
+
+  char payload[512];
+  serializeJson(jsonData, payload);
+
+  Serial.print("Sending payload: ");
+  Serial.println(payload);
+
+  Serial.print("Remote API server: ");
+  Serial.println(liveData->settings.remoteApiUrl);
+
+  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 10000, 10000);
+  if (rc == 200) {
+    Serial.println("HTTP POST successful");
+  } else {
+    // Failed...
+    Serial.print("HTTP POST error: ");
+    Serial.println(rc);
+  }
+
+  return true;
 }

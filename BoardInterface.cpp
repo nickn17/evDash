@@ -136,6 +136,7 @@ void BoardInterface::loadSettings() {
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
   liveData->settings.headlightsReminder = 0;
   liveData->settings.gpsHwSerialPort = 255; // off
+  liveData->settings.gprsHwSerialPort = 255; // off
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");

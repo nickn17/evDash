@@ -188,6 +188,7 @@ typedef struct {
   // === settings version 5
   // =================================
   byte gpsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  byte gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
   //  
 } SETTINGS_STRUC;
 
@@ -239,4 +240,3 @@ class LiveData {
     float celsius2temperature(float inCelsius);
     float bar2pressure(float inBar);
 };
-

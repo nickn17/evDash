@@ -35,7 +35,7 @@ MENU_ITEM menuItemsSource[100] = {
   // {MENU_WIFI, 3, -1, "[dev] WiFi network"},
   {MENU_SDCARD, 3, -1, "SD card"},
   {MENU_GPS, 3, -1, "GPS"},
-  {MENU_GPRS, 3, -1, "[dev] GSM/GPRS"},
+  {MENU_GPRS, 3, -1, "GSM/GPRS"},
   //{MENU_REMOTE_UPLOAD, 3, -1, "[dev] Remote upload"},
   //{MENU_NTP, 3, -1, "[dev] NTP"},
   {MENU_SCREEN_ROTATION, 3, -1, "Screen rotation"},
