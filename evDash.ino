@@ -1,7 +1,5 @@
 /*
-   Project renamed from eNiroDashboard to evDash
-
-  !! Supported BLE4 adapter is Vgate ICar Pro BLE4 version
+  Project renamed from eNiroDashboard to evDash
 
   Serial console commands
 

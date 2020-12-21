@@ -70,15 +70,14 @@ void CommObd2Can::mainLoop() {
   if ((firstByte & 0xf0) == 0x10) { // First frame, request another
     sendFlowControlFrame();
     delay(10);
-    for (uint8_t i = 0; i < 50; i++) {
+    for (uint16_t i = 0; i < 1000; i++) {
       receivePID();
       if (rxRemaining <= 2)
         break;
-      delay(10);
+      delay(1);
     }
-    delay(30);
   }
-  if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 500) {
+  if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
     Serial.print("CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
@@ -132,6 +131,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
   //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
     Serial.print("SENT ");
+    lastDataSent = millis();
   }   else {
     Serial.print("Error sending PID ");
   }
@@ -141,7 +141,6 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
     Serial.print(msgString);
   }
   Serial.println("");
-  lastDataSent = millis();
 }
 
 /**
@@ -171,6 +170,7 @@ uint8_t CommObd2Can::receivePID() {
 
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
+    lastDataSent = millis();
     Serial.print(" CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf);      // Read data: len = data length, buf = data byte(s)
 
