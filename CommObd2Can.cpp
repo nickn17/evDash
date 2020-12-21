@@ -76,6 +76,7 @@ void CommObd2Can::mainLoop() {
         break;
       delay(10);
     }
+    delay(30);
   }
   Serial.println(liveData->params.currentTime );
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 500) {
@@ -104,6 +105,7 @@ void CommObd2Can::executeCommand(String cmd) {
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", ""); // remove possible spaces
   sendPID(liveData->hexToDec(atsh, 2, false), cmd);
+   delay(40);
 }
 
 /**
