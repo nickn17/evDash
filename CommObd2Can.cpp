@@ -77,6 +77,11 @@ void CommObd2Can::mainLoop() {
       delay(10);
     }
   }
+  if (liveData->params.currentTime + 500 > lastDataSent) {
+    Serial.print("CAN execution timeout. Continue with next command.");
+    liveData->canSendNextAtCommand = true;
+    return;
+  }
 }
 
 /**
@@ -86,6 +91,7 @@ void CommObd2Can::executeCommand(String cmd) {
 
   Serial.print("executeCommand ");
   Serial.println(cmd);
+
 
   if (cmd == "" || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     liveData->canSendNextAtCommand = true;
@@ -135,6 +141,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
     Serial.print(msgString);
   }
   Serial.println("");
+  lastDataSent = liveData->params.currentTime;
 }
 
 /**
@@ -210,11 +217,11 @@ bool CommObd2Can::processFrame() {
   switch (frameType) {
     // Single frame
     case 0:
-      rxRemaining = (rxBuf[1] & 0x0f);
+      rxRemaining = (rxBuf[1] & 0x0f)+1;
       break;
     // First frame
     case 1:
-      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1];
+      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1]+1;
       liveData->responseRow = "0:";
       start = 2;
       break;
@@ -237,6 +244,10 @@ bool CommObd2Can::processFrame() {
     liveData->responseRow += msgString;
     rxRemaining--;
   }
+
+  Serial.print(", r: ");
+  Serial.print(rxRemaining);
+  Serial.println("   ");
 
   parseResponse();
 

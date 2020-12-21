@@ -12,6 +12,7 @@ class CommInterface {
     BoardInterface* board;   
     char ch;
     String response;
+    time_t lastDataSent;
   public:
     void initComm(LiveData* pLiveData, BoardInterface* pBoard);
     virtual void connectDevice() = 0;
