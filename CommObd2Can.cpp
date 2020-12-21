@@ -77,7 +77,7 @@ void CommObd2Can::mainLoop() {
       delay(10);
     }
   }
-  if (liveData->params.currentTime + 500 > lastDataSent) {
+  if (lastDataSent != 0 || liveData->params.currentTime + 500 > lastDataSent) {
     Serial.print("CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
@@ -91,9 +91,9 @@ void CommObd2Can::executeCommand(String cmd) {
 
   Serial.print("executeCommand ");
   Serial.println(cmd);
+  lastDataSent = 0;
 
-
-  if (cmd == "" || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
+  if (cmd.equals("") || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     liveData->canSendNextAtCommand = true;
     return;
   }
