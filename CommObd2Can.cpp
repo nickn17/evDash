@@ -10,7 +10,7 @@ void CommObd2Can::connectDevice() {
 
   Serial.println("CAN connectDevice");
 
-//CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
+  //CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
   CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
   if (CAN == nullptr) {
     Serial.println("Error: Not enough memory to instantiate CAN class");
@@ -29,11 +29,11 @@ void CommObd2Can::connectDevice() {
   }
 
   if (MCP2515_OK != CAN->setMode(MCP_NORMAL)) {  // Set operation mode to normal so the MCP2515 sends acks to received data.
-	Serial.println("Error: CAN->setMode(MCP_NORMAL) failed");
+    Serial.println("Error: CAN->setMode(MCP_NORMAL) failed");
     board->displayMessage(" > CAN init failed", "");
     return;
   }
-	
+
   pinMode(pinCanInt, INPUT);                    // Configuring pin for /INT input
 
   // Serve first command (ATZ)
@@ -104,7 +104,7 @@ void CommObd2Can::executeCommand(String cmd) {
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", ""); // remove possible spaces
   sendPID(liveData->hexToDec(atsh, 2, false), cmd);
-  
+
   //delay(delayTxRx);
 }
 
@@ -113,7 +113,7 @@ void CommObd2Can::executeCommand(String cmd) {
    remark: parameter cmd as const reference to aviod copying
 */
 void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
-  
+
   uint8_t txBuf[8] = { 0 }; // init with zeroes
   String tmpStr;
 
@@ -151,7 +151,7 @@ void CommObd2Can::sendFlowControlFrame() {
 
   uint8_t txBuf[8] = { 0x30, 0, 0, 0, 0, 0, 0, 0 };
   Serial.println("Flow control frame");
-  
+
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
     Serial.print("Flow control frame sent ");
@@ -217,11 +217,14 @@ bool CommObd2Can::processFrame() {
   switch (frameType) {
     // Single frame
     case 0:
-      rxRemaining = (rxBuf[1] & 0x0f)+1;
+      rxRemaining = (rxBuf[1] & 0x0f) + 1;
       break;
     // First frame
     case 1:
-      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1]+1;
+      rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1] + 1;
+      liveData->responseRowMerged = "";
+      for (uint16_t i = 0; i < 62; i++)
+        liveData->responseRowMerged += "00";
       liveData->responseRow = "0:";
       start = 2;
       break;
@@ -249,7 +252,19 @@ bool CommObd2Can::processFrame() {
   Serial.print(rxRemaining);
   Serial.println("   ");
 
-  parseResponse();
+  //parseResponse();
+  // We need to sort frames
+  // 1 frame data
+  Serial.println(liveData->responseRow);
+  // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
+  if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
+    //liveData->responseRowMerged += liveData->responseRow.substring(2);
+    uint8_t rowNo = liveData->hexToDec(liveData->responseRow.substring(0, 1), 1, false);
+    uint16_t startPos = (rowNo * 14) - ((rowNo > 0) ? 2 : 0);
+    uint16_t endPos = ((rowNo + 1) * 14) - ((rowNo > 0) ? 2 : 0);
+    liveData->responseRowMerged = liveData->responseRowMerged.substring(0, startPos) + liveData->responseRow.substring(2) + liveData->responseRowMerged.substring(endPos);
+    Serial.println(liveData->responseRowMerged);
+  }
 
   // Send command to board module (obd2 simulation)
   if (rxRemaining <= 0) {
