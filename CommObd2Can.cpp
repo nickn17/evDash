@@ -78,7 +78,7 @@ void CommObd2Can::mainLoop() {
     }
   }
   Serial.println(liveData->params.currentTime );
-  if (lastDataSent != 0 && liveData->params.currentTime + 2 > lastDataSent) {
+  if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 500) {
     Serial.print("CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
@@ -92,7 +92,6 @@ void CommObd2Can::executeCommand(String cmd) {
 
   Serial.print("executeCommand ");
   Serial.println(cmd);
-  lastDataSent = 0;
 
   if (cmd.equals("") || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     liveData->canSendNextAtCommand = true;
@@ -140,7 +139,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
     Serial.print(msgString);
   }
   Serial.println("");
-  lastDataSent = liveData->params.currentTime;
+  lastDataSent = millis();
 }
 
 /**

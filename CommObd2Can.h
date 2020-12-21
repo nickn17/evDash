@@ -18,6 +18,7 @@ class CommObd2Can : public CommInterface {
     int16_t rxRemaining; // Remaining bytes to complete message
     char msgString[128];                        // Array to store serial string
     uint16_t lastPid;
+    unsigned long lastDataSent = 0;
   public:
     void connectDevice() override;
     void disconnectDevice() override;
