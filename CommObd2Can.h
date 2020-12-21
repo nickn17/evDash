@@ -30,4 +30,5 @@ class CommObd2Can : public CommInterface {
     void sendFlowControlFrame();
     uint8_t receivePID();
     bool processFrame();
+    void processMergedResponse();
 };

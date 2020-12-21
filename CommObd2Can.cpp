@@ -75,6 +75,15 @@ void CommObd2Can::mainLoop() {
       if (rxRemaining <= 2)
         break;
       delay(1);
+      // apply timeout for next frames loop too
+      if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
+        break;
+      }
+    }
+    // Process incomplette messages
+    if (liveData->responseRowMerged.length() > 7) {
+      processMergedResponse();
+      return;
     }
   }
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
@@ -266,13 +275,20 @@ bool CommObd2Can::processFrame() {
 
   // Send response to board module
   if (rxRemaining <= 2) {
-    Serial.print("merged:");
-    Serial.println(liveData->responseRowMerged);
-    board->parseRowMerged();
-    liveData->responseRowMerged = "";
-    liveData->canSendNextAtCommand = true;
+    processMergedResponse();
     return false;
   }
 
   return true;
+}
+
+/**
+   processMergedResponse
+*/
+void CommObd2Can::processMergedResponse() {
+  Serial.print("merged:");
+  Serial.println(liveData->responseRowMerged);
+  board->parseRowMerged();
+  liveData->responseRowMerged = "";
+  liveData->canSendNextAtCommand = true;
 }
