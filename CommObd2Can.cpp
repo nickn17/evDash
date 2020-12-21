@@ -77,7 +77,7 @@ void CommObd2Can::mainLoop() {
       delay(10);
     }
   }
-  if (lastDataSent != 0 || liveData->params.currentTime + 500 > lastDataSent) {
+  if (lastDataSent != 0 && liveData->params.currentTime + 500 > lastDataSent) {
     Serial.print("CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
@@ -104,8 +104,6 @@ void CommObd2Can::executeCommand(String cmd) {
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", ""); // remove possible spaces
   sendPID(liveData->hexToDec(atsh, 2, false), cmd);
-
-  //delay(delayTxRx);
 }
 
 /**
