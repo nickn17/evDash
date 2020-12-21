@@ -150,8 +150,6 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
 void CommObd2Can::sendFlowControlFrame() {
 
   uint8_t txBuf[8] = { 0x30, 0, 0, 0, 0, 0, 0, 0 };
-  Serial.println("Flow control frame");
-
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
     Serial.print("Flow control frame sent ");
