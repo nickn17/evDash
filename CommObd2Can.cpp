@@ -77,7 +77,7 @@ void CommObd2Can::mainLoop() {
       delay(10);
     }
   }
-  if (lastDataSent != 0 && liveData->params.currentTime + 500 > lastDataSent) {
+  if (lastDataSent != 0 && liveData->params.currentTime + 1 > lastDataSent) {
     Serial.print("CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
