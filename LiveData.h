@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <BLEDevice.h>
 #include "config.h"
+#include <vector>
 
 // SUPPORTED CARS
 #define CAR_KIA_ENIRO_2020_64     0
@@ -203,6 +204,7 @@ class LiveData {
     String commandQueue[300];
     String responseRow;
     String responseRowMerged;
+    std::vector<uint8_t> vResponseRowMerged;
     uint16_t commandQueueIndex;
     bool canSendNextAtCommand = false;
     String commandRequest = "";
