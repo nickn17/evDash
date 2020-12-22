@@ -77,6 +77,7 @@ void CommObd2Can::mainLoop() {
       delay(1);
       // apply timeout for next frames loop too
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
+        Serial.print("CAN execution timeout (multiframe message).");
         break;
       }
     }
@@ -157,7 +158,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
 */
 void CommObd2Can::sendFlowControlFrame() {
 
-  uint8_t txBuf[8] = { 0x30, 0, 0, 0, 0, 0, 0, 0 };
+  uint8_t txBuf[8] = { 0x30, requestFramesCount /*request count*/, 14 /*ms between frames*/ , 0, 0, 0, 0, 0 };
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
     Serial.print("Flow control frame sent ");
@@ -225,10 +226,12 @@ bool CommObd2Can::processFrame() {
     // Single frame
     case 0:
       rxRemaining = (rxBuf[1] & 0x0f);
+      requestFramesCount = 0;
       break;
     // First frame
     case 1:
       rxRemaining = ((rxBuf[0] & 0x0f) << 8) + rxBuf[1];
+      requestFramesCount = ceil((rxRemaining - 6) / 7.0);
       liveData->responseRowMerged = "";
       for (uint16_t i = 0; i < rxRemaining - 1; i++)
         liveData->responseRowMerged += "00";
