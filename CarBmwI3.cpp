@@ -31,40 +31,12 @@ void CarBmwI3::activateCommandQueue() {
 		// Loop from (BMW i3)
 		// BMS
 		"ATSH6F1",
-		"22DDBC" /*,	// SOC
+		
+    "22DD69", // HV_STORM
+    "22DDB4", // HV_SPANNUNG
+    "22DDBC"  // SOC
 		
 		
-		// VMCU
-		"ATSH7E2",
-		"2101",
-		      // speed, ...
-		"2102",
-		      // aux, ...
-
-		//"ATSH7Df",
-		//"2106",
-		//"220106",
-
-		// Aircondition
-		// IONIQ OK
-		"ATSH7B3",
-		"220100",
-		    // in/out temp
-		"220102", 
-		   // coolant temp1, 2
-
-		// BCM / TPMS
-		// IONIQ OK
-		"ATSH7A0",
-		"22c00b",
-		    // tire pressure/temp
-
-		// CLUSTER MODULE
-		// IONIQ OK
-		"ATSH7C6",
-		"22B002",
-		    // odo
-		*/
 	};
 
 	// 28kWh version
@@ -82,6 +54,7 @@ void CarBmwI3::activateCommandQueue() {
 
 	liveData->commandQueueLoopFrom = commandQueueLoopFrom;
 	liveData->commandQueueCount = commandQueue.size();
+  liveData->rxBuffOffset = 1; // there is one additional byte in received packets compared to other cars
 }
 
 /**
@@ -89,7 +62,29 @@ void CarBmwI3::activateCommandQueue() {
 */
 void CarBmwI3::parseRowMerged() 
 {
+  Serial.println("--Parsing row merged: ");  
+  Serial.print("--responseRowMerged: ");  Serial.println(liveData->responseRowMerged);
+  Serial.print("--currentAtshRequest: ");   Serial.println(liveData->currentAtshRequest);
+  Serial.print("--commandRequest: ");       Serial.println(liveData->commandRequest);
+  Serial.print("--mergedLength: ");         Serial.println(liveData->responseRowMerged.length());
+  if (liveData->responseRowMerged.length() <= 6) {
+    Serial.println("--too short data, skiping processing");
+  }
+  
+  // BMS
+  if (liveData->currentAtshRequest.equals("ATSH6F1")) {
+    if (liveData->commandRequest.equals("22DD69")) { 
+      liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(6, 14, 4, true) / 100.0;
+    }
+    
+    if (liveData->commandRequest.equals("22DDB4")) { // HV_SPANNUNG_BATTERIE
+      liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+    }
 
+    if (liveData->commandRequest.equals("22DDBC")) {
+      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 10, 2, false) / 10.0;
+    }
+  }
 
 }
 
@@ -101,4 +96,3 @@ void CarBmwI3::loadTestData()
 
 	
 }
-

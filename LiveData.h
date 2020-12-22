@@ -225,6 +225,9 @@ class LiveData {
     BLEAdvertisedDevice* foundMyBleDevice;
     BLEClient* pClient;
     BLEScan* pBLEScan;
+  
+    // Canbus
+    uint8_t rxBuffOffset = 0;  // offset of processing received data, in some cars needs to be set to 1, like in BMW i3
     
     // Params
     PARAMS_STRUC params;     // Realtime sensor values
