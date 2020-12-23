@@ -6,8 +6,8 @@
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
 
-#define commandQueueCountRenaultZoe 83
-#define commandQueueLoopFromRenaultZoe 9
+#define commandQueueCountRenaultZoe 34
+#define commandQueueLoopFromRenaultZoe 8
 
 /**
    activateCommandQueue
