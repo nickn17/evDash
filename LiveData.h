@@ -33,6 +33,9 @@
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
 
+// 
+#define MONTH_SEC     2678400
+
 // Structure with realtime values
 typedef struct {
   // System
@@ -54,7 +57,7 @@ typedef struct {
   char sdcardFilename[32];
   // Car params
   bool ignitionOn;
-  bool ignitionOnPrevious;
+  time_t lastIgnitionOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;
   bool forwardDriveMode;
