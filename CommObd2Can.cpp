@@ -196,7 +196,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
 */
 void CommObd2Can::sendFlowControlFrame() {
 
-  uint8_t txBuf[8] = { 0x30, requestFramesCount /*request count*/, 14 /*ms between frames*/ , 0, 0, 0, 0, 0 };
+  uint8_t txBuf[8] = { 0x30, requestFramesCount /*request count*/, 20 /*ms between frames*/ , 0, 0, 0, 0, 0 };
   
   // insert 0x07 into beginning for BMW i3
   if (liveData->settings.carType == CAR_BMW_I3_2014) {
