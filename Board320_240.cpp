@@ -1052,7 +1052,7 @@ void Board320_240::menuItemClick() {
       case 4031: liveData->settings.pressureUnit = 'b'; showParentMenu = true; break;
       case 4032: liveData->settings.pressureUnit = 'p'; showParentMenu = true; break;
       // Pair ble device
-      case 2: scanDevices = true; commInterface->scanDevices(); return;
+      case 2: scanDevices = true; liveData->menuCurrent = 9999; commInterface->scanDevices(); return;
       // Reset settings
       case 8: resetSettings(); hideMenu(); return;
       // Save settings
@@ -1188,7 +1188,7 @@ void Board320_240::redrawScreen() {
     }
 
     // BLE not connected
-    if (!liveData->bleConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
+    if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
       // Print message
       spr.setTextSize(1);
       spr.setTextColor(TFT_WHITE, TFT_BLACK);

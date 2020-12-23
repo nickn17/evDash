@@ -24,7 +24,7 @@ void LiveData::initParams() {
   params.gpsAlt = -1;
   // Car data
   params.ignitionOn = false;
-  params.ignitionOnPrevious = false;
+  params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;
   params.chargingStartTime = params.currentTime = 0;
   params.lightInfo = 0;
@@ -181,4 +181,3 @@ float LiveData::celsius2temperature(float inCelsius) {
 float LiveData::bar2pressure(float inBar) {
   return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
 }
-

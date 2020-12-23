@@ -19,7 +19,7 @@ class MyClientCallback : public BLEClientCallbacks {
 
     // On BLE disconnect
     void onDisconnect(BLEClient* pclient) {
-      //connected = false;
+      liveDataObj->commConnected = false;
       Serial.println("onDisconnect");
 
       boardObj->displayMessage("BLE disconnected", "");
@@ -215,10 +215,10 @@ void CommObd2Ble4::startBleScan() {
   board->displayMessage(" > Scanning BLE4 devices", tmpStr1);
 
   // Scan devices from menu, show list of devices
-  if (liveData->menuItemSelected == 2) {
+ if (liveData->menuCurrent == 9999) {
     Serial.println("Display menu with devices");
     liveData->menuVisible = true;
-    liveData->menuCurrent = 9999;
+    //liveData->menuCurrent = 9999;
     liveData->menuItemSelected = 0;
     board->showMenu();
   } else {
@@ -323,7 +323,7 @@ void CommObd2Ble4::mainLoop() {
     liveData->pServerAddress = new BLEAddress(liveData->settings.obdMacAddress);
     if (connectToServer(*liveData->pServerAddress)) {
 
-      liveData->bleConnected = true;
+      liveData->commConnected = true;
       liveData->bleConnect = false;
 
       Serial.println("We are now connected to the BLE device.");
@@ -354,7 +354,7 @@ void CommObd2Ble4::mainLoop() {
 void CommObd2Ble4::executeCommand(String cmd) {
 
   String tmpStr = cmd + "\r";
-  if (liveData->bleConnected) {
+  if (liveData->commConnected) {
     liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
   }
 }

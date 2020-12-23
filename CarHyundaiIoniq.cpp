@@ -1,6 +1,6 @@
 #include "CarHyundaiIoniq.h"
 
-#define commandQueueCountHyundaiIoniq 25
+#define commandQueueCountHyundaiIoniq 28
 #define commandQueueLoopFromHyundaiIoniq 8
 
 /**
@@ -37,6 +37,11 @@ void CarHyundaiIoniq::activateCommandQueue() {
     "ATSH7E2",
     "2101",     // speed, ...
     "2102",     // aux, ...
+
+    // IGPM
+    "ATSH770",
+    "22BC03",     // low beam
+    "22BC06",     // brake light
 
     //"ATSH7Df",
     //"2106",
@@ -80,6 +85,10 @@ void CarHyundaiIoniq::activateCommandQueue() {
 */
 void CarHyundaiIoniq::parseRowMerged() {
 
+  bool tempByte;
+  float tempFloat;
+  String tmpStr;
+
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
     if (liveData->commandRequest.equals("2101")) {
@@ -90,6 +99,27 @@ void CarHyundaiIoniq::parseRowMerged() {
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+    }
+  }
+
+  // IGPM
+  if (liveData->currentAtshRequest.equals("ATSH770")) {
+    if (liveData->commandRequest.equals("22BC03")) {
+      tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
+      liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
+      if (liveData->params.ignitionOn) {
+        liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+      }
+      int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
+      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn)
+        liveData->params.automaticShutdownTimer = liveData->params.currentTime;
+      liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
+      liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
+      liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
+    }
+    if (liveData->commandRequest.equals("22BC06")) {
+      liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
     }
   }
 

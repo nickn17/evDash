@@ -124,11 +124,13 @@ void CarKiaEniro::parseRowMerged() {
   if (liveData->currentAtshRequest.equals("ATSH770")) {
     if (liveData->commandRequest.equals("22BC03")) {
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
-      liveData->params.ignitionOnPrevious = liveData->params.ignitionOn;
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-      if (liveData->params.ignitionOnPrevious && !liveData->params.ignitionOn)
+      if (liveData->params.ignitionOn) {
+        liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+      }
+      int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
+      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn)
         liveData->params.automaticShutdownTimer = liveData->params.currentTime;
-
       liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
       liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
       liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
