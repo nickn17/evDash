@@ -77,7 +77,7 @@ void CommObd2Can::mainLoop() {
       delay(1);
       // apply timeout for next frames loop too
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
-        Serial.print("CAN execution timeout (multiframe message).");
+        Serial.print("CAN execution timeout (multiframe message).\n");
         break;
       }
     }
@@ -88,7 +88,7 @@ void CommObd2Can::mainLoop() {
     }
   }
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
-    Serial.print("CAN execution timeout. Continue with next command.");
+    Serial.print("CAN execution timeout. Continue with next command.\n");
     liveData->canSendNextAtCommand = true;
     return;
   }
