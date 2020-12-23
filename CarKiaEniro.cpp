@@ -129,7 +129,7 @@ void CarKiaEniro::parseRowMerged() {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
       int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
-      if (secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn)
+      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn)
         liveData->params.automaticShutdownTimer = liveData->params.currentTime;
       liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
       liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
