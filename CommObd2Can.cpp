@@ -222,7 +222,7 @@ void CommObd2Can::sendFlowControlFrame() {
    Receive PID
 */
 uint8_t CommObd2Can::receivePID() {
-  
+
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
@@ -236,6 +236,16 @@ uint8_t CommObd2Can::receivePID() {
       sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, rxLen);
 
     Serial.print(msgString);
+
+    // Filter received messages (Ioniq only)
+    if(liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
+      long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
+
+      if(rxId != atsh_response) {
+        Serial.println(" [Filtered packet]");
+        return 0xff;
+      }
+    }
 
     if ((rxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
       sprintf(msgString, " REMOTE REQUEST FRAME");
