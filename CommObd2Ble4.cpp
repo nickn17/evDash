@@ -215,10 +215,10 @@ void CommObd2Ble4::startBleScan() {
   board->displayMessage(" > Scanning BLE4 devices", tmpStr1);
 
   // Scan devices from menu, show list of devices
-  if (liveData->menuItemSelected == 2) {
+ if (liveData->menuCurrent == 9999) {
     Serial.println("Display menu with devices");
     liveData->menuVisible = true;
-    liveData->menuCurrent = 9999;
+    //liveData->menuCurrent = 9999;
     liveData->menuItemSelected = 0;
     board->showMenu();
   } else {

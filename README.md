@@ -22,10 +22,14 @@ Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help. Thank 
 Board
 - M5STACK CORE1 IOT Development Kit(~EUR 35)
   https://rlx.sk/sk/m5stack/7285-esp32-basic-core-iot-development-kit-m5-k001-m5stack.html
+- optional M5 COMMU (CAN) module
+- optional M5 GPS NEO-M8N (with external atenna)
+- optional M5 SIM800L GPS module (dev)
   
 or 
-- LILYGO TTGO T4 v1.3 (~USD $30) https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
-I RECOMMEND TO REMOVE LION BATTERY DUE TO HIGH SUMMER TEMPERATURES
+- older device LILYGO TTGO T4 v1.3 (~USD $30) 
+  https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
+  I RECOMMEND TO REMOVE LION BATTERY DUE TO HIGH SUMMER TEMPERATURES
 
 OBD2 adapter
 - Supported is only this model... Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30)

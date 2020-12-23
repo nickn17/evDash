@@ -3,6 +3,7 @@
 ### Next version
 - removed debug screen
 - sdcard working only with m5stack
+- M5 COMMU (CAN) module support.
 
 ### v2.1.1 2020-12-14
 - tech refactoring: `hexToDecFromResponse`, `decFromResponse`
