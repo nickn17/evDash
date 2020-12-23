@@ -1166,8 +1166,8 @@ void Board320_240::redrawScreen() {
     // SDCARD recording
     /*liveData->params.sdcardRecording*/
     if (liveData->settings.sdcardEnabled == 1) {
-      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
-      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
+      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
+      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
                      (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1178,12 +1178,12 @@ void Board320_240::redrawScreen() {
                     );
     }
     if (gpsHwUart != NULL && (displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED)) {
-      spr.drawCircle(180, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+      spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
       spr.setTextSize(1);
       spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
       spr.setTextDatum(TL_DATUM);
       sprintf(tmpStr1, "%d", liveData->params.gpsSat);
-      spr.drawString(tmpStr1, 194, 2, 2);
+      spr.drawString(tmpStr1, 174, 2, 2);
 
     }
 

@@ -108,7 +108,9 @@ void CarRenaultZoe::activateCommandQueue() {
 
   //
   liveData->params.batModuleTempCount = 12; // 24, 12 is display limit
-  liveData->params.batteryTotalAvailableKWh = 28;
+  liveData->params.batteryTotalAvailableKWh = 22;
+  // usable 22, total 26
+  
 
   //  Empty and fill command queue
   for (int i = 0; i < 300; i++) {

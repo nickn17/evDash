@@ -194,6 +194,14 @@ typedef struct {
   // =================================
   byte gpsHwSerialPort; // 255-off, 0,1,2 - hw serial
   byte gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  // === settings version 6
+  // =================================
+  byte serialConsolePort; // 255-off, 0 - hw serial (std)
+  byte debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  uint16_t sdcardLogIntervalSec; // every x seconds
+  uint16_t gprsLogIntervalSec; // every x seconds
+  
+  
   //  
 } SETTINGS_STRUC;
 
