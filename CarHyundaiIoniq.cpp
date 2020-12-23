@@ -97,7 +97,7 @@ void CarHyundaiIoniq::parseRowMerged() {
         liveData->params.speedKmh = 0;
     }
     if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
+      liveData->params.auxPerc = liveData->hexToDecFromResponse(38, 40, 1, false);
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
     }
   }
