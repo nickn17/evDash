@@ -1,5 +1,6 @@
 #include "CarBmwI3.h"
 #include <vector>
+#include <algorithm>
 
 /**
    activateliveData->commandQueue
@@ -57,6 +58,7 @@ void CarBmwI3::activateCommandQueue() {
 	liveData->commandQueueLoopFrom = commandQueueLoopFrom;
 	liveData->commandQueueCount = commandQueue.size();
   liveData->rxBuffOffset = 1; // there is one additional byte in received packets compared to other cars
+  liveData->expectedMinimalPacketLength = 7;  // to filter occasional 5-bytes long packets
 }
 
 /**
@@ -84,8 +86,14 @@ void CarBmwI3::parseRowMerged()
   };
 
   Header_t* pHeader = (Header_t*)liveData->vResponseRowMerged.data();
-  uint8_t* pPayload = pHeader->pData;
+  
+  
   const uint16_t payloadLength = liveData->vResponseRowMerged.size() - sizeof(Header_t);
+  
+  // create reversed payload to get little endian order of data
+  std::vector<uint8_t> payloadReversed(pHeader->pData, pHeader->pData + payloadLength);
+  std::reverse(payloadReversed.begin(), payloadReversed.end());
+  
   Serial.print("--extracted PID: "); Serial.println(pHeader->getPid());
   Serial.print("--payload length: "); Serial.println(payloadLength);
   
@@ -97,15 +105,14 @@ void CarBmwI3::parseRowMerged()
     case 0xDD69:
     {
       struct DD69_t {
-        uint8_t batAmp[4];
         uint8_t unknown[4];
-        int32_t getBatAmpRaw() { return 0x1000000 * batAmp[0] + 0x10000 * batAmp[1] + 0x100 * batAmp[2] + batAmp[3]; }
+        uint32_t batAmp;
       };
 
       if (payloadLength == sizeof(DD69_t)) { 
-        DD69_t* ptr = (DD69_t*)pHeader->pData;
+        DD69_t* ptr = (DD69_t*)payloadReversed.data();
       
-        liveData->params.batPowerAmp =  ptr->getBatAmpRaw() / 100.0; //liveData->hexToDecFromResponse(6, 14, 4, true) / 100.0;
+        liveData->params.batPowerAmp =  ptr->batAmp / 100.0; //liveData->hexToDecFromResponse(6, 14, 4, true) / 100.0;
       
         liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
         if (liveData->params.batPowerKw < 0) // Reset charging start time
@@ -123,14 +130,13 @@ void CarBmwI3::parseRowMerged()
     case 0xDDB4:
     {
       struct DDB4_t {
-        uint8_t batVoltage[2];
-        uint16_t getBatVoltage() { return 0x100 * batVoltage[0] + batVoltage[1]; };
+        uint16_t batVoltage;
       };
       
       if (payloadLength == sizeof(DDB4_t)) { // HV_SPANNUNG_BATTERIE
-        DDB4_t* ptr = (DDB4_t*)pHeader->pData;
+        DDB4_t* ptr = (DDB4_t*)payloadReversed.data();
         
-        liveData->params.batVoltage = ptr->getBatVoltage() / 100.0;
+        liveData->params.batVoltage = ptr->batVoltage / 100.0;
         liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
         if (liveData->params.batPowerKw < 0) // Reset charging start time
           liveData->params.chargingStartTime = liveData->params.currentTime;
@@ -141,25 +147,22 @@ void CarBmwI3::parseRowMerged()
     case 0xDDC0:
     {
       struct DDC0_t {
-        uint8_t tempMin[2];
-        uint8_t tempMax[2];
-        uint8_t tempAvg[2];
         uint8_t unknown[2];
-        int16_t getTempMin() { return 0x100 * tempMin[0] + tempMin[1]; };
-        int16_t getTempMax() { return 0x100 * tempMax[0] + tempMax[1]; };
-        int16_t getTempAvg() { return 0x100 * tempAvg[0] + tempAvg[1]; };
+        uint16_t tempAvg;
+        uint16_t tempMax;
+        uint16_t tempMin;
       };
       
       if (payloadLength == sizeof(DDC0_t)) {
-        DDC0_t* ptr = (DDC0_t*)pHeader->pData;
+        DDC0_t* ptr = (DDC0_t*)payloadReversed.data();
         
-        liveData->params.batMinC = ptr->getTempMin() / 100.0;
-        liveData->params.batTempC = ptr->getTempAvg() / 100.0;
-        liveData->params.batMaxC = ptr->getTempMax() / 100.0;
+        liveData->params.batMinC = ptr->tempMin / 100.0;
+        liveData->params.batTempC = ptr->tempAvg / 100.0;
+        liveData->params.batMaxC = ptr->tempMax / 100.0;
 
-        //Serial.print("----batMinC: "); Serial.println(liveData->params.batMinC);
-        //Serial.print("----batTemp: "); Serial.println(liveData->params.batTempC);
-        //Serial.print("----batMaxC: "); Serial.println(liveData->params.batMaxC);
+        Serial.print("----batMinC: "); Serial.println(liveData->params.batMinC);
+        Serial.print("----batTemp: "); Serial.println(liveData->params.batTempC);
+        Serial.print("----batMaxC: "); Serial.println(liveData->params.batMaxC);
       }
     }
     break;
@@ -167,17 +170,16 @@ void CarBmwI3::parseRowMerged()
     case 0xDDBC:
     {
       struct DDBC_t {
-        uint8_t soc[2];
-        uint8_t socMax[2];
-        uint8_t socMin[2];
         uint8_t unknown[2];
-        uint16_t getSoc() { return 0x100 * soc[0] + soc[1]; };
+        uint16_t socMin;
+        uint16_t socMax;
+        uint16_t soc;
       };
       
       if (payloadLength == sizeof(DDBC_t)) {
-        DDBC_t* ptr = (DDBC_t*)pHeader->pData;
+        DDBC_t* ptr = (DDBC_t*)payloadReversed.data();
         
-        liveData->params.socPerc = ptr->getSoc() / 10.0;
+        liveData->params.socPerc = ptr->soc / 10.0;
       }
     }
     break;

@@ -230,6 +230,7 @@ class LiveData {
   
     // Canbus
     uint8_t rxBuffOffset = 0;  // offset of processing received data, in some cars needs to be set to 1, like in BMW i3
+    uint8_t expectedMinimalPacketLength = 0;  // what length of packet should be accepted. Set to 0 to accept any length
     
     // Params
     PARAMS_STRUC params;     // Realtime sensor values

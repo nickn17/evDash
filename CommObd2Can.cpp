@@ -216,34 +216,6 @@ void CommObd2Can::sendFlowControlFrame() {
   Serial.println("");
 }
 
-//static void mockupReceiveCanBuf(INT32U *id, INT8U *len, INT8U buf[])
-//{
-//  static uint8_t counter = 0;
-//  
-//  std::unordered_map<uint8_t, std::vector<uint8_t>> packets = {
-//    { 0, { 0xF1, 0x05, 0x62, 0xDD, 0xB4, 0x92, 0xC2 } },
-//    { 1, { 0xF1, 0x10, 34, 0xDD, 0xB4, 0x92, 0xC2 } },
-//    { 2, { 0xF1, 0x21, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4 } },
-//    { 3, { 0xF1, 0x22, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4 } },
-//    { 4, { 0xF1, 0x23, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4 } },
-//    { 5, { 0xF1, 0x24, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4 } },
-//    { 6, { 0xF1, 0x25, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4 } },
-//    { 7, { 0xF1, 0x26, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4 } }
-//  };
-//  
-//  if (counter >= packets.size()) 
-//    counter = 0;
-//  
-//  *id = 0x607;
-//  *len = packets[counter].size();
-//  //memset(buf, 0, 7);
-//  
-//  
-//  memcpy(buf, packets[counter].data(), 7);
-//  
-//  counter++;
-//}
-
 /**
    Receive PID
 */
@@ -273,8 +245,10 @@ uint8_t CommObd2Can::receivePID() {
       }
     }
 
-    if (rxLen == 5) {
-      Serial.println(" [Ignoring 5 bytes long packet]");
+    // Check if this packet shall be discarded due to its length. 
+    // If liveData->expectedPacketLength is set to 0, accept any length.
+    if(liveData->expectedMinimalPacketLength != 0 && rxLen < liveData->expectedMinimalPacketLength) {
+      Serial.println(" [Ignored packet]");
       return 0xff;
     }
     
@@ -315,17 +289,34 @@ static void buffer2string(String& out_targetString, uint8_t* in_pBuffer, const u
   
 }
 
+CommObd2Can::enFrame_t CommObd2Can::getFrameType(const uint8_t firstByte) {
+  const uint8_t frameType = (firstByte & 0xf0) >> 4; // frame type is in bits 7 to 4
+  switch(frameType) {
+  case 0:
+    return enFrame_t::single;
+  case 1:
+    return enFrame_t::first;
+  case 2:
+    return enFrame_t::consecutive;
+  default:
+    return enFrame_t::unknown;
+  }
+}
+  
+
+
 /**
    Process can frame on byte level
+   https://en.wikipedia.org/wiki/ISO_15765-2
  */
 bool CommObd2Can::processFrameBytes() {
   
   uint8_t* pDataStart = rxBuf + liveData->rxBuffOffset; // set pointer to data start based on specific offset of car
-  const uint8_t frameType = (*pDataStart & 0xf0) >> 4;
+  const auto frameType = getFrameType(*pDataStart);
   const uint8_t frameLenght = rxLen - liveData->rxBuffOffset;
   
   switch (frameType) {
-  case 0: // Single frame
+  case enFrame_t::single: // Single frame
     {
       struct SingleFrame_t
       {
@@ -339,11 +330,16 @@ bool CommObd2Can::processFrameBytes() {
       
       rxRemaining = 0;
       
-      Serial.print("---Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
+      Serial.print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
+      
+      // single frame - process directly
+      buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
+      liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());
+      processMergedResponse();
     }
     break;
     
-  case 1: // First frame
+  case enFrame_t::first: // First frame
     {
       struct FirstFrame_t
       {
@@ -367,11 +363,11 @@ bool CommObd2Can::processFrameBytes() {
       dataRows[0].assign(pFirstFrame->pData, pFirstFrame->pData + framePayloadSize);
       rxRemaining -= framePayloadSize;
       
-      Serial.print("---Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
+      Serial.print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
     }
     break;
     
-  case 2: // Consecutive frame
+  case enFrame_t::consecutive: // Consecutive frame
     {
       struct ConsecutiveFrame_t
       {
@@ -388,43 +384,31 @@ bool CommObd2Can::processFrameBytes() {
       dataRows[pConseqFrame->index].assign(pConseqFrame->pData, pConseqFrame->pData + framePayloadSize);
       rxRemaining -= framePayloadSize;
       
-      Serial.print("---Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
+      Serial.print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
     }
     break;
     
   default:
-    Serial.print("Unknown frame type within CommObd2Can::processFrameBytes(): "); Serial.println(frameType);
+    Serial.print("Unknown frame type within CommObd2Can::processFrameBytes(): "); Serial.println((uint8_t)frameType);
     return false;
     break;
-  }
+  } // \switch (frameType)
   
-  
-  if (frameType == 0)
-  {
-    // single frame - process directly
-    buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
-    liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());
-    processMergedResponse();
-  }
-  else if (rxRemaining <= 0)
-  {
+  // Merge data if all data was received
+  if (rxRemaining <= 0) {
     // multiple frames and no data remaining - merge everything to single packet
-    //for(const auto& row : dataRows)
-    for (int i = 0; i < dataRows.size(); i++)
-    {
-      Serial.print("---merging packet index ");
+    for (int i = 0; i < dataRows.size(); i++) {
+      Serial.print("------merging packet index ");
       Serial.print(i);
       Serial.print(" with length ");
       Serial.println(dataRows[i].size());
       
       mergedData.insert(mergedData.end(), dataRows[i].begin(), dataRows[i].end());
-      
     }
     
-    buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
-    liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());
+    buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size()); // output for string parsing
+    liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());   // output for binary parsing
     processMergedResponse();
-    
   }
   
   return true;
