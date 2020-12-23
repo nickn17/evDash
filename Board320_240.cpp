@@ -1369,15 +1369,16 @@ bool Board320_240::sdcardMount() {
 
   while (1) {
     Serial.print("Initializing SD card...");
-
+    
 #ifdef BOARD_TTGO_T4
+    Serial.print(" TTGO-T4 ");
     SPIClass * hspi = new SPIClass(HSPI);
     spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
     SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
-#endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_CORE
+#endif BOARD_TTGO_T4
+
+    Serial.print(" M5STACK ");
     SdState = SD.begin(pinSdcardCs);
-#endif // BOARD_M5STACK_CORE
 
     if (SdState) {
 
