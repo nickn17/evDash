@@ -1188,7 +1188,7 @@ void Board320_240::redrawScreen() {
     }
 
     // BLE not connected
-    if (!liveData->bleConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
+    if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
       // Print message
       spr.setTextSize(1);
       spr.setTextColor(TFT_WHITE, TFT_BLACK);

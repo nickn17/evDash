@@ -37,6 +37,7 @@ void CommObd2Can::connectDevice() {
   pinMode(pinCanInt, INPUT);                    // Configuring pin for /INT input
 
   // Serve first command (ATZ)
+  liveData->commConnected = true;  
   doNextQueueCommand();
 
   Serial.println("init_can() done");
@@ -47,6 +48,7 @@ void CommObd2Can::connectDevice() {
 */
 void CommObd2Can::disconnectDevice() {
 
+  liveData->commConnected = false;  
   Serial.println("COMM disconnectDevice");
 }
 

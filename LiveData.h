@@ -219,9 +219,10 @@ class LiveData {
     uint16_t scanningDeviceIndex = 0;
     MENU_ITEM* menuItems;
 
+    // Comm
+    boolean commConnected = true;
     // Bluetooth4
     boolean bleConnect = true;
-    boolean bleConnected = false;
     BLEAddress *pServerAddress;
     BLERemoteCharacteristic* pRemoteCharacteristic;
     BLERemoteCharacteristic* pRemoteCharacteristicWrite;
