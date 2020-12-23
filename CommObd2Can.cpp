@@ -222,7 +222,7 @@ void CommObd2Can::sendFlowControlFrame() {
    Receive PID
 */
 uint8_t CommObd2Can::receivePID() {
-  
+
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
@@ -252,6 +252,16 @@ uint8_t CommObd2Can::receivePID() {
     if(liveData->expectedMinimalPacketLength != 0 && rxLen < liveData->expectedMinimalPacketLength) {
       Serial.println(" [Ignored packet]");
       return 0xff;
+    }
+
+    // Filter received messages (Ioniq only)
+    if(liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
+      long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
+
+      if(rxId != atsh_response) {
+        Serial.println(" [Filtered packet]");
+        return 0xff;
+      }
     }
     
     Serial.println();
