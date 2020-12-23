@@ -58,6 +58,7 @@ typedef struct {
   char sdcardFilename[32];
   // Car params
   bool ignitionOn;
+  bool chargingOn;
   time_t lastIgnitionOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;

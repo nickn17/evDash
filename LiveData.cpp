@@ -27,6 +27,7 @@ void LiveData::initParams() {
   params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;
   params.chargingStartTime = params.currentTime = 0;
+  params.chargingOn = false;
   params.lightInfo = 0;
   params.headLights = false;
   params.dayLights = false;
