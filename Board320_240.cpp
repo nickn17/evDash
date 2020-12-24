@@ -73,8 +73,12 @@ void Board320_240::afterSetup() {
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2) {
-    Serial.print("GPS initialization on hw uart: "); 
+    Serial.print("GPS initialization on hwUart: "); 
     Serial.println(liveData->settings.gpsHwSerialPort);
+    if (liveData->settings.gpsHwSerialPort == 0) {
+      Serial.println("hwUart0 collision with serial console! Disabling serial console");
+      Serial.end();
+    }    
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
   }

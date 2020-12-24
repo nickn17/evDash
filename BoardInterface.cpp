@@ -38,7 +38,7 @@ void BoardInterface::shutdownDevice() {
   }
 
 #ifdef SIM800L_ENABLED
-  if(sim800l->isConnectedGPRS()) {
+  if (sim800l->isConnectedGPRS()) {
     sim800l->disconnectGPRS();
   }
   sim800l->setPowerMode(MINIMUM);
@@ -49,7 +49,7 @@ void BoardInterface::shutdownDevice() {
   //WiFi.disconnect(true);
   //WiFi.mode(WIFI_OFF);
 
-  commInterface->disconnectDevice();  
+  commInterface->disconnectDevice();
   //adc_power_off();
   //esp_wifi_stop();
   esp_bt_controller_disable();
@@ -137,6 +137,10 @@ void BoardInterface::loadSettings() {
   liveData->settings.headlightsReminder = 0;
   liveData->settings.gpsHwSerialPort = 255; // off
   liveData->settings.gprsHwSerialPort = 255; // off
+  liveData->settings.serialConsolePort = 0; // hwuart0
+  liveData->settings.debugLevel = 1; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  liveData->settings.sdcardLogIntervalSec = 2;
+  liveData->settings.gprsLogIntervalSec = 60;
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -191,6 +195,13 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 5;
         liveData->tmpSettings.gpsHwSerialPort = 255; // off
       }
+      if (liveData->tmpSettings.settingsVersion == 5) {
+        liveData->tmpSettings.settingsVersion = 6;
+        liveData->tmpSettings.serialConsolePort = 0; // hwuart0
+        liveData->tmpSettings.debugLevel = 1; // 1 - debug communication (BLE/CAN)
+        liveData->tmpSettings.sdcardLogIntervalSec = 2;
+        liveData->tmpSettings.gprsLogIntervalSec = 60;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -210,7 +221,7 @@ void BoardInterface::afterSetup() {
   // Init Comm iterface
   Serial.print("Init communication device: ");
   Serial.println(liveData->settings.commType);
-  
+
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {
     commInterface = new CommObd2Ble4();
   } else if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
@@ -247,10 +258,10 @@ void BoardInterface::customConsoleCommand(String cmd) {
 }
 
 /**
- * Parser response from obd2/can
- */
+   Parser response from obd2/can
+*/
 void BoardInterface::parseRowMerged() {
-  
+
   carInterface->parseRowMerged();
 }
 
