@@ -97,7 +97,6 @@ void CarHyundaiIoniq::parseRowMerged() {
         liveData->params.speedKmh = 0;
     }
     if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxPerc = liveData->hexToDecFromResponse(38, 40, 1, false);
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
     }
   }
@@ -157,6 +156,11 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 2, true);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 2, true);
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 2, true) / 10.0;
+      if(liveData->params.ignitionOn) {
+        liveData->params.auxPerc = map(liveData->params.auxVoltage, 12.8, 14.8, 0, 100);
+      } else {
+        liveData->params.auxPerc = map(liveData->params.auxVoltage, 11.6, 12.8, 0, 100);
+      }
       liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(24, 28, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(28, 32, 2, false) / 10.0;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
