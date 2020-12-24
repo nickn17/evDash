@@ -68,9 +68,15 @@ typedef struct {
   bool headLights;
   bool dayLights;
   bool brakeLights;
-  uint8_t lightInfo;
+  bool trunkDoorOpen;
+  bool leftFrontDoorOpen;
+  bool rightFrontDoorOpen;
+  bool leftRearDoorOpen;
+  bool rightRearDoorOpen;
+  bool hoodOpen;
+/*  uint8_t lightInfo;
   uint8_t brakeLightInfo;
-  uint8_t espState;
+  uint8_t espState;*/
   float batteryTotalAvailableKWh;
   float speedKmh;
   float motorRpm;

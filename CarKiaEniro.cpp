@@ -1,12 +1,12 @@
-/* 
- *    eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
+/*
+      eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
   >= 35°C BMS allows max 180A
   >= 25°C without limit (200A)
   >= 15°C BMS allows max 120A
   >= 5°C BMS allows max 90A
   >= 1°C BMS allows max 60A
   <= 0°C BMS allows max 40A
- */
+*/
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -20,8 +20,8 @@
 #define commandQueueLoopFromKiaENiro 8
 
 /**
- * activateCommandQueue
- */
+   activateCommandQueue
+*/
 void CarKiaEniro::activateCommandQueue() {
 
   String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
@@ -102,11 +102,11 @@ void CarKiaEniro::activateCommandQueue() {
 }
 
 /**
- * parseRowMerged
- */
+   parseRowMerged
+*/
 void CarKiaEniro::parseRowMerged() {
 
-  bool tempByte;
+  uint8_t tempByte;
   float tempFloat;
   String tmpStr;
 
@@ -123,21 +123,31 @@ void CarKiaEniro::parseRowMerged() {
   // IGPM
   if (liveData->currentAtshRequest.equals("ATSH770")) {
     if (liveData->commandRequest.equals("22BC03")) {
+      // 
+      tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.trunkDoorOpen = (bitRead(tempByte, 7) == 1);
+      liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+      liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 4) == 1);
+      liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
+      liveData->params.leftRearDoorOpen  = (bitRead(tempByte, 0) == 1);
+      //
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
+      liveData->params.hoodOpen  = (bitRead(tempByte, 0) == 1);
       if (liveData->params.ignitionOn) {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
+
       int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
       if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn && !liveData->params.chargingOn)
         liveData->params.automaticShutdownTimer = liveData->params.currentTime;
-      liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
-      liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
-      liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
+      tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
+      liveData->params.headLights = (bitRead(tempByte, 5) == 1);
+      liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
     }
     if (liveData->commandRequest.equals("22BC06")) {
-      liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
-      liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
+      tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
     }
   }
 
@@ -305,8 +315,8 @@ void CarKiaEniro::parseRowMerged() {
 }
 
 /**
- * loadTestData
- */
+   loadTestData
+*/
 void CarKiaEniro::loadTestData() {
 
   // IGPM

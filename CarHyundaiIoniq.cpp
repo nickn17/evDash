@@ -85,7 +85,7 @@ void CarHyundaiIoniq::activateCommandQueue() {
 */
 void CarHyundaiIoniq::parseRowMerged() {
 
-  bool tempByte;
+  uint8_t tempByte;
   float tempFloat;
   String tmpStr;
 
@@ -112,13 +112,13 @@ void CarHyundaiIoniq::parseRowMerged() {
       int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
       if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn && !liveData->params.chargingOn)
         liveData->params.automaticShutdownTimer = liveData->params.currentTime;
-      liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
-      liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
-      liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
+      tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
+      liveData->params.headLights = (bitRead(tempByte, 5) == 1);
+      liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
     }
     if (liveData->commandRequest.equals("22BC06")) {
-      liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
-      liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
+      tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
     }
   }
 
