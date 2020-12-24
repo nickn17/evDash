@@ -1,4 +1,4 @@
-#include <SD.h>
+//#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
 #include <TFT_eSPI.h>
@@ -77,6 +77,7 @@ void Board320_240::afterSetup() {
     Serial.println(liveData->settings.gpsHwSerialPort);
     if (liveData->settings.gpsHwSerialPort == 0) {
       Serial.println("hwUart0 collision with serial console! Disabling serial console");
+      Serial.flush();
       Serial.end();
     }    
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
