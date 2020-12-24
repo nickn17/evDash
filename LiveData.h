@@ -73,7 +73,7 @@ typedef struct {
   bool rightFrontDoorOpen;
   bool leftRearDoorOpen;
   bool rightRearDoorOpen;
-  bool hoodOpen;
+  bool hoodDoorOpen;
 /*  uint8_t lightInfo;
   uint8_t brakeLightInfo;
   uint8_t espState;*/

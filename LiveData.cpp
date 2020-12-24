@@ -36,7 +36,7 @@ void LiveData::initParams() {
   params.rightFrontDoorOpen = false;
   params.leftRearDoorOpen = false;
   params.rightRearDoorOpen = false;
-  params.hoodOpen = false;
+  params.hoodDoorOpen = false;
   params.forwardDriveMode = false;
   params.reverseDriveMode = false;
   params.parkModeOrNeutral = false;

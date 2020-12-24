@@ -1220,7 +1220,7 @@ void Board320_240::redrawScreen() {
       spr.fillRect(320 - 20, 20, 20, 98, TFT_YELLOW);
     if (liveData->params.rightRearDoorOpen)
       spr.fillRect(320 - 20, 122, 20, 98, TFT_YELLOW);
-    if (liveData->params.hoodOpen)
+    if (liveData->params.hoodDoorOpen)
       spr.fillRect(20, 240 - 20, 320 - 40, 20, TFT_YELLOW);
 
     // BLE not connected

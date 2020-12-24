@@ -125,15 +125,15 @@ void CarKiaEniro::parseRowMerged() {
     if (liveData->commandRequest.equals("22BC03")) {
       // 
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
-      liveData->params.trunkDoorOpen = (bitRead(tempByte, 7) == 1);
+      liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
       liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
-      liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 4) == 1);
+      liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+      liveData->params.leftRearDoorOpen  = (bitRead(tempByte, 4) == 1);
       liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
-      liveData->params.leftRearDoorOpen  = (bitRead(tempByte, 0) == 1);
       //
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-      liveData->params.hoodOpen  = (bitRead(tempByte, 0) == 1);
+      liveData->params.trunkDoorOpen  = (bitRead(tempByte, 0) == 1);
       if (liveData->params.ignitionOn) {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
