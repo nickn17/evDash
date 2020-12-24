@@ -129,7 +129,7 @@ void CarRenaultZoe::activateCommandQueue() {
 */
 void CarRenaultZoe::parseRowMerged() {
 
-  bool tempByte;
+  uint8_t tempByte;
 
   // LBC 79B
   if (liveData->currentAtshRequest.equals("ATSH79B")) {
