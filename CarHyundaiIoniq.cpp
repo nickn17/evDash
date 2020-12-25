@@ -155,11 +155,12 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 2, true);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 2, true);
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 2, true) / 10.0;
+
       float tmpAuxPerc;
       if(liveData->params.ignitionOn) {
-        tmpAuxPerc = map(liveData->params.auxVoltage * 10, 128, 148, 0, 1000) / 10;
+        tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V 
       } else {
-        tmpAuxPerc = map(liveData->params.auxVoltage * 10, 116, 128, 0, 1000) / 10;
+        tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
       }
       if(tmpAuxPerc > 100) {
         liveData->params.auxPerc = 100;
