@@ -37,13 +37,6 @@ void BoardInterface::shutdownDevice() {
     delay(1000);
   }
 
-#ifdef SIM800L_ENABLED
-  if (sim800l->isConnectedGPRS()) {
-    sim800l->disconnectGPRS();
-  }
-  sim800l->setPowerMode(MINIMUM);
-#endif //SIM800L_ENABLED
-
   setCpuFrequencyMhz(80);
   setBrightness(0);
   //WiFi.disconnect(true);

@@ -111,11 +111,11 @@ void setup(void) {
   car->activateCommandQueue();
   board->attachCar(car);
 
-  // Redraw screen
-  board->redrawScreen();
-
   // Finish board setup
   board->afterSetup();
+
+  // Redraw screen
+  board->redrawScreen();
 
   // End
   Serial.println("Device setup completed");

@@ -11,6 +11,8 @@
 #include <ArduinoJson.h>
 #include "SIM800L.h"
 
+RTC_DATA_ATTR int bootCount = 0;
+
 /**
    Init board
 */
@@ -29,6 +31,29 @@ void Board320_240::initBoard() {
   getLocalTime(&now, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
+  ++bootCount;
+  Serial.print("Boot count: ");
+  Serial.println(bootCount);
+}
+
+/**
+   After setup device
+*/
+void Board320_240::afterSetup() {
+
+  if (digitalRead(pinButtonRight) == LOW) {
+    loadTestData();
+  }
+
+  // Init from parent class
+  Serial.println("BoardInterface::afterSetup");
+  BoardInterface::afterSetup();
+
+  // Check if bard was sleeping
+  if(bootCount > 1) {
+    afterSleep();
+  }
+
   // Init display
   Serial.println("Init tft display");
   tft.begin();
@@ -44,12 +69,6 @@ void Board320_240::initBoard() {
 #endif
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
-}
-
-/**
-   After setup device
-*/
-void Board320_240::afterSetup() {
 
   // Show test data on right button during boot device
   displayScreen = liveData->settings.defaultScreen;
@@ -96,10 +115,56 @@ void Board320_240::afterSetup() {
   if (liveData->settings.gprsHwSerialPort <= 2) {
     sim800lSetup();
   }
+}
 
-  // Init from parent class
-  Serial.println("BoardInterface::afterSetup");
-  BoardInterface::afterSetup();
+/**
+   Go to Sleep for TIME_TO_SLEEP seconds
+*/
+void Board320_240::goToSleep() {
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
+  Serial.println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
+
+  if(liveData->params.sim800l_enabled) {
+    if (sim800l->isConnectedGPRS()) {
+      sim800l->disconnectGPRS();
+    }
+    sim800l->setPowerMode(MINIMUM);
+  }
+
+  Serial.flush();
+
+  esp_deep_sleep_start();
+}
+
+/*
+  Wake up board from sleep
+  Iterate thru commands and determine if car is charging or ignition is on
+*/
+
+void Board320_240::afterSleep() {
+  Serial.println("Waking up from sleep mode!");
+
+  bool firstRun = true;
+  
+  while(liveData->commandQueueIndex > liveData->commandQueueLoopFrom || firstRun) {
+    if(liveData->commandQueueIndex == liveData->commandQueueLoopFrom) {
+      firstRun = false;
+    }
+
+    if(millis() > 10000) {
+      Serial.println("Time's up (10s timeout)...");
+      goToSleep();
+    }
+
+    commInterface->mainLoop();
+  }
+
+  if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {
+    Serial.println("Not started & Not charging.");
+    goToSleep();
+  } else {
+    Serial.println("Wake up conditions satisfied... Good morning!");
+  }
 }
 
 /**
@@ -1377,7 +1442,7 @@ void Board320_240::mainLoop() {
 
   // Shutdown when car is off
   if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
-    shutdownDevice();
+    goToSleep();
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
@@ -1531,7 +1596,17 @@ bool Board320_240::sim800lSetup() {
   if (!sim800l_ready) {
     Serial.println("Problem to initialize SIM800L module");
   } else {
+
     Serial.println("SIM800L module initialized");
+
+    if(sim800l->getPowerMode() == MINIMUM) {
+      Serial.println("SIM800L module in sleep mode - Waking up");
+      if(sim800l->setPowerMode(NORMAL)) {
+        Serial.println("SIM800L in normal power mode");
+      } else {
+        Serial.println("Failed to switch SIM800L to normal power mode");
+      }
+    }
 
     Serial.print("Setting GPRS APN to: ");
     Serial.println(liveData->settings.gprsApn);
