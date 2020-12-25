@@ -6,8 +6,8 @@
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
 
-#define commandQueueCountRenaultZoe 83
-#define commandQueueLoopFromRenaultZoe 9
+#define commandQueueCountRenaultZoe 34
+#define commandQueueLoopFromRenaultZoe 8
 
 /**
    activateCommandQueue
@@ -108,7 +108,9 @@ void CarRenaultZoe::activateCommandQueue() {
 
   //
   liveData->params.batModuleTempCount = 12; // 24, 12 is display limit
-  liveData->params.batteryTotalAvailableKWh = 28;
+  liveData->params.batteryTotalAvailableKWh = 22;
+  // usable 22, total 26
+  
 
   //  Empty and fill command queue
   for (int i = 0; i < 300; i++) {
@@ -127,7 +129,7 @@ void CarRenaultZoe::activateCommandQueue() {
 */
 void CarRenaultZoe::parseRowMerged() {
 
-  bool tempByte;
+  uint8_t tempByte;
 
   // LBC 79B
   if (liveData->currentAtshRequest.equals("ATSH79B")) {

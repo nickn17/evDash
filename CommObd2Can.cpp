@@ -202,7 +202,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
 */
 void CommObd2Can::sendFlowControlFrame() {
 
-  uint8_t txBuf[8] = { 0x30, requestFramesCount /*request count*/, 14 /*ms between frames*/ , 0, 0, 0, 0, 0 };
+  uint8_t txBuf[8] = { 0x30, requestFramesCount /*request count*/, 20 /*ms between frames*/ , 0, 0, 0, 0, 0 };
   
   // insert 0x07 into beginning for BMW i3
   if (liveData->settings.carType == CAR_BMW_I3_2014) {
@@ -228,7 +228,7 @@ void CommObd2Can::sendFlowControlFrame() {
    Receive PID
 */
 uint8_t CommObd2Can::receivePID() {
-  
+
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
@@ -258,6 +258,16 @@ uint8_t CommObd2Can::receivePID() {
     if(liveData->expectedMinimalPacketLength != 0 && rxLen < liveData->expectedMinimalPacketLength) {
       Serial.println(" [Ignored packet]");
       return 0xff;
+    }
+
+    // Filter received messages (Ioniq only)
+    if(liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) {
+      long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
+
+      if(rxId != atsh_response) {
+        Serial.println(" [Filtered packet]");
+        return 0xff;
+      }
     }
     
     Serial.println();

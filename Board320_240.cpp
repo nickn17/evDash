@@ -1,4 +1,4 @@
-#include <SD.h>
+//#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
 #include <TFT_eSPI.h>
@@ -73,8 +73,13 @@ void Board320_240::afterSetup() {
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2) {
-    Serial.print("GPS initialization on hw uart: "); 
+    Serial.print("GPS initialization on hwUart: ");
     Serial.println(liveData->settings.gpsHwSerialPort);
+    if (liveData->settings.gpsHwSerialPort == 0) {
+      Serial.println("hwUart0 collision with serial console! Disabling serial console");
+      Serial.flush();
+      Serial.end();
+    }
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
   }
@@ -1058,7 +1063,24 @@ void Board320_240::menuItemClick() {
       // Save settings
       case 9: saveSettings(); break;
       // Version
-      case 10: hideMenu(); return;
+      case 10:
+      /*  commInterface->executeCommand("ATSH770");
+        delay(50);
+        commInterface->executeCommand("3E");
+        delay(50);
+        commInterface->executeCommand("1003");
+        delay(50);
+        commInterface->executeCommand("2FBC1003");
+        delay(5000);
+        commInterface->executeCommand("ATSH770");
+        delay(50);
+        commInterface->executeCommand("3E");
+        delay(50);
+        commInterface->executeCommand("1003");
+        delay(50);
+        commInterface->executeCommand("2FBC1103");
+        delay(5000);*/
+        hideMenu(); return;
       // Shutdown
       case 11: shutdownDevice(); return;
       default:
@@ -1166,8 +1188,8 @@ void Board320_240::redrawScreen() {
     // SDCARD recording
     /*liveData->params.sdcardRecording*/
     if (liveData->settings.sdcardEnabled == 1) {
-      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
-      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
+      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
+      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
                      (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1177,15 +1199,29 @@ void Board320_240::redrawScreen() {
                      TFT_YELLOW /* failed to initialize sdcard */
                     );
     }
+    // GPS state
     if (gpsHwUart != NULL && (displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED)) {
-      spr.drawCircle(180, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+      spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
       spr.setTextSize(1);
       spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
       spr.setTextDatum(TL_DATUM);
       sprintf(tmpStr1, "%d", liveData->params.gpsSat);
-      spr.drawString(tmpStr1, 194, 2, 2);
-
+      spr.drawString(tmpStr1, 174, 2, 2);
     }
+
+    // Door status
+    if (liveData->params.trunkDoorOpen)
+      spr.fillRect(20, 0, 320 - 40, 20, TFT_YELLOW);
+    if (liveData->params.leftFrontDoorOpen)
+      spr.fillRect(0, 20, 20, 98, TFT_YELLOW);
+    if (liveData->params.rightFrontDoorOpen)
+      spr.fillRect(0, 122, 20, 98, TFT_YELLOW);
+    if (liveData->params.leftRearDoorOpen)
+      spr.fillRect(320 - 20, 20, 20, 98, TFT_YELLOW);
+    if (liveData->params.rightRearDoorOpen)
+      spr.fillRect(320 - 20, 122, 20, 98, TFT_YELLOW);
+    if (liveData->params.hoodDoorOpen)
+      spr.fillRect(20, 240 - 20, 320 - 40, 20, TFT_YELLOW);
 
     // BLE not connected
     if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
@@ -1208,7 +1244,7 @@ void Board320_240::redrawScreen() {
 void Board320_240::loadTestData() {
 
   Serial.println("Loading test data");
-  
+
   testDataMode = true; // skip lights off message
   carInterface->loadTestData();
   redrawScreen();
@@ -1371,13 +1407,14 @@ bool Board320_240::sdcardMount() {
     Serial.print("Initializing SD card...");
 
 #ifdef BOARD_TTGO_T4
+    Serial.print(" TTGO-T4 ");
     SPIClass * hspi = new SPIClass(HSPI);
     spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
     SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
-#endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_CORE
+#endif BOARD_TTGO_T4
+
+    Serial.print(" M5STACK ");
     SdState = SD.begin(pinSdcardCs);
-#endif // BOARD_M5STACK_CORE
 
     if (SdState) {
 
@@ -1484,7 +1521,7 @@ bool Board320_240::sim800lSetup() {
   // SIM800L DebugMode:
   //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512, (Stream *)&Serial);
 
-  bool sim800l_ready = sim800l->isReady();  
+  bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
     Serial.println("Problem to initialize SIM800L module, retry in 1 sec");
     delay(1000);

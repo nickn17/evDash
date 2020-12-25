@@ -85,7 +85,7 @@ void CarHyundaiIoniq::activateCommandQueue() {
 */
 void CarHyundaiIoniq::parseRowMerged() {
 
-  bool tempByte;
+  uint8_t tempByte;
   float tempFloat;
   String tmpStr;
 
@@ -97,7 +97,6 @@ void CarHyundaiIoniq::parseRowMerged() {
         liveData->params.speedKmh = 0;
     }
     if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
     }
   }
@@ -111,15 +110,15 @@ void CarHyundaiIoniq::parseRowMerged() {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
       int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
-      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn)
+      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn && !liveData->params.chargingOn)
         liveData->params.automaticShutdownTimer = liveData->params.currentTime;
-      liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
-      liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
-      liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
+      tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
+      liveData->params.headLights = (bitRead(tempByte, 5) == 1);
+      liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
     }
     if (liveData->commandRequest.equals("22BC06")) {
-      liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
-      liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
+      tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
     }
   }
 
@@ -157,6 +156,20 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 2, true);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 2, true);
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 2, true) / 10.0;
+      float tmpAuxPerc;
+      if(liveData->params.ignitionOn) {
+        tmpAuxPerc = map(liveData->params.auxVoltage * 10, 128, 148, 0, 1000) / 10;
+      } else {
+        tmpAuxPerc = map(liveData->params.auxVoltage * 10, 116, 128, 0, 1000) / 10;
+      }
+      if(tmpAuxPerc > 100) {
+        liveData->params.auxPerc = 100;
+      } else if(tmpAuxPerc < 0) {
+        liveData->params.auxPerc = 0;
+      } else {
+        liveData->params.auxPerc = tmpAuxPerc;
+      }
+
       liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(24, 28, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(28, 32, 2, false) / 10.0;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
@@ -173,6 +186,9 @@ void CarHyundaiIoniq::parseRowMerged() {
       //liveData->params.batTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(32, 34, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(34, 36, 1, true);
+
+      tempByte = liveData->hexToDecFromResponse(104, 106, 1, false);
+      liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batInletC = liveData->hexToDecFromResponse(48, 50, 1, true);

@@ -21,7 +21,7 @@ void BoardM5stackCore::initBoard() {
 
   // Mute speaker
   //ledcWriteTone(TONE_PIN_CHANNEL, 0);
-  digitalWrite(SPEAKER_PIN, 0);
+  dacWrite(SPEAKER_PIN, 0);
 
   //
   Board320_240::initBoard();

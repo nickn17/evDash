@@ -58,6 +58,7 @@ typedef struct {
   char sdcardFilename[32];
   // Car params
   bool ignitionOn;
+  bool chargingOn;
   time_t lastIgnitionOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;
@@ -67,9 +68,15 @@ typedef struct {
   bool headLights;
   bool dayLights;
   bool brakeLights;
-  uint8_t lightInfo;
+  bool trunkDoorOpen;
+  bool leftFrontDoorOpen;
+  bool rightFrontDoorOpen;
+  bool leftRearDoorOpen;
+  bool rightRearDoorOpen;
+  bool hoodDoorOpen;
+/*  uint8_t lightInfo;
   uint8_t brakeLightInfo;
-  uint8_t espState;
+  uint8_t espState;*/
   float batteryTotalAvailableKWh;
   float speedKmh;
   float motorRpm;
@@ -193,6 +200,14 @@ typedef struct {
   // =================================
   byte gpsHwSerialPort; // 255-off, 0,1,2 - hw serial
   byte gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  // === settings version 6
+  // =================================
+  byte serialConsolePort; // 255-off, 0 - hw serial (std)
+  byte debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  uint16_t sdcardLogIntervalSec; // every x seconds
+  uint16_t gprsLogIntervalSec; // every x seconds
+  
+  
   //  
 } SETTINGS_STRUC;
 
