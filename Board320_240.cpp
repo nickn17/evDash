@@ -133,6 +133,8 @@ void Board320_240::goToSleep() {
 
   Serial.flush();
 
+  delay(1000);
+
   esp_deep_sleep_start();
 }
 
@@ -159,7 +161,10 @@ void Board320_240::afterSleep() {
     commInterface->mainLoop();
   }
 
-  if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {
+  if(liveData->params.auxVoltage < 12) {
+    Serial.println("AuxBATT too low!");
+    goToSleep();
+  } else if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {
     Serial.println("Not started & Not charging.");
     goToSleep();
   } else {
