@@ -33,9 +33,11 @@ void CarBmwI3::activateCommandQueue() {
 		// BMS
 		"ATSH6F1",
 
+    "22402B", // STATUS_MESSWERTE_IBS - 12V Bat
+    //"22F101", // STATUS_A_T_ELUE ???
     "22DDC0", // TEMPERATUREN
     "22DD69", // HV_STORM
-    "22DD6C", // KUEHLKREISLAUF_TEMP
+    //"22DD6C", // KUEHLKREISLAUF_TEMP
     "22DDB4", // HV_SPANNUNG
     "22DDBC"  // SOC
 		
@@ -66,12 +68,14 @@ void CarBmwI3::activateCommandQueue() {
 */
 void CarBmwI3::parseRowMerged() 
 {
-  Serial.println("--Parsing row merged: ");  
-  Serial.print("--responseRowMerged: ");  Serial.println(liveData->responseRowMerged);
-  Serial.print("--currentAtshRequest: ");   Serial.println(liveData->currentAtshRequest);
-  Serial.print("--commandRequest: ");       Serial.println(liveData->commandRequest);
-  Serial.print("--mergedLength: ");         Serial.println(liveData->responseRowMerged.length());
+  
+//  Serial.println("--Parsing row merged: ");  
+//  Serial.print("--responseRowMerged: ");  Serial.println(liveData->responseRowMerged);
+//  Serial.print("--currentAtshRequest: ");   Serial.println(liveData->currentAtshRequest);
+//  Serial.print("--commandRequest: ");       Serial.println(liveData->commandRequest);
+//  Serial.print("--mergedLength: ");         Serial.println(liveData->responseRowMerged.length());
   Serial.print("--mergedVectorLength: ");   Serial.println(liveData->vResponseRowMerged.size());
+  
   if (liveData->responseRowMerged.length() <= 6) {
     Serial.println("--too short data, skiping processing");
   }
@@ -94,19 +98,39 @@ void CarBmwI3::parseRowMerged()
   std::vector<uint8_t> payloadReversed(pHeader->pData, pHeader->pData + payloadLength);
   std::reverse(payloadReversed.begin(), payloadReversed.end());
   
-  Serial.print("--extracted PID: "); Serial.println(pHeader->getPid());
-  Serial.print("--payload length: "); Serial.println(payloadLength);
+  //Serial.print("--extracted PID: "); Serial.println(pHeader->getPid());
+  //Serial.print("--payload length: "); Serial.println(payloadLength);
   
   
   // BMS
   if (liveData->currentAtshRequest.equals("ATSH6F1")) {
 
     switch (pHeader->getPid()) {
+    case 0x402B:
+    {
+      struct s402B_t {
+        int16_t unknown[13];
+        uint16_t auxRawCurrent;
+        uint16_t auxRawVoltage;
+        int16_t auxTemp;
+      };
+
+      if (payloadLength == sizeof(s402B_t)) {
+        s402B_t* ptr = (s402B_t*)payloadReversed.data();
+
+        liveData->params.auxPerc = ptr->auxTemp / 10.0;
+        liveData->params.auxVoltage = ptr->auxRawVoltage / 4000.0 + 6;
+        liveData->params.auxCurrentAmp = - (ptr->auxRawCurrent / 12.5 - 200);
+      }
+        
+    }
+    break;
+    
     case 0xDD69:
     {
       struct DD69_t {
         uint8_t unknown[4];
-        uint32_t batAmp;
+        int32_t batAmp;
       };
 
       if (payloadLength == sizeof(DD69_t)) { 
@@ -123,6 +147,22 @@ void CarBmwI3::parseRowMerged()
 
     case 0xDD6C:
     {
+      struct DD6C_t {
+        int16_t tempCoolant;
+      };
+
+      if (payloadLength == sizeof(DD6C_t)) {
+        DD6C_t* ptr = (DD6C_t*)payloadReversed.data();
+
+        liveData->params.coolingWaterTempC = ptr->tempCoolant / 10.0;
+        liveData->params.coolantTemp1C = ptr->tempCoolant / 10.0;
+        liveData->params.coolantTemp2C = ptr->tempCoolant / 10.0;
+        /*  
+        float coolingWaterTempC;
+        float coolantTemp1C;
+        float coolantTemp2C;
+        */
+      }
       
     }
     break;
@@ -148,9 +188,9 @@ void CarBmwI3::parseRowMerged()
     {
       struct DDC0_t {
         uint8_t unknown[2];
-        uint16_t tempAvg;
-        uint16_t tempMax;
-        uint16_t tempMin;
+        int16_t tempAvg;
+        int16_t tempMax;
+        int16_t tempMin;
       };
       
       if (payloadLength == sizeof(DDC0_t)) {
@@ -178,8 +218,10 @@ void CarBmwI3::parseRowMerged()
       
       if (payloadLength == sizeof(DDBC_t)) {
         DDBC_t* ptr = (DDBC_t*)payloadReversed.data();
-        
+
+        liveData->params.socPercPrevious = liveData->params.socPerc;
         liveData->params.socPerc = ptr->soc / 10.0;
+        liveData->params.sohPerc = 92.0; // TODO: gother somewhere this value
       }
     }
     break;

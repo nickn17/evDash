@@ -149,8 +149,14 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
     };
     
     Packet_t* pPacket = (Packet_t*)txBuf;
+
+    if (cmd == "22402B" || cmd == "22F101") {
+      pPacket->startChar = txStartChar = 0x12;
+    } else {
+      pPacket->startChar = txStartChar = 0x07;
+    }
     
-    pPacket->startChar = 0x07;
+    
     pPacket->length = cmd.length() / 2;
     
     for (uint8_t i = 0; i < sizeof(pPacket->data); i++) {
@@ -201,7 +207,7 @@ void CommObd2Can::sendFlowControlFrame() {
   // insert 0x07 into beginning for BMW i3
   if (liveData->settings.carType == CAR_BMW_I3_2014) {
     memmove(txBuf + 1, txBuf, 7);
-    txBuf[0] = 0x07;
+    txBuf[0] = txStartChar;
   }
     
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
@@ -332,7 +338,7 @@ bool CommObd2Can::processFrameBytes() {
       
       rxRemaining = 0;
       
-      Serial.print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
+      //Serial.print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
       
       // single frame - process directly
       buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
@@ -365,7 +371,7 @@ bool CommObd2Can::processFrameBytes() {
       dataRows[0].assign(pFirstFrame->pData, pFirstFrame->pData + framePayloadSize);
       rxRemaining -= framePayloadSize;
       
-      Serial.print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
+      //Serial.print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
     }
     break;
     
@@ -379,14 +385,14 @@ bool CommObd2Can::processFrameBytes() {
       };
       
       const uint8_t structSize = sizeof(ConsecutiveFrame_t);
-      Serial.print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); Serial.println(structSize);
+      //Serial.print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); Serial.println(structSize);
       
       ConsecutiveFrame_t* pConseqFrame = (ConsecutiveFrame_t*)pDataStart;
       const uint8_t framePayloadSize = frameLenght - sizeof(ConsecutiveFrame_t);  // remove one byte of header
       dataRows[pConseqFrame->index].assign(pConseqFrame->pData, pConseqFrame->pData + framePayloadSize);
       rxRemaining -= framePayloadSize;
       
-      Serial.print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
+      //Serial.print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
     }
     break;
     
@@ -400,10 +406,10 @@ bool CommObd2Can::processFrameBytes() {
   if (rxRemaining <= 0) {
     // multiple frames and no data remaining - merge everything to single packet
     for (int i = 0; i < dataRows.size(); i++) {
-      Serial.print("------merging packet index ");
-      Serial.print(i);
-      Serial.print(" with length ");
-      Serial.println(dataRows[i].size());
+      //Serial.print("------merging packet index ");
+      //Serial.print(i);
+      //Serial.print(" with length ");
+      //Serial.println(dataRows[i].size());
       
       mergedData.insert(mergedData.end(), dataRows[i].begin(), dataRows[i].end());
     }

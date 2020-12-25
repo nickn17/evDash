@@ -22,6 +22,7 @@ class CommObd2Can : public CommInterface {
     char msgString[128];                        // Array to store serial string
     uint16_t lastPid;
     unsigned long lastDataSent = 0;
+    uint8_t txStartChar = 0; // set when sending PID, used when sending FlowControl
     
     std::vector<uint8_t> mergedData;
     std::unordered_map<uint16_t, std::vector<uint8_t>> dataRows;
