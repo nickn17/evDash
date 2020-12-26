@@ -214,8 +214,12 @@ void CarKiaEniro::parseRowMerged() {
       //liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      tempByte = liveData->hexToDecFromResponse(106, 108, 1, false);
-      liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
+
+      // Ignition Off/on
+      // tempByte = liveData->hexToDecFromResponse(106, 108, 1, false);
+      // liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
+      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false);
+      liveData->params.chargingOn = (bitRead(tempByte, 5) == 1 || bitRead(tempByte, 6) == 1); // bit 5 = AC; bit 6 = DC
       if (liveData->params.chargingOn) {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
