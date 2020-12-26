@@ -32,6 +32,11 @@ void CommInterface::mainLoop() {
     }
   }
 
+  // Drop ChargingOn when status was not updated for more than 10 seconds
+  if(liveData->params.currentTime - liveData->params.lastChargingOnTime > 10 && liveData->params.chargingOn) {
+    liveData->params.chargingOn = false;
+  }
+
   // Can send next command from queue to OBD
   if (liveData->canSendNextAtCommand) {
     liveData->canSendNextAtCommand = false;

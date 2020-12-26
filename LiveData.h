@@ -42,7 +42,6 @@ typedef struct {
   // System
   time_t currentTime;
   time_t chargingStartTime;
-  time_t automaticShutdownTimer;
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
@@ -60,6 +59,7 @@ typedef struct {
   bool ignitionOn;
   bool chargingOn;
   time_t lastIgnitionOnTime;
+  time_t lastChargingOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;
   bool forwardDriveMode;

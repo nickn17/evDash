@@ -154,7 +154,7 @@ void Board320_240::afterSleep() {
     }
 
     if(millis() > 5000) {
-      Serial.println("Time's up (10s timeout)...");
+      Serial.println("Time's up (5s timeout)...");
       goToSleep();
     }
 
@@ -1445,8 +1445,15 @@ void Board320_240::mainLoop() {
     }
   }
 
-  // Shutdown when car is off
-  if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
+  // Turn off display if Ignition is off for more than 10s
+  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10) {
+    setBrightness(0);
+  } else {
+    setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+  }
+
+  // Go to sleep when car is off for more than 10s and not charging
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && !liveData->params.chargingOn)
     goToSleep();
 
   // Read data from BLE/CAN
