@@ -121,20 +121,33 @@ void Board320_240::afterSetup() {
    Go to Sleep for TIME_TO_SLEEP seconds
 */
 void Board320_240::goToSleep() {
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
-  Serial.println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
+  //Sleep MCP2515
+  commInterface->disconnectDevice();
 
+  //Sleep SIM800L
   if(liveData->params.sim800l_enabled) {
     if (sim800l->isConnectedGPRS()) {
-      sim800l->disconnectGPRS();
+      bool disconnected = sim800l->disconnectGPRS();
+      for(uint8_t i = 0; i < 5 && !disconnected; i++) {
+        delay(1000);
+        disconnected = sim800l->disconnectGPRS();
+      }
     }
-    sim800l->setPowerMode(MINIMUM);
+
+    if(sim800l->getPowerMode() == NORMAL) {
+      sim800l->setPowerMode(SLEEP);
+      delay(1000);
+    }
+    sim800l->enterSleepMode();
   }
 
+  Serial.println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
   Serial.flush();
 
   delay(1000);
 
+  //Sleep ESP32
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
   esp_deep_sleep_start();
 }
 
@@ -1446,7 +1459,9 @@ void Board320_240::mainLoop() {
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->settings.sleepModeEnabled) {
+  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+      && liveData->params.lastIgnitionOnTime != 0
+      && liveData->settings.sleepModeEnabled) {
     setBrightness(0);
   } else {
     setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
@@ -1586,7 +1601,6 @@ void Board320_240::syncGPS() {
   }
 }
 
-
 /**
   SIM800L
 */
@@ -1614,7 +1628,9 @@ bool Board320_240::sim800lSetup() {
 
     Serial.println("SIM800L module initialized");
 
-    if(sim800l->getPowerMode() == MINIMUM) {
+    sim800l->exitSleepMode();
+
+    if(sim800l->getPowerMode() != NORMAL) {
       Serial.println("SIM800L module in sleep mode - Waking up");
       if(sim800l->setPowerMode(NORMAL)) {
         Serial.println("SIM800L in normal power mode");

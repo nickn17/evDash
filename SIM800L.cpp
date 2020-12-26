@@ -44,6 +44,8 @@ const char AT_CMD_CFUN_TEST[] PROGMEM = "AT+CFUN?";                           //
 const char AT_CMD_CFUN0[] PROGMEM = "AT+CFUN=0";                              // Switch minimum power mode
 const char AT_CMD_CFUN1[] PROGMEM = "AT+CFUN=1";                              // Switch normal power mode
 const char AT_CMD_CFUN4[] PROGMEM = "AT+CFUN=4";                              // Switch sleep power mode
+const char AC_CMD_CSCLK0[] PROGMEM = "AT+CSCLK=0";                            // AT+CSCLK=0 command
+const char AC_CMD_CSCLK2[] PROGMEM = "AT+CSCLK=2";                            // AT+CSCLK=2 command
 
 const char AT_CMD_CREG_TEST[] PROGMEM = "AT+CREG?";                           // Check the network registration status
 const char AT_CMD_SAPBR_GPRS[] PROGMEM = "AT+SAPBR=3,1,\"Contype\",\"GPRS\""; // Configure the GPRS bearer
@@ -719,6 +721,16 @@ bool SIM800L::setPowerMode(PowerMode powerMode) {
 
   // If the current power mode is the same that the requested power mode, say it's OK
   return currentPowerMode == powerMode;
+}
+
+void SIM800L::exitSleepMode() {
+  sendCommand_P(AC_CMD_CSCLK0);
+  purgeSerial();
+}
+
+void SIM800L::enterSleepMode() {
+  sendCommand_P(AC_CMD_CSCLK2);
+  purgeSerial();
 }
 
 /**
