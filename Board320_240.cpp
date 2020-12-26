@@ -148,12 +148,12 @@ void Board320_240::afterSleep() {
 
   bool firstRun = true;
   
-  while(liveData->commandQueueIndex > liveData->commandQueueLoopFrom || firstRun) {
-    if(liveData->commandQueueIndex == liveData->commandQueueLoopFrom) {
+  while(liveData->commandQueueIndex -1 > liveData->commandQueueLoopFrom || firstRun) {
+    if(liveData->commandQueueIndex -1 == liveData->commandQueueLoopFrom) {
       firstRun = false;
     }
 
-    if(millis() > 10000) {
+    if(millis() > 5000) {
       Serial.println("Time's up (10s timeout)...");
       goToSleep();
     }

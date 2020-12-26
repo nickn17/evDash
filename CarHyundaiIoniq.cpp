@@ -107,9 +107,11 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
       if (liveData->params.ignitionOn) {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+        liveData->params.automaticShutdownTimer = 0;
       }
-      int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
-      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn && !liveData->params.chargingOn)
+      
+      int32_t secDiff = liveData->params.currentTime - liveData->params.lastIgnitionOnTime;
+      if (liveData->commConnected && secDiff > 5 && !liveData->params.ignitionOn && !liveData->params.chargingOn && liveData->params.automaticShutdownTimer == 0)
         liveData->params.automaticShutdownTimer = liveData->params.currentTime;
       tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
       liveData->params.headLights = (bitRead(tempByte, 5) == 1);
