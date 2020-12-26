@@ -1587,9 +1587,9 @@ bool Board320_240::sim800lSetup() {
   gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
   gprsHwUart->begin(9600);
 
-  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512);
+  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512, (Stream *)&Serial);
+  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128, (Stream *)&Serial);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
@@ -1669,10 +1669,12 @@ bool Board320_240::sendDataViaGPRS() {
 
   Serial.println("Start HTTP POST...");
 
-  StaticJsonDocument<512> jsonData;
+  StaticJsonDocument<768> jsonData;
 
   jsonData["apikey"] = liveData->settings.remoteApiKey;
   jsonData["carType"] = liveData->settings.carType;
+  jsonData["ignitionOn"] = liveData->params.ignitionOn;
+  jsonData["chargingOn"] = liveData->params.chargingOn;
   jsonData["socPerc"] = liveData->params.socPerc;
   jsonData["sohPerc"] = liveData->params.sohPerc;
   jsonData["batPowerKw"] = liveData->params.batPowerKw;
@@ -1689,7 +1691,7 @@ bool Board320_240::sendDataViaGPRS() {
   jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
   jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
-  char payload[512];
+  char payload[768];
   serializeJson(jsonData, payload);
 
   Serial.print("Sending payload: ");
