@@ -65,8 +65,7 @@ void setup(void) {
 
   // Serial console, init structures
   Serial.begin(115200);
-  Serial.println("");
-  Serial.println("Booting device...");
+  debug("\nBooting device...");
 
   // Init settings/params
   liveData = new LiveData();
@@ -74,7 +73,7 @@ void setup(void) {
 
   // Turn off serial console
   if (liveData->settings.serialConsolePort = 255) {
-    Serial.println("Serial console disabled...");
+    debug("Serial console disabled...");
     Serial.flush();
     Serial.end();
   }

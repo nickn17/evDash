@@ -2,6 +2,13 @@
 #include "menu.h"
 
 /**
+ * Debug level
+ */
+void debug(String msg, uint8_t debugLevel) {
+  Serial.println(msg);
+}
+
+/**
    Init params with default values
 */
 void LiveData::initParams() {

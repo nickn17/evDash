@@ -20,7 +20,7 @@
 #define CAR_BMW_I3_2014           7
 #define CAR_DEBUG_OBD2_KIA        999
 
-// 
+// COMM TYPE
 #define COMM_TYPE_OBD2BLE4  0
 #define COMM_TYPE_OBD2CAN   1
 #define COMM_TYPE_OBD2BT3   2
@@ -33,6 +33,12 @@
 #define SCREEN_CELLS  4
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
+
+// DEBUG LEVEL
+#define DEBUG_INFO    0
+#define DEBUG_COMM    1
+#define DEBUG_GPS     2 
+#define DEBUG_SDCARD  3
 
 // 
 #define MONTH_SEC     2678400
@@ -209,8 +215,10 @@ typedef struct {
   //  
 } SETTINGS_STRUC;
 
+// Debug functions
+void debug(String msg, uint8_t debugLevel = DEBUG_INFO);
 
-//
+// LiveData class
 class LiveData {
   protected:
   public:
