@@ -171,7 +171,7 @@ typedef struct {
   // =================================
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
-  byte debugScreen; // 0 - off, 1 - on
+  byte sleepModeEnabled; // 0 - off, 1 - on
   byte predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
@@ -206,8 +206,7 @@ typedef struct {
   byte debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec; // every x seconds
-  
-  
+
   //  
 } SETTINGS_STRUC;
 

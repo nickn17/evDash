@@ -105,7 +105,7 @@ void BoardInterface::loadSettings() {
   liveData->settings.pressureUnit = 'b';
   liveData->settings.defaultScreen = 1;
   liveData->settings.lcdBrightness = 0;
-  liveData->settings.debugScreen = 0;
+  liveData->settings.sleepModeEnabled = 0;
   liveData->settings.predrawnChargingGraphs = 1;
   liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
   liveData->settings.wifiEnabled = 0;
@@ -134,6 +134,7 @@ void BoardInterface::loadSettings() {
   liveData->settings.debugLevel = 1; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   liveData->settings.sdcardLogIntervalSec = 2;
   liveData->settings.gprsLogIntervalSec = 60;
+  liveData->settings.sleepModeEnabled = 0;
 
   // Load settings and replace default values
   Serial.println("Reading settings from eeprom.");
@@ -154,7 +155,7 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 2;
         liveData->tmpSettings.defaultScreen = liveData->settings.defaultScreen;
         liveData->tmpSettings.lcdBrightness = liveData->settings.lcdBrightness;
-        liveData->tmpSettings.debugScreen = liveData->settings.debugScreen;
+        liveData->tmpSettings.sleepModeEnabled = liveData->settings.sleepModeEnabled;
       }
       if (liveData->tmpSettings.settingsVersion == 2) {
         liveData->tmpSettings.settingsVersion = 3;
