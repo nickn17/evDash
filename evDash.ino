@@ -72,6 +72,13 @@ void setup(void) {
   liveData = new LiveData();
   liveData->initParams();
 
+  // Turn off serial console
+  if (liveData->settings.serialConsolePort = 255) {
+    Serial.println("Serial console disabled...");
+    Serial.flush();
+    Serial.end();
+  }
+
   // Init board
 #ifdef BOARD_TTGO_T4
   board = new BoardTtgoT4v13();

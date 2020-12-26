@@ -876,6 +876,15 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
       break;*/
     case MENU_GPRS:             sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);  suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1; break;
     case MENU_SDCARD:           sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024)); suffix = tmpStr1; break;
+    case MENU_SERIAL_CONSOLE:   suffix = (liveData->settings.serialConsolePort == 255) ? "[off]" : "[on]"; break;
+    case MENU_DEBUG_LEVEL:      switch (liveData->settings.debugLevel) {
+        case 0: suffix = "[none]" ; break;
+        case 1: suffix = "[comm]" ; break;
+        case 2: suffix = "[gsm]" ; break;
+        case 3: suffix = "[sdcard]" ; break;
+        default: suffix = "[unknown]";
+      }
+      break;
     case MENU_SCREEN_ROTATION:  suffix = (liveData->settings.displayRotation == 1) ? "[vertical]" : "[normal]"; break;
     case MENU_DEFAULT_SCREEN:   sprintf(tmpStr1, "[%d]", liveData->settings.defaultScreen); suffix = tmpStr1; break;
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
@@ -890,6 +899,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
                                              (strlen(liveData->params.sdcardFilename) != 0) ? liveData->params.sdcardFilename :
                                              (liveData->params.sdcardInit) ? "READY" : "MOUNT"); suffix = tmpStr1; break;
     case MENU_SDCARD_REC:       sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->params.sdcardRecording) ? "STOP" : "START"); suffix = tmpStr1; break;
+    case MENU_SDCARD_INTERVAL:   sprintf(tmpStr1, "[%d]", liveData->settings.sdcardLogIntervalSec); suffix = tmpStr1; break;
     //
     case MENU_WIFI_ENABLED:     suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]"; break;
     case MENU_WIFI_SSID:        sprintf(tmpStr1, "%s", liveData->settings.wifiSsid); suffix = tmpStr1; break;
@@ -1038,6 +1048,8 @@ void Board320_240::menuItemClick() {
       case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_GPRS: liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
       case MENU_GPS: liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
+      case MENU_SERIAL_CONSOLE: liveData->settings.serialConsolePort = (liveData->settings.serialConsolePort == 0) ? 255 : liveData->settings.serialConsolePort + 1; showMenu(); return; break;
+      case MENU_DEBUG_LEVEL: liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; showMenu(); return; break;
       // Wifi menu
       case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_WIFI_SSID: return; break;
@@ -1064,22 +1076,22 @@ void Board320_240::menuItemClick() {
       case 9: saveSettings(); break;
       // Version
       case 10:
-      /*  commInterface->executeCommand("ATSH770");
-        delay(50);
-        commInterface->executeCommand("3E");
-        delay(50);
-        commInterface->executeCommand("1003");
-        delay(50);
-        commInterface->executeCommand("2FBC1003");
-        delay(5000);
-        commInterface->executeCommand("ATSH770");
-        delay(50);
-        commInterface->executeCommand("3E");
-        delay(50);
-        commInterface->executeCommand("1003");
-        delay(50);
-        commInterface->executeCommand("2FBC1103");
-        delay(5000);*/
+        /*  commInterface->executeCommand("ATSH770");
+          delay(50);
+          commInterface->executeCommand("3E");
+          delay(50);
+          commInterface->executeCommand("1003");
+          delay(50);
+          commInterface->executeCommand("2FBC1003");
+          delay(5000);
+          commInterface->executeCommand("ATSH770");
+          delay(50);
+          commInterface->executeCommand("3E");
+          delay(50);
+          commInterface->executeCommand("1003");
+          delay(50);
+          commInterface->executeCommand("2FBC1103");
+          delay(5000);*/
         hideMenu(); return;
       // Shutdown
       case 11: shutdownDevice(); return;
