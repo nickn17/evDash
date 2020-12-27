@@ -69,15 +69,15 @@ void CarBmwI3::activateCommandQueue() {
 void CarBmwI3::parseRowMerged() 
 {
   
-//  Serial.println("--Parsing row merged: ");  
-//  Serial.print("--responseRowMerged: ");  Serial.println(liveData->responseRowMerged);
-//  Serial.print("--currentAtshRequest: ");   Serial.println(liveData->currentAtshRequest);
-//  Serial.print("--commandRequest: ");       Serial.println(liveData->commandRequest);
-//  Serial.print("--mergedLength: ");         Serial.println(liveData->responseRowMerged.length());
-  Serial.print("--mergedVectorLength: ");   Serial.println(liveData->vResponseRowMerged.size());
+//  syslog->println("--Parsing row merged: ");  
+//  syslog->print("--responseRowMerged: ");  syslog->println(liveData->responseRowMerged);
+//  syslog->print("--currentAtshRequest: ");   syslog->println(liveData->currentAtshRequest);
+//  syslog->print("--commandRequest: ");       syslog->println(liveData->commandRequest);
+//  syslog->print("--mergedLength: ");         syslog->println(liveData->responseRowMerged.length());
+  syslog->print("--mergedVectorLength: ");   syslog->println(liveData->vResponseRowMerged.size());
   
   if (liveData->responseRowMerged.length() <= 6) {
-    Serial.println("--too short data, skiping processing");
+    syslog->println("--too short data, skiping processing");
   }
 
   struct Header_t
@@ -98,8 +98,8 @@ void CarBmwI3::parseRowMerged()
   std::vector<uint8_t> payloadReversed(pHeader->pData, pHeader->pData + payloadLength);
   std::reverse(payloadReversed.begin(), payloadReversed.end());
   
-  //Serial.print("--extracted PID: "); Serial.println(pHeader->getPid());
-  //Serial.print("--payload length: "); Serial.println(payloadLength);
+  //syslog->print("--extracted PID: "); syslog->println(pHeader->getPid());
+  //syslog->print("--payload length: "); syslog->println(payloadLength);
   
   
   // BMS
@@ -200,9 +200,9 @@ void CarBmwI3::parseRowMerged()
         liveData->params.batTempC = ptr->tempAvg / 100.0;
         liveData->params.batMaxC = ptr->tempMax / 100.0;
 
-        Serial.print("----batMinC: "); Serial.println(liveData->params.batMinC);
-        Serial.print("----batTemp: "); Serial.println(liveData->params.batTempC);
-        Serial.print("----batMaxC: "); Serial.println(liveData->params.batMaxC);
+        syslog->print("----batMinC: "); syslog->println(liveData->params.batMinC);
+        syslog->print("----batTemp: "); syslog->println(liveData->params.batTempC);
+        syslog->print("----batMaxC: "); syslog->println(liveData->params.batMaxC);
       }
     }
     break;

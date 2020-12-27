@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <BLEDevice.h>
 #include "config.h"
+#include "LogSerial.h"
 #include <vector>
 
 // SUPPORTED CARS
@@ -34,14 +35,10 @@
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
 
-// DEBUG LEVEL
-#define DEBUG_INFO    0
-#define DEBUG_COMM    1
-#define DEBUG_GPS     2 
-#define DEBUG_SDCARD  3
-
 // 
 #define MONTH_SEC     2678400
+
+extern LogSerial* syslog;
 
 // Structure with realtime values
 typedef struct {
@@ -214,9 +211,6 @@ typedef struct {
   uint16_t gprsLogIntervalSec; // every x seconds
   //  
 } SETTINGS_STRUC;
-
-// Debug functions
-void debug(String msg, uint8_t debugLevel = DEBUG_INFO);
 
 // LiveData class
 class LiveData {

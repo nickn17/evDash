@@ -28,7 +28,7 @@ void BoardInterface::attachCar(CarInterface* pCarInterface) {
 */
 void BoardInterface::shutdownDevice() {
 
-  Serial.println("Shutdown.");
+  syslog->println("Shutdown.");
 
   char msg[20];
   for (int i = 3; i >= 1; i--) {
@@ -65,7 +65,7 @@ void BoardInterface::shutdownDevice() {
 void BoardInterface::saveSettings() {
 
   // Flash to memory
-  Serial.println("Settings saved to eeprom.");
+  syslog->println("Settings saved to eeprom.");
   EEPROM.put(0, liveData->settings);
   EEPROM.commit();
 }
@@ -76,7 +76,7 @@ void BoardInterface::saveSettings() {
 void BoardInterface::resetSettings() {
 
   // Flash to memory
-  Serial.println("Factory reset.");
+  syslog->println("Factory reset.");
   liveData->settings.initFlag = 1;
   EEPROM.put(0, liveData->settings);
   EEPROM.commit();
@@ -143,17 +143,17 @@ void BoardInterface::loadSettings() {
   liveData->settings.gprsLogIntervalSec = 60;
 
   // Load settings and replace default values
-  Serial.println("Reading settings from eeprom.");
+  syslog->println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
   EEPROM.get(0, liveData->tmpSettings);
 
   // Init flash with default settings
   if (liveData->tmpSettings.initFlag != 183) {
-    Serial.println("Settings not found. Initialization.");
+    syslog->println("Settings not found. Initialization.");
     saveSettings();
   } else {
-    Serial.print("Loaded settings ver.: ");
-    Serial.println(liveData->tmpSettings.settingsVersion);
+    syslog->print("Loaded settings ver.: ");
+    syslog->println(liveData->tmpSettings.settingsVersion);
 
     // Upgrade structure
     if (liveData->settings.settingsVersion != liveData->tmpSettings.settingsVersion) {
@@ -219,8 +219,8 @@ void BoardInterface::loadSettings() {
 void BoardInterface::afterSetup() {
 
   // Init Comm iterface
-  Serial.print("Init communication device: ");
-  Serial.println(liveData->settings.commType);
+  syslog->print("Init communication device: ");
+  syslog->println(liveData->settings.commType);
 
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {
     commInterface = new CommObd2Ble4();
@@ -228,7 +228,7 @@ void BoardInterface::afterSetup() {
     commInterface = new CommObd2Can();
   } else if (liveData->settings.commType == COMM_TYPE_OBD2BT3) {
     //commInterface = new CommObd2Bt3();
-    Serial.println("BT3 not implemented");
+    syslog->println("BT3 not implemented");
   }
 
   commInterface->initComm(liveData, this);

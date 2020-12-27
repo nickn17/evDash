@@ -30,7 +30,7 @@ void Board320_240::initBoard() {
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
   // Init display
-  Serial.println("Init tft display");
+  syslog->println("Init tft display");
   tft.begin();
   tft.invertDisplay(invertDisplay);
   tft.setRotation(liveData->settings.displayRotation);
@@ -61,24 +61,24 @@ void Board320_240::afterSetup() {
   // Starting Wifi after BLE prevents reboot loop
   if (liveData->settings.wifiEnabled == 1) {
 
-    /*Serial.print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
-        Serial.println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
+    /*syslog->print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
+        syslog->println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
 
-        Serial.println("WiFi init...");
+        syslog->println("WiFi init...");
       WiFi.enableSTA(true);
       WiFi.mode(WIFI_STA);
       WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
-        Serial.println("WiFi init completed...");*/
+        syslog->println("WiFi init completed...");*/
   }
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2) {
-    Serial.print("GPS initialization on hwUart: ");
-    Serial.println(liveData->settings.gpsHwSerialPort);
+    syslog->print("GPS initialization on hwUart: ");
+    syslog->println(liveData->settings.gpsHwSerialPort);
     if (liveData->settings.gpsHwSerialPort == 0) {
-      Serial.println("hwUart0 collision with serial console! Disabling serial console");
-      Serial.flush();
-      Serial.end();
+      syslog->println("hwUart0 collision with serial console! Disabling serial console");
+      syslog->flush();
+      syslog->end();
     }
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
@@ -87,7 +87,7 @@ void Board320_240::afterSetup() {
   // SD card
   if (liveData->settings.sdcardEnabled == 1) {
     if (sdcardMount() && liveData->settings.sdcardAutstartLog == 1) {
-      Serial.println("Toggle recording on SD card");
+      syslog->println("Toggle recording on SD card");
       sdcardToggleRecording();
     }
   }
@@ -98,7 +98,7 @@ void Board320_240::afterSetup() {
   }
 
   // Init from parent class
-  Serial.println("BoardInterface::afterSetup");
+  syslog->println("BoardInterface::afterSetup");
   BoardInterface::afterSetup();
 }
 
@@ -1006,12 +1006,12 @@ void Board320_240::menuItemClick() {
   // Exit menu, parent level menu, open item
   bool showParentMenu = false;
   if (liveData->menuItemSelected > 0) {
-    Serial.println(tmpMenuItem->id);
+    syslog->println(tmpMenuItem->id);
     // Device list
     if (tmpMenuItem->id > 10000 && tmpMenuItem->id < 10100) {
       strlcpy((char*)liveData->settings.obdMacAddress, (char*)tmpMenuItem->obdMacAddress, 20);
-      Serial.print("Selected adapter MAC address ");
-      Serial.println(liveData->settings.obdMacAddress);
+      syslog->print("Selected adapter MAC address ");
+      syslog->println(liveData->settings.obdMacAddress);
       saveSettings();
       ESP.restart();
     }
@@ -1120,7 +1120,7 @@ void Board320_240::menuItemClick() {
         }
       }
       liveData->menuCurrent = parentMenu;
-      Serial.println(liveData->menuCurrent);
+      syslog->println(liveData->menuCurrent);
       showMenu();
     }
     return;
@@ -1255,7 +1255,7 @@ void Board320_240::redrawScreen() {
 */
 void Board320_240::loadTestData() {
 
-  Serial.println("Loading test data");
+  syslog->println("Loading test data");
 
   testDataMode = true; // skip lights off message
   carInterface->loadTestData();
@@ -1353,18 +1353,18 @@ void Board320_240::mainLoop() {
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1)) {
 
-    //Serial.println(&now, "%y%m%d%H%M");
+    //syslog->println(&now, "%y%m%d%H%M");
 
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0) {
       sprintf(liveData->params.sdcardFilename, "/%llu.json", uint64_t(liveData->params.operationTimeSec / 60));
-      Serial.print("Log filename by opTimeSec: ");
-      Serial.println(liveData->params.sdcardFilename);
+      syslog->print("Log filename by opTimeSec: ");
+      syslog->println(liveData->params.sdcardFilename);
     }
     if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardFilename) < 15) {
       strftime(liveData->params.sdcardFilename, sizeof(liveData->params.sdcardFilename), "/%y%m%d%H%M.json", &now);
-      Serial.print("Log filename by GPS: ");
-      Serial.println(liveData->params.sdcardFilename);
+      syslog->print("Log filename by GPS: ");
+      syslog->println(liveData->params.sdcardFilename);
     }
 
     // append buffer, clear buffer & notify state
@@ -1372,14 +1372,14 @@ void Board320_240::mainLoop() {
       liveData->params.sdcardCanNotify = false;
       File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
       if (!file) {
-        Serial.println("Failed to open file for appending");
+        syslog->println("Failed to open file for appending");
         File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
       }
       if (!file) {
-        Serial.println("Failed to create file");
+        syslog->println("Failed to create file");
       }
       if (file) {
-        Serial.println("Save buffer to SD card");
+        syslog->println("Save buffer to SD card");
         serializeParamsToJson(file);
         file.print(",\n");
         file.close();
@@ -1408,7 +1408,7 @@ bool Board320_240::skipAdapterScan() {
 bool Board320_240::sdcardMount() {
 
   if (liveData->params.sdcardInit) {
-    Serial.print("SD card already mounted...");
+    syslog->print("SD card already mounted...");
     return true;
   }
 
@@ -1416,47 +1416,47 @@ bool Board320_240::sdcardMount() {
   bool SdState = false;
 
   while (1) {
-    Serial.print("Initializing SD card...");
+    syslog->print("Initializing SD card...");
 
 #ifdef BOARD_TTGO_T4
-    Serial.print(" TTGO-T4 ");
+    syslog->print(" TTGO-T4 ");
     SPIClass * hspi = new SPIClass(HSPI);
     spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
     SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
 #endif BOARD_TTGO_T4
 
-    Serial.print(" M5STACK ");
+    syslog->print(" M5STACK ");
     SdState = SD.begin(pinSdcardCs);
 
     if (SdState) {
 
       uint8_t cardType = SD.cardType();
       if (cardType == CARD_NONE) {
-        Serial.println("No SD card attached");
+        syslog->println("No SD card attached");
         return false;
       }
 
-      Serial.println("SD card found.");
+      syslog->println("SD card found.");
       liveData->params.sdcardInit = true;
 
-      Serial.print("SD Card Type: ");
+      syslog->print("SD Card Type: ");
       if (cardType == CARD_MMC) {
-        Serial.println("MMC");
+        syslog->println("MMC");
       } else if (cardType == CARD_SD) {
-        Serial.println("SDSC");
+        syslog->println("SDSC");
       } else if (cardType == CARD_SDHC) {
-        Serial.println("SDHC");
+        syslog->println("SDHC");
       } else {
-        Serial.println("UNKNOWN");
+        syslog->println("UNKNOWN");
       }
 
       uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-      Serial.printf("SD Card Size: %lluMB\n", cardSize);
+      syslog->printf("SD Card Size: %lluMB\n", cardSize);
 
       return true;
     }
 
-    Serial.println("Initialization failed!");
+    syslog->println("Initialization failed!");
     countdown--;
     if (countdown <= 0) {
       break;
@@ -1475,7 +1475,7 @@ void Board320_240::sdcardToggleRecording() {
   if (!liveData->params.sdcardInit)
     return;
 
-  Serial.println("Toggle SD card recording...");
+  syslog->println("Toggle SD card recording...");
   liveData->params.sdcardRecording = !liveData->params.sdcardRecording;
   if (liveData->params.sdcardRecording) {
     liveData->params.sdcardCanNotify = true;
@@ -1498,8 +1498,8 @@ void Board320_240::syncGPS() {
   }
   if (gps.satellites.isValid()) {
     liveData->params.gpsSat = gps.satellites.value();
-    //Serial.print("GPS satellites: ");
-    //Serial.println(liveData->params.gpsSat);
+    //syslog->print("GPS satellites: ");
+    //syslog->println(liveData->params.gpsSat);
   }
   if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid()) {
     liveData->params.currTimeSyncWithGps = true;
@@ -1523,8 +1523,8 @@ void Board320_240::syncGPS() {
   SIM800L
 */
 bool Board320_240::sim800lSetup() {
-  Serial.print("Setting SIM800L module. HW port: ");
-  Serial.println(liveData->settings.gprsHwSerialPort);
+  syslog->print("Setting SIM800L module. HW port: ");
+  syslog->println(liveData->settings.gprsHwSerialPort);
 
   gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
   gprsHwUart->begin(9600);
@@ -1535,31 +1535,31 @@ bool Board320_240::sim800lSetup() {
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
-    Serial.println("Problem to initialize SIM800L module, retry in 1 sec");
+    syslog->println("Problem to initialize SIM800L module, retry in 1 sec");
     delay(1000);
     sim800l_ready = sim800l->isReady();
   }
 
   if (!sim800l_ready) {
-    Serial.println("Problem to initialize SIM800L module");
+    syslog->println("Problem to initialize SIM800L module");
   } else {
-    Serial.println("SIM800L module initialized");
+    syslog->println("SIM800L module initialized");
 
-    Serial.print("Setting GPRS APN to: ");
-    Serial.println(liveData->settings.gprsApn);
+    syslog->print("Setting GPRS APN to: ");
+    syslog->println(liveData->settings.gprsApn);
 
     bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
-      Serial.println("Problem to set GPRS APN, retry in 1 sec");
+      syslog->println("Problem to set GPRS APN, retry in 1 sec");
       delay(1000);
       sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
     }
 
     if (sim800l_gprs) {
       liveData->params.sim800l_enabled = true;
-      Serial.println("GPRS APN set OK");
+      syslog->println("GPRS APN set OK");
     } else {
-      Serial.println("Problem to set GPRS APN");
+      syslog->println("Problem to set GPRS APN");
     }
   }
 
@@ -1567,31 +1567,31 @@ bool Board320_240::sim800lSetup() {
 }
 
 bool Board320_240::sendDataViaGPRS() {
-  Serial.println("Sending data via GPRS");
+  syslog->println("Sending data via GPRS");
 
   if (liveData->params.socPerc < 0) {
-    Serial.println("No valid data, skipping data send");
+    syslog->println("No valid data, skipping data send");
     return false;
   }
 
   NetworkRegistration network = sim800l->getRegistrationStatus();
   if (network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
-    Serial.println("SIM800L module not connected to network, skipping data send");
+    syslog->println("SIM800L module not connected to network, skipping data send");
     return false;
   }
 
   if (!sim800l->isConnectedGPRS()) {
-    Serial.println("GPRS not connected... Connecting");
+    syslog->println("GPRS not connected... Connecting");
     bool connected = sim800l->connectGPRS();
     for (uint8_t i = 0; i < 5 && !connected; i++) {
-      Serial.println("Problem to connect GPRS, retry in 1 sec");
+      syslog->println("Problem to connect GPRS, retry in 1 sec");
       delay(1000);
       connected = sim800l->connectGPRS();
     }
     if (connected) {
-      Serial.println("GPRS connected!");
+      syslog->println("GPRS connected!");
     } else {
-      Serial.println("GPRS not connected! Reseting SIM800L module!");
+      syslog->println("GPRS not connected! Reseting SIM800L module!");
       sim800l->reset();
       sim800lSetup();
 
@@ -1599,7 +1599,7 @@ bool Board320_240::sendDataViaGPRS() {
     }
   }
 
-  Serial.println("Start HTTP POST...");
+  syslog->println("Start HTTP POST...");
 
   StaticJsonDocument<512> jsonData;
 
@@ -1624,19 +1624,19 @@ bool Board320_240::sendDataViaGPRS() {
   char payload[512];
   serializeJson(jsonData, payload);
 
-  Serial.print("Sending payload: ");
-  Serial.println(payload);
+  syslog->print("Sending payload: ");
+  syslog->println(payload);
 
-  Serial.print("Remote API server: ");
-  Serial.println(liveData->settings.remoteApiUrl);
+  syslog->print("Remote API server: ");
+  syslog->println(liveData->settings.remoteApiUrl);
 
   uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 10000, 10000);
   if (rc == 200) {
-    Serial.println("HTTP POST successful");
+    syslog->println("HTTP POST successful");
   } else {
     // Failed...
-    Serial.print("HTTP POST error: ");
-    Serial.println(rc);
+    syslog->print("HTTP POST error: ");
+    syslog->println(rc);
   }
 
   return true;

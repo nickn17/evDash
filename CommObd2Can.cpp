@@ -10,22 +10,22 @@
 */
 void CommObd2Can::connectDevice() {
 
-  Serial.println("CAN connectDevice");
+  syslog->println("CAN connectDevice");
 
   //CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
   CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
   if (CAN == nullptr) {
-    Serial.println("Error: Not enough memory to instantiate CAN class");
-    Serial.println("init_can() failed");
+    syslog->println("Error: Not enough memory to instantiate CAN class");
+    syslog->println("init_can() failed");
     return;
   }
 
   // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
   if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK) {
-    Serial.println("MCP2515 Initialized Successfully!");
+    syslog->println("MCP2515 Initialized Successfully!");
     board->displayMessage(" > CAN init OK", "");
   } else {
-    Serial.println("Error Initializing MCP2515...");
+    syslog->println("Error Initializing MCP2515...");
     board->displayMessage(" > CAN init failed", "");
     return;
   }
@@ -40,7 +40,7 @@ void CommObd2Can::connectDevice() {
   }
 
   if (MCP2515_OK != CAN->setMode(MCP_NORMAL)) {  // Set operation mode to normal so the MCP2515 sends acks to received data.
-    Serial.println("Error: CAN->setMode(MCP_NORMAL) failed");
+    syslog->println("Error: CAN->setMode(MCP_NORMAL) failed");
     board->displayMessage(" > CAN init failed", "");
     return;
   }
@@ -51,7 +51,7 @@ void CommObd2Can::connectDevice() {
   liveData->commConnected = true;  
   doNextQueueCommand();
 
-  Serial.println("init_can() done");
+  syslog->println("init_can() done");
 }
 
 /**
@@ -60,7 +60,7 @@ void CommObd2Can::connectDevice() {
 void CommObd2Can::disconnectDevice() {
 
   liveData->commConnected = false;  
-  Serial.println("COMM disconnectDevice");
+  syslog->println("COMM disconnectDevice");
 }
 
 /**
@@ -68,7 +68,7 @@ void CommObd2Can::disconnectDevice() {
 */
 void CommObd2Can::scanDevices() {
 
-  Serial.println("COMM scanDevices");
+  syslog->println("COMM scanDevices");
 }
 
 /**
@@ -90,7 +90,7 @@ void CommObd2Can::mainLoop() {
       delay(1);
       // apply timeout for next frames loop too
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
-        Serial.print("CAN execution timeout (multiframe message).\n");
+        syslog->print("CAN execution timeout (multiframe message).\n");
         break;
       }
     }
@@ -101,7 +101,7 @@ void CommObd2Can::mainLoop() {
     }
   }
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
-    Serial.print("CAN execution timeout. Continue with next command.\n");
+    syslog->print("CAN execution timeout. Continue with next command.\n");
     liveData->canSendNextAtCommand = true;
     return;
   }
@@ -112,8 +112,8 @@ void CommObd2Can::mainLoop() {
 */
 void CommObd2Can::executeCommand(String cmd) {
 
-  Serial.print("executeCommand ");
-  Serial.println(cmd);
+  syslog->print("executeCommand ");
+  syslog->println(cmd);
 
   if (cmd.equals("") || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     lastDataSent = 0;
@@ -184,17 +184,17 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
   const uint8_t sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
   //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
-    Serial.print("SENT ");
+    syslog->print("SENT ");
     lastDataSent = millis();
   }   else {
-    Serial.print("Error sending PID ");
+    syslog->print("Error sending PID ");
   }
-  Serial.print(pid);
+  syslog->print(pid);
   for (uint8_t i = 0; i < 8; i++) {
     sprintf(msgString, " 0x%.2X", txBuf[i]);
-    Serial.print(msgString);
+    syslog->print(msgString);
   }
-  Serial.println("");
+  syslog->println("");
 }
 
 /**
@@ -212,16 +212,16 @@ void CommObd2Can::sendFlowControlFrame() {
     
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
-    Serial.print("Flow control frame sent ");
+    syslog->print("Flow control frame sent ");
   }   else {
-    Serial.print("Error sending flow control frame ");
+    syslog->print("Error sending flow control frame ");
   }
-  Serial.print(lastPid);
+  syslog->print(lastPid);
   for (auto txByte : txBuf) {
     sprintf(msgString, " 0x%.2X", txByte);
-    Serial.print(msgString);
+    syslog->print(msgString);
   }
-  Serial.println("");
+  syslog->println("");
 }
 
 /**
@@ -232,7 +232,7 @@ uint8_t CommObd2Can::receivePID() {
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
-    Serial.print(" CAN READ ");
+    syslog->print(" CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf);      // Read data: len = data length, buf = data byte(s)
 //    mockupReceiveCanBuf(&rxId, &rxLen, rxBuf);
     
@@ -241,22 +241,22 @@ uint8_t CommObd2Can::receivePID() {
     else
       sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, rxLen);
 
-    Serial.print(msgString);
+    syslog->print(msgString);
 
     if ((rxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
       sprintf(msgString, " REMOTE REQUEST FRAME");
-      Serial.print(msgString);
+      syslog->print(msgString);
     } else {
       for (uint8_t i = 0; i < rxLen; i++) {
         sprintf(msgString, " 0x%.2X", rxBuf[i]);
-        Serial.print(msgString);
+        syslog->print(msgString);
       }
     }
 
     // Check if this packet shall be discarded due to its length. 
     // If liveData->expectedPacketLength is set to 0, accept any length.
     if(liveData->expectedMinimalPacketLength != 0 && rxLen < liveData->expectedMinimalPacketLength) {
-      Serial.println(" [Ignored packet]");
+      syslog->println(" [Ignored packet]");
       return 0xff;
     }
 
@@ -265,16 +265,16 @@ uint8_t CommObd2Can::receivePID() {
       long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
 
       if(rxId != atsh_response) {
-        Serial.println(" [Filtered packet]");
+        syslog->println(" [Filtered packet]");
         return 0xff;
       }
     }
     
-    Serial.println();
+    syslog->println();
     processFrameBytes();
     //processFrame();
   } else {
-    //Serial.println(" CAN NOT READ ");
+    //syslog->println(" CAN NOT READ ");
     return 0xff;
   }
 
@@ -287,11 +287,11 @@ static void printHexBuffer(uint8_t* pData, const uint16_t length, const bool bAd
   
   for (uint8_t i = 0; i < length; i++) {
     sprintf(str, " 0x%.2X", pData[i]);
-    Serial.print(str);
+    syslog->print(str);
   }
   
   if (bAddNewLine) {
-    Serial.println();
+    syslog->println();
   }
 }
 
@@ -348,7 +348,7 @@ bool CommObd2Can::processFrameBytes() {
       
       rxRemaining = 0;
       
-      //Serial.print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
+      //syslog->print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
       
       // single frame - process directly
       buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
@@ -381,7 +381,7 @@ bool CommObd2Can::processFrameBytes() {
       dataRows[0].assign(pFirstFrame->pData, pFirstFrame->pData + framePayloadSize);
       rxRemaining -= framePayloadSize;
       
-      //Serial.print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
+      //syslog->print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
     }
     break;
     
@@ -395,19 +395,19 @@ bool CommObd2Can::processFrameBytes() {
       };
       
       const uint8_t structSize = sizeof(ConsecutiveFrame_t);
-      //Serial.print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); Serial.println(structSize);
+      //syslog->print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); syslog->println(structSize);
       
       ConsecutiveFrame_t* pConseqFrame = (ConsecutiveFrame_t*)pDataStart;
       const uint8_t framePayloadSize = frameLenght - sizeof(ConsecutiveFrame_t);  // remove one byte of header
       dataRows[pConseqFrame->index].assign(pConseqFrame->pData, pConseqFrame->pData + framePayloadSize);
       rxRemaining -= framePayloadSize;
       
-      //Serial.print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
+      //syslog->print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
     }
     break;
     
   default:
-    Serial.print("Unknown frame type within CommObd2Can::processFrameBytes(): "); Serial.println((uint8_t)frameType);
+    syslog->print("Unknown frame type within CommObd2Can::processFrameBytes(): "); syslog->println((uint8_t)frameType);
     return false;
     break;
   } // \switch (frameType)
@@ -416,10 +416,10 @@ bool CommObd2Can::processFrameBytes() {
   if (rxRemaining <= 0) {
     // multiple frames and no data remaining - merge everything to single packet
     for (int i = 0; i < dataRows.size(); i++) {
-      //Serial.print("------merging packet index ");
-      //Serial.print(i);
-      //Serial.print(" with length ");
-      //Serial.println(dataRows[i].size());
+      //syslog->print("------merging packet index ");
+      //syslog->print(i);
+      //syslog->print(" with length ");
+      //syslog->println(dataRows[i].size());
       
       mergedData.insert(mergedData.end(), dataRows[i].begin(), dataRows[i].end());
     }
@@ -467,11 +467,11 @@ bool CommObd2Can::processFrame() {
       break;
   }
 
-  Serial.print("> frametype:");
-  Serial.print(frameType);
-  Serial.print(", r: ");
-  Serial.print(rxRemaining);
-  Serial.print("   ");
+  syslog->print("> frametype:");
+  syslog->print(frameType);
+  syslog->print(", r: ");
+  syslog->print(rxRemaining);
+  syslog->print("   ");
 
   for (uint8_t i = start; i < rxLen; i++) {
     sprintf(msgString, "%.2X", rxBuf[i]);
@@ -479,14 +479,14 @@ bool CommObd2Can::processFrame() {
     rxRemaining--;
   }
 
-  Serial.print(", r: ");
-  Serial.print(rxRemaining);
-  Serial.println("   ");
+  syslog->print(", r: ");
+  syslog->print(rxRemaining);
+  syslog->println("   ");
 
   //parseResponse();
   // We need to sort frames
   // 1 frame data
-  Serial.println(liveData->responseRow);
+  syslog->println(liveData->responseRow);
   // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
     //liveData->responseRowMerged += liveData->responseRow.substring(2);
@@ -494,7 +494,7 @@ bool CommObd2Can::processFrame() {
     uint16_t startPos = (rowNo * 14) - ((rowNo > 0) ? 2 : 0);
     uint16_t endPos = ((rowNo + 1) * 14) - ((rowNo > 0) ? 2 : 0);
     liveData->responseRowMerged = liveData->responseRowMerged.substring(0, startPos) + liveData->responseRow.substring(2) + liveData->responseRowMerged.substring(endPos);
-    Serial.println(liveData->responseRowMerged);
+    syslog->println(liveData->responseRowMerged);
   }
 
   // Send response to board module
@@ -510,8 +510,8 @@ bool CommObd2Can::processFrame() {
    processMergedResponse
 */
 void CommObd2Can::processMergedResponse() {
-  Serial.print("merged:");
-  Serial.println(liveData->responseRowMerged);
+  syslog->print("merged:");
+  syslog->println(liveData->responseRowMerged);
   board->parseRowMerged();
   liveData->responseRowMerged = "";
   liveData->canSendNextAtCommand = true;

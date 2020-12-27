@@ -1,11 +1,13 @@
 #include "LiveData.h"
 #include "menu.h"
 
+LogSerial* syslog;
+
 /**
  * Debug level
  */
 void debug(String msg, uint8_t debugLevel) {
-  Serial.println(msg);
+  syslog->println(msg);
 }
 
 /**

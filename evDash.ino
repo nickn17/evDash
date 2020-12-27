@@ -63,19 +63,19 @@ LiveData* liveData;
 */
 void setup(void) {
 
-  // Serial console, init structures
-  Serial.begin(115200);
-  debug("\nBooting device...");
-
+  // Serial console
+  syslog = new LogSerial();
+  syslog->println("\nBooting device...");
+  
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
 
   // Turn off serial console
-  if (liveData->settings.serialConsolePort = 255) {
-    debug("Serial console disabled...");
-    Serial.flush();
-    Serial.end();
+  if (liveData->settings.serialConsolePort == 255) {
+    syslog->println("Serial console disabled...");
+    syslog->flush();
+    syslog->end();
   }
 
   // Init board
@@ -124,7 +124,7 @@ void setup(void) {
   board->afterSetup();
 
   // End
-  Serial.println("Device setup completed");
+  syslog->println("Device setup completed");
 }
 
 /**
