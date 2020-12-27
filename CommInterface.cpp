@@ -24,7 +24,7 @@ void CommInterface::mainLoop() {
     if (ch == '\r' || ch == '\n') {
       board->customConsoleCommand(response);
       response = response + ch;
-      syslog->println(response);
+      syslog->info(DEBUG_COMM, response);
       executeCommand(response);
       response = "";
     } else {
@@ -59,8 +59,8 @@ bool CommInterface::doNextQueueCommand() {
     liveData->currentAtshRequest = liveData->commandRequest;
   }
 
-  syslog->print(">>> ");
-  syslog->println(liveData->commandRequest);
+  syslog->infoNolf(DEBUG_COMM, ">>> ");
+  syslog->info(DEBUG_COMM, liveData->commandRequest);
   liveData->responseRowMerged = "";  
   executeCommand(liveData->commandRequest);
   liveData->commandQueueIndex++;
@@ -72,7 +72,7 @@ bool CommInterface::doNextQueueCommand() {
 bool CommInterface::parseResponse() {
   
   // 1 frame data
-  syslog->println(liveData->responseRow);
+  syslog->info(DEBUG_COMM, liveData->responseRow);
 
   // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {

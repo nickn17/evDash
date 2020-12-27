@@ -211,6 +211,8 @@ void BoardInterface::loadSettings() {
     // Apply settings from flash if needed
     liveData->settings = liveData->tmpSettings;
   }
+
+  syslog->setDebugLevel(liveData->settings.debugLevel);
 }
 
 /**

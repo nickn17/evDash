@@ -90,7 +90,7 @@ void CommObd2Can::mainLoop() {
       delay(1);
       // apply timeout for next frames loop too
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
-        syslog->print("CAN execution timeout (multiframe message).\n");
+        syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
         break;
       }
     }
@@ -101,7 +101,7 @@ void CommObd2Can::mainLoop() {
     }
   }
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
-    syslog->print("CAN execution timeout. Continue with next command.\n");
+    syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
   }
@@ -112,8 +112,8 @@ void CommObd2Can::mainLoop() {
 */
 void CommObd2Can::executeCommand(String cmd) {
 
-  syslog->print("executeCommand ");
-  syslog->println(cmd);
+  syslog->infoNolf(DEBUG_COMM, "executeCommand ");
+  syslog->info(DEBUG_COMM, cmd);
 
   if (cmd.equals("") || cmd.startsWith("AT")) { // skip AT commands as not used by direct CAN connection
     lastDataSent = 0;
@@ -184,17 +184,17 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
   const uint8_t sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
   //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
-    syslog->print("SENT ");
+    syslog->infoNolf(DEBUG_COMM, "SENT ");
     lastDataSent = millis();
   }   else {
-    syslog->print("Error sending PID ");
+    syslog->infoNolf(DEBUG_COMM, "Error sending PID ");
   }
-  syslog->print(pid);
+  syslog->infoNolf(DEBUG_COMM, pid);
   for (uint8_t i = 0; i < 8; i++) {
     sprintf(msgString, " 0x%.2X", txBuf[i]);
-    syslog->print(msgString);
+    syslog->infoNolf(DEBUG_COMM, msgString);
   }
-  syslog->println("");
+  syslog->info(DEBUG_COMM, "");
 }
 
 /**
@@ -212,16 +212,16 @@ void CommObd2Can::sendFlowControlFrame() {
     
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
   if (sndStat == CAN_OK)  {
-    syslog->print("Flow control frame sent ");
+    syslog->infoNolf(DEBUG_COMM, "Flow control frame sent ");
   }   else {
-    syslog->print("Error sending flow control frame ");
+    syslog->infoNolf(DEBUG_COMM, "Error sending flow control frame ");
   }
-  syslog->print(lastPid);
+  syslog->infoNolf(DEBUG_COMM, lastPid);
   for (auto txByte : txBuf) {
     sprintf(msgString, " 0x%.2X", txByte);
-    syslog->print(msgString);
+    syslog->infoNolf(DEBUG_COMM, msgString);
   }
-  syslog->println("");
+  syslog->info(DEBUG_COMM, "");
 }
 
 /**
@@ -232,7 +232,7 @@ uint8_t CommObd2Can::receivePID() {
   if (!digitalRead(pinCanInt))                        // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
-    syslog->print(" CAN READ ");
+    syslog->infoNolf(DEBUG_COMM, " CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf);      // Read data: len = data length, buf = data byte(s)
 //    mockupReceiveCanBuf(&rxId, &rxLen, rxBuf);
     
@@ -241,22 +241,22 @@ uint8_t CommObd2Can::receivePID() {
     else
       sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, rxLen);
 
-    syslog->print(msgString);
+    syslog->infoNolf(DEBUG_COMM, msgString);
 
     if ((rxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
       sprintf(msgString, " REMOTE REQUEST FRAME");
-      syslog->print(msgString);
+      syslog->infoNolf(DEBUG_COMM, msgString);
     } else {
       for (uint8_t i = 0; i < rxLen; i++) {
         sprintf(msgString, " 0x%.2X", rxBuf[i]);
-        syslog->print(msgString);
+        syslog->infoNolf(DEBUG_COMM, msgString);
       }
     }
 
     // Check if this packet shall be discarded due to its length. 
     // If liveData->expectedPacketLength is set to 0, accept any length.
     if(liveData->expectedMinimalPacketLength != 0 && rxLen < liveData->expectedMinimalPacketLength) {
-      syslog->println(" [Ignored packet]");
+      syslog->info(DEBUG_COMM, " [Ignored packet]");
       return 0xff;
     }
 
@@ -265,12 +265,12 @@ uint8_t CommObd2Can::receivePID() {
       long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
 
       if(rxId != atsh_response) {
-        syslog->println(" [Filtered packet]");
+        syslog->info(DEBUG_COMM, " [Filtered packet]");
         return 0xff;
       }
     }
     
-    syslog->println();
+    syslog->info(DEBUG_COMM, "");
     processFrameBytes();
     //processFrame();
   } else {
@@ -287,11 +287,11 @@ static void printHexBuffer(uint8_t* pData, const uint16_t length, const bool bAd
   
   for (uint8_t i = 0; i < length; i++) {
     sprintf(str, " 0x%.2X", pData[i]);
-    syslog->print(str);
+    syslog->infoNolf(DEBUG_COMM, str);
   }
   
   if (bAddNewLine) {
-    syslog->println();
+    syslog->info(DEBUG_COMM, "");
   }
 }
 
@@ -407,7 +407,8 @@ bool CommObd2Can::processFrameBytes() {
     break;
     
   default:
-    syslog->print("Unknown frame type within CommObd2Can::processFrameBytes(): "); syslog->println((uint8_t)frameType);
+    syslog->infoNolf(DEBUG_COMM, "Unknown frame type within CommObd2Can::processFrameBytes(): "); 
+    syslog->info(DEBUG_COMM, (uint8_t)frameType);
     return false;
     break;
   } // \switch (frameType)
@@ -467,11 +468,11 @@ bool CommObd2Can::processFrame() {
       break;
   }
 
-  syslog->print("> frametype:");
-  syslog->print(frameType);
-  syslog->print(", r: ");
-  syslog->print(rxRemaining);
-  syslog->print("   ");
+  syslog->infoNolf(DEBUG_COMM, "> frametype:");
+  syslog->infoNolf(DEBUG_COMM, frameType);
+  syslog->infoNolf(DEBUG_COMM, ", r: ");
+  syslog->infoNolf(DEBUG_COMM, rxRemaining);
+  syslog->infoNolf(DEBUG_COMM, "   ");
 
   for (uint8_t i = start; i < rxLen; i++) {
     sprintf(msgString, "%.2X", rxBuf[i]);
@@ -479,14 +480,14 @@ bool CommObd2Can::processFrame() {
     rxRemaining--;
   }
 
-  syslog->print(", r: ");
-  syslog->print(rxRemaining);
-  syslog->println("   ");
+  syslog->infoNolf(DEBUG_COMM, ", r: ");
+  syslog->infoNolf(DEBUG_COMM, rxRemaining);
+  syslog->info(DEBUG_COMM, "   ");
 
   //parseResponse();
   // We need to sort frames
   // 1 frame data
-  syslog->println(liveData->responseRow);
+  syslog->info(DEBUG_COMM, liveData->responseRow);
   // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
     //liveData->responseRowMerged += liveData->responseRow.substring(2);
@@ -494,7 +495,7 @@ bool CommObd2Can::processFrame() {
     uint16_t startPos = (rowNo * 14) - ((rowNo > 0) ? 2 : 0);
     uint16_t endPos = ((rowNo + 1) * 14) - ((rowNo > 0) ? 2 : 0);
     liveData->responseRowMerged = liveData->responseRowMerged.substring(0, startPos) + liveData->responseRow.substring(2) + liveData->responseRowMerged.substring(endPos);
-    syslog->println(liveData->responseRowMerged);
+    syslog->info(DEBUG_COMM, liveData->responseRowMerged);
   }
 
   // Send response to board module
@@ -510,8 +511,8 @@ bool CommObd2Can::processFrame() {
    processMergedResponse
 */
 void CommObd2Can::processMergedResponse() {
-  syslog->print("merged:");
-  syslog->println(liveData->responseRowMerged);
+  syslog->infoNolf(DEBUG_COMM, "merged:");
+  syslog->info(DEBUG_COMM, liveData->responseRowMerged);
   board->parseRowMerged();
   liveData->responseRowMerged = "";
   liveData->canSendNextAtCommand = true;

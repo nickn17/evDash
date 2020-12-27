@@ -878,7 +878,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_SDCARD:           sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024)); suffix = tmpStr1; break;
     case MENU_SERIAL_CONSOLE:   suffix = (liveData->settings.serialConsolePort == 255) ? "[off]" : "[on]"; break;
     case MENU_DEBUG_LEVEL:      switch (liveData->settings.debugLevel) {
-        case 0: suffix = "[none]" ; break;
+        case 0: suffix = "[all]" ; break;
         case 1: suffix = "[comm]" ; break;
         case 2: suffix = "[gsm]" ; break;
         case 3: suffix = "[sdcard]" ; break;
@@ -1049,7 +1049,7 @@ void Board320_240::menuItemClick() {
       case MENU_GPRS: liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
       case MENU_GPS: liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
       case MENU_SERIAL_CONSOLE: liveData->settings.serialConsolePort = (liveData->settings.serialConsolePort == 0) ? 255 : liveData->settings.serialConsolePort + 1; showMenu(); return; break;
-      case MENU_DEBUG_LEVEL: liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; showMenu(); return; break;
+      case MENU_DEBUG_LEVEL: liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; syslog->setDebugLevel(liveData->settings.debugLevel); showMenu(); return; break;
       // Wifi menu
       case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_WIFI_SSID: return; break;

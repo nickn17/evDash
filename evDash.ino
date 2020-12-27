@@ -1,16 +1,16 @@
- /*
+/*
   Project renamed from eNiroDashboard to evDash
 
   Serial console commands
 
-    serviceUUID=xxx
-    charTxUUID=xxx
-    charRxUUID=xxx
-    wifiSsid=xxx
-    wifiPassword=xxx
-    gprsApn=xxx
-    remoteApiUrl=xxx
-    remoteApiKey=xxx
+   serviceUUID=xxx
+   charTxUUID=xxx
+   charRxUUID=xxx
+   wifiSsid=xxx
+   wifiPassword=xxx
+   gprsApn=xxx
+   remoteApiUrl=xxx
+   remoteApiKey=xxx
 
   Required libraries
   - esp32 board support
@@ -66,7 +66,7 @@ void setup(void) {
   // Serial console
   syslog = new LogSerial();
   syslog->println("\nBooting device...");
-  
+
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
