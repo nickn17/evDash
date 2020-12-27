@@ -16,7 +16,7 @@
 #include "LiveData.h"
 #include "CarKiaEniro.h"
 
-#define commandQueueCountKiaENiro 30
+#define commandQueueCountKiaENiro 29
 #define commandQueueLoopFromKiaENiro 8
 
 /**
@@ -42,19 +42,32 @@ void CarKiaEniro::activateCommandQueue() {
 
     // Loop from (KIA ENIRO)
 
-    // VMCU
-    "ATSH7E2",
-    "2101",     // speed, ...
-    "2102",     // aux, ...
+    // IGPM
+    "ATSH770",
+    "22BC03",     // low beam
+    "22BC06",     // brake light
 
     // ABS / ESP + AHB
     "ATSH7D1",
     "22C101",     // brake, park/drive mode
 
-    // IGPM
-    "ATSH770",
-    "22BC03",     // low beam
-    "22BC06",     // brake light
+    // BCM / TPMS
+    "ATSH7A0",
+    "22c00b",   // tire pressure/temp
+
+    // Aircondition
+    "ATSH7B3",
+    "220100",   // in/out temp
+    "220102",   // coolant temp1, 2
+
+    // CLUSTER MODULE
+    "ATSH7C6",
+    "22B002",   // odo
+
+    // VMCU
+    "ATSH7E2",
+//    "2101",     // speed, ...
+    "2102",     // aux, ...
 
     // BMS
     "ATSH7E4",
@@ -64,19 +77,6 @@ void CarKiaEniro::activateCommandQueue() {
     "220104",   // cell voltages
     "220105",   // soh, soc, ..
     "220106",   // cooling water temp
-
-    // Aircondition
-    "ATSH7B3",
-    "220100",   // in/out temp
-    "220102",   // coolant temp1, 2
-
-    // BCM / TPMS
-    "ATSH7A0",
-    "22c00b",   // tire pressure/temp
-
-    // CLUSTER MODULE
-    "ATSH7C6",
-    "22B002",   // odo
 
   };
 
@@ -110,17 +110,8 @@ void CarKiaEniro::parseRowMerged() {
   float tempFloat;
   String tmpStr;
 
-  // ABS / ESP + AHB 7D1
-  if (liveData->currentAtshRequest.equals("ATSH7D1")) {
-    if (liveData->commandRequest.equals("22C101")) {
-      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
-      liveData->params.forwardDriveMode = (driveMode == 4);
-      liveData->params.reverseDriveMode = (driveMode == 2);
-      liveData->params.parkModeOrNeutral  = (driveMode == 1);
-    }
-  }
-
   // IGPM
+  // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH770")) {
     if (liveData->commandRequest.equals("22BC03")) {
       // 
@@ -151,29 +142,34 @@ void CarKiaEniro::parseRowMerged() {
     }
   }
 
-  // VMCU 7E2
-  if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-    if (liveData->commandRequest.equals("2101")) {
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-        liveData->params.speedKmh = 0;
-    }
-    if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
-      liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
-    }
-  }
-
-  // Cluster module 7c6
-  if (liveData->currentAtshRequest.equals("ATSH7C6")) {
-    if (liveData->commandRequest.equals("22B002")) {
-      tempFloat = liveData->params.odoKm;
-      liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
+  // ABS / ESP + AHB 7D1
+  // RESPONDING WHEN CAR IS OFF
+  if (liveData->currentAtshRequest.equals("ATSH7D1")) {
+    if (liveData->commandRequest.equals("22C101")) {
+      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
+      liveData->params.forwardDriveMode = (driveMode == 4);
+      liveData->params.reverseDriveMode = (driveMode == 2);
+      liveData->params.parkModeOrNeutral  = (driveMode == 1);
+      // Speed
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false); 
     }
   }
 
-  // Aircon 7b3
+  // TPMS 7A0
+  if (liveData->currentAtshRequest.equals("ATSH7A0")) {
+    if (liveData->commandRequest.equals("22c00b")) {
+      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      // === OK Valid
+      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      // === OK Valid
+      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     // === OK Valid
+      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     // === OK Valid
+    }
+  }
+
+  // Aircon 7B3
   if (liveData->currentAtshRequest.equals("ATSH7B3")) {
     if (liveData->commandRequest.equals("220100")) {
       liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
@@ -182,6 +178,29 @@ void CarKiaEniro::parseRowMerged() {
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00") {
       liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
       liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+    }
+  }
+
+  // Cluster module 7C6
+  if (liveData->currentAtshRequest.equals("ATSH7C6")) {
+    if (liveData->commandRequest.equals("22B002")) {
+      tempFloat = liveData->params.odoKm;
+      liveData->params.odoKm = liveData->decFromResponse(18, 24);
+      //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
+    }
+  }
+
+  // VMCU 7E2
+  if (liveData->currentAtshRequest.equals("ATSH7E2")) {
+    /*if (liveData->commandRequest.equals("2101")) {
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+        liveData->params.speedKmh = 0;
+    }*/
+    if (liveData->commandRequest.equals("2102")) {
+      liveData->params.auxVoltage = liveData->hexToDecFromResponse(42, 46, 2, true) / 1000.0;
+      liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+      liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
     }
   }
 
@@ -200,7 +219,6 @@ void CarKiaEniro::parseRowMerged() {
       //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 2, true) / 10.0;
       liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
@@ -290,26 +308,12 @@ void CarKiaEniro::parseRowMerged() {
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220106")) {
-      liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
       // log 220106 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
-    }
-  }
-
-  // TPMS 7a0
-  if (liveData->currentAtshRequest.equals("ATSH7A0")) {
-    if (liveData->commandRequest.equals("22c00b")) {
-      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      // === OK Valid
-      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      // === OK Valid
-      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     // === OK Valid
-      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     // === OK Valid
     }
   }
 }
