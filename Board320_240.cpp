@@ -11,7 +11,7 @@
 #include <ArduinoJson.h>
 #include "SIM800L.h"
 
-RTC_DATA_ATTR int bootCount = 0;
+RTC_DATA_ATTR unsigned int bootCount = 0;
 
 /**
    Init board
@@ -32,6 +32,7 @@ void Board320_240::initBoard() {
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
   ++bootCount;
+
   syslog->print("Boot count: ");
   syslog->println(bootCount);
 }
