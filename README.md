@@ -64,7 +64,5 @@ Screen list
 
 ## Supporting me
 
-- Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
-
+Buy Me a Beer via paypal https://www.paypal.me/nickn17
 Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help. Thank you for supporting me. 
