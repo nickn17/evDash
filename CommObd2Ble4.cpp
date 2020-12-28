@@ -14,13 +14,13 @@ class MyClientCallback : public BLEClientCallbacks {
 
     // On BLE connect
     void onConnect(BLEClient* pclient) {
-      Serial.println("onConnect");
+      syslog->println("onConnect");
     }
 
     // On BLE disconnect
     void onDisconnect(BLEClient* pclient) {
       liveDataObj->commConnected = false;
-      Serial.println("onDisconnect");
+      syslog->println("onDisconnect");
 
       boardObj->displayMessage("BLE disconnected", "");
     }
@@ -34,9 +34,9 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     // Called for each advertising BLE server.
     void onResult(BLEAdvertisedDevice advertisedDevice) {
 
-      Serial.print("BLE advertised device found: ");
-      Serial.println(advertisedDevice.toString().c_str());
-      Serial.println(advertisedDevice.getAddress().toString().c_str());
+      syslog->print("BLE advertised device found: ");
+      syslog->println(advertisedDevice.toString().c_str());
+      syslog->println(advertisedDevice.getAddress().toString().c_str());
 
       // Add to device list (max. 9 devices allowed yet)
       String tmpStr;
@@ -56,17 +56,17 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       }
 
       //        if (advertisedDevice.getServiceDataUUID().toString() != "<NULL>") {
-      //          Serial.print("ServiceDataUUID: ");
-      //          Serial.println(advertisedDevice.getServiceDataUUID().toString().c_str());
+      //          syslog->print("ServiceDataUUID: ");
+      //          syslog->println(advertisedDevice.getServiceDataUUID().toString().c_str());
       //        if (advertisedDevice.getServiceUUID().toString() != "<NULL>") {
-      //          Serial.print("ServiceUUID: ");
-      //          Serial.println(advertisedDevice.getServiceUUID().toString().c_str());
+      //          syslog->print("ServiceUUID: ");
+      //          syslog->println(advertisedDevice.getServiceUUID().toString().c_str());
       //        }
       //        }
 
       if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)) &&
           (strcmp(advertisedDevice.getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0)) {
-        Serial.println("Stop scanning. Found my BLE device.");
+        syslog->println("Stop scanning. Found my BLE device.");
         BLEDevice::getScan()->stop();
         liveDataObj->foundMyBleDevice = new BLEAdvertisedDevice(advertisedDevice);
       }
@@ -81,29 +81,29 @@ uint32_t PIN = 1234;
 class MySecurity : public BLESecurityCallbacks {
 
     uint32_t onPassKeyRequest() {
-      Serial.printf("Pairing password: %d \r\n", PIN);
+      syslog->printf("Pairing password: %d \r\n", PIN);
       return PIN;
     }
 
     void onPassKeyNotify(uint32_t pass_key) {
-      Serial.printf("onPassKeyNotify\r\n");
+      syslog->printf("onPassKeyNotify\r\n");
     }
 
     bool onConfirmPIN(uint32_t pass_key) {
-      Serial.printf("onConfirmPIN\r\n");
+      syslog->printf("onConfirmPIN\r\n");
       return true;
     }
 
     bool onSecurityRequest() {
-      Serial.printf("onSecurityRequest\r\n");
+      syslog->printf("onSecurityRequest\r\n");
       return true;
     }
 
     void onAuthenticationComplete(esp_ble_auth_cmpl_t auth_cmpl) {
       if (auth_cmpl.success) {
-        Serial.printf("onAuthenticationComplete\r\n");
+        syslog->printf("onAuthenticationComplete\r\n");
       } else {
-        Serial.println("Auth failure. Incorrect PIN?");
+        syslog->println("Auth failure. Incorrect PIN?");
         liveDataObj->bleConnect = false;
       }
     }
@@ -129,8 +129,8 @@ static void notifyCallback (BLERemoteCharacteristic * pBLERemoteCharacteristic, 
       liveDataObj->responseRow += ch;
       if (liveDataObj->responseRow == ">") {
         if (liveDataObj->responseRowMerged != "") {
-          Serial.print("merged:");
-          Serial.println(liveDataObj->responseRowMerged);
+          syslog->infoNolf(DEBUG_COMM, "merged:");
+          syslog->info(DEBUG_COMM, liveDataObj->responseRowMerged);
           boardObj->parseRowMerged();
         }
         liveDataObj->responseRowMerged = "";
@@ -149,7 +149,7 @@ void CommObd2Ble4::connectDevice() {
   liveDataObj = liveData;
   boardObj = board;
 
-  Serial.println("BLE4 connectDevice");
+  syslog->println("BLE4 connectDevice");
 
   // Start BLE connection
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
@@ -157,7 +157,7 @@ void CommObd2Ble4::connectDevice() {
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we have detected a new device.
   // Specify that we want active scanning and start the scan to run for 10 seconds.
-  Serial.println("Setup BLE scan");
+  syslog->println("Setup BLE scan");
   liveData->pBLEScan = BLEDevice::getScan();
   liveData->pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   liveData->pBLEScan->setInterval(1349);
@@ -166,7 +166,7 @@ void CommObd2Ble4::connectDevice() {
 
   // Skip BLE scan if middle button pressed
   if (strcmp(liveData->settings.obdMacAddress, "00:00:00:00:00:00") != 0 && !board->skipAdapterScan()) {
-    Serial.println(liveData->settings.obdMacAddress);
+    syslog->println(liveData->settings.obdMacAddress);
     startBleScan();
   }
 }
@@ -176,7 +176,7 @@ void CommObd2Ble4::connectDevice() {
 */
 void CommObd2Ble4::disconnectDevice() {
 
-  Serial.println("COMM disconnectDevice");
+  syslog->println("COMM disconnectDevice");
   btStop();
 }
 
@@ -185,7 +185,7 @@ void CommObd2Ble4::disconnectDevice() {
 */
 void CommObd2Ble4::scanDevices() {
 
-  Serial.println("COMM scanDevices");
+  syslog->println("COMM scanDevices");
   startBleScan();
 }
 
@@ -201,13 +201,13 @@ void CommObd2Ble4::startBleScan() {
   board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
   // Start scanning
-  Serial.println("Scanning BLE devices...");
-  Serial.print("Looking for ");
-  Serial.println(liveData->settings.obdMacAddress);
+  syslog->println("Scanning BLE devices...");
+  syslog->print("Looking for ");
+  syslog->println(liveData->settings.obdMacAddress);
   BLEScanResults foundDevices = liveData->pBLEScan->start(40, false);
-  Serial.print("Devices found: ");
-  Serial.println(foundDevices.getCount());
-  Serial.println("Scan done!");
+  syslog->print("Devices found: ");
+  syslog->println(foundDevices.getCount());
+  syslog->println("Scan done!");
   liveData->pBLEScan->clearResults(); // delete results fromBLEScan buffer to release memory
 
   char tmpStr1[20];
@@ -216,7 +216,7 @@ void CommObd2Ble4::startBleScan() {
 
   // Scan devices from menu, show list of devices
  if (liveData->menuCurrent == 9999) {
-    Serial.println("Display menu with devices");
+    syslog->println("Display menu with devices");
     liveData->menuVisible = true;
     //liveData->menuCurrent = 9999;
     liveData->menuItemSelected = 0;
@@ -238,8 +238,8 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 
   board->displayMessage(" > Connecting device", "");
 
-  Serial.print("liveData->bleConnect ");
-  Serial.println(pAddress.toString().c_str());
+  syslog->print("liveData->bleConnect ");
+  syslog->println(pAddress.toString().c_str());
   board->displayMessage(" > Connecting device - init", pAddress.toString().c_str());
 
   BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
@@ -253,49 +253,49 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
   board->displayMessage(" > Connecting device", pAddress.toString().c_str());
   liveData->pClient = BLEDevice::createClient();
   liveData->pClient->setClientCallbacks(new MyClientCallback());
-  if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM) ) Serial.println("liveData->bleConnected");
-  Serial.println(" - liveData->bleConnected to server");
+  if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM) ) syslog->println("liveData->bleConnected");
+  syslog->println(" - liveData->bleConnected to server");
 
   // Remote service
   board->displayMessage(" > Connecting device", "Connecting service...");
   BLERemoteService* pRemoteService = liveData->pClient->getService(BLEUUID(liveData->settings.serviceUUID));
   if (pRemoteService == nullptr)
   {
-    Serial.print("Failed to find our service UUID: ");
-    Serial.println(liveData->settings.serviceUUID);
+    syslog->print("Failed to find our service UUID: ");
+    syslog->println(liveData->settings.serviceUUID);
     board->displayMessage(" > Connecting device", "Unable to find service");
     return false;
   }
-  Serial.println(" - Found our service");
+  syslog->println(" - Found our service");
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting TxUUID...");
   liveData->pRemoteCharacteristic = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charTxUUID));
   if (liveData->pRemoteCharacteristic == nullptr) {
-    Serial.print("Failed to find our characteristic UUID: ");
-    Serial.println(liveData->settings.charTxUUID);//.toString().c_str());
+    syslog->print("Failed to find our characteristic UUID: ");
+    syslog->println(liveData->settings.charTxUUID);//.toString().c_str());
     board->displayMessage(" > Connecting device", "Unable to find TxUUID");
     return false;
   }
-  Serial.println(" - Found our characteristic");
+  syslog->println(" - Found our characteristic");
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting RxUUID...");
   liveData->pRemoteCharacteristicWrite = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charRxUUID));
   if (liveData->pRemoteCharacteristicWrite == nullptr) {
-    Serial.print("Failed to find our characteristic UUID: ");
-    Serial.println(liveData->settings.charRxUUID);//.toString().c_str());
+    syslog->print("Failed to find our characteristic UUID: ");
+    syslog->println(liveData->settings.charRxUUID);//.toString().c_str());
     board->displayMessage(" > Connecting device", "Unable to find RxUUID");
     return false;
   }
-  Serial.println(" - Found our characteristic write");
+  syslog->println(" - Found our characteristic write");
 
   board->displayMessage(" > Connecting device", "Register callbacks...");
   // Read the value of the characteristic.
   if (liveData->pRemoteCharacteristic->canNotify()) {
-    Serial.println(" - canNotify");
+    syslog->println(" - canNotify");
     if (liveData->pRemoteCharacteristic->canIndicate()) {
-      Serial.println(" - canIndicate");
+      syslog->println(" - canIndicate");
       const uint8_t indicationOn[] = {0x2, 0x0};
       //const uint8_t indicationOff[] = {0x0,0x0};
       liveData->pRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t*)indicationOn, 2, true);
@@ -307,7 +307,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 
   board->displayMessage(" > Connecting device", "Done...");
   if (liveData->pRemoteCharacteristicWrite->canWrite()) {
-    Serial.println(" - canWrite");
+    syslog->println(" - canWrite");
   }
 
   return true;
@@ -326,7 +326,7 @@ void CommObd2Ble4::mainLoop() {
       liveData->commConnected = true;
       liveData->bleConnect = false;
 
-      Serial.println("We are now connected to the BLE device.");
+      syslog->println("We are now connected to the BLE device.");
 
       // Print message
       board->displayMessage(" > Processing init AT cmds", "");
@@ -335,7 +335,7 @@ void CommObd2Ble4::mainLoop() {
       doNextQueueCommand();
       
     } else {
-      Serial.println("We have failed to connect to the server; there is nothing more we will do.");
+      syslog->println("We have failed to connect to the server; there is nothing more we will do.");
     }
   }
 

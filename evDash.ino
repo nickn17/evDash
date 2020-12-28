@@ -1,16 +1,16 @@
- /*
+/*
   Project renamed from eNiroDashboard to evDash
 
   Serial console commands
 
-    serviceUUID=xxx
-    charTxUUID=xxx
-    charRxUUID=xxx
-    wifiSsid=xxx
-    wifiPassword=xxx
-    gprsApn=xxx
-    remoteApiUrl=xxx
-    remoteApiKey=xxx
+   serviceUUID=xxx
+   charTxUUID=xxx
+   charRxUUID=xxx
+   wifiSsid=xxx
+   wifiPassword=xxx
+   gprsApn=xxx
+   remoteApiUrl=xxx
+   remoteApiKey=xxx
 
   Required libraries
   - esp32 board support
@@ -63,14 +63,20 @@ LiveData* liveData;
 */
 void setup(void) {
 
-  // Serial console, init structures
-  Serial.begin(115200);
-  Serial.println("");
-  Serial.println("Booting device...");
+  // Serial console
+  syslog = new LogSerial();
+  syslog->println("\nBooting device...");
 
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
+
+  // Turn off serial console
+  if (liveData->settings.serialConsolePort == 255) {
+    syslog->println("Serial console disabled...");
+    syslog->flush();
+    syslog->end();
+  }
 
   // Init board
 #ifdef BOARD_TTGO_T4
@@ -118,7 +124,7 @@ void setup(void) {
   board->afterSetup();
 
   // End
-  Serial.println("Device setup completed");
+  syslog->println("Device setup completed");
 }
 
 /**

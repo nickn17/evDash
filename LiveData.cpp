@@ -1,6 +1,15 @@
 #include "LiveData.h"
 #include "menu.h"
 
+LogSerial* syslog;
+
+/**
+ * Debug level
+ */
+void debug(String msg, uint8_t debugLevel) {
+  syslog->println(msg);
+}
+
 /**
    Init params with default values
 */

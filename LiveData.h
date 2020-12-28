@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <BLEDevice.h>
 #include "config.h"
+#include "LogSerial.h"
 #include <vector>
 
 // SUPPORTED CARS
@@ -20,7 +21,7 @@
 #define CAR_BMW_I3_2014           7
 #define CAR_DEBUG_OBD2_KIA        999
 
-// 
+// COMM TYPE
 #define COMM_TYPE_OBD2BLE4  0
 #define COMM_TYPE_OBD2CAN   1
 #define COMM_TYPE_OBD2BT3   2
@@ -36,6 +37,8 @@
 
 // 
 #define MONTH_SEC     2678400
+
+extern LogSerial* syslog;
 
 // Structure with realtime values
 typedef struct {
@@ -204,16 +207,13 @@ typedef struct {
   // === settings version 6
   // =================================
   byte serialConsolePort; // 255-off, 0 - hw serial (std)
-  byte debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  uint8_t debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec; // every x seconds
-  
-  
   //  
 } SETTINGS_STRUC;
 
-
-//
+// LiveData class
 class LiveData {
   protected:
   public:
