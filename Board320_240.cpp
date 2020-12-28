@@ -1499,8 +1499,8 @@ void Board320_240::mainLoop() {
     setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
   }
 
-  // Go to sleep when car is off for more than 10s and not charging
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
+  // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && !liveData->params.chargingOn
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled)
