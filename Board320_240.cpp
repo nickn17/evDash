@@ -51,7 +51,7 @@ void Board320_240::afterSetup() {
   BoardInterface::afterSetup();
 
   // Check if bard was sleeping
-  if(bootCount > 1) {
+  if (bootCount > 1) {
     afterSleep();
   }
 
@@ -121,21 +121,21 @@ void Board320_240::afterSetup() {
    Go to Sleep for TIME_TO_SLEEP seconds
 */
 void Board320_240::goToSleep() {
-  
+
   //Sleep MCP2515
   commInterface->disconnectDevice();
 
   //Sleep SIM800L
-  if(liveData->params.sim800l_enabled) {
+  if (liveData->params.sim800l_enabled) {
     if (sim800l->isConnectedGPRS()) {
       bool disconnected = sim800l->disconnectGPRS();
-      for(uint8_t i = 0; i < 5 && !disconnected; i++) {
+      for (uint8_t i = 0; i < 5 && !disconnected; i++) {
         delay(1000);
         disconnected = sim800l->disconnectGPRS();
       }
     }
 
-    if(sim800l->getPowerMode() == NORMAL) {
+    if (sim800l->getPowerMode() == NORMAL) {
       sim800l->setPowerMode(SLEEP);
       delay(1000);
     }
@@ -157,16 +157,29 @@ void Board320_240::goToSleep() {
   Iterate thru commands and determine if car is charging or ignition is on
 */
 void Board320_240::afterSleep() {
+
   syslog->println("Waking up from sleep mode!");
 
-  bool firstRun = true;
+  // Wakeup reason
+  esp_sleep_wakeup_cause_t wakeup_reason;
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0 : syslog->println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : syslog->println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : syslog->println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : syslog->println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : syslog->println("Wakeup caused by ULP program"); break;
+    default: syslog->printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason); break;
+  }
 
-  while(liveData->commandQueueIndex -1 > liveData->commandQueueLoopFrom || firstRun) {
-    if(liveData->commandQueueIndex -1 == liveData->commandQueueLoopFrom) {
+  //
+  bool firstRun = true;
+  while (liveData->commandQueueIndex - 1 > liveData->commandQueueLoopFrom || firstRun) {
+    if (liveData->commandQueueIndex - 1 == liveData->commandQueueLoopFrom) {
       firstRun = false;
     }
 
-    if(millis() > 5000) {
+    if (millis() > 5000) {
       syslog->println("Time's up (5s timeout)...");
       goToSleep();
     }
@@ -177,7 +190,7 @@ void Board320_240::afterSleep() {
   if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < 12) {
     syslog->println("AuxBATT too low!");
     goToSleep();
-  } else if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {
+  } else if (!liveData->params.ignitionOn && !liveData->params.chargingOn) {
     syslog->println("Not started & Not charging.");
     goToSleep();
   } else {
@@ -1478,7 +1491,7 @@ void Board320_240::mainLoop() {
   }
 
   // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time is synchronized)
-  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled) {
     setBrightness(0);
@@ -1649,9 +1662,9 @@ bool Board320_240::sim800lSetup() {
 
     sim800l->exitSleepMode();
 
-    if(sim800l->getPowerMode() != NORMAL) {
+    if (sim800l->getPowerMode() != NORMAL) {
       syslog->println("SIM800L module in sleep mode - Waking up");
-      if(sim800l->setPowerMode(NORMAL)) {
+      if (sim800l->setPowerMode(NORMAL)) {
         syslog->println("SIM800L in normal power mode");
       } else {
         syslog->println("Failed to switch SIM800L to normal power mode");
