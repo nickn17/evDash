@@ -295,9 +295,14 @@ void Board320_240::drawSceneMain() {
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), liveData->celsius2temperature(liveData->params.batHeaterC));
   drawBigCell(2, 3, 1, 1, tmpStr1, "BAT.HEAT", TFT_TEMP, TFT_WHITE);
 
-  // Aux perc
-  sprintf(tmpStr1, "%01.00f%%", liveData->params.auxPerc);
-  drawBigCell(3, 0, 1, 1, tmpStr1, "AUX BAT.", (liveData->params.auxPerc < 60 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
+  // Aux perc / temp
+  if (liveData->settings.carType == CAR_BMW_I3_2014) { // TODO: use invalid auxPerc value as decision point here?
+    sprintf(tmpStr1, "%01.00f", liveData->params.auxTemperature);
+    drawBigCell(3, 0, 1, 1, tmpStr1, "AUX TEMP.", (liveData->params.auxTemperature < 5 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
+  } else {
+    sprintf(tmpStr1, "%01.00f%%", liveData->params.auxPerc);
+    drawBigCell(3, 0, 1, 1, tmpStr1, "AUX BAT.", (liveData->params.auxPerc < 60 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
+  }
 
   // Aux amp
   sprintf(tmpStr1, (abs(liveData->params.auxCurrentAmp) > 9.9 ? "%01.00f" : "%01.01f"), liveData->params.auxCurrentAmp);
