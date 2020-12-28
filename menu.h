@@ -45,7 +45,7 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_SCREEN_BRIGHTNESS, 3, -1, "LCD brightness"},
   {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
   {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
-  {MENU_SLEEP_MODE, 3, -1, "Debug screen"},
+  {MENU_SLEEP_MODE, 3, -1, "SleepMode"},
   
 /*
   // NTP
