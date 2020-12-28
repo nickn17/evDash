@@ -123,7 +123,6 @@ void CarKiaEniro::parseRowMerged() {
       //
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-`
       liveData->params.trunkDoorOpen  = (bitRead(tempByte, 0) == 1);
       if (liveData->params.ignitionOn) {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
