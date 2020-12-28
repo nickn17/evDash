@@ -173,7 +173,7 @@ void Board320_240::afterSleep() {
     commInterface->mainLoop();
   }
 
-  if(liveData->params.auxVoltage < 12) {
+  if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < 12) {
     syslog->println("AuxBATT too low!");
     goToSleep();
   } else if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {

@@ -123,6 +123,7 @@ void CarKiaEniro::parseRowMerged() {
       //
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
+`
       liveData->params.trunkDoorOpen  = (bitRead(tempByte, 0) == 1);
       if (liveData->params.ignitionOn) {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
@@ -194,7 +195,6 @@ void CarKiaEniro::parseRowMerged() {
         liveData->params.speedKmh = 0;
     }*/
     if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(42, 46, 2, true) / 1000.0;
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
     }
@@ -213,14 +213,15 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
       //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
-      liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
-      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
+      liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
+      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 1, false);
       liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
       liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
       liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
       liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
@@ -237,7 +238,7 @@ void CarKiaEniro::parseRowMerged() {
       // liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
       tempByte = liveData->hexToDecFromResponse(24, 26, 1, false);
       liveData->params.chargingOn = (bitRead(tempByte, 5) == 1 || bitRead(tempByte, 6) == 1); // bit 5 = AC; bit 6 = DC
-
+   
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
       for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {

@@ -147,10 +147,10 @@ void CarHyundaiIoniq::parseRowMerged() {
         liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
-      liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
-      liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 2, true);
-      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 2, true);
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 2, true) / 10.0;
+      liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, false);
+      liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 1, false);
+      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 1, false);
+      liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
 
       float tmpAuxPerc;
       if(liveData->params.ignitionOn) {
