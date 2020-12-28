@@ -26,6 +26,7 @@ class CommObd2Can : public CommInterface {
     
     std::vector<uint8_t> mergedData;
     std::unordered_map<uint16_t, std::vector<uint8_t>> dataRows;
+    bool bResponseProcessed = false;
     
     enum class enFrame_t
     {

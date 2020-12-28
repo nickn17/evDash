@@ -77,6 +77,8 @@ void CarBmwI3::activateCommandQueue() {
 	liveData->commandQueueCount = commandQueue.size();
   liveData->rxBuffOffset = 1; // there is one additional byte in received packets compared to other cars
   liveData->expectedMinimalPacketLength = 6;  // to filter occasional 5-bytes long packets
+  liveData->rxTimeoutMs = 500; // timeout for receiving of CAN response
+  liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed 
 }
 
 /**
