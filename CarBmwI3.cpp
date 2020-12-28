@@ -44,7 +44,7 @@ void CarBmwI3::activateCommandQueue() {
     {0x07, "22DDBF"}, // Min and Max cell voltage
     {0x07, "22DDC0"}, // TEMPERATUREN
     {0x07, "22DD69"}, // HV_STORM
-    //{0x07, "22DD6C"}, // KUEHLKREISLAUF_TEMP
+    {0x07, "22DD6C"}, // KUEHLKREISLAUF_TEMP
     {0x07, "22DDB4"}, // HV_SPANNUNG
     {0x07, "22DDBC"}  // SOC
 		
@@ -74,7 +74,7 @@ void CarBmwI3::activateCommandQueue() {
   liveData->bAdditionalStartingChar = true; // there is one additional byte in received packets compared to other cars
   liveData->expectedMinimalPacketLength = 6;  // to filter occasional 5-bytes long packets
   liveData->rxTimeoutMs = 500; // timeout for receiving of CAN response
-  liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed 
+  liveData->delayBetweenCommandsMs = 0;//100; // delay between commands, set to 0 if no delay is needed 
 }
 
 /**
@@ -82,17 +82,7 @@ void CarBmwI3::activateCommandQueue() {
 */
 void CarBmwI3::parseRowMerged() 
 {
-  
-//  syslog->println("--Parsing row merged: ");  
-//  syslog->print("--responseRowMerged: ");  syslog->println(liveData->responseRowMerged);
-//  syslog->print("--currentAtshRequest: ");   syslog->println(liveData->currentAtshRequest);
-//  syslog->print("--commandRequest: ");       syslog->println(liveData->commandRequest);
-//  syslog->print("--mergedLength: ");         syslog->println(liveData->responseRowMerged.length());
   syslog->print("--mergedVectorLength: ");   syslog->println(liveData->vResponseRowMerged.size());
-  
-  if (liveData->responseRowMerged.length() <= 6) {
-    syslog->println("--too short data, skiping processing");
-  }
 
   struct Header_t
   {
@@ -197,11 +187,6 @@ void CarBmwI3::parseRowMerged()
         liveData->params.coolingWaterTempC = ptr->tempCoolant / 10.0;
         liveData->params.coolantTemp1C = ptr->tempCoolant / 10.0;
         liveData->params.coolantTemp2C = ptr->tempCoolant / 10.0;
-        /*  
-        float coolingWaterTempC;
-        float coolantTemp1C;
-        float coolantTemp2C;
-        */
       }
       
     }
