@@ -1,6 +1,6 @@
 #include "CarHyundaiIoniq.h"
+#include <vector>
 
-#define commandQueueCountHyundaiIoniq 27
 #define commandQueueLoopFromHyundaiIoniq 8
 
 /**
@@ -8,7 +8,7 @@
 */
 void CarHyundaiIoniq::activateCommandQueue() {
 
-  String commandQueueHyundaiIoniq[commandQueueCountHyundaiIoniq] = {
+  std::vector<String> commandQueueHyundaiIoniq = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
     "AT E0",     // Echo off
@@ -68,15 +68,13 @@ void CarHyundaiIoniq::activateCommandQueue() {
   liveData->params.batModuleTempCount = 12;
 
   //  Empty and fill command queue
-  for (int i = 0; i < 300; i++) {
-    liveData->commandQueue[i] = "";
-  }
-  for (int i = 0; i < commandQueueCountHyundaiIoniq; i++) {
-    liveData->commandQueue[i] = commandQueueHyundaiIoniq[i];
+  liveData->commandQueue.clear();
+  for (auto cmd : commandQueueHyundaiIoniq) {
+    liveData->commandQueue.push_back({ 0, cmd });
   }
 
   liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq;
-  liveData->commandQueueCount = commandQueueCountHyundaiIoniq;
+  liveData->commandQueueCount = commandQueueHyundaiIoniq.size();
 }
 
 /**

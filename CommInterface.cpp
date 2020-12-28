@@ -54,7 +54,9 @@ bool CommInterface::doNextQueueCommand() {
   }
 
   // Send AT command to obd
-  liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex];
+  liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex].request;
+  liveData->commandStartChar = liveData->commandQueue[liveData->commandQueueIndex].startChar; // TODO: add to struct?
+  
   if (liveData->commandRequest.startsWith("ATSH")) {
     liveData->currentAtshRequest = liveData->commandRequest;
   }

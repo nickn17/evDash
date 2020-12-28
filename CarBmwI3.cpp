@@ -8,44 +8,45 @@
 void CarBmwI3::activateCommandQueue() {
 	const uint16_t commandQueueLoopFrom = 18;
 	
-	const std::vector<String> commandQueue = {
-		"AT Z",		// Reset all
-		"AT D",		// All to defaults
-		"AT I",		// Print the version ID
-		"AT E0",	// Echo off
-		"AT PP2COFF", // Disable prog parameter 2C
-		//"AT SH6F1",	// Set header to 6F1
-		"AT CF600", //	Set the ID filter to 600
-		"AT CM700", //	Set the ID mask to 700
-		"AT PBC001", //	 Protocol B options and baudrate (div 1 = 500k)
-		"AT SPB", //	Set protocol to B and save it (USER1 11bit, 125kbaud)
-		"AT AT0", //	Adaptive timing off
-		"AT STFF", //	Set timeout to ff x 4ms
-		"AT AL", //	Allow long messages ( > 7 Bytes)
-		"AT H1", //	Additional headers on
-		"AT S0", //	Printing of spaces off
-		"AT L0", //	Linefeeds off
-		"AT CSM0", //	Silent monitoring off
-		"AT CTM5", //	Set timer multiplier to 5
-		"AT JE", //	Use J1939 SAE data format
+//	const std::vector<String> commandQueue = {
+   const std::vector<LiveData::Command_t> commandQueue = {
+		{0, "ATZ"},		// Reset all
+		{0, "ATD"},		// All to defaults
+		{0, "ATI"},		// Print the version ID
+		{0, "ATE0"},	// Echo off
+		{0, "ATPP2COFF"}, // Disable prog parameter 2C
+		//{0, "ATSH6F1"},	// Set header to 6F1
+		{0, "ATCF600"}, //	Set the ID filter to 600
+		{0, "ATCM700"}, //	Set the ID mask to 700
+		{0, "ATPBC001"}, //	 Protocol B options and baudrate (div 1 = 500k)
+		{0, "ATSPB"}, //	Set protocol to B and save it (USER1 11bit, 125kbaud)
+		{0, "ATAT0"}, //	Adaptive timing off
+		{0, "ATSTFF"}, //	Set timeout to ff x 4ms
+		{0, "ATAL"}, //	Allow long messages ( > 7 Bytes)
+		{0, "ATH1"}, //	Additional headers on
+		{0, "ATS0"}, //	Printing of spaces off
+		{0, "ATL0"}, //	Linefeeds off
+		{0, "ATCSM0"}, //	Silent monitoring off
+		{0, "ATCTM5"}, //	Set timer multiplier to 5
+		{0, "ATJE"}, //	Use J1939 SAE data format
 
 		// Loop from (BMW i3)
 		// BMS
-		"ATSH6F1",
+		{0, "ATSH6F1"},
 
-    "22402B", // STATUS_MESSWERTE_IBS - 12V Bat
-    //////"22F101", // STATUS_A_T_ELUE ???
-    "22D85C", // Calculated indoor temperature
-    "22D96B", // Outdoor temperature
-    //"22DC61", // BREMSLICHT_SCHALTER
-    "22DD7B", // ALTERUNG_KAPAZITAET Aging of kapacity
-    "22DD7C", // GW_INFO - should contain kWh but in some strange form
-    "22DDBF", // Min and Max cell voltage
-    "22DDC0", // TEMPERATUREN
-    "22DD69", // HV_STORM
-    //"22DD6C", // KUEHLKREISLAUF_TEMP
-    "22DDB4", // HV_SPANNUNG
-    "22DDBC"  // SOC
+    {0x12, "22402B"}, // STATUS_MESSWERTE_IBS - 12V Bat
+    //////{0x12, "22F101"}, // STATUS_A_T_ELUE ???
+    {0x78, "22D85C"}, // Calculated indoor temperature
+    {0x78, "22D96B"}, // Outdoor temperature
+    //{0, "22DC61"}, // BREMSLICHT_SCHALTER
+    {0x07, "22DD7B"}, // ALTERUNG_KAPAZITAET Aging of kapacity
+    {0x07, "22DD7C"}, // GW_INFO - should contain kWh but in some strange form
+    {0x07, "22DDBF"}, // Min and Max cell voltage
+    {0x07, "22DDC0"}, // TEMPERATUREN
+    {0x07, "22DD69"}, // HV_STORM
+    //{0x07, "22DD6C"}, // KUEHLKREISLAUF_TEMP
+    {0x07, "22DDB4"}, // HV_SPANNUNG
+    {0x07, "22DDBC"}  // SOC
 		
 		
 	};
@@ -65,17 +66,12 @@ void CarBmwI3::activateCommandQueue() {
   liveData->params.tireRearRightTempC = 0;
 
 	//  Empty and fill command queue
-	for(auto item : liveData->commandQueue) {
-		item = "";
-	}
-
-	for (int i = 0; i < commandQueue.size(); i++) {
-		liveData->commandQueue[i] = commandQueue[i];
-	}
+  liveData->commandQueue.clear(); // probably not needed before assign
+  liveData->commandQueue.assign(commandQueue.begin(), commandQueue.end());
 
 	liveData->commandQueueLoopFrom = commandQueueLoopFrom;
 	liveData->commandQueueCount = commandQueue.size();
-  liveData->rxBuffOffset = 1; // there is one additional byte in received packets compared to other cars
+  liveData->bAdditionalStartingChar = true; // there is one additional byte in received packets compared to other cars
   liveData->expectedMinimalPacketLength = 6;  // to filter occasional 5-bytes long packets
   liveData->rxTimeoutMs = 500; // timeout for receiving of CAN response
   liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed 

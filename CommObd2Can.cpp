@@ -148,45 +148,43 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
   uint8_t txBuf[8] = { 0 }; // init with zeroes
   String tmpStr;
 
-  if (liveData->settings.carType == CAR_BMW_I3_2014)
+  if (liveData->bAdditionalStartingChar)
   {
     struct Packet_t
     {
       uint8_t startChar;
       uint8_t length;
-      uint8_t data[6];
+      uint8_t payload[6];
     };
     
     Packet_t* pPacket = (Packet_t*)txBuf;
-
-    if (cmd == "22402B" || cmd == "22F101") {
-      pPacket->startChar = txStartChar = 0x12;
-    } else if (cmd == "22D85C" || cmd == "22D96B") {
-      pPacket->startChar = txStartChar = 0x78;
-    } else {
-      pPacket->startChar = txStartChar = 0x07;
-    }
-    
-    
+    pPacket->startChar = liveData->commandStartChar; // todo: handle similar way as cmd input param?
     pPacket->length = cmd.length() / 2;
     
-    for (uint8_t i = 0; i < sizeof(pPacket->data); i++) {
+    for (uint8_t i = 0; i < sizeof(pPacket->payload); i++) {
       tmpStr = cmd;
       tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
       if (tmpStr != "") {
-        pPacket->data[i] = liveData->hexToDec(tmpStr, 1, false);
+        pPacket->payload[i] = liveData->hexToDec(tmpStr, 1, false);
       }
     }
   }
   else
   {
-    txBuf[0] = cmd.length() / 2;
+    struct Packet_t
+    {
+      uint8_t length;
+      uint8_t payload[7];
+    };
+
+    Packet_t* pPacket = (Packet_t*)txBuf;
+    pPacket->length = cmd.length() / 2;
     
-    for (uint8_t i = 0; i < 7; i++) {
+    for (uint8_t i = 0; i < sizeof(pPacket->payload); i++) {
       tmpStr = cmd;
       tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
       if (tmpStr != "") {
-        txBuf[i + 1] = liveData->hexToDec(tmpStr, 1, false);
+        pPacket->payload[i] = liveData->hexToDec(tmpStr, 1, false);
       }
     }
   }
@@ -200,6 +198,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
     lastDataSent = millis();
   }   else {
     syslog->infoNolf(DEBUG_COMM, "Error sending PID ");
+    lastDataSent = millis();
   }
   syslog->infoNolf(DEBUG_COMM, pid);
   for (uint8_t i = 0; i < 8; i++) {
@@ -216,10 +215,10 @@ void CommObd2Can::sendFlowControlFrame() {
 
   uint8_t txBuf[8] = { 0x30, requestFramesCount /*request count*/, 20 /*ms between frames*/ , 0, 0, 0, 0, 0 };
   
-  // insert 0x07 into beginning for BMW i3
-  if (liveData->settings.carType == CAR_BMW_I3_2014) {
+  // insert start char if needed
+  if (liveData->bAdditionalStartingChar) {
     memmove(txBuf + 1, txBuf, 7);
-    txBuf[0] = txStartChar;
+    txBuf[0] = liveData->commandStartChar;
   }
     
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
@@ -290,7 +289,8 @@ uint8_t CommObd2Can::receivePID() {
     return 0xff;
   }
 
-  return rxBuf[0 + liveData->rxBuffOffset];
+  const uint8_t rxBuffOffset = liveData->bAdditionalStartingChar? 1 : 0;
+  return rxBuf[0 + rxBuffOffset]; // return byte containing frame type, which requires removing offset byte
 }
 
 static void printHexBuffer(uint8_t* pData, const uint16_t length, const bool bAddNewLine)
@@ -340,10 +340,10 @@ CommObd2Can::enFrame_t CommObd2Can::getFrameType(const uint8_t firstByte) {
    https://en.wikipedia.org/wiki/ISO_15765-2
  */
 bool CommObd2Can::processFrameBytes() {
-  
-  uint8_t* pDataStart = rxBuf + liveData->rxBuffOffset; // set pointer to data start based on specific offset of car
+  const uint8_t rxBuffOffset = liveData->bAdditionalStartingChar ? 1 : 0;
+  uint8_t* pDataStart = rxBuf + rxBuffOffset; // set pointer to data start based on specific offset of car
   const auto frameType = getFrameType(*pDataStart);
-  const uint8_t frameLenght = rxLen - liveData->rxBuffOffset;
+  const uint8_t frameLenght = rxLen - rxBuffOffset;
   
   switch (frameType) {
   case enFrame_t::single: // Single frame

@@ -218,15 +218,21 @@ class LiveData {
   protected:
   public:
     // Command loop
+    struct Command_t {
+      uint8_t startChar; // special starting character used by some cars
+      String request;
+    };
+    
     uint16_t commandQueueCount;
     uint16_t commandQueueLoopFrom;
-    String commandQueue[300];
+    std::vector<Command_t> commandQueue;
     String responseRow;
     String responseRowMerged;
     std::vector<uint8_t> vResponseRowMerged;
     uint16_t commandQueueIndex;
     bool canSendNextAtCommand = false;
-    String commandRequest = "";
+    uint8_t commandStartChar; 
+    String commandRequest = ""; // TODO: us Command_t struct
     String currentAtshRequest = "";
     // Menu
     bool menuVisible = false;
@@ -249,7 +255,7 @@ class LiveData {
     BLEScan* pBLEScan;
   
     // Canbus
-    uint8_t rxBuffOffset = 0;  // offset of processing received data, in some cars needs to be set to 1, like in BMW i3
+    bool bAdditionalStartingChar = false;  // some cars uses additional starting character in beginning of tx and rx messages
     uint8_t expectedMinimalPacketLength = 0;  // what length of packet should be accepted. Set to 0 to accept any length
     uint16_t rxTimeoutMs = 100; // timeout for receiving of CAN response
     uint16_t delayBetweenCommandsMs = 0; // delay between commands, set to 0 if no delay is needed 

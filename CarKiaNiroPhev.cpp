@@ -1,6 +1,6 @@
 #include "CarKiaNiroPhev.h"
+#include <vector>
 
-#define commandQueueCountKiaNiroPhev 25
 #define commandQueueLoopFromKiaNiroPhev 8
 
 /**
@@ -8,7 +8,7 @@
 */
 void CarKiaNiroPhev::activateCommandQueue() {
 
-  String commandQueueKiaNiroPhev[commandQueueCountKiaNiroPhev] = {
+  std::vector<String> commandQueueKiaNiroPhev = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
     "AT E0",     // Echo off
@@ -64,15 +64,13 @@ void CarKiaNiroPhev::activateCommandQueue() {
   liveData->params.batModuleTempCount = 5;
 
   //  Empty and fill command queue
-  for (int i = 0; i < 300; i++) {
-    liveData->commandQueue[i] = "";
-  }
-  for (int i = 0; i < commandQueueCountKiaNiroPhev; i++) {
-    liveData->commandQueue[i] = commandQueueKiaNiroPhev[i];
+  liveData->commandQueue.clear();
+  for (auto cmd : commandQueueKiaNiroPhev) {
+    liveData->commandQueue.push_back({ 0, cmd });
   }
 
   liveData->commandQueueLoopFrom = commandQueueLoopFromKiaNiroPhev;
-  liveData->commandQueueCount = commandQueueCountKiaNiroPhev;
+  liveData->commandQueueCount = commandQueueKiaNiroPhev.size();
 }
 
 /**

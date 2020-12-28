@@ -15,8 +15,8 @@
 #include <sys/time.h>
 #include "LiveData.h"
 #include "CarKiaEniro.h"
+#include <vector>
 
-#define commandQueueCountKiaENiro 29
 #define commandQueueLoopFromKiaENiro 8
 
 /**
@@ -24,7 +24,7 @@
 */
 void CarKiaEniro::activateCommandQueue() {
 
-  String commandQueueKiaENiro[commandQueueCountKiaENiro] = {
+  std::vector<String> commandQueueKiaENiro = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
     "AT S0",     // Printing of spaces on
@@ -90,15 +90,14 @@ void CarKiaEniro::activateCommandQueue() {
   }
 
   //  Empty and fill command queue
-  for (int i = 0; i < 300; i++) {
-    liveData->commandQueue[i] = "";
-  }
-  for (int i = 0; i < commandQueueCountKiaENiro; i++) {
-    liveData->commandQueue[i] = commandQueueKiaENiro[i];
+  liveData->commandQueue.clear();
+  //for (int i = 0; i < commandQueueCountKiaENiro; i++) {
+  for (auto cmd : commandQueueKiaENiro) {
+    liveData->commandQueue.push_back({ 0, cmd }); // stxChar not used, keep it 0
   }
 
   liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
-  liveData->commandQueueCount = commandQueueCountKiaENiro;
+  liveData->commandQueueCount = commandQueueKiaENiro.size();
 }
 
 /**

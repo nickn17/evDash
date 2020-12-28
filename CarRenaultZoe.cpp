@@ -5,8 +5,8 @@
 #include <sys/time.h>
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
+#include <vector>
 
-#define commandQueueCountRenaultZoe 34
 #define commandQueueLoopFromRenaultZoe 8
 
 /**
@@ -14,7 +14,7 @@
 */
 void CarRenaultZoe::activateCommandQueue() {
 
-  String commandQueueRenaultZoe[commandQueueCountRenaultZoe] = {
+  std::vector<String> commandQueueRenaultZoe = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
     "AT S0",     // Printing of spaces on
@@ -113,15 +113,13 @@ void CarRenaultZoe::activateCommandQueue() {
   
 
   //  Empty and fill command queue
-  for (int i = 0; i < 300; i++) {
-    liveData->commandQueue[i] = "";
-  }
-  for (int i = 0; i < commandQueueCountRenaultZoe; i++) {
-    liveData->commandQueue[i] = commandQueueRenaultZoe[i];
+  liveData->commandQueue.clear();
+  for (auto cmd : commandQueueRenaultZoe) {
+    liveData->commandQueue.push_back({ 0, cmd });
   }
 
   liveData->commandQueueLoopFrom = commandQueueLoopFromRenaultZoe;
-  liveData->commandQueueCount = commandQueueCountRenaultZoe;
+  liveData->commandQueueCount = commandQueueRenaultZoe.size();
 }
 
 /**
