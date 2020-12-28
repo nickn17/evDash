@@ -6,7 +6,7 @@
    activateliveData->commandQueue
 */
 void CarBmwI3::activateCommandQueue() {
-	const uint16_t commandQueueLoopFrom = 8;
+	const uint16_t commandQueueLoopFrom = 18;
 	
 	const std::vector<String> commandQueue = {
 		"AT Z",		// Reset all
@@ -34,7 +34,13 @@ void CarBmwI3::activateCommandQueue() {
 		"ATSH6F1",
 
     "22402B", // STATUS_MESSWERTE_IBS - 12V Bat
-    //"22F101", // STATUS_A_T_ELUE ???
+    //////"22F101", // STATUS_A_T_ELUE ???
+    "22D85C", // Calculated indoor temperature
+    "22D96B", // Outdoor temperature
+    //"22DC61", // BREMSLICHT_SCHALTER
+    "22DD7B", // ALTERUNG_KAPAZITAET Aging of kapacity
+    "22DD7C", // GW_INFO - should contain kWh but in some strange form
+    "22DDBF", // Min and Max cell voltage
     "22DDC0", // TEMPERATUREN
     "22DD69", // HV_STORM
     //"22DD6C", // KUEHLKREISLAUF_TEMP
@@ -44,9 +50,19 @@ void CarBmwI3::activateCommandQueue() {
 		
 	};
 
-	// 28kWh version
+	// 60Ah / 22kWh version
 	liveData->params.batteryTotalAvailableKWh = 18.8;
 	liveData->params.batModuleTempCount = 5; //?
+  
+  // init params which are currently not filled from parsed data
+  liveData->params.tireFrontLeftPressureBar = 0;
+  liveData->params.tireFrontLeftTempC = 0;
+  liveData->params.tireRearLeftPressureBar = 0;
+  liveData->params.tireRearLeftTempC = 0;
+  liveData->params.tireFrontRightPressureBar = 0;
+  liveData->params.tireFrontRightTempC = 0;
+  liveData->params.tireRearRightPressureBar = 0;
+  liveData->params.tireRearRightTempC = 0;
 
 	//  Empty and fill command queue
 	for(auto item : liveData->commandQueue) {
@@ -60,7 +76,7 @@ void CarBmwI3::activateCommandQueue() {
 	liveData->commandQueueLoopFrom = commandQueueLoopFrom;
 	liveData->commandQueueCount = commandQueue.size();
   liveData->rxBuffOffset = 1; // there is one additional byte in received packets compared to other cars
-  liveData->expectedMinimalPacketLength = 7;  // to filter occasional 5-bytes long packets
+  liveData->expectedMinimalPacketLength = 6;  // to filter occasional 5-bytes long packets
 }
 
 /**
@@ -118,11 +134,37 @@ void CarBmwI3::parseRowMerged()
       if (payloadLength == sizeof(s402B_t)) {
         s402B_t* ptr = (s402B_t*)payloadReversed.data();
 
-        liveData->params.auxPerc = ptr->auxTemp / 10.0;
+        liveData->params.auxTemperature = ptr->auxTemp / 10.0;
         liveData->params.auxVoltage = ptr->auxRawVoltage / 4000.0 + 6;
         liveData->params.auxCurrentAmp = - (ptr->auxRawCurrent / 12.5 - 200);
       }
         
+    }
+    break;
+
+    case 0xD85C:
+    {
+      struct D85C_t {
+        int8_t indoorTemp;
+      };
+
+      if (payloadLength == sizeof(D85C_t)) { 
+        D85C_t* ptr = (D85C_t*)payloadReversed.data();
+        liveData->params.indoorTemperature = ptr->indoorTemp;
+      }
+    }
+    break;
+
+    case 0xD96B:
+    {
+      struct D96B_t {
+        uint16_t outdoorTempRaw;
+      };
+
+      if (payloadLength == sizeof(D96B_t)) { 
+        D96B_t* ptr = (D96B_t*)payloadReversed.data();
+        liveData->params.outdoorTemperature = (ptr->outdoorTempRaw / 2.0) - 40.0;
+      }
     }
     break;
     
@@ -167,6 +209,46 @@ void CarBmwI3::parseRowMerged()
     }
     break;
 
+    case 0xDD7B:
+    {
+      struct DD7B_t {
+        uint8_t agingOfCapacity;
+      };
+
+      if (payloadLength == sizeof(DD7B_t)) {
+        DD7B_t* ptr = (DD7B_t*)payloadReversed.data();
+
+        liveData->params.sohPerc = ptr->agingOfCapacity;
+      }
+      
+    }
+    break;
+
+    case 0xDD7C:
+    {
+      struct DD7C_t {
+        //uint8_t unused1;
+        uint32_t discharged;
+        uint32_t charged;
+        uint8_t unknown[];
+      };
+
+      Serial.print("DD7C received, struct sizeof is "); Serial.println(sizeof(DD7C_t));
+      if (payloadLength >= sizeof(DD7C_t)) {
+        
+        DD7C_t* ptr = (DD7C_t*)(payloadReversed.data() + 1); // skip one charcter on beginning (TODO: fix when pragma push/pack is done)
+        liveData->params.cumulativeEnergyDischargedKWh = ptr->discharged / 100000.0;
+        if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
+          liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
+
+        liveData->params.cumulativeEnergyChargedKWh = ptr->charged / 100000.0;
+        if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
+          liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
+      }
+      
+    }
+    break;
+
     case 0xDDB4:
     {
       struct DDB4_t {
@@ -180,6 +262,23 @@ void CarBmwI3::parseRowMerged()
         liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
         if (liveData->params.batPowerKw < 0) // Reset charging start time
           liveData->params.chargingStartTime = liveData->params.currentTime;
+      }
+    }
+    break;
+
+    case 0xDDBF:
+    {
+      struct DDBF_t {
+        uint16_t unused[2];
+        uint16_t ucellMax;
+        uint16_t ucellMin;
+      };
+      
+      if (payloadLength == sizeof(DDBF_t)) { // HV_SPANNUNG_BATTERIE
+        DDBF_t* ptr = (DDBF_t*)payloadReversed.data();
+        
+        liveData->params.batCellMaxV = ptr->ucellMax / 1000.0;
+        liveData->params.batCellMinV = ptr->ucellMin / 1000.0;
       }
     }
     break;
@@ -221,7 +320,6 @@ void CarBmwI3::parseRowMerged()
 
         liveData->params.socPercPrevious = liveData->params.socPerc;
         liveData->params.socPerc = ptr->soc / 10.0;
-        liveData->params.sohPerc = 92.0; // TODO: gother somewhere this value
       }
     }
     break;
