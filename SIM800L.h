@@ -66,6 +66,8 @@ class SIM800L {
 
     // Define the power mode (for parameter: see PowerMode enum)
     bool setPowerMode(PowerMode powerMode);
+    void enterSleepMode();
+    void exitSleepMode();
 
     // Enable/disable GPRS
     bool setupGPRS(const char *apn);

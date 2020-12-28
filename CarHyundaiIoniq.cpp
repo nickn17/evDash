@@ -106,9 +106,7 @@ void CarHyundaiIoniq::parseRowMerged() {
       if (liveData->params.ignitionOn) {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
-      int32_t secDiff = liveData->params.currentTime - liveData->params.currentTime;
-      if (liveData->commConnected && secDiff > 30 && secDiff < MONTH_SEC && !liveData->params.ignitionOn && !liveData->params.chargingOn)
-        liveData->params.automaticShutdownTimer = liveData->params.currentTime;
+
       tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
       liveData->params.headLights = (bitRead(tempByte, 5) == 1);
       liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
@@ -185,8 +183,8 @@ void CarHyundaiIoniq::parseRowMerged() {
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(32, 34, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(34, 36, 1, true);
 
-      tempByte = liveData->hexToDecFromResponse(104, 106, 1, false);
-      liveData->params.chargingOn = (bitRead(tempByte, 2) == 0);
+      tempByte = liveData->hexToDecFromResponse(22, 24, 1, false);
+      liveData->params.chargingOn = (bitRead(tempByte, 5) == 1 || bitRead(tempByte, 6) == 1); // bit 5 = AC; bit 6 = DC
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batInletC = liveData->hexToDecFromResponse(48, 50, 1, true);

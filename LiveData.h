@@ -45,7 +45,6 @@ typedef struct {
   // System
   time_t currentTime;
   time_t chargingStartTime;
-  time_t automaticShutdownTimer;
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
@@ -63,6 +62,7 @@ typedef struct {
   bool ignitionOn;
   bool chargingOn;
   time_t lastIgnitionOnTime;
+  time_t lastChargingOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;
   bool forwardDriveMode;
@@ -175,7 +175,7 @@ typedef struct {
   // =================================
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
-  byte debugScreen; // 0 - off, 1 - on
+  byte sleepModeEnabled; // 0 - off, 1 - on
   byte predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================

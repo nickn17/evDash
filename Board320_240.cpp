@@ -11,6 +11,8 @@
 #include <ArduinoJson.h>
 #include "SIM800L.h"
 
+RTC_DATA_ATTR int bootCount = 0;
+
 /**
    Init board
 */
@@ -29,6 +31,29 @@ void Board320_240::initBoard() {
   getLocalTime(&now, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
+  ++bootCount;
+  syslog->print("Boot count: ");
+  syslog->println(bootCount);
+}
+
+/**
+   After setup device
+*/
+void Board320_240::afterSetup() {
+
+  if (digitalRead(pinButtonRight) == LOW) {
+    loadTestData();
+  }
+
+  // Init from parent class
+  syslog->println("BoardInterface::afterSetup");
+  BoardInterface::afterSetup();
+
+  // Check if bard was sleeping
+  if(bootCount > 1) {
+    afterSleep();
+  }
+
   // Init display
   syslog->println("Init tft display");
   tft.begin();
@@ -44,12 +69,6 @@ void Board320_240::initBoard() {
 #endif
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
-}
-
-/**
-   After setup device
-*/
-void Board320_240::afterSetup() {
 
   // Show test data on right button during boot device
   displayScreen = liveData->settings.defaultScreen;
@@ -63,7 +82,6 @@ void Board320_240::afterSetup() {
 
     /*syslog->print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
         syslog->println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
-
         syslog->println("WiFi init...");
       WiFi.enableSTA(true);
       WiFi.mode(WIFI_STA);
@@ -96,10 +114,73 @@ void Board320_240::afterSetup() {
   if (liveData->settings.gprsHwSerialPort <= 2) {
     sim800lSetup();
   }
+}
 
-  // Init from parent class
-  syslog->println("BoardInterface::afterSetup");
-  BoardInterface::afterSetup();
+/**
+   Go to Sleep for TIME_TO_SLEEP seconds
+*/
+void Board320_240::goToSleep() {
+  //Sleep MCP2515
+  commInterface->disconnectDevice();
+
+  //Sleep SIM800L
+  if(liveData->params.sim800l_enabled) {
+    if (sim800l->isConnectedGPRS()) {
+      bool disconnected = sim800l->disconnectGPRS();
+      for(uint8_t i = 0; i < 5 && !disconnected; i++) {
+        delay(1000);
+        disconnected = sim800l->disconnectGPRS();
+      }
+    }
+
+    if(sim800l->getPowerMode() == NORMAL) {
+      sim800l->setPowerMode(SLEEP);
+      delay(1000);
+    }
+    sim800l->enterSleepMode();
+  }
+
+  syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
+  syslog->flush();
+
+  delay(1000);
+
+  //Sleep ESP32
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
+  esp_deep_sleep_start();
+}
+
+/*
+  Wake up board from sleep
+  Iterate thru commands and determine if car is charging or ignition is on
+*/
+void Board320_240::afterSleep() {
+  syslog->println("Waking up from sleep mode!");
+
+  bool firstRun = true;
+
+  while(liveData->commandQueueIndex -1 > liveData->commandQueueLoopFrom || firstRun) {
+    if(liveData->commandQueueIndex -1 == liveData->commandQueueLoopFrom) {
+      firstRun = false;
+    }
+
+    if(millis() > 5000) {
+      syslog->println("Time's up (5s timeout)...");
+      goToSleep();
+    }
+
+    commInterface->mainLoop();
+  }
+
+  if(liveData->params.auxVoltage < 12) {
+    syslog->println("AuxBATT too low!");
+    goToSleep();
+  } else if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {
+    syslog->println("Not started & Not charging.");
+    goToSleep();
+  } else {
+    syslog->println("Wake up conditions satisfied... Good morning!");
+  }
 }
 
 /**
@@ -895,7 +976,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
     case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
     case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
-    case MENU_DEBUG_SCREEN:     suffix = (liveData->settings.debugScreen == 1) ? "[on]" : "[off]"; break;
+    case MENU_SLEEP_MODE:     suffix = (liveData->settings.sleepModeEnabled == 1) ? "[on]" : "[off]"; break;
     case MENU_GPS:              sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);  suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1; break;
     //
     case MENU_SDCARD_ENABLED:   sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 1) ? "on" : "off"); suffix = tmpStr1; break;
@@ -1045,7 +1126,7 @@ void Board320_240::menuItemClick() {
       case 3064: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       // Debug screen off/on
-      case MENU_DEBUG_SCREEN: liveData->settings.debugScreen = (liveData->settings.debugScreen == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SLEEP_MODE: liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SCREEN_BRIGHTNESS: liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
         setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness); showMenu(); return; break;
       // Pre-drawn charg.graphs off/on
@@ -1300,7 +1381,7 @@ void Board320_240::mainLoop() {
         menuMove(false);
       } else {
         displayScreen++;
-        if (displayScreen > displayScreenCount - (liveData->settings.debugScreen == 0) ? 1 : 0)
+        if (displayScreen > displayScreenCount - 1)
           displayScreen = 0; // rotate screens
         // Turn off display on screen 0
         setBrightness((displayScreen == SCREEN_BLANK) ? 0 : (liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
@@ -1392,9 +1473,21 @@ void Board320_240::mainLoop() {
     }
   }
 
-  // Shutdown when car is off
-  if (liveData->params.automaticShutdownTimer != 0 && liveData->params.currentTime - liveData->params.automaticShutdownTimer > 5)
-    shutdownDevice();
+  // Turn off display if Ignition is off for more than 10s
+  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+      && liveData->params.lastIgnitionOnTime != 0
+      && liveData->settings.sleepModeEnabled) {
+    setBrightness(0);
+  } else {
+    setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+  }
+
+  // Go to sleep when car is off for more than 10s and not charging
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+      && !liveData->params.chargingOn
+      && liveData->params.lastIgnitionOnTime != 0
+      && liveData->settings.sleepModeEnabled)
+    goToSleep();
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
@@ -1534,9 +1627,9 @@ bool Board320_240::sim800lSetup() {
   gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
   gprsHwUart->begin(9600);
 
-  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512);
+  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 512 , 512, (Stream *)&Serial);
+  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128, (Stream *)&Serial);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
@@ -1549,6 +1642,17 @@ bool Board320_240::sim800lSetup() {
     syslog->println("Problem to initialize SIM800L module");
   } else {
     syslog->println("SIM800L module initialized");
+
+    sim800l->exitSleepMode();
+
+    if(sim800l->getPowerMode() != NORMAL) {
+      syslog->println("SIM800L module in sleep mode - Waking up");
+      if(sim800l->setPowerMode(NORMAL)) {
+        syslog->println("SIM800L in normal power mode");
+      } else {
+        syslog->println("Failed to switch SIM800L to normal power mode");
+      }
+    }
 
     syslog->print("Setting GPRS APN to: ");
     syslog->println(liveData->settings.gprsApn);
@@ -1606,10 +1710,12 @@ bool Board320_240::sendDataViaGPRS() {
 
   syslog->println("Start HTTP POST...");
 
-  StaticJsonDocument<512> jsonData;
+  StaticJsonDocument<768> jsonData;
 
   jsonData["apikey"] = liveData->settings.remoteApiKey;
   jsonData["carType"] = liveData->settings.carType;
+  jsonData["ignitionOn"] = liveData->params.ignitionOn;
+  jsonData["chargingOn"] = liveData->params.chargingOn;
   jsonData["socPerc"] = liveData->params.socPerc;
   jsonData["sohPerc"] = liveData->params.sohPerc;
   jsonData["batPowerKw"] = liveData->params.batPowerKw;
@@ -1626,7 +1732,7 @@ bool Board320_240::sendDataViaGPRS() {
   jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
   jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
-  char payload[512];
+  char payload[768];
   serializeJson(jsonData, payload);
 
   syslog->print("Sending payload: ");
