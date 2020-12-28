@@ -11,12 +11,7 @@ Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. See Release notes,
 Use it at your own risk!
 Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 
-## Supporting me
-
-- Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
-
-Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help. Thank you for supporting me. 
+evDash Discord server: https://discord.gg/rfAvH7xzTr
 
 ## Required hardware
 Board
@@ -67,3 +62,9 @@ Screen list
 
 [![Watch the video](https://github.com/nickn17/evDash/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
 
+## Supporting me
+
+- Buy Me a Beer via paypal https://www.paypal.me/nickn17
+- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
+
+Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help. Thank you for supporting me. 
