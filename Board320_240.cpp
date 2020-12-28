@@ -121,6 +121,7 @@ void Board320_240::afterSetup() {
    Go to Sleep for TIME_TO_SLEEP seconds
 */
 void Board320_240::goToSleep() {
+  
   //Sleep MCP2515
   commInterface->disconnectDevice();
 
@@ -1476,8 +1477,8 @@ void Board320_240::mainLoop() {
     }
   }
 
-  // Turn off display if Ignition is off for more than 10s
-  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+  // Turn off display if Ignition is off for more than 10s, less than month (prevent sync gps time)
+  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled) {
     setBrightness(0);
@@ -1486,7 +1487,7 @@ void Board320_240::mainLoop() {
   }
 
   // Go to sleep when car is off for more than 10s and not charging
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && !liveData->params.chargingOn
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled)
