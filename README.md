@@ -6,7 +6,8 @@ Supported devices
 
 Working only with electric vehicles 
 Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV, Kia Niro Phev 8.9kWh
-Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. See Release notes, quick installation via flash tool bellow. 
+Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required or CAN (m5 COMMU module).
+See Release notes, quick installation via flash tool bellow. 
 
 Use it at your own risk!
 
@@ -63,7 +64,7 @@ Screen list
 
 ## Supporting me
 
-nick.n17@gmail.com (Lubos Petrovic / Slovakia)
-Buy Me a Beer via paypal https://www.paypal.me/nickn17
-Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help with first releases.
+- nick.n17@gmail.com (Lubos Petrovic / Slovakia)
+- Buy Me a Beer via paypal https://www.paypal.me/nickn17
+- Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help with first releases.
 
