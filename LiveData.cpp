@@ -15,6 +15,7 @@ void debug(String msg, uint8_t debugLevel) {
 */
 void LiveData::initParams() {
 
+  params.mainLoopCounter = 0;
   // SIM
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
