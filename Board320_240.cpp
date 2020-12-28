@@ -1477,7 +1477,7 @@ void Board320_240::mainLoop() {
     }
   }
 
-  // Turn off display if Ignition is off for more than 10s, less than month (prevent sync gps time)
+  // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time is synchronized)
   if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled) {
