@@ -78,6 +78,15 @@ void CommObd2Can::mainLoop() {
 
   CommInterface::mainLoop();
 
+  // if delay between commands is defined, check if this delay is not expired 
+  if (liveData->delayBetweenCommandsMs != 0) {
+    if (bResponseProcessed & (unsigned long)(millis() - lastDataSent) > liveData->delayBetweenCommandsMs) {
+      bResponseProcessed = false;
+      liveData->canSendNextAtCommand = true;
+      return;
+    }
+  }
+
   // Read data
   const uint8_t firstByte = receivePID();
   if ((firstByte & 0xf0) == 0x10) { // First frame, request another
@@ -89,7 +98,7 @@ void CommObd2Can::mainLoop() {
         break;
       delay(1);
       // apply timeout for next frames loop too
-      if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
+      if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs) {
         syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
         break;
       }
@@ -100,7 +109,7 @@ void CommObd2Can::mainLoop() {
       return;
     }
   }
-  if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > 100) {
+  if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs) {
     syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
     liveData->canSendNextAtCommand = true;
     return;
@@ -152,6 +161,8 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
 
     if (cmd == "22402B" || cmd == "22F101") {
       pPacket->startChar = txStartChar = 0x12;
+    } else if (cmd == "22D85C" || cmd == "22D96B") {
+      pPacket->startChar = txStartChar = 0x78;
     } else {
       pPacket->startChar = txStartChar = 0x07;
     }
@@ -181,6 +192,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
   }
 
   lastPid = pid;
+  bResponseProcessed = false;
   const uint8_t sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
   //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
@@ -514,6 +526,12 @@ void CommObd2Can::processMergedResponse() {
   syslog->infoNolf(DEBUG_COMM, "merged:");
   syslog->info(DEBUG_COMM, liveData->responseRowMerged);
   board->parseRowMerged();
+  
   liveData->responseRowMerged = "";
-  liveData->canSendNextAtCommand = true;
+  liveData->vResponseRowMerged.clear();
+  bResponseProcessed = true; // to allow delay untill next message
+  
+  if (liveData->delayBetweenCommandsMs == 0) {
+    liveData->canSendNextAtCommand = true; // allow next command immediately
+  }
 }
