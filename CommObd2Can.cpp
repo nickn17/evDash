@@ -60,7 +60,7 @@ void CommObd2Can::connectDevice() {
 void CommObd2Can::disconnectDevice() {
 
   liveData->commConnected = false;  
-  CAN->setMode(MCP_SLEEP);
+  // CAN->setMode(MCP_SLEEP); 
   syslog->println("COMM disconnectDevice");
 }
 
