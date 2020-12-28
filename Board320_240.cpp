@@ -1141,25 +1141,25 @@ void Board320_240::menuItemClick() {
       case 3064: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       // SleepMode off/on
-      case MENU_SLEEP_MODE: liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_SCREEN_BRIGHTNESS: liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
+      case MENU_SLEEP_MODE:           liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SCREEN_BRIGHTNESS:    liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
         setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness); showMenu(); return; break;
       // Pre-drawn charg.graphs off/on
-      case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_GPRS: liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
-      case MENU_GPS: liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
-      case MENU_SERIAL_CONSOLE: liveData->settings.serialConsolePort = (liveData->settings.serialConsolePort == 0) ? 255 : liveData->settings.serialConsolePort + 1; showMenu(); return; break;
-      case MENU_DEBUG_LEVEL: liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; syslog->setDebugLevel(liveData->settings.debugLevel); showMenu(); return; break;
+      case MENU_PREDRAWN_GRAPHS:      liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_HEADLIGHTS_REMINDER:  liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_GPRS:                 liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
+      case MENU_GPS:                  liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
+      case MENU_SERIAL_CONSOLE:       liveData->settings.serialConsolePort = (liveData->settings.serialConsolePort == 0) ? 255 : liveData->settings.serialConsolePort + 1; showMenu(); return; break;
+      case MENU_DEBUG_LEVEL:          liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; syslog->setDebugLevel(liveData->settings.debugLevel); showMenu(); return; break;
       // Wifi menu
-      case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_WIFI_SSID: return; break;
-      case MENU_WIFI_PASSWORD: return; break;
+      case MENU_WIFI_ENABLED:         liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_WIFI_SSID:            return; break;
+      case MENU_WIFI_PASSWORD:        return; break;
       // Sdcard
-      case MENU_SDCARD_ENABLED:   liveData->settings.sdcardEnabled = (liveData->settings.sdcardEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SDCARD_ENABLED:       liveData->settings.sdcardEnabled = (liveData->settings.sdcardEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SDCARD_AUTOSTARTLOG:  liveData->settings.sdcardAutstartLog = (liveData->settings.sdcardAutstartLog == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SDCARD_MOUNT_STATUS:  sdcardMount(); break;
-      case MENU_SDCARD_REC:      sdcardToggleRecording(); showMenu(); return; break;
+      case MENU_SDCARD_REC:           sdcardToggleRecording(); showMenu(); return; break;
       // Distance
       case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
       case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
@@ -1170,7 +1170,17 @@ void Board320_240::menuItemClick() {
       case 4031: liveData->settings.pressureUnit = 'b'; showParentMenu = true; break;
       case 4032: liveData->settings.pressureUnit = 'p'; showParentMenu = true; break;
       // Pair ble device
-      case 2: scanDevices = true; liveData->menuCurrent = 9999; commInterface->scanDevices(); return;
+      case 2: 
+        if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
+            displayMessage("Not supported", "in CAN mode");
+            delay(3000);
+            hideMenu(); 
+            return;
+        }
+        scanDevices = true; 
+        liveData->menuCurrent = 9999; 
+        commInterface->scanDevices(); 
+        return;
       // Reset settings
       case 8: resetSettings(); hideMenu(); return;
       // Save settings
