@@ -80,7 +80,7 @@ void CommObd2Can::mainLoop() {
 
   // if delay between commands is defined, check if this delay is not expired 
   if (liveData->delayBetweenCommandsMs != 0) {
-    if (bResponseProcessed & (unsigned long)(millis() - lastDataSent) > liveData->delayBetweenCommandsMs) {
+    if (bResponseProcessed && (unsigned long)(millis() - lastDataSent) > liveData->delayBetweenCommandsMs) {
       bResponseProcessed = false;
       liveData->canSendNextAtCommand = true;
       return;
@@ -245,7 +245,6 @@ uint8_t CommObd2Can::receivePID() {
     lastDataSent = millis();
     syslog->infoNolf(DEBUG_COMM, " CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf);      // Read data: len = data length, buf = data byte(s)
-//    mockupReceiveCanBuf(&rxId, &rxLen, rxBuf);
     
     if ((rxId & 0x80000000) == 0x80000000)    // Determine if ID is standard (11 bits) or extended (29 bits)
       sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), rxLen);
@@ -366,6 +365,8 @@ bool CommObd2Can::processFrameBytes() {
       buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
       liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());
       processMergedResponse();
+
+      return true;
     }
     break;
     
