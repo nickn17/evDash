@@ -50,13 +50,12 @@ See INSTALLATION.md
 
 Screen list
 - no0. blank screen, lcd off
-- no1. auto mode (summary info / speed kmh / charging graph)
-- no2. summary info (default)
-- no3. speed kmh + kwh/100km (or kw for discharge)
+- no1. automatic mode (summary info / speed kmh / charging graph)
+- no2. summary info
+- no3. speed kmh + kwh/100km
 - no4. battery cells + battery module temperatures
 - no5. charging graph
-- no6. consumption table. Can be used to measure available battery capacity! 
-- no7. debug screen (default off in the menu)
+- no6. consumption table. Can be used to measure available battery capacity.
 
 ![image](https://github.com/nickn17/evDash/blob/master/screenshots/v1.jpg)
 
