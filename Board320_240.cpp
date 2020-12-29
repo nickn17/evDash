@@ -46,12 +46,14 @@ void Board320_240::afterSetup() {
     loadTestData();
   }
 
-  // Init from parent class
-  syslog->println("BoardInterface::afterSetup");
-  BoardInterface::afterSetup();
+  bool afterSetup = false;
 
   // Check if bard was sleeping
   if (bootCount > 1) {
+    // Init comm device
+    afterSetup = true;
+    BoardInterface::afterSetup();
+    // Wake or continue with sleeping
     afterSleep();
   }
 
@@ -114,6 +116,11 @@ void Board320_240::afterSetup() {
   // Init SIM800L
   if (liveData->settings.gprsHwSerialPort <= 2) {
     sim800lSetup();
+  }
+
+  // Init comm device
+  if (!afterSetup) {
+    BoardInterface::afterSetup();
   }
 }
 
@@ -1170,16 +1177,16 @@ void Board320_240::menuItemClick() {
       case 4031: liveData->settings.pressureUnit = 'b'; showParentMenu = true; break;
       case 4032: liveData->settings.pressureUnit = 'p'; showParentMenu = true; break;
       // Pair ble device
-      case 2: 
+      case 2:
         if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
-            displayMessage("Not supported", "in CAN mode");
-            delay(3000);
-            hideMenu(); 
-            return;
+          displayMessage("Not supported", "in CAN mode");
+          delay(3000);
+          hideMenu();
+          return;
         }
-        scanDevices = true; 
-        liveData->menuCurrent = 9999; 
-        commInterface->scanDevices(); 
+        scanDevices = true;
+        liveData->menuCurrent = 9999;
+        commInterface->scanDevices();
         return;
       // Reset settings
       case 8: resetSettings(); hideMenu(); return;
@@ -1543,12 +1550,10 @@ bool Board320_240::sdcardMount() {
   while (1) {
     syslog->print("Initializing SD card...");
 
-#ifdef BOARD_TTGO_T4
-    syslog->print(" TTGO-T4 ");
-    SPIClass * hspi = new SPIClass(HSPI);
-    spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
-    SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
-#endif BOARD_TTGO_T4
+    /*    syslog->print(" TTGO-T4 ");
+        SPIClass * hspi = new SPIClass(HSPI);
+        spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
+        SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);*/
 
     syslog->print(" M5STACK ");
     SdState = SD.begin(pinSdcardCs);
