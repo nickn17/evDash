@@ -36,7 +36,10 @@ void CarBmwI3::activateCommandQueue() {
 
     {0x12, "22402B"}, // STATUS_MESSWERTE_IBS - 12V Bat
     //////{0x12, "22F101"}, // STATUS_A_T_ELUE ???
-    {0x78, "22D85C"}, // Calculated indoor temperature
+    {0x60, "22D107"}, // Speed km/h (ELM CAN send: '600322D107000000')
+    {0x60, "22D10D"}, // Total km without offset (ELM CAN send: '600322D10D000000')
+    {0x60, "22D114"}, // Total km - offset (ELM CAN send: '600322D114000000')
+    {0x78, "22D85C"}, // Calculated indoor temperature (ELM CAN send: '780322D85C000000')
     {0x78, "22D96B"}, // Outdoor temperature
     //{0, "22DC61"}, // BREMSLICHT_SCHALTER
     {0x07, "22DD7B"}, // ALTERUNG_KAPAZITAET Aging of kapacity
@@ -53,7 +56,7 @@ void CarBmwI3::activateCommandQueue() {
 
 	// 60Ah / 22kWh version
 	liveData->params.batteryTotalAvailableKWh = 18.8;
-	liveData->params.batModuleTempCount = 5; //?
+	liveData->params.batModuleTempCount = 4; //?
   
   // init params which are currently not filled from parsed data
   liveData->params.tireFrontLeftPressureBar = 0;
@@ -74,7 +77,7 @@ void CarBmwI3::activateCommandQueue() {
   liveData->bAdditionalStartingChar = true; // there is one additional byte in received packets compared to other cars
   liveData->expectedMinimalPacketLength = 6;  // to filter occasional 5-bytes long packets
   liveData->rxTimeoutMs = 500; // timeout for receiving of CAN response
-  liveData->delayBetweenCommandsMs = 0;//100; // delay between commands, set to 0 if no delay is needed 
+  liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed 
 }
 
 /**
@@ -105,7 +108,8 @@ void CarBmwI3::parseRowMerged()
   //syslog->print("--extracted PID: "); syslog->println(pHeader->getPid());
   //syslog->print("--payload length: "); syslog->println(payloadLength);
   
-  
+  #pragma pack(push, 1)
+      
   // BMS
   if (liveData->currentAtshRequest.equals("ATSH6F1")) {
 
@@ -130,6 +134,54 @@ void CarBmwI3::parseRowMerged()
     }
     break;
 
+    case 0xD107: // Speed km/h
+    {
+      struct D107_t {
+        uint16_t speedKmh;
+      };
+
+      if (payloadLength == sizeof(D107_t)) { 
+        D107_t* ptr = (D107_t*)payloadReversed.data();
+        liveData->params.speedKmh = ptr->speedKmh / 10.0;
+
+        syslog->print("----speed km/h: ");   syslog->println(liveData->params.speedKmh);
+      }
+    }
+    break;
+
+    case 0xD10D: // Total km wihtout offset
+    {
+      struct D10D_t {
+        uint32_t totalKm1; // one of those two is RAM and other is EEPROM value
+        uint32_t totalKm2;
+      };
+
+      if (payloadLength == sizeof(D10D_t)) { 
+        D10D_t* ptr = (D10D_t*)payloadReversed.data();
+        liveData->params.odoKm = ptr->totalKm1 - totalDistanceKmOffset;
+
+        syslog->print("----total km1: ");   syslog->println(ptr->totalKm1);
+        syslog->print("----total km2: ");   syslog->println(ptr->totalKm2);
+        syslog->print("----total km:  ");   syslog->println(liveData->params.odoKm);
+      }
+    }
+    break;
+
+    case 0xD114: // Offset of total km
+    {
+      struct D114_t {
+        uint8_t offsetKm;
+      };
+
+      if (payloadLength == sizeof(D114_t)) { 
+        D114_t* ptr = (D114_t*)payloadReversed.data();
+        totalDistanceKmOffset = ptr->offsetKm;
+
+        syslog->print("----total off: ");   syslog->println(totalDistanceKmOffset);
+      }
+    }
+    break;
+    
     case 0xD85C:
     {
       struct D85C_t {
@@ -171,6 +223,17 @@ void CarBmwI3::parseRowMerged()
         liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
         if (liveData->params.batPowerKw < 0) // Reset charging start time
           liveData->params.chargingStartTime = liveData->params.currentTime;
+
+        // calculate kWh/100
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+
+        // update charging graph data if car is charging
+        if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
+          if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
+            liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
+          if ( liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
+            liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
+        }
       }
     }
     break;
@@ -187,6 +250,11 @@ void CarBmwI3::parseRowMerged()
         liveData->params.coolingWaterTempC = ptr->tempCoolant / 10.0;
         liveData->params.coolantTemp1C = ptr->tempCoolant / 10.0;
         liveData->params.coolantTemp2C = ptr->tempCoolant / 10.0;
+
+        // update charging graph data if car is charging
+        if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
+          liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
+        }
       }
       
     }
@@ -282,9 +350,18 @@ void CarBmwI3::parseRowMerged()
         liveData->params.batTempC = ptr->tempAvg / 100.0;
         liveData->params.batMaxC = ptr->tempMax / 100.0;
 
-        syslog->print("----batMinC: "); syslog->println(liveData->params.batMinC);
-        syslog->print("----batTemp: "); syslog->println(liveData->params.batTempC);
-        syslog->print("----batMaxC: "); syslog->println(liveData->params.batMaxC);
+        liveData->params.batModuleTempC[0] = liveData->params.batTempC;
+        liveData->params.batModuleTempC[1] = liveData->params.batTempC;
+        liveData->params.batModuleTempC[2] = liveData->params.batTempC;
+        liveData->params.batModuleTempC[3] = liveData->params.batTempC;
+
+        // update charging graph data if car is charging
+        if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
+          liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
+          liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
+          //liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
+         
+        }
       }
     }
     break;
@@ -303,6 +380,17 @@ void CarBmwI3::parseRowMerged()
 
         liveData->params.socPercPrevious = liveData->params.socPerc;
         liveData->params.socPerc = ptr->soc / 10.0;
+        
+        // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
+        if(liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
+          byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
+          if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1) {
+            liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
+            liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
+            liveData->params.soc10odo[index] = liveData->params.odoKm;
+            liveData->params.soc10time[index] = liveData->params.currentTime;
+          }
+        }
       }
     }
     break;
@@ -311,7 +399,7 @@ void CarBmwI3::parseRowMerged()
     } // switch
     
   } // ATSH6F1
-
+#pragma pack(pop)
 }
 
 /**

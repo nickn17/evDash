@@ -10,4 +10,7 @@ public:
 	void activateCommandQueue() override;
 	void parseRowMerged() override;
 	void loadTestData() override;  
+
+private:
+  uint8_t totalDistanceKmOffset = 0;
 };
