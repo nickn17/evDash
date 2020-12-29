@@ -33,11 +33,6 @@ void Board320_240::initBoard() {
 
   ++bootCount;
 
-  //int rollover protection
-  if(bootCount == 0) {
-    bootCount = 2;
-  }
-
   syslog->print("Boot count: ");
   syslog->println(bootCount);
 }
@@ -54,7 +49,7 @@ void Board320_240::afterSetup() {
   bool afterSetup = false;
 
   // Check if bard was sleeping
-  if (bootCount > 1) {
+  if (liveData->settings.sleepModeEnabled) {
     // Init comm device
     afterSetup = true;
     BoardInterface::afterSetup();
