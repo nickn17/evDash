@@ -29,7 +29,7 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_ADAPTER_BLE4-1, MENU_ADAPTER_TYPE, 0, "<- parent menu"},
   {MENU_ADAPTER_BLE4, MENU_ADAPTER_TYPE, -1, "Bluetooth 4 (BLE4)"},
   {MENU_ADAPTER_CAN, MENU_ADAPTER_TYPE, -1,  "CAN bus (MCP2515-1/SO)"},
-  {MENU_ADAPTER_BT3, MENU_ADAPTER_TYPE, -1,  "Bluetooth 3 (dev)"},
+  //{MENU_ADAPTER_BT3, MENU_ADAPTER_TYPE, -1,  "Bluetooth 3 (dev)"},
   
   {300, 3, 0, "<- parent menu"},
   // {MENU_WIFI, 3, -1, "[dev] WiFi network"},
@@ -47,19 +47,6 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
   {MENU_SLEEP_MODE, 3, -1, "SleepMode"},
   
-/*
-  // NTP
-  byte ntpEnabled; // 0/1 
-  byte ntpTimezone;
-  byte ntpDaySaveTime; // 0/1
-  // GPRS SIM800L 
-  byte gprsEnabled; // 0/1 
-  char gprsApn[64];
-  // Remote upload
-  byte remoteUploadEnabled; // 0/1 
-  char remoteApiUrl[64];
-  char remoteApiKey[32];*/
-
   {400, 4, 0, "<- parent menu"},
   {MENU_DISTANCE_UNIT, 4, -1, "Distance"},
   {MENU_TEMPERATURE_UNIT, 4, -1, "Temperature"},
@@ -75,7 +62,7 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_SDCARD_AUTOSTARTLOG, MENU_SDCARD, -1, "Autostart log enabled"},
   {MENU_SDCARD_MOUNT_STATUS, MENU_SDCARD, -1, "Status"},
   {MENU_SDCARD_REC, MENU_SDCARD, -1, "Record"},
-  {MENU_SDCARD_INTERVAL, MENU_SDCARD, -1, "Log interval sec."},
+  //{MENU_SDCARD_INTERVAL, MENU_SDCARD, -1, "Log interval sec."},
   
   {3060, 306, 3, "<- parent menu"},
   {3061, 306, -1, "Auto mode"},

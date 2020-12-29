@@ -6,17 +6,12 @@ Supported devices
 
 Working only with electric vehicles 
 Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV, Kia Niro Phev 8.9kWh
-Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required. See Release notes, quick installation via flash tool bellow. 
+Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required or CAN (m5 COMMU module).
+See Release notes, quick installation via flash tool bellow. 
 
 Use it at your own risk!
-Author: nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 
-## Supporting me
-
-- Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- EU companies can support me via IBAN/Invoice (my company is non-VAT payer in Slovakia).
-
-Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help. Thank you for supporting me. 
+evDash Discord server: https://discord.gg/rfAvH7xzTr
 
 ## Required hardware
 Board
@@ -55,15 +50,19 @@ See INSTALLATION.md
 
 Screen list
 - no0. blank screen, lcd off
-- no1. auto mode (summary info / speed kmh / charging graph)
-- no2. summary info (default)
-- no3. speed kmh + kwh/100km (or kw for discharge)
+- no1. automatic mode (summary info / speed kmh / charging graph)
+- no2. summary info
+- no3. speed kmh + kwh/100km
 - no4. battery cells + battery module temperatures
 - no5. charging graph
-- no6. consumption table. Can be used to measure available battery capacity! 
-- no7. debug screen (default off in the menu)
+- no6. consumption table. Can be used to measure available battery capacity.
 
-![image](https://github.com/nickn17/evDash/blob/master/screenshots/v1.jpg)
+![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2.jpg)
+![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2_m5charging2.jpg)
 
-[![Watch the video](https://github.com/nickn17/evDash/blob/master/screenshots/v0.9.jpg)](https://www.youtube.com/watch?v=Jg5VP2P58Yg&)
+## Supporting me
+
+- nick.n17@gmail.com (Lubos Petrovic / Slovakia)
+- Buy Me a Beer via paypal https://www.paypal.me/nickn17
+- Many thanks to all evDash contributors.
 

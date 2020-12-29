@@ -46,12 +46,14 @@ void Board320_240::afterSetup() {
     loadTestData();
   }
 
-  // Init from parent class
-  syslog->println("BoardInterface::afterSetup");
-  BoardInterface::afterSetup();
+  bool afterSetup = false;
 
   // Check if bard was sleeping
-  if(bootCount > 1) {
+  if (bootCount > 1) {
+    // Init comm device
+    afterSetup = true;
+    BoardInterface::afterSetup();
+    // Wake or continue with sleeping
     afterSleep();
   }
 
@@ -115,26 +117,32 @@ void Board320_240::afterSetup() {
   if (liveData->settings.gprsHwSerialPort <= 2) {
     sim800lSetup();
   }
+
+  // Init comm device
+  if (!afterSetup) {
+    BoardInterface::afterSetup();
+  }
 }
 
 /**
    Go to Sleep for TIME_TO_SLEEP seconds
 */
 void Board320_240::goToSleep() {
+
   //Sleep MCP2515
   commInterface->disconnectDevice();
 
   //Sleep SIM800L
-  if(liveData->params.sim800l_enabled) {
+  if (liveData->params.sim800l_enabled) {
     if (sim800l->isConnectedGPRS()) {
       bool disconnected = sim800l->disconnectGPRS();
-      for(uint8_t i = 0; i < 5 && !disconnected; i++) {
+      for (uint8_t i = 0; i < 5 && !disconnected; i++) {
         delay(1000);
         disconnected = sim800l->disconnectGPRS();
       }
     }
 
-    if(sim800l->getPowerMode() == NORMAL) {
+    if (sim800l->getPowerMode() == NORMAL) {
       sim800l->setPowerMode(SLEEP);
       delay(1000);
     }
@@ -156,16 +164,29 @@ void Board320_240::goToSleep() {
   Iterate thru commands and determine if car is charging or ignition is on
 */
 void Board320_240::afterSleep() {
+
   syslog->println("Waking up from sleep mode!");
 
-  bool firstRun = true;
+  // Wakeup reason
+  esp_sleep_wakeup_cause_t wakeup_reason;
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0 : syslog->println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : syslog->println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : syslog->println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : syslog->println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : syslog->println("Wakeup caused by ULP program"); break;
+    default: syslog->printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason); break;
+  }
 
-  while(liveData->commandQueueIndex -1 > liveData->commandQueueLoopFrom || firstRun) {
-    if(liveData->commandQueueIndex -1 == liveData->commandQueueLoopFrom) {
+  //
+  bool firstRun = true;
+  while (liveData->commandQueueIndex - 1 > liveData->commandQueueLoopFrom || firstRun) {
+    if (liveData->commandQueueIndex - 1 == liveData->commandQueueLoopFrom) {
       firstRun = false;
     }
 
-    if(millis() > 5000) {
+    if (millis() > 5000) {
       syslog->println("Time's up (5s timeout)...");
       goToSleep();
     }
@@ -176,7 +197,7 @@ void Board320_240::afterSleep() {
   if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < 12) {
     syslog->println("AuxBATT too low!");
     goToSleep();
-  } else if(!liveData->params.ignitionOn && !liveData->params.chargingOn) {
+  } else if (!liveData->params.ignitionOn && !liveData->params.chargingOn) {
     syslog->println("Not started & Not charging.");
     goToSleep();
   } else {
@@ -1127,25 +1148,25 @@ void Board320_240::menuItemClick() {
       case 3064: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       // SleepMode off/on
-      case MENU_SLEEP_MODE: liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_SCREEN_BRIGHTNESS: liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
+      case MENU_SLEEP_MODE:           liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SCREEN_BRIGHTNESS:    liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
         setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness); showMenu(); return; break;
       // Pre-drawn charg.graphs off/on
-      case MENU_PREDRAWN_GRAPHS: liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_HEADLIGHTS_REMINDER: liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_GPRS: liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
-      case MENU_GPS: liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
-      case MENU_SERIAL_CONSOLE: liveData->settings.serialConsolePort = (liveData->settings.serialConsolePort == 0) ? 255 : liveData->settings.serialConsolePort + 1; showMenu(); return; break;
-      case MENU_DEBUG_LEVEL: liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; syslog->setDebugLevel(liveData->settings.debugLevel); showMenu(); return; break;
+      case MENU_PREDRAWN_GRAPHS:      liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_HEADLIGHTS_REMINDER:  liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_GPRS:                 liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1; showMenu(); return; break;
+      case MENU_GPS:                  liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1; showMenu(); return; break;
+      case MENU_SERIAL_CONSOLE:       liveData->settings.serialConsolePort = (liveData->settings.serialConsolePort == 0) ? 255 : liveData->settings.serialConsolePort + 1; showMenu(); return; break;
+      case MENU_DEBUG_LEVEL:          liveData->settings.debugLevel = (liveData->settings.debugLevel == 3) ? 0 : liveData->settings.debugLevel + 1; syslog->setDebugLevel(liveData->settings.debugLevel); showMenu(); return; break;
       // Wifi menu
-      case MENU_WIFI_ENABLED: liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
-      case MENU_WIFI_SSID: return; break;
-      case MENU_WIFI_PASSWORD: return; break;
+      case MENU_WIFI_ENABLED:         liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_WIFI_SSID:            return; break;
+      case MENU_WIFI_PASSWORD:        return; break;
       // Sdcard
-      case MENU_SDCARD_ENABLED:   liveData->settings.sdcardEnabled = (liveData->settings.sdcardEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SDCARD_ENABLED:       liveData->settings.sdcardEnabled = (liveData->settings.sdcardEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SDCARD_AUTOSTARTLOG:  liveData->settings.sdcardAutstartLog = (liveData->settings.sdcardAutstartLog == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SDCARD_MOUNT_STATUS:  sdcardMount(); break;
-      case MENU_SDCARD_REC:      sdcardToggleRecording(); showMenu(); return; break;
+      case MENU_SDCARD_REC:           sdcardToggleRecording(); showMenu(); return; break;
       // Distance
       case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
       case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
@@ -1156,7 +1177,17 @@ void Board320_240::menuItemClick() {
       case 4031: liveData->settings.pressureUnit = 'b'; showParentMenu = true; break;
       case 4032: liveData->settings.pressureUnit = 'p'; showParentMenu = true; break;
       // Pair ble device
-      case 2: scanDevices = true; liveData->menuCurrent = 9999; commInterface->scanDevices(); return;
+      case 2:
+        if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
+          displayMessage("Not supported", "in CAN mode");
+          delay(3000);
+          hideMenu();
+          return;
+        }
+        scanDevices = true;
+        liveData->menuCurrent = 9999;
+        commInterface->scanDevices();
+        return;
       // Reset settings
       case 8: resetSettings(); hideMenu(); return;
       // Save settings
@@ -1476,8 +1507,8 @@ void Board320_240::mainLoop() {
     }
   }
 
-  // Turn off display if Ignition is off for more than 10s
-  if(liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+  // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time is synchronized)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled) {
     setBrightness(0);
@@ -1485,8 +1516,8 @@ void Board320_240::mainLoop() {
     setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
   }
 
-  // Go to sleep when car is off for more than 10s and not charging
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+  // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
       && !liveData->params.chargingOn
       && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled)
@@ -1519,12 +1550,10 @@ bool Board320_240::sdcardMount() {
   while (1) {
     syslog->print("Initializing SD card...");
 
-#ifdef BOARD_TTGO_T4
-    syslog->print(" TTGO-T4 ");
-    SPIClass * hspi = new SPIClass(HSPI);
-    spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
-    SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);
-#endif BOARD_TTGO_T4
+    /*    syslog->print(" TTGO-T4 ");
+        SPIClass * hspi = new SPIClass(HSPI);
+        spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
+        SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);*/
 
     syslog->print(" M5STACK ");
     SdState = SD.begin(pinSdcardCs);
@@ -1648,9 +1677,9 @@ bool Board320_240::sim800lSetup() {
 
     sim800l->exitSleepMode();
 
-    if(sim800l->getPowerMode() != NORMAL) {
+    if (sim800l->getPowerMode() != NORMAL) {
       syslog->println("SIM800L module in sleep mode - Waking up");
-      if(sim800l->setPowerMode(NORMAL)) {
+      if (sim800l->setPowerMode(NORMAL)) {
         syslog->println("SIM800L in normal power mode");
       } else {
         syslog->println("Failed to switch SIM800L to normal power mode");

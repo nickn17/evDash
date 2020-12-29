@@ -96,7 +96,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 5;
+  liveData->settings.settingsVersion = 6;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -198,7 +198,7 @@ void BoardInterface::loadSettings() {
       if (liveData->tmpSettings.settingsVersion == 5) {
         liveData->tmpSettings.settingsVersion = 6;
         liveData->tmpSettings.serialConsolePort = 0; // hwuart0
-        liveData->tmpSettings.debugLevel = 1; // 1 - debug communication (BLE/CAN)
+        liveData->tmpSettings.debugLevel = 0; // show all
         liveData->tmpSettings.sdcardLogIntervalSec = 2;
         liveData->tmpSettings.gprsLogIntervalSec = 60;
       }
@@ -219,6 +219,8 @@ void BoardInterface::loadSettings() {
    After setup
 */
 void BoardInterface::afterSetup() {
+
+  syslog->println("BoardInterface::afterSetup");
 
   // Init Comm iterface
   syslog->print("Init communication device: ");
