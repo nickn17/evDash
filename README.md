@@ -64,5 +64,5 @@ Screen list
 
 - nick.n17@gmail.com (Lubos Petrovic / Slovakia)
 - Buy Me a Beer via paypal https://www.paypal.me/nickn17
-- Many thanks to Blas, Jens, Калин, Aleš Dokupil and others for help with first releases.
+- Many thanks to all evDash contributors.
 
