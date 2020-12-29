@@ -1,9 +1,7 @@
-#ifndef CARKIADEBUGOBD2_CPP
-#define CARKIADEBUGOBD2_CPP
-
 #include "CarKiaDebugObd2.h"
+#include <vector>
 
-#define commandQueueCountDebugObd2Kia 256
+//#define commandQueueCountDebugObd2Kia 256
 #define commandQueueLoopFromDebugObd2Kia 8
 
 /**
@@ -11,7 +9,7 @@
 */
 void CarKiaDebugObd2::activateCommandQueue() {
 
-  String commandQueueDebugObd2Kia[commandQueueCountDebugObd2Kia] = {
+  std::vector<String> commandQueueDebugObd2Kia = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
     "AT E0",     // Echo off
@@ -222,15 +220,13 @@ void CarKiaDebugObd2::activateCommandQueue() {
   liveData->params.batteryTotalAvailableKWh = 64;
 
   //  Empty and fill command queue
-  for (uint16_t i = 0; i < 300; i++) {
-    liveData->commandQueue[i] = "";
-  }
-  for (uint16_t i = 0; i < commandQueueCountDebugObd2Kia; i++) {
-    liveData->commandQueue[i] = commandQueueDebugObd2Kia[i];
+  liveData->commandQueue.clear();
+  for (auto cmd : commandQueueDebugObd2Kia) {
+    liveData->commandQueue.push_back({ 0, cmd });
   }
 
   liveData->commandQueueLoopFrom = commandQueueLoopFromDebugObd2Kia;
-  liveData->commandQueueCount = commandQueueCountDebugObd2Kia;
+  liveData->commandQueueCount = commandQueueDebugObd2Kia.size();
 }
 
 /**
@@ -516,5 +512,3 @@ void CarKiaDebugObd2::loadTestData() {
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
 }
-
-#endif // CARKIADEBUGOBD2_CPP

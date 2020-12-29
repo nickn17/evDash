@@ -1,17 +1,21 @@
-#ifndef COMMOBD2BLE4_H
-#define COMMOBD2BLE4_H
+#pragma once
 
+#include <BLEDevice.h>
 #include "LiveData.h"
 #include "CommInterface.h"
 
 class CommObd2Ble4 : public CommInterface {
-  
+
   protected:
     uint32_t PIN = 1234;
   public:
     void connectDevice() override;
     void disconnectDevice() override;
     void scanDevices() override;
+    void mainLoop() override;
+    void executeCommand(String cmd) override;
+    //
+    void startBleScan();
+    bool connectToServer(BLEAddress pAddress);
+    //
 };
-
-#endif // COMMOBD2BLE4_H

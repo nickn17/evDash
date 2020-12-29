@@ -1,6 +1,3 @@
-#ifndef BOARDINTERFACE_CPP
-#define BOARDINTERFACE_CPP
-
 #define ARDUINOJSON_USE_LONG_LONG 1
 
 #include <ArduinoJson.h>
@@ -31,7 +28,7 @@ void BoardInterface::attachCar(CarInterface* pCarInterface) {
 */
 void BoardInterface::shutdownDevice() {
 
-  Serial.println("Shutdown.");
+  syslog->println("Shutdown.");
 
   char msg[20];
   for (int i = 3; i >= 1; i--) {
@@ -41,7 +38,7 @@ void BoardInterface::shutdownDevice() {
   }
 
 #ifdef SIM800L_ENABLED
-  if(sim800l->isConnectedGPRS()) {
+  if (sim800l->isConnectedGPRS()) {
     sim800l->disconnectGPRS();
   }
   sim800l->setPowerMode(MINIMUM);
@@ -51,7 +48,8 @@ void BoardInterface::shutdownDevice() {
   setBrightness(0);
   //WiFi.disconnect(true);
   //WiFi.mode(WIFI_OFF);
-  btStop();
+
+  commInterface->disconnectDevice();
   //adc_power_off();
   //esp_wifi_stop();
   esp_bt_controller_disable();
@@ -67,7 +65,7 @@ void BoardInterface::shutdownDevice() {
 void BoardInterface::saveSettings() {
 
   // Flash to memory
-  Serial.println("Settings saved to eeprom.");
+  syslog->println("Settings saved to eeprom.");
   EEPROM.put(0, liveData->settings);
   EEPROM.commit();
 }
@@ -78,7 +76,7 @@ void BoardInterface::saveSettings() {
 void BoardInterface::resetSettings() {
 
   // Flash to memory
-  Serial.println("Factory reset.");
+  syslog->println("Factory reset.");
   liveData->settings.initFlag = 1;
   EEPROM.put(0, liveData->settings);
   EEPROM.commit();
@@ -98,7 +96,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 5;
+  liveData->settings.settingsVersion = 6;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -114,9 +112,9 @@ void BoardInterface::loadSettings() {
   liveData->settings.pressureUnit = 'b';
   liveData->settings.defaultScreen = 1;
   liveData->settings.lcdBrightness = 0;
-  liveData->settings.debugScreen = 0;
+  liveData->settings.sleepModeEnabled = 0;
   liveData->settings.predrawnChargingGraphs = 1;
-  liveData->settings.commType = 0; // BLE4
+  liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
   liveData->settings.wifiEnabled = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
@@ -138,19 +136,24 @@ void BoardInterface::loadSettings() {
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
   liveData->settings.headlightsReminder = 0;
   liveData->settings.gpsHwSerialPort = 255; // off
+  liveData->settings.gprsHwSerialPort = 255; // off
+  liveData->settings.serialConsolePort = 0; // hwuart0
+  liveData->settings.debugLevel = 1; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  liveData->settings.sdcardLogIntervalSec = 2;
+  liveData->settings.gprsLogIntervalSec = 60;
 
   // Load settings and replace default values
-  Serial.println("Reading settings from eeprom.");
+  syslog->println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
   EEPROM.get(0, liveData->tmpSettings);
 
   // Init flash with default settings
   if (liveData->tmpSettings.initFlag != 183) {
-    Serial.println("Settings not found. Initialization.");
+    syslog->println("Settings not found. Initialization.");
     saveSettings();
   } else {
-    Serial.print("Loaded settings ver.: ");
-    Serial.println(liveData->tmpSettings.settingsVersion);
+    syslog->print("Loaded settings ver.: ");
+    syslog->println(liveData->tmpSettings.settingsVersion);
 
     // Upgrade structure
     if (liveData->settings.settingsVersion != liveData->tmpSettings.settingsVersion) {
@@ -158,7 +161,7 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 2;
         liveData->tmpSettings.defaultScreen = liveData->settings.defaultScreen;
         liveData->tmpSettings.lcdBrightness = liveData->settings.lcdBrightness;
-        liveData->tmpSettings.debugScreen = liveData->settings.debugScreen;
+        liveData->tmpSettings.sleepModeEnabled = liveData->settings.sleepModeEnabled;
       }
       if (liveData->tmpSettings.settingsVersion == 2) {
         liveData->tmpSettings.settingsVersion = 3;
@@ -166,7 +169,7 @@ void BoardInterface::loadSettings() {
       }
       if (liveData->tmpSettings.settingsVersion == 3) {
         liveData->tmpSettings.settingsVersion = 4;
-        liveData->tmpSettings.commType = 0; // BLE4
+        liveData->tmpSettings.commType = COMM_TYPE_OBD2BLE4; // BLE4
         liveData->tmpSettings.wifiEnabled = 0;
         tmpStr = "empty";
         tmpStr.toCharArray(liveData->tmpSettings.wifiSsid, tmpStr.length() + 1);
@@ -192,6 +195,13 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 5;
         liveData->tmpSettings.gpsHwSerialPort = 255; // off
       }
+      if (liveData->tmpSettings.settingsVersion == 5) {
+        liveData->tmpSettings.settingsVersion = 6;
+        liveData->tmpSettings.serialConsolePort = 0; // hwuart0
+        liveData->tmpSettings.debugLevel = 0; // show all
+        liveData->tmpSettings.sdcardLogIntervalSec = 2;
+        liveData->tmpSettings.gprsLogIntervalSec = 60;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -201,6 +211,8 @@ void BoardInterface::loadSettings() {
     // Apply settings from flash if needed
     liveData->settings = liveData->tmpSettings;
   }
+
+  syslog->setDebugLevel(liveData->settings.debugLevel);
 }
 
 /**
@@ -208,14 +220,22 @@ void BoardInterface::loadSettings() {
 */
 void BoardInterface::afterSetup() {
 
+  syslog->println("BoardInterface::afterSetup");
+
   // Init Comm iterface
+  syslog->print("Init communication device: ");
+  syslog->println(liveData->settings.commType);
+
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {
     commInterface = new CommObd2Ble4();
   } else if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
-    commInterface = new CommObd2Ble4();
-    //commInterface = new CommObd2Can();
+    commInterface = new CommObd2Can();
+  } else if (liveData->settings.commType == COMM_TYPE_OBD2BT3) {
+    //commInterface = new CommObd2Bt3();
+    syslog->println("BT3 not implemented");
   }
-  //commInterface->initComm(liveData, NULL);
+
+  commInterface->initComm(liveData, this);
   commInterface->connectDevice();
 }
 
@@ -240,6 +260,15 @@ void BoardInterface::customConsoleCommand(String cmd) {
   if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
 }
+
+/**
+   Parser response from obd2/can
+*/
+void BoardInterface::parseRowMerged() {
+
+  carInterface->parseRowMerged();
+}
+
 
 /**
    Serialize parameters
@@ -313,5 +342,3 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);
 }
-
-#endif // BOARDINTERFACE_CPP

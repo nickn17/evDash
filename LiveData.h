@@ -1,6 +1,4 @@
-
-#ifndef LIVEDATA_H
-#define LIVEDATA_H
+#pragma once
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -9,6 +7,8 @@
 #include <sys/time.h>
 #include <BLEDevice.h>
 #include "config.h"
+#include "LogSerial.h"
+#include <vector>
 
 // SUPPORTED CARS
 #define CAR_KIA_ENIRO_2020_64     0
@@ -18,11 +18,13 @@
 #define CAR_HYUNDAI_KONA_2020_39  4
 #define CAR_RENAULT_ZOE           5
 #define CAR_KIA_NIRO_PHEV         6
+#define CAR_BMW_I3_2014           7
 #define CAR_DEBUG_OBD2_KIA        999
 
-// 
+// COMM TYPE
 #define COMM_TYPE_OBD2BLE4  0
 #define COMM_TYPE_OBD2CAN   1
+#define COMM_TYPE_OBD2BT3   2
 
 // SCREENS
 #define SCREEN_BLANK  0
@@ -32,14 +34,18 @@
 #define SCREEN_CELLS  4
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
-#define SCREEN_DEBUG  7
+
+// 
+#define MONTH_SEC     2678400
+
+extern LogSerial* syslog;
 
 // Structure with realtime values
 typedef struct {
   // System
   time_t currentTime;
   time_t chargingStartTime;
-  time_t automaticShutdownTimer;
+  uint32_t mainLoopCounter; 
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
@@ -55,7 +61,9 @@ typedef struct {
   char sdcardFilename[32];
   // Car params
   bool ignitionOn;
-  bool ignitionOnPrevious;
+  bool chargingOn;
+  time_t lastIgnitionOnTime;
+  time_t lastChargingOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;
   bool forwardDriveMode;
@@ -64,9 +72,15 @@ typedef struct {
   bool headLights;
   bool dayLights;
   bool brakeLights;
-  uint8_t lightInfo;
+  bool trunkDoorOpen;
+  bool leftFrontDoorOpen;
+  bool rightFrontDoorOpen;
+  bool leftRearDoorOpen;
+  bool rightRearDoorOpen;
+  bool hoodDoorOpen;
+/*  uint8_t lightInfo;
   uint8_t brakeLightInfo;
-  uint8_t espState;
+  uint8_t espState;*/
   float batteryTotalAvailableKWh;
   float speedKmh;
   float motorRpm;
@@ -106,6 +120,7 @@ typedef struct {
   float auxPerc;
   float auxCurrentAmp;
   float auxVoltage;
+  float auxTemperature;
   float indoorTemperature;
   float outdoorTemperature;
   float tireFrontLeftTempC;
@@ -161,11 +176,11 @@ typedef struct {
   // =================================
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
-  byte debugScreen; // 0 - off, 1 - on
+  byte sleepModeEnabled; // 0 - off, 1 - on
   byte predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
-  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN 
+  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - BT3
   // Wifi
   byte wifiEnabled; // 0/1 
   char wifiSsid[32];
@@ -189,23 +204,36 @@ typedef struct {
   // === settings version 5
   // =================================
   byte gpsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  byte gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  // === settings version 6
+  // =================================
+  byte serialConsolePort; // 255-off, 0 - hw serial (std)
+  uint8_t debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  uint16_t sdcardLogIntervalSec; // every x seconds
+  uint16_t gprsLogIntervalSec; // every x seconds
   //  
 } SETTINGS_STRUC;
 
-
-//
+// LiveData class
 class LiveData {
   protected:
   public:
     // Command loop
+    struct Command_t {
+      uint8_t startChar; // special starting character used by some cars
+      String request;
+    };
+    
     uint16_t commandQueueCount;
     uint16_t commandQueueLoopFrom;
-    String commandQueue[300];
+    std::vector<Command_t> commandQueue;
     String responseRow;
     String responseRowMerged;
+    std::vector<uint8_t> vResponseRowMerged;
     uint16_t commandQueueIndex;
     bool canSendNextAtCommand = false;
-    String commandRequest = "";
+    uint8_t commandStartChar; 
+    String commandRequest = ""; // TODO: us Command_t struct
     String currentAtshRequest = "";
     // Menu
     bool menuVisible = false;
@@ -216,15 +244,22 @@ class LiveData {
     uint16_t scanningDeviceIndex = 0;
     MENU_ITEM* menuItems;
 
+    // Comm
+    boolean commConnected = true;
     // Bluetooth4
     boolean bleConnect = true;
-    boolean bleConnected = false;
     BLEAddress *pServerAddress;
     BLERemoteCharacteristic* pRemoteCharacteristic;
     BLERemoteCharacteristic* pRemoteCharacteristicWrite;
     BLEAdvertisedDevice* foundMyBleDevice;
     BLEClient* pClient;
     BLEScan* pBLEScan;
+  
+    // Canbus
+    bool bAdditionalStartingChar = false;  // some cars uses additional starting character in beginning of tx and rx messages
+    uint8_t expectedMinimalPacketLength = 0;  // what length of packet should be accepted. Set to 0 to accept any length
+    uint16_t rxTimeoutMs = 100; // timeout for receiving of CAN response
+    uint16_t delayBetweenCommandsMs = 0; // delay between commands, set to 0 if no delay is needed 
     
     // Params
     PARAMS_STRUC params;     // Realtime sensor values
@@ -240,7 +275,3 @@ class LiveData {
     float celsius2temperature(float inCelsius);
     float bar2pressure(float inBar);
 };
-
-
-//
-#endif // LIVEDATA_H

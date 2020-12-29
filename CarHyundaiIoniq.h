@@ -1,5 +1,4 @@
-#ifndef CARHYUNDAIIONIQ_H
-#define CARHYUNDAIIONIQ_H
+#pragma once
 
 #include "CarInterface.h"
 
@@ -12,5 +11,3 @@ class CarHyundaiIoniq : public CarInterface {
     void parseRowMerged() override;
     void loadTestData() override;   
 };
-
-#endif

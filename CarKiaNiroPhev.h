@@ -1,5 +1,4 @@
-#ifndef CARKIANIROPHEV_H
-#define CARKIANIROPHEV_H
+#pragma once
 
 #include "CarInterface.h"
 
@@ -12,5 +11,3 @@ class CarKiaNiroPhev: public CarInterface {
     void parseRowMerged() override;
     void loadTestData() override;   
 };
-
-#endif

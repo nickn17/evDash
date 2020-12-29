@@ -1,5 +1,4 @@
-#ifndef CARKIADEBUGOBD2_H
-#define CARKIADEBUGOBD2_H
+#pragma once
 
 #include "CarInterface.h"
 
@@ -12,5 +11,3 @@ class CarKiaDebugObd2 : public CarInterface {
     void parseRowMerged() override;
     void loadTestData() override;  
 };
-
-#endif // CARKIADEBUGOBD2_H

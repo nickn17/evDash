@@ -1,11 +1,12 @@
+#pragma once
 
-
-#include "config.h";
+#include "config.h"
 
 MENU_ITEM menuItemsSource[100] = {
 
   {0, 0, 0, "<- exit menu"},
   {MENU_VEHICLE_TYPE, 0, -1, "Vehicle type"},
+  {MENU_ADAPTER_TYPE, 0, -1, "Adapter type"},
   {2, 0, -1, "Select OBD2 BLE4 adapter"},
   {3, 0, -1, "Others"},
   {4, 0, -1, "Units"},
@@ -21,14 +22,22 @@ MENU_ITEM menuItemsSource[100] = {
   {104, 1, -1,  "Kia eNiro 2020 39kWh"},
   {105, 1, -1,  "Hyundai Kona 2020 39kWh"},
   {106, 1, -1,  "Renault Zoe 22kWh (DEV)"},
-  {107, 1, -1,  "Kia Niro PHEV 8.9kWh"},
+  {107, 1, -1,  "Kia Niro PHEV 8.9kWh (DEV)"},
+  {108, 1, -1,  "BMW i3 2014 22kWh (DEV)"},
   {120, 1, -1,  "Debug OBD2 Kia"},
 
+  {MENU_ADAPTER_BLE4-1, MENU_ADAPTER_TYPE, 0, "<- parent menu"},
+  {MENU_ADAPTER_BLE4, MENU_ADAPTER_TYPE, -1, "Bluetooth 4 (BLE4)"},
+  {MENU_ADAPTER_CAN, MENU_ADAPTER_TYPE, -1,  "CAN bus (MCP2515-1/SO)"},
+  //{MENU_ADAPTER_BT3, MENU_ADAPTER_TYPE, -1,  "Bluetooth 3 (dev)"},
+  
   {300, 3, 0, "<- parent menu"},
   // {MENU_WIFI, 3, -1, "[dev] WiFi network"},
   {MENU_SDCARD, 3, -1, "SD card"},
   {MENU_GPS, 3, -1, "GPS"},
-  {MENU_GPRS, 3, -1, "[dev] GSM/GPRS"},
+  {MENU_GPRS, 3, -1, "GSM/GPRS"},
+  {MENU_SERIAL_CONSOLE, 3, -1, "Serial console"},
+  {MENU_DEBUG_LEVEL, 3, -1, "Debug level"},
   //{MENU_REMOTE_UPLOAD, 3, -1, "[dev] Remote upload"},
   //{MENU_NTP, 3, -1, "[dev] NTP"},
   {MENU_SCREEN_ROTATION, 3, -1, "Screen rotation"},
@@ -36,21 +45,8 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_SCREEN_BRIGHTNESS, 3, -1, "LCD brightness"},
   {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
   {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
-  {MENU_DEBUG_SCREEN, 3, -1, "Debug screen"},
+  {MENU_SLEEP_MODE, 3, -1, "SleepMode"},
   
-/*
-  // NTP
-  byte ntpEnabled; // 0/1 
-  byte ntpTimezone;
-  byte ntpDaySaveTime; // 0/1
-  // GPRS SIM800L 
-  byte gprsEnabled; // 0/1 
-  char gprsApn[64];
-  // Remote upload
-  byte remoteUploadEnabled; // 0/1 
-  char remoteApiUrl[64];
-  char remoteApiKey[32];*/
-
   {400, 4, 0, "<- parent menu"},
   {MENU_DISTANCE_UNIT, 4, -1, "Distance"},
   {MENU_TEMPERATURE_UNIT, 4, -1, "Temperature"},
@@ -61,11 +57,12 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_WIFI_SSID, 301, -1, "SSID"},
   {MENU_WIFI_PASSWORD, 301, -1, "Password"},
 
-  {3040, 304, 3, "<- parent menu"},
-  {MENU_SDCARD_ENABLED, 304, -1, "SD enabled"},
-  {MENU_SDCARD_AUTOSTARTLOG, 304, -1, "Autostart log enabled"},
-  {MENU_SDCARD_MOUNT_STATUS, 304, -1, "Status"},
-  {MENU_SDCARD_REC, 304, -1, "Record"},
+  {MENU_SDCARD*10, MENU_SDCARD, 3, "<- parent menu"},
+  {MENU_SDCARD_ENABLED, MENU_SDCARD, -1, "SD enabled"},
+  {MENU_SDCARD_AUTOSTARTLOG, MENU_SDCARD, -1, "Autostart log enabled"},
+  {MENU_SDCARD_MOUNT_STATUS, MENU_SDCARD, -1, "Status"},
+  {MENU_SDCARD_REC, MENU_SDCARD, -1, "Record"},
+  //{MENU_SDCARD_INTERVAL, MENU_SDCARD, -1, "Log interval sec."},
   
   {3060, 306, 3, "<- parent menu"},
   {3061, 306, -1, "Auto mode"},

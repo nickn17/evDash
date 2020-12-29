@@ -1,5 +1,4 @@
-#ifndef BOARDM5STACKCORE_H
-#define BOARDM5STACKCORE_H
+#pragma once
 
 // Setup for m5stack core
 #define USER_SETUP_LOADED 1
@@ -42,5 +41,3 @@ class BoardM5stackCore : public Board320_240 {
     void initBoard() override;
     void mainLoop() override;
 };
-
-#endif // BOARDM5STACKCORE_H

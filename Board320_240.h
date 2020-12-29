@@ -1,5 +1,4 @@
-#ifndef BOARD320_240_H
-#define BOARD320_240_H
+#pragma once
 
 // TFT COMMON
 #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
@@ -12,10 +11,16 @@
 #define SMOOTH_FONT
 #define GFXFF 1  // TFT FOnts
 
+// DEEP SLEEP
+#define TIME_TO_SLEEP 60 // Sleep time in secs
+
 //
 #include <TFT_eSPI.h>
 #include <TinyGPS++.h>
 #include "BoardInterface.h"
+#include <SD.h>
+#include <SPI.h>
+#include "SIM800L.h"
 
 class Board320_240 : public BoardInterface {
 
@@ -23,8 +28,9 @@ class Board320_240 : public BoardInterface {
     // TFT, SD SPI
     TFT_eSPI tft = TFT_eSPI();
     TFT_eSprite spr = TFT_eSprite(&tft);
-    //SPIClass spiSD(HSPI);
     HardwareSerial* gpsHwUart = NULL;
+    HardwareSerial* gprsHwUart = NULL;
+    SIM800L* sim800l;
     TinyGPSPlus gps;
     char tmpStr1[20];
     char tmpStr2[20];
@@ -46,11 +52,16 @@ class Board320_240 : public BoardInterface {
     void afterSetup() override;
     void mainLoop() override;
     bool skipAdapterScan() override;
+    void goToSleep();
+    void afterSleep();
     // SD card
     bool sdcardMount() override;
     void sdcardToggleRecording() override;
     // GPS
     void syncGPS();
+    // SIM800L
+    bool sim800lSetup();
+    bool sendDataViaGPRS();
     // Basic GUI
     void setBrightness(byte lcdBrightnessPerc) override;
     void displayMessage(const char* row1, const char* row2) override;
@@ -76,5 +87,3 @@ class Board320_240 : public BoardInterface {
     void loadTestData();
     //
 };
-
-#endif // BOARD320_240_H

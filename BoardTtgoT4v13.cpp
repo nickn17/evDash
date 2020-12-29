@@ -1,6 +1,3 @@
-#ifndef BOARDTTGOT4V13_CPP
-#define BOARDTTGOT4V13_CPP
-
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include "BoardTtgoT4v13.h"
@@ -22,5 +19,3 @@ void BoardTtgoT4v13::initBoard() {
 
   Board320_240::initBoard();
 }
-
-#endif // BOARDTTGOT4V13_CPP

@@ -1,16 +1,21 @@
-
-#ifndef LIVEDATA_CPP
-#define LIVEDATA_CPP
-
 #include "LiveData.h"
 #include "menu.h"
+
+LogSerial* syslog;
+
+/**
+ * Debug level
+ */
+void debug(String msg, uint8_t debugLevel) {
+  syslog->println(msg);
+}
 
 /**
    Init params with default values
 */
 void LiveData::initParams() {
 
-  params.automaticShutdownTimer = 0;
+  params.mainLoopCounter = 0;
   // SIM
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
@@ -28,18 +33,22 @@ void LiveData::initParams() {
   params.gpsAlt = -1;
   // Car data
   params.ignitionOn = false;
-  params.ignitionOnPrevious = false;
+  params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;
   params.chargingStartTime = params.currentTime = 0;
-  params.lightInfo = 0;
+  params.chargingOn = false;
   params.headLights = false;
   params.dayLights = false;
   params.brakeLights = false;
-  params.brakeLightInfo = 0;
+  params.trunkDoorOpen = false;
+  params.leftFrontDoorOpen = false;
+  params.rightFrontDoorOpen = false;
+  params.leftRearDoorOpen = false;
+  params.rightRearDoorOpen = false;
+  params.hoodDoorOpen = false;
   params.forwardDriveMode = false;
   params.reverseDriveMode = false;
   params.parkModeOrNeutral = false;
-  params.espState = 0;
   params.speedKmh = -1;
   params.motorRpm = -1;
   params.odoKm = -1;
@@ -185,9 +194,3 @@ float LiveData::celsius2temperature(float inCelsius) {
 float LiveData::bar2pressure(float inBar) {
   return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
 }
-
-
-
-
-//
-#endif // LIVEDATA_CPP
