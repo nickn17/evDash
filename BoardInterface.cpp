@@ -220,6 +220,8 @@ void BoardInterface::loadSettings() {
 */
 void BoardInterface::afterSetup() {
 
+  syslog->println("BoardInterface::afterSetup");
+
   // Init Comm iterface
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
