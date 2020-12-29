@@ -33,6 +33,11 @@ void Board320_240::initBoard() {
 
   ++bootCount;
 
+  //int rollover protection
+  if(bootCount == 0) {
+    bootCount = 2;
+  }
+
   syslog->print("Boot count: ");
   syslog->println(bootCount);
 }
@@ -155,6 +160,7 @@ void Board320_240::goToSleep() {
   delay(1000);
 
   //Sleep ESP32
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); //pinButtonLeft
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
   esp_deep_sleep_start();
 }
@@ -177,6 +183,12 @@ void Board320_240::afterSleep() {
     case ESP_SLEEP_WAKEUP_TOUCHPAD : syslog->println("Wakeup caused by touchpad"); break;
     case ESP_SLEEP_WAKEUP_ULP : syslog->println("Wakeup caused by ULP program"); break;
     default: syslog->printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason); break;
+  }
+
+  if (digitalRead(pinButtonLeft) == LOW) {
+    liveData->settings.sleepModeEnabled = false;
+    syslog->println("Button pressed = SleepMode Disabled & Waking up");
+    return;
   }
 
   //
@@ -1508,8 +1520,8 @@ void Board320_240::mainLoop() {
   }
 
   // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time is synchronized)
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
-      && liveData->params.lastIgnitionOnTime != 0
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+      && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && liveData->settings.sleepModeEnabled) {
     setBrightness(0);
   } else {
@@ -1517,9 +1529,9 @@ void Board320_240::mainLoop() {
   }
 
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
+      && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
-      && liveData->params.lastIgnitionOnTime != 0
       && liveData->settings.sleepModeEnabled)
     goToSleep();
 
