@@ -185,7 +185,7 @@ void Board320_240::afterSleep() {
     default: syslog->printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason); break;
   }
 
-  if (digitalRead(pinButtonLeft) == LOW) {
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
     liveData->settings.sleepModeEnabled = false;
     syslog->println("Button pressed = SleepMode Disabled & Waking up");
     return;
