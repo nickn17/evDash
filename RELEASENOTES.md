@@ -1,9 +1,20 @@
 # RELEASE NOTES
 
 ### Next version
-- removed debug screen
-- sdcard working only with m5stack
-- M5 COMMU (CAN) module support.
+
+### v2.2.0 2020-12-29
+- Direct CAN support with m5 COMMU module (instead obd2 BLE4 adapter). RECOMMENDED
+- EvDash deep sleep & wake up for Hyundai Ioniq/Kona & Kia e-Niro (kolaCZek).
+- Send data via GPRS to own server (kolaCZek). Simple web api project https://github.com/kolaCZek/evDash_serverapi)
+- Better support for Hyundai Ioniq (kolaCZek).
+- Kia e-niro - added support for open doors/hood/trunk.
+- Serial console off/on and improved logging & debug level setting
+- Avoid GPS on UART0 collision with serial console.
+- DEV initial support for Bmw i3 (Janulo)
+- Command queue refactoring (Janulo)
+- Sdcard is working only with m5stack
+- Removed debug screen
+- M5 mute speaker fix
 
 ### v2.1.1 2020-12-14
 - tech refactoring: `hexToDecFromResponse`, `decFromResponse`
