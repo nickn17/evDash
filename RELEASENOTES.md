@@ -1,5 +1,48 @@
 # RELEASE NOTES
 
+### Next version
+
+### v2.2.0 2020-12-29
+- Direct CAN support with m5 COMMU module (instead obd2 BLE4 adapter). RECOMMENDED
+- EvDash deep sleep & wake up for Hyundai Ioniq/Kona & Kia e-Niro (kolaCZek).
+- Send data via GPRS to own server (kolaCZek). Simple web api project https://github.com/kolaCZek/evDash_serverapi)
+- Better support for Hyundai Ioniq (kolaCZek).
+- Kia e-niro - added support for open doors/hood/trunk.
+- Serial console off/on and improved logging & debug level setting
+- Avoid GPS on UART0 collision with serial console.
+- DEV initial support for Bmw i3 (Janulo)
+- Command queue refactoring (Janulo)
+- Sdcard is working only with m5stack
+- Removed debug screen
+- M5 mute speaker fix
+
+### v2.1.1 2020-12-14
+- tech refactoring: `hexToDecFromResponse`, `decFromResponse`
+- added support for GPS module on HW UART (user HWUART=2 for m5stack NEO-M8N)
+- sd card logging - added gps sat/lat/lot/alt + SD filename + time is synchronized from GPS
+- small improvements: menu cycling, shutdown timer
+- added Kia Niro PHEV 8.9kWh support
+
+### v2.1.0 2020-12-06
+- m5stack mute speaker
+- Settings v4 (wifi/gprs/sdcard/ntp/..)
+- BLE skipped if mac is not set (00:00:00:00:00:00)
+- Improved menu (L&R buttons hides menu, parent menu now keep position)
+- SD card car params logging (json format)
+  (note: m5stack supports max 16GB FAT16/32 microSD)
+- Supported serial console commands
+    serviceUUID=xxx
+    charTxUUID=xxx
+    charRxUUID=xxx
+    wifiSsid=xxx
+    wifiPassword=xxx
+    gprsApn=xxx
+    remoteApiUrl=xxx
+    remoteApiKey=xxx
+
+### v2.0.0 2020-12-02
+- Project renamed from eNiroDashboard to evDash
+
 ### v1.9.0 2020-11-30
 - Refactoring (classes)
 - SIM800L (m5stack) code from https://github.com/kolaCZek

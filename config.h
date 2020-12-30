@@ -1,10 +1,9 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v1.9.0b"
-#define APP_RELEASE_DATE "2020-11-30"
+#define APP_VERSION "v2.2.1-dev"
+#define APP_RELEASE_DATE "2020-12-29"
 
 // TFT COLORS FOR TTGO
 #define TFT_BLACK       0x0000      /*   0,   0,   0 */
@@ -48,13 +47,8 @@
 ////////////////////////////////////////////////////////////
 // SIM800L
 /////////////////////////////////////////////////////////////
-
-#ifdef SIM800L_ENABLED
-#define SIM800L_RX 16
-#define SIM800L_TX 17
 #define SIM800L_RST 5
-#define SIM800L_TIMER 120
-#endif //SIM800L_ENABLED
+#define SIM800L_TIMER 60
 
 // MENU ITEM
 typedef struct {
@@ -66,4 +60,41 @@ typedef struct {
   char serviceUUID[40];
 } MENU_ITEM;
 
-#endif // CONFIG_H
+#define MENU_VEHICLE_TYPE 1
+#define MENU_ADAPTER_TYPE 5
+#define MENU_SAVE_SETTINGS 9
+#define MENU_APP_VERSION 10
+//
+#define MENU_ADAPTER_BLE4 501
+#define MENU_ADAPTER_CAN 502
+#define MENU_ADAPTER_BT3 503
+//
+#define MENU_WIFI 301
+#define MENU_GPRS 302
+#define MENU_NTP 303
+#define MENU_SDCARD 304
+#define MENU_SCREEN_ROTATION 305
+#define MENU_DEFAULT_SCREEN 306
+#define MENU_SCREEN_BRIGHTNESS 307
+#define MENU_PREDRAWN_GRAPHS 308
+#define MENU_REMOTE_UPLOAD 309
+#define MENU_HEADLIGHTS_REMINDER 310
+#define MENU_SLEEP_MODE 311
+#define MENU_GPS 312
+#define MENU_SERIAL_CONSOLE 313
+#define MENU_DEBUG_LEVEL 314
+//
+#define MENU_DISTANCE_UNIT 401
+#define MENU_TEMPERATURE_UNIT 402
+#define MENU_PRESSURE_UNIT 403
+//
+#define MENU_WIFI_ENABLED 3011
+#define MENU_WIFI_SSID 3012
+#define MENU_WIFI_PASSWORD 3013
+//
+#define MENU_SDCARD_ENABLED 3041
+#define MENU_SDCARD_AUTOSTARTLOG 3042
+#define MENU_SDCARD_MOUNT_STATUS 3043
+#define MENU_SDCARD_REC 3044
+#define MENU_SDCARD_INTERVAL 3045
+// 

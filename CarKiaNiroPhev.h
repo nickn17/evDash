@@ -2,7 +2,7 @@
 
 #include "CarInterface.h"
 
-class CarHyundaiIoniq : public CarInterface {
+class CarKiaNiroPhev: public CarInterface {
   
   protected:
     

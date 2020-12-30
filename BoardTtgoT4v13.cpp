@@ -1,6 +1,3 @@
-#ifndef BOARDTTGOT4V13_CPP
-#define BOARDTTGOT4V13_CPP
-
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include "BoardTtgoT4v13.h"
@@ -10,13 +7,15 @@
 */
 void BoardTtgoT4v13::initBoard() {
 
-  this->pinButtonLeft = BUTTON_LEFT;
-  this->pinButtonRight = BUTTON_RIGHT;
-  this->pinButtonMiddle = BUTTON_MIDDLE;
-  //this->pinSpeaker = SPEAKER_PIN;
-  this->pinBrightness = TFT_BL;
+  pinButtonLeft = BUTTON_LEFT;
+  pinButtonRight = BUTTON_RIGHT;
+  pinButtonMiddle = BUTTON_MIDDLE;
+  //pinSpeaker = SPEAKER_PIN;
+  pinBrightness = TFT_BL;
+  pinSdcardCs = SDCARD_CS;
+  pinSdcardMosi = SDCARD_MOSI;
+  pinSdcardMiso = SDCARD_MISO;
+  pinSdcardSclk = SDCARD_SCLK;
 
   Board320_240::initBoard();
 }
-
-#endif // BOARDTTGOT4V13_CPP

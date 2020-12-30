@@ -1,16 +1,13 @@
-#ifndef CARKIAENIRO_H
-#define CARKIAENIRO_H
+#pragma once
 
 #include "CarInterface.h"
 
 class CarKiaEniro : public CarInterface {
   
-  private:
+  protected:
     
   public:
     void activateCommandQueue() override;
     void parseRowMerged() override;
     void loadTestData() override;  
 };
-
-#endif // CARKIAENIRO_H

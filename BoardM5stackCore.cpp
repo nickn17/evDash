@@ -1,6 +1,3 @@
-#ifndef BOARDM5STACKCORE_CPP
-#define BOARDM5STACKCORE_CPP
-
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include "BoardM5stackCore.h"
@@ -10,15 +7,27 @@
 */
 void BoardM5stackCore::initBoard() {
 
-  this->invertDisplay = true;
-  this->pinButtonLeft = BUTTON_LEFT;
-  this->pinButtonRight = BUTTON_RIGHT;
-  this->pinButtonMiddle = BUTTON_MIDDLE;
-  this->pinSpeaker = SPEAKER_PIN;
-  this->pinBrightness = TFT_BL;
-
-  Board320_240::initBoard();
+  invertDisplay = true;
   
+  pinButtonLeft = BUTTON_LEFT;
+  pinButtonRight = BUTTON_RIGHT;
+  pinButtonMiddle = BUTTON_MIDDLE;
+  pinSpeaker = SPEAKER_PIN;
+  pinBrightness = TFT_BL;
+  pinSdcardCs = SDCARD_CS;
+  pinSdcardMosi = SDCARD_MOSI;
+  pinSdcardMiso = SDCARD_MISO;
+  pinSdcardSclk = SDCARD_SCLK;
+
+  // Mute speaker
+  //ledcWriteTone(TONE_PIN_CHANNEL, 0);
+  dacWrite(SPEAKER_PIN, 0);
+
+  //
+  Board320_240::initBoard();
 }
 
-#endif // BOARDM5STACKCORE_CPP
+void BoardM5stackCore::mainLoop() {
+
+  Board320_240::mainLoop();
+}

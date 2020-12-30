@@ -2,12 +2,12 @@
 
 #include "CarInterface.h"
 
-class CarHyundaiIoniq : public CarInterface {
+class CarRenaultZoe : public CarInterface {
   
   protected:
     
   public:
     void activateCommandQueue() override;
     void parseRowMerged() override;
-    void loadTestData() override;   
+    void loadTestData() override;  
 };
