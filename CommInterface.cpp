@@ -84,5 +84,7 @@ bool CommInterface::parseResponse() {
   // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':') {
     liveData->responseRowMerged += liveData->responseRow.substring(2);
+  } else if (liveData->responseRow.length() >= 4) {
+    liveData->responseRowMerged += liveData->responseRow;
   }
 }

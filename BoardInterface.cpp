@@ -251,6 +251,7 @@ void BoardInterface::customConsoleCommand(String cmd) {
   String key = cmd.substring(0, idx);
   String value = cmd.substring(idx + 1);
 
+  if (cmd == "reboot") ESP.restart();
   if (key == "serviceUUID") value.toCharArray(liveData->settings.serviceUUID, value.length() + 1);
   if (key == "charTxUUID") value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
   if (key == "charRxUUID") value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
