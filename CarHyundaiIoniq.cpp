@@ -42,9 +42,9 @@ void CarHyundaiIoniq::activateCommandQueue() {
     "22BC03",     // low beam
     "22BC06",     // brake light
 
-    //"ATSH7Df",
-    //"2106",
-    //"220106",
+    // ABS / ESP + AHB
+    "ATSH7D1",
+    "22C101",     // brake, park/drive mode
 
     // Aircondition
     // IONIQ OK
@@ -122,6 +122,16 @@ void CarHyundaiIoniq::parseRowMerged() {
     if (liveData->commandRequest.equals("22BC06")) {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
+    }
+  }
+
+  // ABS / ESP + AHB 7D1
+  if (liveData->currentAtshRequest.equals("ATSH7D1")) {
+    if (liveData->commandRequest.equals("22C101")) {
+      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
+      liveData->params.forwardDriveMode = (driveMode == 4);
+      liveData->params.reverseDriveMode = (driveMode == 2);
+      liveData->params.parkModeOrNeutral  = (driveMode == 1);
     }
   }
 

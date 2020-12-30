@@ -1285,7 +1285,7 @@ void Board320_240::redrawScreen() {
         displayScreenAutoMode = SCREEN_SPEED;
       }
       drawSceneSpeed();
-    } else if (liveData->params.batPowerKw > 1) {
+    } else if (liveData->params.chargingOn) {
       if (displayScreenAutoMode != SCREEN_CHARGING) {
         displayScreenAutoMode = SCREEN_CHARGING;
       }
