@@ -1668,7 +1668,7 @@ bool Board320_240::sim800lSetup() {
 
   sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128, (Stream *)&Serial);
+  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128, syslog);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
@@ -1697,7 +1697,7 @@ bool Board320_240::sim800lSetup() {
     syslog->println(liveData->settings.gprsApn);
 
     bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
-    for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++) {
+    for (uint8_t i = 0; i < 500 && !sim800l_gprs; i++) {
       syslog->println("Problem to set GPRS APN, retry in 1 sec");
       delay(1000);
       sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
