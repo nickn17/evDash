@@ -235,12 +235,14 @@ void CarKiaEniro::parseRowMerged() {
       // Ignition Off/on
       // tempByte = liveData->hexToDecFromResponse(106, 108, 1, false);
       // liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
-      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false);
-      liveData->params.chargingOn = (bitRead(tempByte, 5) == 1 || bitRead(tempByte, 6) == 1); // bit 5 = AC; bit 6 = DC
+      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = AC; bit 6 = DC; bit 7 = charging
+      liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 6) == 1);
+      liveData->params.chargingOn = (bitRead(tempByte, 7) == 1);
       if(liveData->params.chargingOn) {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
-   
+
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
       for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {

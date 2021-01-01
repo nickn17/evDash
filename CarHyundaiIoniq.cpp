@@ -201,8 +201,11 @@ void CarHyundaiIoniq::parseRowMerged() {
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(32, 34, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(34, 36, 1, true);
 
-      tempByte = liveData->hexToDecFromResponse(22, 24, 1, false);
-      liveData->params.chargingOn = (bitRead(tempByte, 5) == 1 || bitRead(tempByte, 6) == 1); // bit 5 = AC; bit 6 = DC
+      tempByte = liveData->hexToDecFromResponse(22, 24, 1, false);   // bit 5 = AC; bit 6 = DC; bit 7 = charging on
+      liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 6) == 1);
+      liveData->params.chargingOn = (bitRead(tempByte, 7) == 1);
+
       if(liveData->params.chargingOn) {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }

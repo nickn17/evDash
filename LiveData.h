@@ -62,6 +62,8 @@ typedef struct {
   // Car params
   bool ignitionOn;
   bool chargingOn;
+  bool chargerACconnected;
+  bool chargerDCconnected;
   time_t lastIgnitionOnTime;
   time_t lastChargingOnTime;
   uint64_t operationTimeSec;
