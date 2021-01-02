@@ -76,6 +76,7 @@ typedef struct {
   bool reverseDriveMode;
   bool parkModeOrNeutral;
   bool headLights;
+  bool autoLights;
   bool dayLights;
   bool brakeLights;
   bool trunkDoorOpen;
