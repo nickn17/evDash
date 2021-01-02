@@ -24,6 +24,10 @@
 */
 void CarKiaEniro::activateCommandQueue() {
 
+  // Optimizer
+  lastAllowTpms = 0;
+
+  // Command queue
   std::vector<String> commandQueueKiaENiro = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
@@ -96,6 +100,7 @@ void CarKiaEniro::activateCommandQueue() {
     liveData->commandQueue.push_back({ 0, cmd }); // stxChar not used, keep it 0
   }
 
+  //
   liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
   liveData->commandQueueCount = commandQueueKiaENiro.size();
 }
@@ -333,21 +338,24 @@ bool CarKiaEniro::commandAllowed() {
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
-  /*
-    skip tpms
-    if (liveData->commandRequest.equals("ATSH7A0") ||
-      liveData->commandRequest.equals("22C00B")) {
-    return false;
-    }*/
+  // TPMS (once per 30 secs.)
+  if (liveData->commandRequest.equals("ATSH7A0")) {
+    return lastAllowTpms + 30 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("22C00B")) {
+    if (lastAllowTpms + 30 < liveData->params.currentTime)
+      lastAllowTpms = liveData->params.currentTime;
+    return lastAllowTpms + 30 < liveData->params.currentTime;
+  }
 
-  // BMS
+  // BMS (only for SCREEN_CELLS)
   if (liveData->currentAtshRequest.equals("ATSH7E4")) {
     if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104")) {
       if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
         return false;
     }
   }
-  
+
   return true;
 }
 
