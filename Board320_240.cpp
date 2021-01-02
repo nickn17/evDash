@@ -436,11 +436,11 @@ void Board320_240::drawSceneSpeed() {
   int32_t posx, posy;
 
   // HUD
-  if (liveData->params.displayScreenSpeedHud) {
+  if (displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
-    if (tft.getRotation() != 6) {
-      tft.setRotation(6);
+    if (tft.getRotation() != 7) {
+      tft.setRotation(7);
     }
 
     tft.fillScreen(TFT_BLACK);
@@ -448,11 +448,11 @@ void Board320_240::drawSceneSpeed() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
-    tft.setTextSize((liveData->params.speedKmh > 99) ? 1 : 2);
+    tft.setTextSize(3);
     sprintf(tmpStr3, "0");
     if (liveData->params.speedKmh > 10)
       sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
-    tft.drawString(tmpStr3, 240, 0, 8);
+    tft.drawString(tmpStr3, 320, 0, 7);
 
     // Draw power kWh/100km (>25kmh) else kW
     tft.setTextSize(1);
@@ -460,17 +460,22 @@ void Board320_240::drawSceneSpeed() {
       sprintf(tmpStr3, "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
     else
       sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
-    tft.drawString(tmpStr3, 240, 150, 8);
-
+    tft.drawString(tmpStr3, 320, 150, 7);
+    
     // Draw soc%
     sprintf(tmpStr3, "%01.00f", liveData->params.socPerc);
-    tft.drawString(tmpStr3, 240 , 230, 8);
+    tft.drawString(tmpStr3, 170 , 150, 7);
 
     // Cold gate cirlce
-    tft.fillCircle(30, 280, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.fillCircle(40, 170, 35, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.setTextColor(TFT_WHITE, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.setFreeFont(&Roboto_Thin_24);
+    tft.setTextDatum(MC_DATUM);
+    sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
+    tft.drawString(tmpStr3, 40, 166, GFXFF);
 
     // Brake lights
-    tft.fillRect(0, 310, 240, 10, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+    tft.fillRect(0, 210, 320, 30, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
 
     return;
   }
