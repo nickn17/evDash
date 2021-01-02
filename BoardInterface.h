@@ -13,9 +13,6 @@ class BoardInterface {
     CommInterface* commInterface;
   public:
     // Screens, buttons
-    byte displayScreen = SCREEN_AUTO;
-    byte displayScreenAutoMode = 0;
-    byte displayScreenSpeedHud = false;
     byte displayScreenCount = 7;
     bool btnLeftPressed   = true;
     bool btnMiddlePressed = true;
@@ -30,6 +27,7 @@ class BoardInterface {
     virtual void afterSetup()=0;
     virtual void mainLoop()=0;
     virtual bool skipAdapterScan() {return false;};
+    bool carCommandAllowed() { return carInterface->commandAllowed(); }
     // Graphics & GUI
     virtual void displayMessage(const char* row1, const char* row2)=0;
     virtual void setBrightness(byte lcdBrightnessPerc)=0;

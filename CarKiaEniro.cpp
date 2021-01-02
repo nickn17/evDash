@@ -24,6 +24,10 @@
 */
 void CarKiaEniro::activateCommandQueue() {
 
+  // Optimizer
+  lastAllowTpms = 0;
+
+  // Command queue
   std::vector<String> commandQueueKiaENiro = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
@@ -53,7 +57,7 @@ void CarKiaEniro::activateCommandQueue() {
 
     // BCM / TPMS
     "ATSH7A0",
-    "22c00b",   // tire pressure/temp
+    "22C00B",   // tire pressure/temp
 
     // Aircondition
     "ATSH7B3",
@@ -66,7 +70,7 @@ void CarKiaEniro::activateCommandQueue() {
 
     // VMCU
     "ATSH7E2",
-//    "2101",     // speed, ...
+    "2101",     // speed, ...
     "2102",     // aux, ...
 
     // BMS
@@ -96,6 +100,7 @@ void CarKiaEniro::activateCommandQueue() {
     liveData->commandQueue.push_back({ 0, cmd }); // stxChar not used, keep it 0
   }
 
+  //
   liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
   liveData->commandQueueCount = commandQueueKiaENiro.size();
 }
@@ -113,7 +118,7 @@ void CarKiaEniro::parseRowMerged() {
   // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH770")) {
     if (liveData->commandRequest.equals("22BC03")) {
-      // 
+      //
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
       liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
@@ -147,13 +152,13 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral  = (driveMode == 1);
       // Speed
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false); 
+      //liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
     }
   }
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0")) {
-    if (liveData->commandRequest.equals("22c00b")) {
+    if (liveData->commandRequest.equals("22C00B")) {
       liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
@@ -188,11 +193,11 @@ void CarKiaEniro::parseRowMerged() {
 
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-    /*if (liveData->commandRequest.equals("2101")) {
+    if (liveData->commandRequest.equals("2101")) {
       liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
       if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
         liveData->params.speedKmh = 0;
-    }*/
+    }
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
@@ -235,12 +240,14 @@ void CarKiaEniro::parseRowMerged() {
       // Ignition Off/on
       // tempByte = liveData->hexToDecFromResponse(106, 108, 1, false);
       // liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
-      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false);
-      liveData->params.chargingOn = (bitRead(tempByte, 5) == 1 || bitRead(tempByte, 6) == 1); // bit 5 = AC; bit 6 = DC
-      if(liveData->params.chargingOn) {
+      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = AC; bit 6 = DC; bit 7 = charging
+      liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 6) == 1);
+      liveData->params.chargingOn = (bitRead(tempByte, 7) == 1);
+      if (liveData->params.chargingOn) {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
-   
+
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
       for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {
@@ -322,6 +329,37 @@ void CarKiaEniro::parseRowMerged() {
 }
 
 /**
+   Is command from queue allowed for execute, or continue with next
+*/
+bool CarKiaEniro::commandAllowed() {
+
+  /* syslog->print("Command allowed: ");
+    syslog->print(liveData->currentAtshRequest);
+    syslog->print(" ");
+    syslog->println(liveData->commandRequest);*/
+
+  // TPMS (once per 30 secs.)
+  if (liveData->commandRequest.equals("ATSH7A0")) {
+    return lastAllowTpms + 30 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("22C00B")) {
+    if (lastAllowTpms + 30 < liveData->params.currentTime)
+      lastAllowTpms = liveData->params.currentTime;
+    return lastAllowTpms + 30 < liveData->params.currentTime;
+  }
+
+  // BMS (only for SCREEN_CELLS)
+  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
+    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104")) {
+      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+        return false;
+    }
+  }
+
+  return true;
+}
+
+/**
    loadTestData
 */
 void CarKiaEniro::loadTestData() {
@@ -398,8 +436,8 @@ void CarKiaEniro::loadTestData() {
 
   // BCM / TPMS ATSH7A0
   liveData->currentAtshRequest = "ATSH7A0";
-  // 22c00b
-  liveData->commandRequest = "22c00b";
+  // 22C00B
+  liveData->commandRequest = "22C00B";
   liveData->responseRowMerged = "62C00BFFFF0000B93D0100B43E0100B43D0100BB3C0100AAAAAAAA";
   parseRowMerged();
 

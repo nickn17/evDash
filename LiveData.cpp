@@ -31,12 +31,18 @@ void LiveData::initParams() {
   params.gpsLon = -1;
   params.gpsSat = 0;
   params.gpsAlt = -1;
+  // Display
+  params.displayScreen = SCREEN_AUTO;
+  params.displayScreenAutoMode = SCREEN_AUTO;
+  params.displayScreenSpeedHud = false;
   // Car data
   params.ignitionOn = false;
   params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;
   params.chargingStartTime = params.currentTime = 0;
   params.chargingOn = false;
+  params.chargerACconnected = false;
+  params.chargerDCconnected = false;
   params.headLights = false;
   params.dayLights = false;
   params.brakeLights = false;
