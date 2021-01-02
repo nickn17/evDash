@@ -44,6 +44,7 @@ void LiveData::initParams() {
   params.chargerACconnected = false;
   params.chargerDCconnected = false;
   params.headLights = false;
+  params.autoLights = false;
   params.dayLights = false;
   params.brakeLights = false;
   params.trunkDoorOpen = false;

@@ -1265,7 +1265,8 @@ void Board320_240::redrawScreen() {
   }
 
   // Lights not enabled
-  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode && !liveData->params.headLights && !liveData->params.dayLights) {
+  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode && 
+       !liveData->params.headLights && !liveData->params.autoLights) {
     spr.fillSprite(TFT_RED);
     spr.setFreeFont(&Orbitron_Light_32);
     spr.setTextColor(TFT_WHITE, TFT_RED);
