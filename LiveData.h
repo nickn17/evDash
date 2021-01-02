@@ -35,7 +35,7 @@
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
 
-// 
+//
 #define MONTH_SEC     2678400
 
 extern LogSerial* syslog;
@@ -45,7 +45,7 @@ typedef struct {
   // System
   time_t currentTime;
   time_t chargingStartTime;
-  uint32_t mainLoopCounter; 
+  uint32_t mainLoopCounter;
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
@@ -54,11 +54,15 @@ typedef struct {
   float gpsLat;
   float gpsLon;
   byte  gpsSat; // satellites count
-  int16_t gpsAlt;    
+  int16_t gpsAlt;
   // SD card
   bool sdcardInit;
   bool sdcardRecording;
   char sdcardFilename[32];
+  // Display
+  byte displayScreen;
+  byte displayScreenAutoMode;
+  byte displayScreenSpeedHud;
   // Car params
   bool ignitionOn;
   bool chargingOn;
@@ -80,9 +84,9 @@ typedef struct {
   bool leftRearDoorOpen;
   bool rightRearDoorOpen;
   bool hoodDoorOpen;
-/*  uint8_t lightInfo;
-  uint8_t brakeLightInfo;
-  uint8_t espState;*/
+  /*  uint8_t lightInfo;
+    uint8_t brakeLightInfo;
+    uint8_t espState;*/
   float batteryTotalAvailableKWh;
   float speedKmh;
   float motorRpm;
@@ -184,21 +188,21 @@ typedef struct {
   // =================================
   byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - BT3
   // Wifi
-  byte wifiEnabled; // 0/1 
+  byte wifiEnabled; // 0/1
   char wifiSsid[32];
   char wifiPassword[32];
   // NTP
-  byte ntpEnabled; // 0/1 
+  byte ntpEnabled; // 0/1
   byte ntpTimezone;
   byte ntpDaySaveTime; // 0/1
   // SDcard logging
-  byte sdcardEnabled; // 0/1 
-  byte sdcardAutstartLog; // 0/1   
-  // GPRS SIM800L 
-  byte gprsEnabled; // 0/1 
+  byte sdcardEnabled; // 0/1
+  byte sdcardAutstartLog; // 0/1
+  // GPRS SIM800L
+  byte gprsEnabled; // 0/1
   char gprsApn[64];
   // Remote upload
-  byte remoteUploadEnabled; // 0/1 
+  byte remoteUploadEnabled; // 0/1
   char remoteApiUrl[64];
   char remoteApiKey[32];
   //
@@ -213,7 +217,7 @@ typedef struct {
   uint8_t debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec; // every x seconds
-  //  
+  //
 } SETTINGS_STRUC;
 
 // LiveData class
@@ -225,7 +229,7 @@ class LiveData {
       uint8_t startChar; // special starting character used by some cars
       String request;
     };
-    
+
     uint16_t commandQueueCount;
     uint16_t commandQueueLoopFrom;
     std::vector<Command_t> commandQueue;
@@ -234,7 +238,7 @@ class LiveData {
     std::vector<uint8_t> vResponseRowMerged;
     uint16_t commandQueueIndex;
     bool canSendNextAtCommand = false;
-    uint8_t commandStartChar; 
+    uint8_t commandStartChar;
     String commandRequest = ""; // TODO: us Command_t struct
     String currentAtshRequest = "";
     // Menu
@@ -256,13 +260,13 @@ class LiveData {
     BLEAdvertisedDevice* foundMyBleDevice;
     BLEClient* pClient;
     BLEScan* pBLEScan;
-  
+
     // Canbus
     bool bAdditionalStartingChar = false;  // some cars uses additional starting character in beginning of tx and rx messages
     uint8_t expectedMinimalPacketLength = 0;  // what length of packet should be accepted. Set to 0 to accept any length
     uint16_t rxTimeoutMs = 100; // timeout for receiving of CAN response
-    uint16_t delayBetweenCommandsMs = 0; // delay between commands, set to 0 if no delay is needed 
-    
+    uint16_t delayBetweenCommandsMs = 0; // delay between commands, set to 0 if no delay is needed
+
     // Params
     PARAMS_STRUC params;     // Realtime sensor values
     // Settings

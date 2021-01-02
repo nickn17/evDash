@@ -13,9 +13,6 @@ class BoardInterface {
     CommInterface* commInterface;
   public:
     // Screens, buttons
-    byte displayScreen = SCREEN_AUTO;
-    byte displayScreenAutoMode = 0;
-    byte displayScreenSpeedHud = false;
     byte displayScreenCount = 7;
     bool btnLeftPressed   = true;
     bool btnMiddlePressed = true;

@@ -332,15 +332,22 @@ bool CarKiaEniro::commandAllowed() {
     syslog->print(liveData->currentAtshRequest);
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
- 
-  
-  /* skip tpms 
-   if (liveData->commandRequest.equals("ATSH7A0") ||
+
+  /*
+    skip tpms
+    if (liveData->commandRequest.equals("ATSH7A0") ||
       liveData->commandRequest.equals("22C00B")) {
     return false;
-  }
-  */
+    }*/
 
+  // BMS
+  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
+    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104")) {
+      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+        return false;
+    }
+  }
+  
   return true;
 }
 

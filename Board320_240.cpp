@@ -74,7 +74,7 @@ void Board320_240::afterSetup() {
   spr.createSprite(320, 240);
 
   // Show test data on right button during boot device
-  displayScreen = liveData->settings.defaultScreen;
+  liveData->params.displayScreen = liveData->settings.defaultScreen;
   if (digitalRead(pinButtonRight) == LOW) {
     loadTestData();
   }
@@ -436,7 +436,7 @@ void Board320_240::drawSceneSpeed() {
   int32_t posx, posy;
 
   // HUD
-  if (displayScreenSpeedHud) {
+  if (liveData->params.displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
     if (tft.getRotation() != 6) {
@@ -1278,55 +1278,55 @@ void Board320_240::redrawScreen() {
 
   spr.fillSprite(TFT_BLACK);
 
-  // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
-  if (displayScreen == SCREEN_AUTO) {
-    if (liveData->params.speedKmh > 5) {
-      if (displayScreenAutoMode != SCREEN_SPEED) {
-        displayScreenAutoMode = SCREEN_SPEED;
+  liveData->params.displayScreenAutoMode = SCREEN_AUTO;
+
+  // Display selected screen
+  switch (liveData->params.displayScreen) {
+    // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
+    case SCREEN_AUTO:
+      if (liveData->params.speedKmh > 5) {
+        if (liveData->params.displayScreenAutoMode != SCREEN_SPEED)
+          liveData->params.displayScreenAutoMode = SCREEN_SPEED;
+        drawSceneSpeed();
+      } else if (liveData->params.chargingOn) {
+        if (liveData->params.displayScreenAutoMode != SCREEN_CHARGING)
+          liveData->params.displayScreenAutoMode = SCREEN_CHARGING;
+        drawSceneChargingGraph();
+      } else {
+        if (liveData->params.displayScreenAutoMode != SCREEN_DASH)
+          liveData->params.displayScreenAutoMode = SCREEN_DASH;
+        drawSceneMain();
       }
-      drawSceneSpeed();
-    } else if (liveData->params.chargingOn) {
-      if (displayScreenAutoMode != SCREEN_CHARGING) {
-        displayScreenAutoMode = SCREEN_CHARGING;
-      }
-      drawSceneChargingGraph();
-    } else {
-      if (displayScreenAutoMode != SCREEN_DASH) {
-        displayScreenAutoMode = SCREEN_DASH;
-      }
+      break;
+    // 2. Main screen
+    case SCREEN_DASH:
       drawSceneMain();
-    }
-  } else {
-    displayScreenAutoMode = SCREEN_DASH;
-  }
-  // 2. Main screen
-  if (displayScreen == SCREEN_DASH) {
-    drawSceneMain();
-  }
-  // 3. Big speed + kwh/100km
-  if (displayScreen == SCREEN_SPEED) {
-    drawSceneSpeed();
-  }
-  // 4. Battery cells
-  if (displayScreen == SCREEN_CELLS) {
-    drawSceneBatteryCells();
-  }
-  // 5. Charging graph
-  if (displayScreen == SCREEN_CHARGING) {
-    drawSceneChargingGraph();
-  }
-  // 6. SOC10% table (CEC-CED)
-  if (displayScreen == SCREEN_SOC10) {
-    drawSceneSoc10Table();
+      break;
+    // 3. Big speed + kwh/100km
+    case SCREEN_SPEED:
+      drawSceneSpeed();
+      break;
+    // 4. Battery cells
+    case SCREEN_CELLS:
+      drawSceneBatteryCells();
+      break;
+    // 5. Charging graph
+    case SCREEN_CHARGING:
+      drawSceneChargingGraph();
+      break;
+    // 6. SOC10% table (CEC-CED)
+    case SCREEN_SOC10:
+      drawSceneSoc10Table();
+      break;
   }
 
-  if (!displayScreenSpeedHud) {
+  if (!liveData->params.displayScreenSpeedHud) {
 
     // SDCARD recording
     /*liveData->params.sdcardRecording*/
     if (liveData->settings.sdcardEnabled == 1 && (liveData->params.mainLoopCounter & 1) == 1) {
-      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
-      spr.fillCircle((displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
+      spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
+      spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
                      (liveData->params.sdcardInit == 1) ?
                      (liveData->params.sdcardRecording) ?
                      (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1337,7 +1337,7 @@ void Board320_240::redrawScreen() {
                     );
     }
     // GPS state
-    if (gpsHwUart != NULL && (displayScreen == SCREEN_SPEED || displayScreenAutoMode == SCREEN_SPEED)) {
+    if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
       spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
       spr.setTextSize(1);
       spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
@@ -1421,11 +1421,11 @@ void Board320_240::mainLoop() {
       if (liveData->menuVisible) {
         menuMove(false);
       } else {
-        displayScreen++;
-        if (displayScreen > displayScreenCount - 1)
-          displayScreen = 0; // rotate screens
+        liveData->params.displayScreen++;
+        if (liveData->params.displayScreen > displayScreenCount - 1)
+          liveData->params.displayScreen = 0; // rotate screens
         // Turn off display on screen 0
-        setBrightness((displayScreen == SCREEN_BLANK) ? 0 : (liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+        setBrightness((liveData->params.displayScreen == SCREEN_BLANK) ? 0 : (liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
         redrawScreen();
       }
     }
@@ -1442,8 +1442,8 @@ void Board320_240::mainLoop() {
         menuMove(true);
       } else {
         // doAction
-        if (displayScreen == SCREEN_SPEED) {
-          displayScreenSpeedHud = !displayScreenSpeedHud;
+        if (liveData->params.displayScreen == SCREEN_SPEED) {
+          liveData->params.displayScreenSpeedHud = !liveData->params.displayScreenSpeedHud;
           redrawScreen();
         }
       }
