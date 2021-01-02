@@ -436,7 +436,7 @@ void Board320_240::drawSceneSpeed() {
   int32_t posx, posy;
 
   // HUD
-  if (displayScreenSpeedHud) {
+  if (liveData->params.displayScreenSpeedHud) {
 
     // Change rotation to vertical & mirror
     if (tft.getRotation() != 7) {
