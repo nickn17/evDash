@@ -53,7 +53,7 @@ void CarKiaEniro::activateCommandQueue() {
 
     // BCM / TPMS
     "ATSH7A0",
-    "22c00b",   // tire pressure/temp
+    "22C00B",   // tire pressure/temp
 
     // Aircondition
     "ATSH7B3",
@@ -113,7 +113,7 @@ void CarKiaEniro::parseRowMerged() {
   // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH770")) {
     if (liveData->commandRequest.equals("22BC03")) {
-      // 
+      //
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
       liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
@@ -147,13 +147,13 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral  = (driveMode == 1);
       // Speed
-      //liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false); 
+      //liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
     }
   }
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0")) {
-    if (liveData->commandRequest.equals("22c00b")) {
+    if (liveData->commandRequest.equals("22C00B")) {
       liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
@@ -239,7 +239,7 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
       liveData->params.chargerDCconnected = (bitRead(tempByte, 6) == 1);
       liveData->params.chargingOn = (bitRead(tempByte, 7) == 1);
-      if(liveData->params.chargingOn) {
+      if (liveData->params.chargingOn) {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
 
@@ -324,6 +324,27 @@ void CarKiaEniro::parseRowMerged() {
 }
 
 /**
+   Is command from queue allowed for execute, or continue with next
+*/
+bool CarKiaEniro::commandAllowed() {
+
+  /* syslog->print("Command allowed: ");
+    syslog->print(liveData->currentAtshRequest);
+    syslog->print(" ");
+    syslog->println(liveData->commandRequest);*/
+ 
+  
+  /* skip tpms 
+   if (liveData->commandRequest.equals("ATSH7A0") ||
+      liveData->commandRequest.equals("22C00B")) {
+    return false;
+  }
+  */
+
+  return true;
+}
+
+/**
    loadTestData
 */
 void CarKiaEniro::loadTestData() {
@@ -400,8 +421,8 @@ void CarKiaEniro::loadTestData() {
 
   // BCM / TPMS ATSH7A0
   liveData->currentAtshRequest = "ATSH7A0";
-  // 22c00b
-  liveData->commandRequest = "22c00b";
+  // 22C00B
+  liveData->commandRequest = "22C00B";
   liveData->responseRowMerged = "62C00BFFFF0000B93D0100B43E0100B43D0100BB3C0100AAAAAAAA";
   parseRowMerged();
 

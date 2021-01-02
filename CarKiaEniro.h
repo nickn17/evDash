@@ -9,5 +9,6 @@ class CarKiaEniro : public CarInterface {
   public:
     void activateCommandQueue() override;
     void parseRowMerged() override;
+    bool commandAllowed() override;
     void loadTestData() override;  
 };

@@ -30,6 +30,7 @@ class BoardInterface {
     virtual void afterSetup()=0;
     virtual void mainLoop()=0;
     virtual bool skipAdapterScan() {return false;};
+    bool carCommandAllowed() { return carInterface->commandAllowed(); }
     // Graphics & GUI
     virtual void displayMessage(const char* row1, const char* row2)=0;
     virtual void setBrightness(byte lcdBrightnessPerc)=0;

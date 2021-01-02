@@ -4,20 +4,20 @@
 #include "LiveData.h"
 
 /**
- * 
- */
+
+*/
 void CommInterface::initComm(LiveData* pLiveData, BoardInterface* pBoard) {
-    
-    liveData = pLiveData;   
-    board = pBoard; 
-    response = "";  
+
+  liveData = pLiveData;
+  board = pBoard;
+  response = "";
 }
 
 /**
- * Main loop
- */
+   Main loop
+*/
 void CommInterface::mainLoop() {
-  
+
   // Send command from TTY to OBD2
   if (syslog->available()) {
     ch = syslog->read();
@@ -33,7 +33,7 @@ void CommInterface::mainLoop() {
   }
 
   // Drop ChargingOn when status was not updated for more than 10 seconds
-  if(liveData->params.currentTime - liveData->params.lastChargingOnTime > 10 && liveData->params.chargingOn) {
+  if (liveData->params.currentTime - liveData->params.lastChargingOnTime > 10 && liveData->params.chargingOn) {
     liveData->params.chargingOn = false;
   }
 
@@ -46,38 +46,49 @@ void CommInterface::mainLoop() {
 
 /**
   Do next AT command from queue
- */
-bool CommInterface::doNextQueueCommand() { 
-
-  // Restart loop with AT commands
-  if (liveData->commandQueueIndex >= liveData->commandQueueCount) {
-    liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
-    board->redrawScreen();
-  
-    // log every queue loop (temp) TODO and seconds interval
-    liveData->params.sdcardCanNotify = true;
-  }
+*/
+bool CommInterface::doNextQueueCommand() {
 
   // Send AT command to obd
-  liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex].request;
-  liveData->commandStartChar = liveData->commandQueue[liveData->commandQueueIndex].startChar; // TODO: add to struct?
-  
-  if (liveData->commandRequest.startsWith("ATSH")) {
-    liveData->currentAtshRequest = liveData->commandRequest;
-  }
+  bool commandAllowed = false;
+  do {
+    liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex].request;
+    liveData->commandStartChar = liveData->commandQueue[liveData->commandQueueIndex].startChar; // TODO: add to struct?
+    if (liveData->commandRequest.startsWith("ATSH")) {
+      liveData->currentAtshRequest = liveData->commandRequest;
+    }
 
+    // Queue optimizer
+    commandAllowed = board->carCommandAllowed();
+    liveData->commandQueueIndex++;
+    if (liveData->commandQueueIndex >= liveData->commandQueueCount) {
+      liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
+      board->redrawScreen();
+
+      // log every queue loop (temp) TODO rewrite to secs interval
+      liveData->params.sdcardCanNotify = true;
+    }
+
+    // Log skipped command to console
+    if (!commandAllowed) {
+      syslog->infoNolf(DEBUG_COMM, ">>> Command skipped ");
+      syslog->info(DEBUG_COMM, liveData->commandRequest);
+    }
+
+  } while (!commandAllowed);
+
+  // Execute command
   syslog->infoNolf(DEBUG_COMM, ">>> ");
   syslog->info(DEBUG_COMM, liveData->commandRequest);
-  liveData->responseRowMerged = "";  
+  liveData->responseRowMerged = "";
   executeCommand(liveData->commandRequest);
-  liveData->commandQueueIndex++;
 }
 
 /**
   Parse result from OBD, merge frames to sigle response
- */
+*/
 bool CommInterface::parseResponse() {
-  
+
   // 1 frame data
   syslog->info(DEBUG_COMM, liveData->responseRow);
 
