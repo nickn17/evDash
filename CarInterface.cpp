@@ -9,10 +9,6 @@ void CarInterface::activateCommandQueue() {
 
 }
 
-void CarInterface::sleepCommandQueue() {
-
-}
-
 void CarInterface::parseRowMerged() {
   
 }

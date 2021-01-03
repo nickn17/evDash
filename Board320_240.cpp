@@ -166,8 +166,6 @@ void Board320_240::goToSleep() {
 */
 void Board320_240::afterSleep() {
 
-  syslog->println("Waking up from sleep mode!");
-
   // Wakeup reason
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
@@ -186,9 +184,8 @@ void Board320_240::afterSleep() {
     return;
   }
 
-  carInterface->sleepCommandQueue();
+  liveData->params.sleepModeQueue = true;
 
-  //
   bool firstRun = true;
   while (liveData->commandQueueIndex - 1 > liveData->commandQueueLoopFrom || firstRun) {
     if (liveData->commandQueueIndex - 1 == liveData->commandQueueLoopFrom) {
@@ -209,10 +206,10 @@ void Board320_240::afterSleep() {
   } else if (!liveData->params.ignitionOn && !liveData->params.chargingOn) {
     syslog->println("Not started & Not charging.");
     goToSleep();
-  } else {
-    syslog->println("Wake up conditions satisfied... Good morning!");
-    carInterface->activateCommandQueue();
   }
+
+  syslog->println("Wake up conditions satisfied... Good morning!");
+  liveData->params.sleepModeQueue = false;
 }
 
 /**

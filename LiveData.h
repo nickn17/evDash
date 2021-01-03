@@ -64,6 +64,7 @@ typedef struct {
   byte displayScreenAutoMode;
   byte displayScreenSpeedHud;
   // Car params
+  bool sleepModeQueue;
   bool ignitionOn;
   bool chargingOn;
   bool chargerACconnected;

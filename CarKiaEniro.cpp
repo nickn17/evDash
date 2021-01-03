@@ -20,45 +20,6 @@
 #define commandQueueLoopFromKiaENiro 8
 
 /**
-   sleepCommandQueue
-*/
-void CarKiaEniro::sleepCommandQueue() {
-
-  // Command queue
-  std::vector<String> commandQueueKiaENiro = {
-    "AT Z",      // Reset all
-    "AT I",      // Print the version ID
-    "AT S0",     // Printing of spaces on
-    "AT E0",     // Echo off
-    "AT L0",     // Linefeeds off
-    "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-    "AT DP",
-    "AT ST16",    // reduced timeout to 1, orig.16
-
-    // sleepMode loop (KIA ENIRO)
-
-    // IGPM
-    "ATSH770",
-    "22BC03",   // ignitionOn
-
-    // BMS
-    "ATSH7E4",
-    "220101",   // chargingOn
-  };
-
-  //  Empty and fill command queue
-  liveData->commandQueue.clear();
-  //for (int i = 0; i < commandQueueCountKiaENiro; i++) {
-  for (auto cmd : commandQueueKiaENiro) {
-    liveData->commandQueue.push_back({ 0, cmd }); // stxChar not used, keep it 0
-  }
-
-  //
-  liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
-  liveData->commandQueueCount = commandQueueKiaENiro.size();
-}
-
-/**
    activateCommandQueue
 */
 void CarKiaEniro::activateCommandQueue() {
@@ -377,6 +338,24 @@ bool CarKiaEniro::commandAllowed() {
     syslog->print(liveData->currentAtshRequest);
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
+
+  //SleepMode Queue Filter
+  if (liveData->params.sleepModeQueue) {
+    if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+      return true;
+    }
+    if(liveData->commandRequest.equals("ATSH770") || liveData->commandRequest.equals("ATSH7E4")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101")) {
+      return true;
+    }
+
+    return false;
+  }
 
   // TPMS (once per 30 secs.)
   if (liveData->commandRequest.equals("ATSH7A0")) {
