@@ -343,10 +343,12 @@ bool CarKiaEniro::commandAllowed() {
   if (liveData->commandRequest.equals("ATSH7A0")) {
     return lastAllowTpms + 30 < liveData->params.currentTime;
   }
-  if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("22C00B")) {
-    if (lastAllowTpms + 30 < liveData->params.currentTime)
+  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22C00B")) {
+    if (lastAllowTpms + 30 < liveData->params.currentTime) {
       lastAllowTpms = liveData->params.currentTime;
-    return lastAllowTpms + 30 < liveData->params.currentTime;
+    } else {
+      return false;
+    }
   }
 
   // BMS (only for SCREEN_CELLS)
