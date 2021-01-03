@@ -186,6 +186,8 @@ void Board320_240::afterSleep() {
     return;
   }
 
+  carInterface->sleepCommandQueue();
+
   //
   bool firstRun = true;
   while (liveData->commandQueueIndex - 1 > liveData->commandQueueLoopFrom || firstRun) {
@@ -209,6 +211,7 @@ void Board320_240::afterSleep() {
     goToSleep();
   } else {
     syslog->println("Wake up conditions satisfied... Good morning!");
+    carInterface->activateCommandQueue();
   }
 }
 

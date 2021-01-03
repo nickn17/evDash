@@ -3,6 +3,39 @@
 
 #define commandQueueLoopFromHyundaiIoniq 8
 
+void CarHyundaiIoniq::sleepCommandQueue() {
+
+  // Command queue
+  std::vector<String> commandQueueHyundaiIoniq = {
+    "AT Z",      // Reset all
+    "AT I",      // Print the version ID
+    "AT E0",     // Echo off
+    "AT L0",     // Linefeeds off
+    "AT S0",     // Printing of spaces on
+    "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
+    "AT DP",
+    "AT ST16",
+
+    // Loop from sleepMode (HYUNDAI IONIQ)
+    // BMS
+    "ATSH7E4",
+    "2101",   // chargingOn
+
+    // IGPM
+    "ATSH770",
+    "22BC03", // ignitionOn
+  };
+
+  //  Empty and fill command queue
+  liveData->commandQueue.clear();
+  for (auto cmd : commandQueueHyundaiIoniq) {
+    liveData->commandQueue.push_back({ 0, cmd });
+  }
+
+  liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq;
+  liveData->commandQueueCount = commandQueueHyundaiIoniq.size();
+}
+
 /**
    activateliveData->commandQueue
 */

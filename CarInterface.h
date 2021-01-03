@@ -10,6 +10,7 @@ class CarInterface {
     LiveData* liveData;   
     void setLiveData(LiveData* pLiveData); 
     virtual void activateCommandQueue();
+    virtual void sleepCommandQueue();
     virtual bool commandAllowed() { return true; }
     virtual void parseRowMerged();
     virtual void loadTestData();  
