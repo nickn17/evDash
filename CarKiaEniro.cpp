@@ -20,6 +20,45 @@
 #define commandQueueLoopFromKiaENiro 8
 
 /**
+   sleepCommandQueue
+*/
+void CarKiaEniro::sleepCommandQueue() {
+
+  // Command queue
+  std::vector<String> commandQueueKiaENiro = {
+    "AT Z",      // Reset all
+    "AT I",      // Print the version ID
+    "AT S0",     // Printing of spaces on
+    "AT E0",     // Echo off
+    "AT L0",     // Linefeeds off
+    "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
+    "AT DP",
+    "AT ST16",    // reduced timeout to 1, orig.16
+
+    // sleepMode loop (KIA ENIRO)
+
+    // IGPM
+    "ATSH770",
+    "22BC03",   // ignitionOn
+
+    // BMS
+    "ATSH7E4",
+    "220101",   // chargingOn
+  };
+
+  //  Empty and fill command queue
+  liveData->commandQueue.clear();
+  //for (int i = 0; i < commandQueueCountKiaENiro; i++) {
+  for (auto cmd : commandQueueKiaENiro) {
+    liveData->commandQueue.push_back({ 0, cmd }); // stxChar not used, keep it 0
+  }
+
+  //
+  liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
+  liveData->commandQueueCount = commandQueueKiaENiro.size();
+}
+
+/**
    activateCommandQueue
 */
 void CarKiaEniro::activateCommandQueue() {
