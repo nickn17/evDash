@@ -463,7 +463,7 @@ void Board320_240::drawSceneSpeed() {
     tft.drawString(tmpStr3, 320, 150, 7);
     
     // Draw soc%
-    sprintf(tmpStr3, "%01.00f", liveData->params.socPerc);
+    sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
     tft.drawString(tmpStr3, 170 , 150, 7);
 
     // Cold gate cirlce
