@@ -441,30 +441,41 @@ void Board320_240::drawSceneSpeed() {
     // Change rotation to vertical & mirror
     if (tft.getRotation() != 7) {
       tft.setRotation(7);
+      tft.fillScreen(TFT_BLACK);
     }
 
-    tft.fillScreen(TFT_BLACK);
     tft.setTextDatum(TR_DATUM); // top-right alignment
     tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
 
     // Draw speed
     tft.setTextSize(3);
     sprintf(tmpStr3, "0");
-    if (liveData->params.speedKmh > 10)
-      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+    if (liveData->params.speedKmh > 10) {
+      if (liveData->params.speedKmh != lastSpeedKmh) {
+        tft.fillRect(0, 210, 320, 30, TFT_BLACK);
+        sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+        lastSpeedKmh = liveData->params.speedKmh;
+      }
+    }
+    else
+    {
+      sprintf(tmpStr3, "0");
+    }
     tft.drawString(tmpStr3, 320, 0, 7);
 
     // Draw power kWh/100km (>25kmh) else kW
     tft.setTextSize(1);
-    if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0)
-      sprintf(tmpStr3, "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
-    else
-      sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
+    if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0) {
+      sprintf(tmpStr3, "  %01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
+    }
+    else {
+      sprintf(tmpStr3, "  %01.01f", liveData->params.batPowerKw);
+    }
     tft.drawString(tmpStr3, 320, 150, 7);
     
     // Draw soc%
     sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
-    tft.drawString(tmpStr3, 170 , 150, 7);
+    tft.drawString(tmpStr3, 190 , 150, 7);
 
     // Cold gate cirlce
     tft.fillCircle(40, 170, 35, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
@@ -472,7 +483,7 @@ void Board320_240::drawSceneSpeed() {
     tft.setFreeFont(&Roboto_Thin_24);
     tft.setTextDatum(MC_DATUM);
     sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-    tft.drawString(tmpStr3, 40, 166, GFXFF);
+    tft.drawString(tmpStr3, 40, 170, GFXFF);
 
     // Brake lights
     tft.fillRect(0, 210, 320, 30, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);

@@ -357,6 +357,41 @@ bool CarKiaEniro::commandAllowed() {
     }
   }
 
+  // HUD speedup
+  if (liveData->params.displayScreenSpeedHud) {
+    // no cooling water temp
+    if (liveData->currentAtshRequest.equals("ATSH7E4")) {
+      if (liveData->commandRequest.equals("220106")) {
+        return false;
+      }
+    }
+
+    // no aircondition
+    if (liveData->currentAtshRequest.equals("ATSH7B3")) {
+      return false;
+    }
+
+    // no ODO
+    if (liveData->currentAtshRequest.equals("ATSH7C6")) {
+      return false;
+    }
+
+    // no IGPM low beam
+    if (liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
+      return false;
+    }
+
+    // no BCM / TPMS
+    if (liveData->currentAtshRequest.equals("ATSH7A0")) {
+      return false;
+    }
+
+    // no AUX 
+    if (liveData->currentAtshRequest.equals("ATSH7E2") && liveData->commandRequest.equals("2102")) {
+      return false;
+    }
+  }
+
   return true;
 }
 
