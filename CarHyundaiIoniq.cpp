@@ -321,6 +321,24 @@ bool CarHyundaiIoniq::commandAllowed() {
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
+  //SleepMode Queue Filter
+  if (liveData->params.sleepModeQueue) {
+    if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+      return true;
+    }
+    if(liveData->commandRequest.equals("ATSH7E4") || liveData->commandRequest.equals("ATSH770")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("2101")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
+      return true;
+    }
+
+    return false;
+  }
+
   // TPMS (once per 29 secs.)
   if (liveData->commandRequest.equals("ATSH7A0")) {
     return lastAllowTpms + 29 < liveData->params.currentTime;
