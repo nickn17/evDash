@@ -396,11 +396,6 @@ bool CarKiaEniro::commandAllowed() {
       return false;
     }
 
-    // no IGPM low beam
-    if (liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
-      return false;
-    }
-
     // no BCM / TPMS
     if (liveData->currentAtshRequest.equals("ATSH7A0")) {
       return false;
