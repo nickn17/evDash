@@ -1346,7 +1346,7 @@ void Board320_240::redrawScreen() {
   }
 
   // Skip following lines for HUD display mode
-  if (liveData->params.displayScreen != SCREEN_HUD)
+  if (liveData->params.displayScreen == SCREEN_HUD)
     return;
 
   // SDCARD recording
