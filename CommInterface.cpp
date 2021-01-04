@@ -63,6 +63,7 @@ bool CommInterface::doNextQueueCommand() {
     liveData->commandQueueIndex++;
     if (liveData->commandQueueIndex >= liveData->commandQueueCount) {
       liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
+      liveData->params.queueLoopCounter++;
       board->redrawScreen();
 
       // log every queue loop (temp) TODO rewrite to secs interval

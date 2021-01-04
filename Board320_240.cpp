@@ -1326,7 +1326,7 @@ void Board320_240::redrawScreen() {
 
   // SDCARD recording
   /*liveData->params.sdcardRecording*/
-  if (liveData->settings.sdcardEnabled == 1 && (liveData->params.mainLoopCounter & 1) == 1) {
+  if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1) {
     spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
     spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
                    (liveData->params.sdcardInit == 1) ?
@@ -1392,8 +1392,6 @@ void Board320_240::loadTestData() {
   Board looop
 */
 void Board320_240::mainLoop() {
-
-  liveData->params.mainLoopCounter++;
 
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
