@@ -11,9 +11,6 @@
 #define SMOOTH_FONT
 #define GFXFF 1  // TFT FOnts
 
-// DEEP SLEEP
-#define TIME_TO_SLEEP 60 // Sleep time in secs
-
 //
 #include <TFT_eSPI.h>
 #include <TinyGPS++.h>
