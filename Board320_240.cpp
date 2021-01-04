@@ -518,6 +518,8 @@ void Board320_240::drawSceneSpeed() {
 
 void Board320_240::drawSceneHud() {
 
+    float batColor;
+    
     // FULL brigtness
     setBrightness(100);
     
@@ -525,6 +527,11 @@ void Board320_240::drawSceneHud() {
     if (tft.getRotation() != 7) {
       tft.setRotation(7);
       tft.fillScreen(TFT_BLACK);
+    }
+
+    if (liveData->commConnected && firstReload < 3) {
+      tft.fillScreen(TFT_BLACK);
+      firstReload++;
     }
 
     tft.setTextDatum(TR_DATUM); // top-right alignment
@@ -558,21 +565,21 @@ void Board320_240::drawSceneHud() {
     tft.drawString(tmpStr3, 320, 150, 7);
     
     // Draw soc%
-    sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
-    tft.drawString(tmpStr3, 170 , 150, 7);
+    sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
+    tft.drawString(tmpStr3, 160 , 150, 7);
 
     // Cold gate battery
-    //tft.fillCircle(40, 170, 35, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.fillRect(0, 10, 70, 200, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.fillRect(20, 0, 30, 10, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.setTextColor(TFT_WHITE, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    batColor = (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED;
+    tft.fillRect(0, 70, 50, 140, batColor);
+    tft.fillRect(15, 60, 20, 10, batColor);
+    tft.setTextColor(TFT_WHITE, batColor);
     tft.setFreeFont(&Roboto_Thin_24);
     tft.setTextDatum(MC_DATUM);
     sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-    tft.drawString(tmpStr3, 35, 180, GFXFF);
+    tft.drawString(tmpStr3, 25, 180, GFXFF);
 
     // Brake lights
-    tft.fillRect(0, 210, 320, 30, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+    tft.fillRect(0, 215, 320, 25, (liveData->params.brakeLights) ? TFT_DARKRED : TFT_BLACK);
 }
 
 /**
@@ -1468,6 +1475,7 @@ void Board320_240::mainLoop() {
         // doAction
         if (liveData->params.displayScreen == SCREEN_SPEED) {
           liveData->params.displayScreen = SCREEN_HUD;
+          tft.fillScreen(TFT_BLACK);
           redrawScreen();
         }
         else if (liveData->params.displayScreen == SCREEN_HUD) {

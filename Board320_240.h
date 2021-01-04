@@ -37,7 +37,7 @@ class Board320_240 : public BoardInterface {
     char tmpStr3[20];
     char tmpStr4[20];
     float lastSpeedKmh = 0;
-    
+    int firstReload = 0;
   public:
     bool invertDisplay = false;
     byte pinButtonLeft = 0;
