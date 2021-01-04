@@ -1,8 +1,7 @@
 /*
-  Project renamed from eNiroDashboard to evDash
-
+  evDash (older name eNiroDashboard)
+  
   Serial console commands
-
    serviceUUID=xxx
    charTxUUID=xxx
    charRxUUID=xxx
@@ -12,14 +11,8 @@
    remoteApiUrl=xxx
    remoteApiKey=xxx
 
-  Required libraries
-  - esp32 board support
-  - tft_espi
-  - ArduinoJson
-  - TinyGPSPlus (m5stack GPS)
-
-  SIM800L m5stack (https://github.com/kolaCZek)
-  - SIM800L.h
+  Required libraries, see INSTALLATION.rd
+  SIM800L m5stack support by (https://github.com/kolaCZek)
 */
 
 ////////////////////////////////////////////////////////////
