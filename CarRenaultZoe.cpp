@@ -37,7 +37,6 @@ void CarRenaultZoe::activateCommandQueue() {
     "ATFCSH79B",
     "atfcsd300010",
     "atfcsm1",
-    "221416",
     "2101", // 034 61011383138600000000000000000000000009970D620FC920D0000005420000000000000008D80500000B202927100000000000000000
     "2103", // 01D 6103018516A717240000000001850185000000FFFF07D00516E60000030000000000
     "2104", // 04D 6104099A37098D37098F3709903709AC3609BB3609A136098B37099737098A37098437099437FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF363637000000000000
@@ -137,21 +136,26 @@ void CarRenaultZoe::parseRowMerged() {
 
   uint8_t tempByte;
 
+  if (liveData->responseRowMerged.equals("NO DATA")) {
+    syslog->println("empty response NO DATA");
+    return;
+  }
+
   // LBC 79B
   if (liveData->currentAtshRequest.equals("ATSH79B")) {
-    if (liveData->commandRequest.equals("221415")) {
-      liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 8, 2, false);
-      // 7F2211 NOT WORKING
-    }
     if (liveData->commandRequest.equals("2101")) {
-      // OK
-      liveData->params.batPowerAmp = liveData->hexToDecFromResponse(4, 8, 2, false) - 5000;
+      liveData->params.batPowerAmp = (liveData->hexToDecFromResponse(4, 8, 2, false) - 5000) / 10.0;
+      syslog->print("liveData->params.batPowerAmp: ");
+      syslog->println(liveData->params.batPowerAmp);
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
+      syslog->print("liveData->params.batPowerKw: ");
+      syslog->println(liveData->params.batPowerKw);
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
       liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
-      // OK
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(56, 60, 2, false) / 100.0;
+      syslog->print("liveData->params.auxVoltage: ");
+      syslog->println(liveData->params.auxVoltage);
       float tmpAuxPerc;
       if (liveData->params.ignitionOn) {
         tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V
@@ -159,17 +163,23 @@ void CarRenaultZoe::parseRowMerged() {
         tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
       }
       liveData->params.auxPerc = ((tmpAuxPerc > 100) ? 100 : ((tmpAuxPerc < 0) ? 0 : tmpAuxPerc));
-      // OK
+      syslog->print("liveData->params.auxPerc: ");
+      syslog->println(liveData->params.auxPerc);
       liveData->params.availableChargePower = liveData->hexToDecFromResponse(84, 88, 2, false) / 100.0;
-      // ZERO
-      liveData->params.batCellMinV = liveData->hexToDecFromResponse(24, 28, 2, false) / 100.0;
-      // ZERO
-      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(28, 32, 2, false) / 100.0;
+      syslog->print("liveData->params.availableChargePower: ");
+      syslog->println(liveData->params.availableChargePower);
     }
     if (liveData->commandRequest.equals("2103")) {
       liveData->params.socPercPrevious = liveData->params.socPerc;
-      // OK
       liveData->params.socPerc = liveData->hexToDecFromResponse(48, 52, 2, false) / 100.0;
+      syslog->print("liveData->params.socPerc: ");
+      syslog->println(liveData->params.socPerc);
+      liveData->params.batCellMinV = liveData->hexToDecFromResponse(24, 28, 2, false) / 100.0;
+      syslog->print("liveData->params.batCellMinV: ");
+      syslog->println(liveData->params.batCellMinV);
+      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(28, 32, 2, false) / 100.0;
+      syslog->print("liveData->params.batCellMaxV: ");
+      syslog->println(liveData->params.batCellMaxV);
     }
     if (liveData->commandRequest.equals("2104")) {
       for (uint16_t i = 0; i < 12; i++) {
@@ -185,8 +195,9 @@ void CarRenaultZoe::parseRowMerged() {
         if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
           liveData->params.batMaxC = liveData->params.batModuleTempC[i];
       }
-      // OK
       liveData->params.batTempC = liveData->params.batMinC;
+      syslog->print("liveData->params.batTempC: ");
+      syslog->println(liveData->params.batTempC);
     }
     if (liveData->commandRequest.equals("2141")) {
       for (int i = 0; i < 62; i++) {
@@ -197,18 +208,23 @@ void CarRenaultZoe::parseRowMerged() {
       for (int i = 0; i < 34; i++) {
         liveData->params.cellVoltage[i + 62] = liveData->hexToDecFromResponse(4 + (i * 4), 8 + (i * 4), 2, false) / 1000;
       }
+      liveData->params.batVoltage = liveData->hexToDecFromResponse(144, 148, 2, false) / 100;
+      syslog->print("liveData->params.batVoltage: ");
+      syslog->println(liveData->params.batVoltage);
     }
     if (liveData->commandRequest.equals("2161")) {
-      // OK
       liveData->params.sohPerc = liveData->hexToDecFromResponse(18, 20, 2, false) / 2.0;
+      syslog->print("liveData->params.sohPerc: ");
+      syslog->println(liveData->params.sohPerc);
     }
   }
 
   // CLUSTER 743
   if (liveData->currentAtshRequest.equals("ATSH743")) {
     if (liveData->commandRequest.equals("220206")) {
-      // OK
       liveData->params.odoKm = liveData->hexToDecFromResponse(6, 14, 4, false);
+      syslog->print("liveData->params.speedKmh: ");
+      syslog->println(liveData->params.speedKmh);
     }
   }
 
@@ -216,6 +232,8 @@ void CarRenaultZoe::parseRowMerged() {
   if (liveData->currentAtshRequest.equals("ATSH7E4")) {
     if (liveData->commandRequest.equals("222003")) {
       liveData->params.speedKmh = liveData->hexToDecFromResponse(6, 8, 2, false) / 100;
+      syslog->print("liveData->params.speedKmh: ");
+      syslog->println(liveData->params.speedKmh);
       if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
         liveData->params.speedKmh = 0;
     }
@@ -223,9 +241,17 @@ void CarRenaultZoe::parseRowMerged() {
 
   // CLIM 744 CLIMATE CONTROL
   if (liveData->currentAtshRequest.equals("ATSH744")) {
+    if (liveData->commandRequest.equals("2121")) {
+      tempByte =  (liveData->hexToDecFromResponse(6, 10, 2, false));
+      liveData->params.indoorTemperature = (((tempByte >> 4) & 0x3ff) - 400) / 10;
+      syslog->print("liveData->params.indoorTemperature: ");
+      syslog->println(liveData->params.indoorTemperature);
+    }
     if (liveData->commandRequest.equals("2143")) {
-      liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(24, 26, 1, true));
-      //liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+      tempByte =  (liveData->hexToDecFromResponse(26, 30, 2, false));
+      liveData->params.outdoorTemperature = ((tempByte >> 2) & 0xff) - 40;
+      syslog->print("liveData->params.outdoorTemperature: ");
+      syslog->println(liveData->params.outdoorTemperature);
       //liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
       //liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
     }
