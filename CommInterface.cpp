@@ -4,7 +4,7 @@
 #include "LiveData.h"
 
 /**
-
+  init
 */
 void CommInterface::initComm(LiveData* pLiveData, BoardInterface* pBoard) {
 
@@ -14,7 +14,7 @@ void CommInterface::initComm(LiveData* pLiveData, BoardInterface* pBoard) {
 }
 
 /**
-   Main loop
+  Main loop
 */
 void CommInterface::mainLoop() {
 
@@ -99,4 +99,72 @@ bool CommInterface::parseResponse() {
   } else if (liveData->responseRow.length() >= 4) {
     liveData->responseRowMerged += liveData->responseRow;
   }
+}
+
+/**
+   Send final response to board
+*/
+void CommInterface::parseRowMerged() {
+
+  // Record previous response
+  if (canComparerRecordIndex != -1) {
+    if (canComparerRecordQueueLoop < liveData->params.queueLoopCounter) {
+      syslog->print("canRec");
+      syslog->print(canComparerRecordIndex);
+      syslog->print(": ");
+      syslog->println(canComparerData[canComparerRecordIndex]);
+      canComparerRecordIndex = -1; // Stop recording
+    } else if ( !liveData->commandRequest.startsWith("AT")) {
+      if (canComparerRecordQueueLoop == liveData->params.queueLoopCounter) {
+        String key = "/" + liveData->currentAtshRequest + "/" + liveData->commandRequest + "/";
+        if (canComparerRecordIndex == 0) {
+          canComparerData[canComparerRecordIndex] += key + liveData->responseRowMerged;
+        } else {
+          uint16_t startPos = canComparerData[0].indexOf(key);
+          if (startPos != -1) {
+            canComparerData[canComparerRecordIndex] = canComparerData[canComparerRecordIndex].substring(0, startPos) + key +
+                liveData->responseRowMerged + canComparerData[canComparerRecordIndex].substring(startPos + key.length() + liveData->responseRowMerged.length());
+          }
+        }
+      }
+    }
+  }
+
+  // Parse response
+  board->parseRowMerged();
+}
+
+/**
+   CanComparer - record whole queue loop
+*/
+void CommInterface::recordLoop(int8_t dataIndex) {
+
+  canComparerRecordIndex = dataIndex;
+  if (canComparerRecordIndex == 0) {
+    canComparerData[canComparerRecordIndex] = "";
+  } else {
+    uint16_t maxLen = canComparerData[0].length();
+    canComparerData[canComparerRecordIndex] = "";
+    for (uint16_t i = 0; i < maxLen; i++)
+      canComparerData[canComparerRecordIndex] += "#";
+  }
+  canComparerRecordQueueLoop = liveData->params.queueLoopCounter + 1;
+
+  syslog->print("canComparer: Recording loop to register: ");
+  syslog->println(canComparerRecordIndex);
+}
+
+/**
+   CanComparer - compare captured results (0..3) and print byte differences (0 = 2, 1 = 3, 0 <> 1)
+*/
+void CommInterface::compareCanRecords() {
+  syslog->println(canComparerData[0]);
+  uint16_t maxLen = canComparerData[0].length();
+  for (uint16_t i = 0; i < maxLen; i++) {
+    syslog->print((canComparerData[0].charAt(i) != canComparerData[1].charAt(i) &&
+                   canComparerData[0].charAt(i) == canComparerData[2].charAt(i) &&
+                   canComparerData[1].charAt(i) == canComparerData[3].charAt(i)) ? "#" : " ");
+  }
+  syslog->println();
+  syslog->println(canComparerData[1]);
 }

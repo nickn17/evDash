@@ -131,7 +131,7 @@ static void notifyCallback (BLERemoteCharacteristic * pBLERemoteCharacteristic, 
         if (liveDataObj->responseRowMerged != "") {
           syslog->infoNolf(DEBUG_COMM, "merged:");
           syslog->info(DEBUG_COMM, liveDataObj->responseRowMerged);
-          boardObj->parseRowMerged();
+          commObj->parseRowMerged();
         }
         liveDataObj->responseRowMerged = "";
         liveDataObj->canSendNextAtCommand = true;

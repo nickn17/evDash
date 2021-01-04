@@ -527,7 +527,7 @@ bool CommObd2Can::processFrame() {
 void CommObd2Can::processMergedResponse() {
   syslog->infoNolf(DEBUG_COMM, "merged:");
   syslog->info(DEBUG_COMM, liveData->responseRowMerged);
-  board->parseRowMerged();
+  parseRowMerged();
   
   liveData->responseRowMerged = "";
   liveData->vResponseRowMerged.clear();

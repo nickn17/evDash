@@ -225,7 +225,7 @@ void BoardInterface::afterSetup() {
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
 
-  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {
+  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {;
     commInterface = new CommObd2Ble4();
   } else if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
     commInterface = new CommObd2Can();
@@ -243,6 +243,10 @@ void BoardInterface::afterSetup() {
 */
 void BoardInterface::customConsoleCommand(String cmd) {
 
+  if (cmd.equals("reboot")) ESP.restart();
+  // CAN comparer
+  if (cmd.equals("compare")) commInterface->compareCanRecords();
+  
   int8_t idx = cmd.indexOf("=");
   if (idx == -1)
     return;
@@ -250,7 +254,6 @@ void BoardInterface::customConsoleCommand(String cmd) {
   String key = cmd.substring(0, idx);
   String value = cmd.substring(idx + 1);
 
-  if (cmd == "reboot") ESP.restart();
   if (key == "serviceUUID") value.toCharArray(liveData->settings.serviceUUID, value.length() + 1);
   if (key == "charTxUUID") value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
   if (key == "charRxUUID") value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
@@ -259,6 +262,8 @@ void BoardInterface::customConsoleCommand(String cmd) {
   if (key == "gprsApn") value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
+  // CAN comparer
+  if (key == "record") commInterface->recordLoop(value.toInt());
 }
 
 /**
