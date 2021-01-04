@@ -22,7 +22,6 @@ void BoardInterface::attachCar(CarInterface* pCarInterface) {
   carInterface = pCarInterface;
 }
 
-
 /**
   Shutdown device
 */
