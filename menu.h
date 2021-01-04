@@ -70,6 +70,7 @@ MENU_ITEM menuItemsSource[100] = {
   {3063, 306, -1, "Speed"},
   {3064, 306, -1, "Battery cells"},
   {3065, 306, -1, "Charging graph"},
+  {3066, 306, -1, "HUD"},
 
   {4010, 401, 4, "<- parent menu"},
   {4011, 401, -1, "Kilometers"},

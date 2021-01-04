@@ -435,66 +435,6 @@ void Board320_240::drawSceneSpeed() {
 
   int32_t posx, posy;
 
-  // HUD
-  if (liveData->params.displayScreenSpeedHud) {
-
-    // Change rotation to vertical & mirror
-    if (tft.getRotation() != 7) {
-      tft.setRotation(7);
-      tft.fillScreen(TFT_BLACK);
-    }
-
-    tft.setTextDatum(TR_DATUM); // top-right alignment
-    tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
-
-    // Draw speed
-    tft.setTextSize(3);
-    sprintf(tmpStr3, "0");
-    if (liveData->params.speedKmh > 10) {
-      if (liveData->params.speedKmh != lastSpeedKmh) {
-        tft.fillRect(0, 210, 320, 30, TFT_BLACK);
-        sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
-        lastSpeedKmh = liveData->params.speedKmh;
-      }
-    }
-    else
-    {
-      sprintf(tmpStr3, "0");
-    }
-    tft.drawString(tmpStr3, 320, 0, 7);
-
-    // Draw power kWh/100km (>25kmh) else kW
-    tft.setTextSize(1);
-    if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0) {
-      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.batPowerKwh100));
-    }
-    else {
-      sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
-    }
-    tft.fillRect(181, 149, 150, 50, TFT_BLACK);
-    tft.drawString(tmpStr3, 320, 150, 7);
-    
-    // Draw soc%
-    sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
-    tft.drawString(tmpStr3, 170 , 150, 7);
-
-    // Cold gate battery
-    //tft.fillCircle(40, 170, 35, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.fillRect(0, 10, 70, 200, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.fillRect(20, 0, 30, 10, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.setTextColor(TFT_WHITE, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-    tft.setFreeFont(&Roboto_Thin_24);
-    tft.setTextDatum(MC_DATUM);
-    sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-    tft.drawString(tmpStr3, 35, 180, GFXFF);
-
-    // Brake lights
-    tft.fillRect(0, 210, 320, 30, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-
-    return;
-  }
-
-  //
   spr.fillRect(0, 36, 200, 160, TFT_DARKRED);
 
   posx = 320 / 2;
@@ -574,6 +514,65 @@ void Board320_240::drawSceneSpeed() {
     spr.drawString(tmpStr3, 320, 129, GFXFF);
     spr.drawString("kWh", 320, 164, GFXFF);
   }
+}
+
+void Board320_240::drawSceneHud() {
+
+    // FULL brigtness
+    setBrightness(100);
+    
+     // Change rotation to vertical & mirror
+    if (tft.getRotation() != 7) {
+      tft.setRotation(7);
+      tft.fillScreen(TFT_BLACK);
+    }
+
+    tft.setTextDatum(TR_DATUM); // top-right alignment
+    tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
+
+    // Draw speed
+    tft.setTextSize(3);
+    sprintf(tmpStr3, "0");
+    if (liveData->params.speedKmh > 10) {
+      if (liveData->params.speedKmh != lastSpeedKmh) {
+        tft.fillRect(0, 210, 320, 30, TFT_BLACK);
+        sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+        lastSpeedKmh = liveData->params.speedKmh;
+      }
+    }
+    else
+    {
+      sprintf(tmpStr3, "0");
+    }
+    tft.drawString(tmpStr3, 320, 0, 7);
+
+    // Draw power kWh/100km (>25kmh) else kW
+    tft.setTextSize(1);
+    if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0) {
+      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.batPowerKwh100));
+    }
+    else {
+      sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
+    }
+    tft.fillRect(181, 149, 150, 50, TFT_BLACK);
+    tft.drawString(tmpStr3, 320, 150, 7);
+    
+    // Draw soc%
+    sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
+    tft.drawString(tmpStr3, 170 , 150, 7);
+
+    // Cold gate battery
+    //tft.fillCircle(40, 170, 35, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.fillRect(0, 10, 70, 200, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.fillRect(20, 0, 30, 10, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.setTextColor(TFT_WHITE, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+    tft.setFreeFont(&Roboto_Thin_24);
+    tft.setTextDatum(MC_DATUM);
+    sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
+    tft.drawString(tmpStr3, 35, 180, GFXFF);
+
+    // Brake lights
+    tft.fillRect(0, 210, 320, 30, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
 }
 
 /**
@@ -1173,6 +1172,7 @@ void Board320_240::menuItemClick() {
       case 3063: liveData->settings.defaultScreen = 3; showParentMenu = true; break;
       case 3064: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
+      case 3066: liveData->settings.defaultScreen = 7; showParentMenu = true; break;
       // SleepMode off/on
       case MENU_SLEEP_MODE:           liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SCREEN_BRIGHTNESS:    liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
@@ -1338,9 +1338,13 @@ void Board320_240::redrawScreen() {
     case SCREEN_SOC10:
       drawSceneSoc10Table();
       break;
+    // 7. HUD
+    case SCREEN_HUD:
+      drawSceneHud();
+      break;
   }
 
-  if (!liveData->params.displayScreenSpeedHud) {
+  if (liveData->params.displayScreen != SCREEN_HUD) {
 
     // SDCARD recording
     /*liveData->params.sdcardRecording*/
@@ -1463,7 +1467,11 @@ void Board320_240::mainLoop() {
       } else {
         // doAction
         if (liveData->params.displayScreen == SCREEN_SPEED) {
-          liveData->params.displayScreenSpeedHud = !liveData->params.displayScreenSpeedHud;
+          liveData->params.displayScreen = SCREEN_HUD;
+          redrawScreen();
+        }
+        else if (liveData->params.displayScreen == SCREEN_HUD) {
+          liveData->params.displayScreen = SCREEN_SPEED;
           redrawScreen();
         }
       }

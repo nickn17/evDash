@@ -358,7 +358,7 @@ bool CarKiaEniro::commandAllowed() {
   }
 
   // HUD speedup
-  if (liveData->params.displayScreenSpeedHud) {
+  if (liveData->params.displayScreen == SCREEN_HUD) {
     // no cooling water temp
     if (liveData->currentAtshRequest.equals("ATSH7E4")) {
       if (liveData->commandRequest.equals("220106")) {
