@@ -75,7 +75,6 @@ void Board320_240::afterSetup() {
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
-  liveData->params.displayScreenSpeedHud = liveData->settings.displayScreenSpeedHud;
   if (digitalRead(pinButtonRight) == LOW) {
     loadTestData();
   }
@@ -1174,7 +1173,6 @@ void Board320_240::menuItemClick() {
       case 3063: liveData->settings.defaultScreen = 3; showParentMenu = true; break;
       case 3064: liveData->settings.defaultScreen = 4; showParentMenu = true; break;
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
-      case 3066: liveData->settings.defaultScreen = 3; liveData->settings.displayScreenSpeedHud = true; showParentMenu = true; break;
       // SleepMode off/on
       case MENU_SLEEP_MODE:           liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SCREEN_BRIGHTNESS:    liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
