@@ -13,6 +13,10 @@ class CommInterface {
     char ch;
     String response;
     time_t lastDataSent;
+    // 
+    int8_t canComparerRecordIndex = -1; // 0..3, -1 (disabled recording) 
+    uint32_t canComparerRecordQueueLoop; // Request to record specified params.queueLoopCounter
+    String canComparerData[4] = {"", "", "", ""}; 
   public:
     void initComm(LiveData* pLiveData, BoardInterface* pBoard);
     virtual void connectDevice() = 0;
@@ -23,4 +27,8 @@ class CommInterface {
     // 
     bool doNextQueueCommand();    
     bool parseResponse();
+    void parseRowMerged();
+    // CAN comparer
+    void recordLoop(int8_t dataIndex);
+    void compareCanRecords();
 };

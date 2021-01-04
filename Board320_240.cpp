@@ -31,8 +31,8 @@ void Board320_240::initBoard() {
   getLocalTime(&now, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
 
+  // Deep sleep boot counter
   ++bootCount;
-
   syslog->print("Boot count: ");
   syslog->println(bootCount);
 }
@@ -42,13 +42,8 @@ void Board320_240::initBoard() {
 */
 void Board320_240::afterSetup() {
 
-  if (digitalRead(pinButtonRight) == LOW) {
-    loadTestData();
-  }
-
+  // Check if board was sleeping
   bool afterSetup = false;
-
-  // Check if bard was sleeping
   if (liveData->settings.sleepModeEnabled) {
     // Init comm device
     afterSetup = true;
@@ -58,7 +53,7 @@ void Board320_240::afterSetup() {
   }
 
   // Init display
-  syslog->println("Init tft display");
+  syslog->println("Init TFT display");
   tft.begin();
   tft.invertDisplay(invertDisplay);
   tft.setRotation(liveData->settings.displayRotation);
@@ -82,7 +77,6 @@ void Board320_240::afterSetup() {
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
   if (liveData->settings.wifiEnabled == 1) {
-
     /*syslog->print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
         syslog->println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
         syslog->println("WiFi init...");
@@ -155,7 +149,7 @@ void Board320_240::goToSleep() {
   delay(1000);
 
   //Sleep ESP32
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); //pinButtonLeft
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
   esp_deep_sleep_start();
 }
@@ -165,8 +159,6 @@ void Board320_240::goToSleep() {
   Iterate thru commands and determine if car is charging or ignition is on
 */
 void Board320_240::afterSleep() {
-
-  syslog->println("Waking up from sleep mode!");
 
   // Wakeup reason
   esp_sleep_wakeup_cause_t wakeup_reason;
@@ -186,7 +178,8 @@ void Board320_240::afterSleep() {
     return;
   }
 
-  //
+  liveData->params.sleepModeQueue = true;
+
   bool firstRun = true;
   while (liveData->commandQueueIndex - 1 > liveData->commandQueueLoopFrom || firstRun) {
     if (liveData->commandQueueIndex - 1 == liveData->commandQueueLoopFrom) {
@@ -207,9 +200,10 @@ void Board320_240::afterSleep() {
   } else if (!liveData->params.ignitionOn && !liveData->params.chargingOn) {
     syslog->println("Not started & Not charging.");
     goToSleep();
-  } else {
-    syslog->println("Wake up conditions satisfied... Good morning!");
   }
+
+  syslog->println("Wake up conditions satisfied... Good morning!");
+  liveData->params.sleepModeQueue = false;
 }
 
 /**
@@ -1270,6 +1264,7 @@ void Board320_240::menuItemClick() {
           liveData->menuItemSelected++;
         }
       }
+
       liveData->menuCurrent = parentMenu;
       syslog->println(liveData->menuCurrent);
       showMenu();
@@ -1290,16 +1285,15 @@ void Board320_240::redrawScreen() {
     return;
   }
 
-  // Lights not enabled
-  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode && 
-       !liveData->params.headLights && !liveData->params.autoLights) {
+  // Headlights reminders
+  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode &&
+      !liveData->params.headLights && !liveData->params.autoLights) {
     spr.fillSprite(TFT_RED);
     spr.setFreeFont(&Orbitron_Light_32);
     spr.setTextColor(TFT_WHITE, TFT_RED);
     spr.setTextDatum(MC_DATUM);
     spr.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
     spr.pushSprite(0, 0);
-
     return;
   }
 
@@ -1351,59 +1345,60 @@ void Board320_240::redrawScreen() {
       break;
   }
 
-  if (liveData->params.displayScreen != SCREEN_HUD) {
+  // Skip following lines for HUD display mode
+  if (liveData->params.displayScreen != SCREEN_HUD)
+    return;
 
-    // SDCARD recording
-    /*liveData->params.sdcardRecording*/
-    if (liveData->settings.sdcardEnabled == 1 && (liveData->params.mainLoopCounter & 1) == 1) {
-      spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
-      spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
-                     (liveData->params.sdcardInit == 1) ?
-                     (liveData->params.sdcardRecording) ?
-                     (strlen(liveData->params.sdcardFilename) != 0) ?
-                     TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ :
-                     TFT_BLUE /* recording started but waiting for data */ :
-                     TFT_ORANGE /* sdcard init ready but recording not started*/ :
-                     TFT_YELLOW /* failed to initialize sdcard */
-                    );
-    }
-    // GPS state
-    if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
-      spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
-      spr.setTextSize(1);
-      spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
-      spr.setTextDatum(TL_DATUM);
-      sprintf(tmpStr1, "%d", liveData->params.gpsSat);
-      spr.drawString(tmpStr1, 174, 2, 2);
-    }
-
-    // Door status
-    if (liveData->params.trunkDoorOpen)
-      spr.fillRect(20, 0, 320 - 40, 20, TFT_YELLOW);
-    if (liveData->params.leftFrontDoorOpen)
-      spr.fillRect(0, 20, 20, 98, TFT_YELLOW);
-    if (liveData->params.rightFrontDoorOpen)
-      spr.fillRect(0, 122, 20, 98, TFT_YELLOW);
-    if (liveData->params.leftRearDoorOpen)
-      spr.fillRect(320 - 20, 20, 20, 98, TFT_YELLOW);
-    if (liveData->params.rightRearDoorOpen)
-      spr.fillRect(320 - 20, 122, 20, 98, TFT_YELLOW);
-    if (liveData->params.hoodDoorOpen)
-      spr.fillRect(20, 240 - 20, 320 - 40, 20, TFT_YELLOW);
-
-    // BLE not connected
-    if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
-      // Print message
-      spr.setTextSize(1);
-      spr.setTextColor(TFT_WHITE, TFT_BLACK);
-      spr.setTextDatum(TL_DATUM);
-      spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
-      spr.drawString("Press middle button to menu.", 0, 200, 2);
-      spr.drawString(APP_VERSION, 0, 220, 2);
-    }
-
-    spr.pushSprite(0, 0);
+  // SDCARD recording
+  /*liveData->params.sdcardRecording*/
+  if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1) {
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
+                   (liveData->params.sdcardInit == 1) ?
+                   (liveData->params.sdcardRecording) ?
+                   (strlen(liveData->params.sdcardFilename) != 0) ?
+                   TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ :
+                   TFT_BLUE /* recording started but waiting for data */ :
+                   TFT_ORANGE /* sdcard init ready but recording not started*/ :
+                   TFT_YELLOW /* failed to initialize sdcard */
+                  );
   }
+  // GPS state
+  if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
+    spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+    spr.setTextSize(1);
+    spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
+    spr.setTextDatum(TL_DATUM);
+    sprintf(tmpStr1, "%d", liveData->params.gpsSat);
+    spr.drawString(tmpStr1, 174, 2, 2);
+  }
+
+  // Door status
+  if (liveData->params.trunkDoorOpen)
+    spr.fillRect(20, 0, 320 - 40, 20, TFT_YELLOW);
+  if (liveData->params.leftFrontDoorOpen)
+    spr.fillRect(0, 20, 20, 98, TFT_YELLOW);
+  if (liveData->params.rightFrontDoorOpen)
+    spr.fillRect(0, 122, 20, 98, TFT_YELLOW);
+  if (liveData->params.leftRearDoorOpen)
+    spr.fillRect(320 - 20, 20, 20, 98, TFT_YELLOW);
+  if (liveData->params.rightRearDoorOpen)
+    spr.fillRect(320 - 20, 122, 20, 98, TFT_YELLOW);
+  if (liveData->params.hoodDoorOpen)
+    spr.fillRect(20, 240 - 20, 320 - 40, 20, TFT_YELLOW);
+
+  // BLE not connected
+  if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
+    // Print message
+    spr.setTextSize(1);
+    spr.setTextColor(TFT_WHITE, TFT_BLACK);
+    spr.setTextDatum(TL_DATUM);
+    spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
+    spr.drawString("Press middle button to menu.", 0, 200, 2);
+    spr.drawString(APP_VERSION, 0, 220, 2);
+  }
+
+  spr.pushSprite(0, 0);
 }
 
 /**
@@ -1422,8 +1417,6 @@ void Board320_240::loadTestData() {
   Board looop
 */
 void Board320_240::mainLoop() {
-
-  liveData->params.mainLoopCounter++;
 
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
@@ -1550,7 +1543,7 @@ void Board320_240::mainLoop() {
     }
   }
 
-  // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time is synchronized)
+  // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time was synchronized)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && liveData->settings.sleepModeEnabled) {

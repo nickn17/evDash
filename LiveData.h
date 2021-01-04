@@ -46,7 +46,7 @@ typedef struct {
   // System
   time_t currentTime;
   time_t chargingStartTime;
-  uint32_t mainLoopCounter;
+  uint32_t queueLoopCounter;
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;
@@ -64,6 +64,7 @@ typedef struct {
   byte displayScreen;
   byte displayScreenAutoMode;
   // Car params
+  bool sleepModeQueue;
   bool ignitionOn;
   bool chargingOn;
   bool chargerACconnected;

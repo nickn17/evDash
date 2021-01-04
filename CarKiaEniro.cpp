@@ -153,7 +153,7 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral  = (driveMode == 1);
       // Speed
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+      //liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
     }
   }
 
@@ -194,11 +194,11 @@ void CarKiaEniro::parseRowMerged() {
 
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-//    if (liveData->commandRequest.equals("2101")) {
-//      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-//      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-//        liveData->params.speedKmh = 0;
-//    }
+    if (liveData->commandRequest.equals("2101")) {
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+        liveData->params.speedKmh = 0;
+    }
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
@@ -339,14 +339,34 @@ bool CarKiaEniro::commandAllowed() {
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
+  //SleepMode Queue Filter
+  if (liveData->params.sleepModeQueue) {
+    if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+      return true;
+    }
+    if(liveData->commandRequest.equals("ATSH770") || liveData->commandRequest.equals("ATSH7E4")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101")) {
+      return true;
+    }
+
+    return false;
+  }
+
   // TPMS (once per 30 secs.)
   if (liveData->commandRequest.equals("ATSH7A0")) {
     return lastAllowTpms + 30 < liveData->params.currentTime;
   }
   if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22C00B")) {
-    if (lastAllowTpms + 30 < liveData->params.currentTime)
+    if (lastAllowTpms + 30 < liveData->params.currentTime) {
       lastAllowTpms = liveData->params.currentTime;
-    return lastAllowTpms + 30 < liveData->params.currentTime;
+    } else {
+      return false;
+    }
   }
 
   // BMS (only for SCREEN_CELLS)

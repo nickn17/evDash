@@ -15,7 +15,7 @@ void debug(String msg, uint8_t debugLevel) {
 */
 void LiveData::initParams() {
 
-  params.mainLoopCounter = 0;
+  params.queueLoopCounter = 0;
   // SIM
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
@@ -35,6 +35,7 @@ void LiveData::initParams() {
   params.displayScreen = SCREEN_AUTO;
   params.displayScreenAutoMode = SCREEN_AUTO;
   // Car data
+  params.sleepModeQueue = false;
   params.ignitionOn = false;
   params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;

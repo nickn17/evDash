@@ -44,11 +44,12 @@
 #define TFT_GRAPH_OPTIMAL25  0x0200
 #define TFT_GRAPH_RAPIDGATE35 0x8300
 
-////////////////////////////////////////////////////////////
 // SIM800L
-/////////////////////////////////////////////////////////////
 #define SIM800L_RST 5
 #define SIM800L_TIMER 60
+
+// DEEP SLEEP
+#define TIME_TO_SLEEP 60 // Sleep time in secs
 
 // MENU ITEM
 typedef struct {

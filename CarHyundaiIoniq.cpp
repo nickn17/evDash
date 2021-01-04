@@ -8,6 +8,13 @@
 */
 void CarHyundaiIoniq::activateCommandQueue() {
 
+  // Optimizer
+  lastAllowTpms       = 0;
+  lastAllowOdo        = 0;
+  lastAllowAircon     = 0;
+  lastAllowDriveMode  = 0;
+
+  // Command queue
   std::vector<String> commandQueueHyundaiIoniq = {
     "AT Z",      // Reset all
     "AT I",      // Print the version ID
@@ -302,6 +309,97 @@ void CarHyundaiIoniq::parseRowMerged() {
     }
   }
 
+}
+
+/**
+   Is command from queue allowed for execute, or continue with next
+*/
+bool CarHyundaiIoniq::commandAllowed() {
+
+  /* syslog->print("Command allowed: ");
+    syslog->print(liveData->currentAtshRequest);
+    syslog->print(" ");
+    syslog->println(liveData->commandRequest);*/
+
+  //SleepMode Queue Filter
+  if (liveData->params.sleepModeQueue) {
+    if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+      return true;
+    }
+    if(liveData->commandRequest.equals("ATSH7E4") || liveData->commandRequest.equals("ATSH770")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("2101")) {
+      return true;
+    }
+    if(liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // TPMS (once per 29 secs.)
+  if (liveData->commandRequest.equals("ATSH7A0")) {
+    return lastAllowTpms + 29 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22c00b")) {
+    if (lastAllowTpms + 29 < liveData->params.currentTime) {
+      lastAllowTpms = liveData->params.currentTime;
+    } else {
+      return false;
+    }
+  }
+
+  // ODO (onec per 12 secs.)
+  if (liveData->commandRequest.equals("ATSH7C6")) {
+    return lastAllowOdo + 12 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7C6") && liveData->commandRequest.equals("22B002")) {
+    if (lastAllowOdo + 12 < liveData->params.currentTime) {
+      lastAllowOdo = liveData->params.currentTime;
+    } else {
+      return false;
+    }
+  }
+
+  //AirCon (once per 31 secs.)
+  if (liveData->commandRequest.equals("ATSH7B3")) {
+    return lastAllowAircon + 31 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7B3")) {
+    if (liveData->commandRequest.equals("220102")) {
+        if (lastAllowAircon + 31 < liveData->params.currentTime) {
+          lastAllowAircon = liveData->params.currentTime;
+        } else {
+          return false;
+        }
+    } else {
+      return lastAllowAircon + 31 < liveData->params.currentTime;
+    }
+  }
+
+  //DriveMode (once per 13s)
+  if (liveData->commandRequest.equals("ATSH7D1")) {
+    return lastAllowDriveMode + 13 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7D1") && liveData->commandRequest.equals("22C101")) {
+    if (lastAllowDriveMode + 13 < liveData->params.currentTime) {
+      lastAllowDriveMode = liveData->params.currentTime;
+    } else {
+      return false;
+    }
+  }
+
+  // BMS (only for SCREEN_CELLS)
+  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
+    if (liveData->commandRequest.equals("2102") || liveData->commandRequest.equals("2103") || liveData->commandRequest.equals("2104")) {
+      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+        return false;
+    }
+  }
+
+  return true;
 }
 
 /**
