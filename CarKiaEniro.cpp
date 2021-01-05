@@ -153,7 +153,7 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral  = (driveMode == 1);
       // Speed
-      //liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
     }
   }
 
@@ -194,11 +194,11 @@ void CarKiaEniro::parseRowMerged() {
 
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-    if (liveData->commandRequest.equals("2101")) {
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-        liveData->params.speedKmh = 0;
-    }
+//    if (liveData->commandRequest.equals("2101")) {
+//      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+//      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+//        liveData->params.speedKmh = 0;
+//    }
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
@@ -374,6 +374,36 @@ bool CarKiaEniro::commandAllowed() {
     if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104")) {
       if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
         return false;
+    }
+  }
+
+  // HUD speedup
+  if (liveData->params.displayScreen == SCREEN_HUD) {
+    // no cooling water temp
+    if (liveData->currentAtshRequest.equals("ATSH7E4")) {
+      if (liveData->commandRequest.equals("220106")) {
+        return false;
+      }
+    }
+
+    // no aircondition
+    if (liveData->currentAtshRequest.equals("ATSH7B3")) {
+      return false;
+    }
+
+    // no ODO
+    if (liveData->currentAtshRequest.equals("ATSH7C6")) {
+      return false;
+    }
+
+    // no BCM / TPMS
+    if (liveData->currentAtshRequest.equals("ATSH7A0")) {
+      return false;
+    }
+
+    // no AUX 
+    if (liveData->currentAtshRequest.equals("ATSH7E2") && liveData->commandRequest.equals("2102")) {
+      return false;
     }
   }
 

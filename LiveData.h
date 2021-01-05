@@ -34,6 +34,7 @@
 #define SCREEN_CELLS  4
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10  6
+#define SCREEN_HUD    7
 
 //
 #define MONTH_SEC     2678400
@@ -62,7 +63,6 @@ typedef struct {
   // Display
   byte displayScreen;
   byte displayScreenAutoMode;
-  byte displayScreenSpeedHud;
   // Car params
   bool sleepModeQueue;
   bool ignitionOn;

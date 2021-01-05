@@ -33,6 +33,8 @@ class Board320_240 : public BoardInterface {
     char tmpStr2[20];
     char tmpStr3[20];
     char tmpStr4[20];
+    float lastSpeedKmh = 0;
+    int firstReload = 0;
   public:
     bool invertDisplay = false;
     byte pinButtonLeft = 0;
@@ -69,6 +71,7 @@ class Board320_240 : public BoardInterface {
     void showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char* topleft, const char* topright, const char* bottomleft, const char* bottomright, uint16_t color);
     void drawSceneMain();
     void drawSceneSpeed();
+    void drawSceneHud();
     void drawSceneBatteryCells();
     void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, int mulY);
     void drawSceneChargingGraph();
