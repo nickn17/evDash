@@ -28,7 +28,7 @@ void CarRenaultZoe::activateCommandQueue() {
     //"AT CAF0",   // Automatic formatting off
     ////"AT AT0",     // disabled adaptive timing
     "AT DP",
-    "AT ST16",    // reduced timeout to 1, orig.16
+    "AT ST16",    // timeout
 
     // Loop from (RENAULT ZOE)
 
@@ -55,14 +55,6 @@ void CarRenaultZoe::activateCommandQueue() {
     "220206", // 62020600015459
     //"222204", // temp ext.
 
-    // EPS 742
-    "ATSH742",
-    "ATFCSH742",
-    "atfcsd300010",
-    "atfcsm1",
-    "22012F", // supply voltage
-    "220131", // ign.status
-
     // BCB 793 Battery Connection Box
     //    "ATSH792",
     //    "ATFCSH792",
@@ -76,13 +68,9 @@ void CarRenaultZoe::activateCommandQueue() {
     "atfcsd300010",
     "atfcsm1",
     "2143",
-    //    "2180", // NO DATA
-    //    "2181", // NO DATA
     //"2182", // 618038303139520430343239353031520602051523080201008815
     //    "2125", // 6125000000000000000000000000000000000000
-    //    "2126", // NO DATA
-    //    "2128", // NO DATA
-
+    
     // EVC 7ec El vehicle controler
     "ATSH7E4",
     "ATFCSH7E4",
@@ -135,7 +123,9 @@ void CarRenaultZoe::activateCommandQueue() {
 void CarRenaultZoe::parseRowMerged() {
 
   uint8_t tempByte;
-
+  uint16_t tempWord;
+  float tempFloat;
+  
   if (liveData->responseRowMerged.equals("NO DATA")) {
     syslog->println("empty response NO DATA");
     return;
@@ -242,14 +232,19 @@ void CarRenaultZoe::parseRowMerged() {
   // CLIM 744 CLIMATE CONTROL
   if (liveData->currentAtshRequest.equals("ATSH744")) {
     if (liveData->commandRequest.equals("2121")) {
-      tempByte =  (liveData->hexToDecFromResponse(6, 10, 2, false));
-      liveData->params.indoorTemperature = (((tempByte >> 4) & 0x3ff) - 400) / 10;
+      liveData->responseRowMerged = "61217E1F568FFFFFFFF0047F008700813EE011AF0300813EE011AF";
+      tempWord =  (liveData->hexToDecFromResponse(6, 10, 2, false));
+      tempFloat =  (((tempWord >> 4) & 0x3ff) - 400) / 10;
+      if (tempFloat > -40 && tempFloat < 50)
+        liveData->params.indoorTemperature = tempFloat;
       syslog->print("liveData->params.indoorTemperature: ");
       syslog->println(liveData->params.indoorTemperature);
     }
     if (liveData->commandRequest.equals("2143")) {
-      tempByte =  (liveData->hexToDecFromResponse(26, 30, 2, false));
-      liveData->params.outdoorTemperature = ((tempByte >> 2) & 0xff) - 40;
+      tempWord =  (liveData->hexToDecFromResponse(26, 30, 2, false));
+      tempFloat = ((tempWord >> 2) & 0xff) - 40;
+      if (tempFloat > -40 && tempFloat < 50)
+        liveData->params.outdoorTemperature = tempFloat;
       syslog->print("liveData->params.outdoorTemperature: ");
       syslog->println(liveData->params.outdoorTemperature);
       //liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
@@ -257,73 +252,65 @@ void CarRenaultZoe::parseRowMerged() {
     }
   }
 
-  /*uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
-             liveData->params.forwardDriveMode = (driveMode == 4);
-             liveData->params.reverseDriveMode = (driveMode == 2);
-             liveData->params.parkModeOrNeutral  = (driveMode == 1);
-
-         // IGPM
-             tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
-             liveData->params.ignitionOnPrevious = liveData->params.ignitionOn;
-             liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-             if (liveData->params.ignitionOnPrevious && !liveData->params.ignitionOn)
-               liveData->params.automaticShutdownTimer = liveData->params.currentTime;
-             liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
-             liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
-             liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
-             liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
-             liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
-             liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
-             liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
-             liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
-             if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-               liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
-             liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
-             if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-               liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
-             liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
-             //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
-             liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
-             liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
-             liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
-             // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
-             liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
-             liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
-             liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
-             liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
-             liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
-             liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
-             liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
-             liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-             liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-             liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
-             liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-             liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      // === OK Valid
-             liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      // === OK Valid
-             liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     // === OK Valid
-             liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     // === OK Valid
-
-                        if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
-               if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
-                 liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
-               if ( liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
-                 liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
-               liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
-               liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
-               liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
-               liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
-             }
-           }
-    // BMS 7e4
-             if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
-               byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
-               if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1) {
-                 liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
-                 liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
-                 liveData->params.soc10odo[index] = liveData->params.odoKm;
-                 liveData->params.soc10time[index] = liveData->params.currentTime;
-               }
-             }
+  /*         
+liveData->params.forwardDriveMode = (driveMode == 4);
+liveData->params.reverseDriveMode = (driveMode == 2);
+liveData->params.parkModeOrNeutral  = (driveMode == 1);
+tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
+liveData->params.ignitionOnPrevious = liveData->params.ignitionOn;
+liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
+if (liveData->params.ignitionOnPrevious && !liveData->params.ignitionOn)
+ liveData->params.automaticShutdownTimer = liveData->params.currentTime;
+liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
+liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
+liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
+liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
+liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
+liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
+liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
+if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
+ liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
+liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
+if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
+ liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
+liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
+//liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
+liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
+liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
+liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+// This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
+liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
+liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
+liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
+liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
+liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
+liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
+liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
+liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;      *0.2 / 14.503773800722
+liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;      *0.2 / 14.503773800722
+liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;     *0.2 / 14.503773800722
+liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;      *0.2 / 14.503773800722
+liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      
+liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      
+liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     
+liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     
+          if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
+ if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
+   liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
+ if ( liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
+   liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
+ liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
+ liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
+ liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
+ liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
+if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
+ byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
+ if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1) {
+   liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
+   liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
+   liveData->params.soc10odo[index] = liveData->params.odoKm;
+   liveData->params.soc10time[index] = liveData->params.currentTime;
   */
 }
 
@@ -358,153 +345,4 @@ void CarRenaultZoe::loadTestData() {
   liveData->commandRequest = "220206";
   liveData->responseRowMerged = "62020600015459";
   parseRowMerged();
-
-  /*
-       niro
-    /// IGPM
-    liveData->currentAtshRequest = "ATSH770";
-    // 22BC03
-    liveData->commandRequest = "22BC03";
-    liveData->responseRowMerged = "62BC03FDEE7C730A600000AAAA";
-    parseRowMerged();
-
-    // ABS / ESP + AHB ATSH7D1
-    liveData->currentAtshRequest = "ATSH7D1";
-    // 2101
-    liveData->commandRequest = "22C101";
-    liveData->responseRowMerged = "62C1015FD7E7D0FFFF00FF04D0D400000000FF7EFF0030F5010000FFFF7F6307F207FE05FF00FF3FFFFFAAAAAAAAAAAA";
-    parseRowMerged();
-
-    // VMCU ATSH7E2
-    liveData->currentAtshRequest = "ATSH7E2";
-    // 2101
-    liveData->commandRequest = "2101";
-    liveData->responseRowMerged = "6101FFF8000009285A3B0648030000B4179D763404080805000000";
-    parseRowMerged();
-    // 2102
-    liveData->commandRequest = "2102";
-    liveData->responseRowMerged = "6102F8FFFC000101000000840FBF83BD33270680953033757F59291C76000001010100000007000000";
-    liveData->responseRowMerged = "6102F8FFFC000101000000931CC77F4C39040BE09BA7385D8158832175000001010100000007000000";
-    parseRowMerged();
-
-    // "ATSH7DF",
-    liveData->currentAtshRequest = "ATSH7DF";
-    // 2106
-    liveData->commandRequest = "2106";
-    liveData->responseRowMerged = "6106FFFF800000000000000200001B001C001C000600060006000E000000010000000000000000013D013D013E013E00";
-    parseRowMerged();
-
-    // AIRCON / ACU ATSH7B3
-    liveData->currentAtshRequest = "ATSH7B3";
-    // 220100
-    liveData->commandRequest = "220100";
-    liveData->responseRowMerged = "6201007E5027C8FF7F765D05B95AFFFF5AFF11FFFFFFFFFFFF6AFFFF2DF0757630FFFF00FFFF000000";
-    liveData->responseRowMerged = "6201007E5027C8FF867C58121010FFFF10FF8EFFFFFFFFFFFF10FFFF0DF0617900FFFF01FFFF000000";
-    parseRowMerged();
-
-    // BMS ATSH7E4
-    liveData->currentAtshRequest = "ATSH7E4";
-    // 220101
-    liveData->commandRequest = "220101";
-    liveData->responseRowMerged = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
-    liveData->responseRowMerged = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
-    parseRowMerged();
-    // 220102
-    liveData->commandRequest = "220102";
-    liveData->responseRowMerged = "620102FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
-    parseRowMerged();
-    // 220103
-    liveData->commandRequest = "220103";
-    liveData->responseRowMerged = "620103FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCACBCACACFCCCBCBCBCBCBCBCBCBAAAA";
-    parseRowMerged();
-    // 220104
-    liveData->commandRequest = "220104";
-    liveData->responseRowMerged = "620104FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
-    parseRowMerged();
-    // 220105
-    liveData->commandRequest = "220105";
-    liveData->responseRowMerged = "620105003fff9000000000000000000F8A86012B4946500101500DAC03E800000000AC0000C7C701000F00000000AAAA";
-    liveData->responseRowMerged = "620105003FFF90000000000000000014918E012927465000015013BB03E800000000BB0000CBCB01001300000000AAAA";
-    parseRowMerged();
-    // 220106
-    liveData->commandRequest = "220106";
-    liveData->responseRowMerged = "620106FFFFFFFF14001A00240000003A7C86B4B30000000928EA00";
-    parseRowMerged();
-
-    // BCM / TPMS ATSH7A0
-    liveData->currentAtshRequest = "ATSH7A0";
-    // 22c00b
-    liveData->commandRequest = "22c00b";
-    liveData->responseRowMerged = "62C00BFFFF0000B93D0100B43E0100B43D0100BB3C0100AAAAAAAA";
-    parseRowMerged();
-
-    // ATSH7C6
-    liveData->currentAtshRequest = "ATSH7C6";
-    // 22b002
-    liveData->commandRequest = "22b002";
-    liveData->responseRowMerged = "62B002E0000000FFB400330B0000000000000000";
-    parseRowMerged();
-
-    liveData->params.batModuleTempC[0] = 28;
-    liveData->params.batModuleTempC[1] = 29;
-    liveData->params.batModuleTempC[2] = 28;
-    liveData->params.batModuleTempC[3] = 30;
-
-    // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
-    liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
-    for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {
-      if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
-        liveData->params.batMinC = liveData->params.batModuleTempC[i];
-      if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
-        liveData->params.batMaxC = liveData->params.batModuleTempC[i];
-    }
-    liveData->params.batTempC = liveData->params.batMinC;
-
-
-    //
-    liveData->params.soc10ced[10] = 2200;
-    liveData->params.soc10cec[10] = 2500;
-    liveData->params.soc10odo[10] = 13000;
-    liveData->params.soc10time[10] = 13000;
-    liveData->params.soc10ced[9] = liveData->params.soc10ced[10] + 6.4;
-    liveData->params.soc10cec[9] = liveData->params.soc10cec[10] + 0;
-    liveData->params.soc10odo[9] = liveData->params.soc10odo[10] + 30;
-    liveData->params.soc10time[9] = liveData->params.soc10time[10] + 900;
-    liveData->params.soc10ced[8] = liveData->params.soc10ced[9] + 6.8;
-    liveData->params.soc10cec[8] = liveData->params.soc10cec[9] + 0;
-    liveData->params.soc10odo[8] = liveData->params.soc10odo[9] + 30;
-    liveData->params.soc10time[8] = liveData->params.soc10time[9] + 900;
-    liveData->params.soc10ced[7] = liveData->params.soc10ced[8] + 7.2;
-    liveData->params.soc10cec[7] = liveData->params.soc10cec[8] + 0.6;
-    liveData->params.soc10odo[7] = liveData->params.soc10odo[8] + 30;
-    liveData->params.soc10time[7] = liveData->params.soc10time[8] + 900;
-    liveData->params.soc10ced[6] = liveData->params.soc10ced[7] + 6.7;
-    liveData->params.soc10cec[6] = liveData->params.soc10cec[7] + 0;
-    liveData->params.soc10odo[6] = liveData->params.soc10odo[7] + 30;
-    liveData->params.soc10time[6] = liveData->params.soc10time[7] + 900;
-    liveData->params.soc10ced[5] = liveData->params.soc10ced[6] + 6.7;
-    liveData->params.soc10cec[5] = liveData->params.soc10cec[6] + 0;
-    liveData->params.soc10odo[5] = liveData->params.soc10odo[6] + 30;
-    liveData->params.soc10time[5] = liveData->params.soc10time[6] + 900;
-    liveData->params.soc10ced[4] = liveData->params.soc10ced[5] + 6.4;
-    liveData->params.soc10cec[4] = liveData->params.soc10cec[5] + 0.3;
-    liveData->params.soc10odo[4] = liveData->params.soc10odo[5] + 30;
-    liveData->params.soc10time[4] = liveData->params.soc10time[5] + 900;
-    liveData->params.soc10ced[3] = liveData->params.soc10ced[4] + 6.4;
-    liveData->params.soc10cec[3] = liveData->params.soc10cec[4] + 0;
-    liveData->params.soc10odo[3] = liveData->params.soc10odo[4] + 30;
-    liveData->params.soc10time[3] = liveData->params.soc10time[4] + 900;
-    liveData->params.soc10ced[2] = liveData->params.soc10ced[3] + 5.4;
-    liveData->params.soc10cec[2] = liveData->params.soc10cec[3] + 0.1;
-    liveData->params.soc10odo[2] = liveData->params.soc10odo[3] + 30;
-    liveData->params.soc10time[2] = liveData->params.soc10time[3] + 900;
-    liveData->params.soc10ced[1] = liveData->params.soc10ced[2] + 6.2;
-    liveData->params.soc10cec[1] = liveData->params.soc10cec[2] + 0.1;
-    liveData->params.soc10odo[1] = liveData->params.soc10odo[2] + 30;
-    liveData->params.soc10time[1] = liveData->params.soc10time[2] + 900;
-    liveData->params.soc10ced[0] = liveData->params.soc10ced[1] + 2.9;
-    liveData->params.soc10cec[0] = liveData->params.soc10cec[1] + 0.5;
-    liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
-    liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
-  */
 }
