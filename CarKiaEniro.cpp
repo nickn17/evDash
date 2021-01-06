@@ -48,12 +48,18 @@ void CarKiaEniro::activateCommandQueue() {
 
     // IGPM
     "ATSH770",
+    "22BC01", // 009 62BC01400000000001AAAAAAAA
     "22BC03",     // low beam
+    "22BC04", // 00B 62BC04B33F74EA0D002042AAAA
+    "22BC05", // 00B 62BC05BF13200001000000AAAA
     "22BC06",     // brake light
+    "22BC07", // 00B 62BC070849DBC000101900AAAA
 
     // ABS / ESP + AHB
     "ATSH7D1",
     "22C101",     // brake, park/drive mode
+    "22C102",   // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
+    "22C103",   // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
     // BCM / TPMS
     "ATSH7A0",
@@ -66,7 +72,9 @@ void CarKiaEniro::activateCommandQueue() {
 
     // CLUSTER MODULE
     "ATSH7C6",
+    "22B001",   // 008 62B00100000000000000000000
     "22B002",   // odo
+    "22B003",   // 008 62B00398000000010000000000
 
     // VMCU
     "ATSH7E2",
@@ -341,16 +349,16 @@ bool CarKiaEniro::commandAllowed() {
 
   //SleepMode Queue Filter
   if (liveData->params.sleepModeQueue) {
-    if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+    if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
       return true;
     }
-    if(liveData->commandRequest.equals("ATSH770") || liveData->commandRequest.equals("ATSH7E4")) {
+    if (liveData->commandRequest.equals("ATSH770") || liveData->commandRequest.equals("ATSH7E4")) {
       return true;
     }
-    if(liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
+    if (liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
       return true;
     }
-    if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101")) {
+    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101")) {
       return true;
     }
 
