@@ -1592,8 +1592,10 @@ void Board320_240::mainLoop() {
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
-      && liveData->settings.sleepModeEnabled)
+      && liveData->settings.sleepModeEnabled) {
+    sim800lSendData();
     goToSleep();
+   }
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
