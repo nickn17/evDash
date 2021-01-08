@@ -19,6 +19,8 @@ void LiveData::initParams() {
   // SIM
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
+  params.sim800l_lastOkReceiveTime = 0;
+  params.sim800l_lastOkSendTime = 0;
   // SD card
   params.sdcardInit = false;
   params.sdcardRecording = false;

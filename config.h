@@ -45,8 +45,10 @@
 #define TFT_GRAPH_RAPIDGATE35 0x8300
 
 // SIM800L
-#define SIM800L_RST 5
-#define SIM800L_TIMER 60
+#define SIM800L_RST 5           // SIM800L Reset Pin
+#define SIM800L_TIMER 60        // Sent data every X seconds
+#define SIM800L_SND_TIMEOUT 5   // Send data timeout in seconds
+#define SIM800L_RCV_TIMEOUT 30  // Receive data timeout in seconds
 
 // DEEP SLEEP
 #define TIME_TO_SLEEP 60 // Sleep time in secs

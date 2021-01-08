@@ -1,33 +1,8 @@
 /********************************************************************************
- * Arduino-SIM800L-driver                                                       *
- * ----------------------                                                       *
- * Arduino driver for GSM/GPRS module SIMCom SIM800L to make HTTP/S connections *
- * with GET and POST methods                                                    *
- * Author: Olivier Staquet                                                      *
- * Last version available on https://github.com/ostaquet/Arduino-SIM800L-driver *
- ********************************************************************************
- * MIT License
- *
- * Copyright (c) 2019 Olivier Staquet
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Based on Arduino-SIM800L-driver from Olivier Staquet                         *
+ * https://github.com/ostaquet/Arduino-SIM800L-driver                           *
  *******************************************************************************/
+
 #include "SIM800L.h"
 
 /**
@@ -38,7 +13,7 @@ const char AT_CMD_BASE[] PROGMEM = "AT";                                      //
 const char AT_CMD_CSQ[] PROGMEM = "AT+CSQ";                                   // Check the signal strengh
 const char AT_CMD_ATI[] PROGMEM = "ATI";                                      // Output version of the module
 const char AT_CMD_GMR[] PROGMEM = "AT+GMR";                                   // Output version of the firmware
-const char AT_CMD_SIM_CARD[] PROGMEM = "AT+CCID";						      // Get Sim Card version
+const char AT_CMD_SIM_CARD[] PROGMEM = "AT+CCID";                             // Get Sim Card version
 
 const char AT_CMD_CFUN_TEST[] PROGMEM = "AT+CFUN?";                           // Check the current power mode
 const char AT_CMD_CFUN0[] PROGMEM = "AT+CFUN=0";                              // Switch minimum power mode
@@ -127,6 +102,10 @@ uint16_t SIM800L::doPost(const char* url, const char* contentType, const char* p
  */
 uint16_t SIM800L::doPost(const char* url, const char* headers, const char* contentType, const char* payload, uint16_t clientWriteTimeoutMs) {
 
+  if(timeLastPostSent > 0) {
+    return 420;
+  }
+
   terminateHTTP();
   
   // Cleanup the receive buffer
@@ -175,6 +154,9 @@ uint16_t SIM800L::doPost(const char* url, const char* headers, const char* conte
   }
 
   timeLastPostSent = millis();
+  currentSizeResponse = 0;
+  seenCR = false;
+  countCRLF = 0;
   initInternalBuffer();
 
   return 200;
@@ -228,6 +210,8 @@ uint16_t SIM800L::readPostResponse(uint16_t clientReadTimeoutMs) {
 
   if(!allReceived) {
     return 1;
+  } else {
+    timeLastPostSent = 0;
   }
 
   // Extract status information
@@ -290,8 +274,6 @@ uint16_t SIM800L::readPostResponse(uint16_t clientReadTimeoutMs) {
       if(enableDebug) debugStream->println(F("SIM800L : doPost() - Invalid end of data while reading HTTP result from the module"));
       return 705;
     }
-
-    timeLastPostSent = 0;
 
     if(enableDebug) {
       debugStream->print(F("SIM800L : doPost() - Received from HTTP POST : "));

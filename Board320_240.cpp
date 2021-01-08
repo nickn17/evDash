@@ -1389,8 +1389,8 @@ void Board320_240::redrawScreen() {
   // SDCARD recording
   /*liveData->params.sdcardRecording*/
   if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1) {
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 4, TFT_BLACK);
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 140 : 310, 10, 3,
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 145 : 310, 10, 4, TFT_BLACK);
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 145 : 310, 10, 3,
                    (liveData->params.sdcardInit == 1) ?
                    (liveData->params.sdcardRecording) ?
                    (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1408,6 +1408,27 @@ void Board320_240::redrawScreen() {
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "%d", liveData->params.gpsSat);
     spr.drawString(tmpStr1, 174, 2, 2);
+  }
+
+  // SIM800L status
+  if (liveData->params.sim800l_enabled) {
+    if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) {
+      spr.fillRect(127, 7, 7, 7,
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime || liveData->params.lastDataSent == 0) ?
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime || liveData->params.lastDataSent == 0) ?
+                    TFT_GREEN   /* last request was 200 OK */ :
+                    TFT_YELLOW  /* data sent but response timed out */ :
+                    TFT_RED     /* failed to send data */
+                  );
+    } else if (liveData->params.displayScreen != SCREEN_BLANK) {
+      spr.fillRect(308, 0, 5, 5,
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime || liveData->params.lastDataSent == 0) ?
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime || liveData->params.lastDataSent == 0) ?
+                    TFT_GREEN   /* last request was 200 OK */ :
+                    TFT_YELLOW  /* data sent but response timed out */ :
+                    TFT_RED     /* failed to send data */
+                  );
+    }
   }
 
   // Door status
@@ -1722,7 +1743,6 @@ void Board320_240::syncGPS() {
   }
 }
 
-
 /**
   SIM800L
 */
@@ -1787,11 +1807,12 @@ bool Board320_240::sim800lLoop() {
     sim800lSendData();
   }
 
-  uint16_t rc = sim800l->readPostResponse(30000);
+  uint16_t rc = sim800l->readPostResponse(SIM800L_RCV_TIMEOUT * 1000);
 
   if (rc == 200) {
     syslog->print("HTTP POST OK: ");
     syslog->println(sim800l->getDataReceived());
+    liveData->params.sim800l_lastOkReceiveTime = liveData->params.currentTime;
   } else if(rc != 1 && rc != 0) {
     syslog->print("HTTP POST error: ");
     syslog->println(rc);
@@ -1824,6 +1845,8 @@ bool Board320_240::sim800lSendData() {
       syslog->println("GPRS connected!");
     } else {
       syslog->println("GPRS not connected!");
+      sim800l->reset();
+      sim800lSetup();
       return false;
     }
   }
@@ -1861,9 +1884,10 @@ bool Board320_240::sim800lSendData() {
   syslog->print("Remote API server: ");
   syslog->println(liveData->settings.remoteApiUrl);
 
-  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 5000);
+  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
   if (rc == 200) {
     syslog->println("HTTP POST send successful");
+    liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
   } else {
     // Failed...
     syslog->print("HTTP POST error: ");
