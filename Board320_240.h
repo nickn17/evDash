@@ -60,7 +60,8 @@ class Board320_240 : public BoardInterface {
     void syncGPS();
     // SIM800L
     bool sim800lSetup();
-    bool sendDataViaGPRS();
+    bool sim800lLoop();
+    bool sim800lSendData();
     // Basic GUI
     void setBrightness(byte lcdBrightnessPerc) override;
     void displayMessage(const char* row1, const char* row2) override;

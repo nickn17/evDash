@@ -118,14 +118,17 @@ SIM800L::~SIM800L() {
 /**
  * Do HTTP/S POST to a specific URL
  */
-uint16_t SIM800L::doPost(const char* url, const char* contentType, const char* payload, uint16_t clientWriteTimeoutMs, uint16_t serverReadTimeoutMs) {
-  return doPost(url, NULL, contentType, payload, clientWriteTimeoutMs , serverReadTimeoutMs);
+uint16_t SIM800L::doPost(const char* url, const char* contentType, const char* payload, uint16_t clientWriteTimeoutMs) {
+  return doPost(url, NULL, contentType, payload, clientWriteTimeoutMs);
 }
 
 /**
  * Do HTTP/S POST to a specific URL with headers
  */
-uint16_t SIM800L::doPost(const char* url, const char* headers, const char* contentType, const char* payload, uint16_t clientWriteTimeoutMs, uint16_t serverReadTimeoutMs) {
+uint16_t SIM800L::doPost(const char* url, const char* headers, const char* contentType, const char* payload, uint16_t clientWriteTimeoutMs) {
+
+  terminateHTTP();
+  
   // Cleanup the receive buffer
   initRecvBuffer();
   dataSize = 0;
@@ -171,10 +174,60 @@ uint16_t SIM800L::doPost(const char* url, const char* headers, const char* conte
     return 703;
   }
 
+  timeLastPostSent = millis();
+  initInternalBuffer();
+
+  return 200;
+}
+
+uint16_t SIM800L::readPostResponse(uint16_t clientReadTimeoutMs) {
   // Wait answer from the server
-  if(!readResponse(serverReadTimeoutMs)) {
-    if(enableDebug) debugStream->println(F("SIM800L : doPost() - Server timeout"));
+
+  if(timeLastPostSent == 0) {
+    return 0;
+  }
+
+  if(millis() - timeLastPostSent > clientReadTimeoutMs) {
+    timeLastPostSent = 0;
+    currentSizeResponse = 0;
+    seenCR = false;
+    countCRLF = 0;
+
     return 408;
+  }
+
+  bool allReceived = false;
+
+  // While there is data available on the buffer, read it until the max size of the response
+  if(stream->available()) {
+    // Load the next char
+    internalBuffer[currentSizeResponse] = stream->read();
+
+    // Detect end of transmission (CRLF)
+    if(internalBuffer[currentSizeResponse] == '\r') {
+      seenCR = true;
+    } else if (internalBuffer[currentSizeResponse] == '\n' && seenCR) {
+      countCRLF++;
+      if(countCRLF == 2) {
+        if(enableDebug) debugStream->println(F("SIM800L : End of transmission"));
+        allReceived = true;
+      }
+    } else {
+      seenCR = false;
+    }
+
+    // Prepare for next read
+    currentSizeResponse++;
+
+    // Avoid buffer overflow
+    if(currentSizeResponse == internalBufferSize) {
+      if(enableDebug) debugStream->println(F("SIM800L : Received maximum buffer size"));
+      allReceived = true;
+    }
+  }
+
+  if(!allReceived) {
+    return 1;
   }
 
   // Extract status information
@@ -189,11 +242,6 @@ uint16_t SIM800L::doPost(const char* url, const char* headers, const char* conte
   httpRC += (internalBuffer[idxBase + 15] - '0') * 100;
   httpRC += (internalBuffer[idxBase + 16] - '0') * 10;
   httpRC += (internalBuffer[idxBase + 17] - '0') * 1;
-
-  if(enableDebug) {
-    debugStream->print(F("SIM800L : doPost() - HTTP status "));
-    debugStream->println(httpRC);
-  }
 
   if(httpRC == 200) {
     // Get the size of the data to receive
@@ -242,6 +290,8 @@ uint16_t SIM800L::doPost(const char* url, const char* headers, const char* conte
       if(enableDebug) debugStream->println(F("SIM800L : doPost() - Invalid end of data while reading HTTP result from the module"));
       return 705;
     }
+
+    timeLastPostSent = 0;
 
     if(enableDebug) {
       debugStream->print(F("SIM800L : doPost() - Received from HTTP POST : "));

@@ -161,6 +161,9 @@ void Board320_240::goToSleep() {
   commInterface->disconnectDevice();
 
   //Sleep SIM800L
+  if (bootCount == 1) {
+    sim800lSetup();
+  }
   if (liveData->params.sim800l_enabled) {
     if (sim800l->isConnectedGPRS()) {
       bool disconnected = sim800l->disconnectGPRS();
@@ -1529,9 +1532,8 @@ void Board320_240::mainLoop() {
   }
 
   // SIM800L
-  if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime && liveData->params.sim800l_enabled) {
-    sendDataViaGPRS();
-    liveData->params.lastDataSent = liveData->params.currentTime;
+  if (liveData->params.sim800l_enabled) {
+    sim800lLoop();
   }
 
   // currentTime
@@ -1777,7 +1779,24 @@ bool Board320_240::sim800lSetup() {
   return true;
 }
 
-bool Board320_240::sendDataViaGPRS() {
+bool Board320_240::sim800lLoop() {
+  if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime) {
+    liveData->params.lastDataSent = liveData->params.currentTime;
+    sim800lSendData();
+  }
+
+  uint16_t rc = sim800l->readPostResponse(30000);
+
+  if (rc == 200) {
+    syslog->print("HTTP POST OK: ");
+    syslog->println(sim800l->getDataReceived());
+  } else if(rc != 1 && rc != 0) {
+    syslog->print("HTTP POST error: ");
+    syslog->println(rc);
+  }
+}
+
+bool Board320_240::sim800lSendData() {
   syslog->println("Sending data via GPRS");
 
   if (liveData->params.socPerc < 0) {
@@ -1802,10 +1821,7 @@ bool Board320_240::sendDataViaGPRS() {
     if (connected) {
       syslog->println("GPRS connected!");
     } else {
-      syslog->println("GPRS not connected! Reseting SIM800L module!");
-      sim800l->reset();
-      sim800lSetup();
-
+      syslog->println("GPRS not connected!");
       return false;
     }
   }
@@ -1843,9 +1859,9 @@ bool Board320_240::sendDataViaGPRS() {
   syslog->print("Remote API server: ");
   syslog->println(liveData->settings.remoteApiUrl);
 
-  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 10000, 10000);
+  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, 5000);
   if (rc == 200) {
-    syslog->println("HTTP POST successful");
+    syslog->println("HTTP POST send successful");
   } else {
     // Failed...
     syslog->print("HTTP POST error: ");
