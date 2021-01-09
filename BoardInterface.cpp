@@ -36,12 +36,21 @@ void BoardInterface::shutdownDevice() {
     delay(1000);
   }
 
-#ifdef SIM800L_ENABLED
-  if (sim800l->isConnectedGPRS()) {
-    sim800l->disconnectGPRS();
+  if (liveData->params.sim800l_enabled) {
+    if (sim800l->isConnectedGPRS()) {
+      bool disconnected = sim800l->disconnectGPRS();
+      for (uint8_t i = 0; i < 5 && !disconnected; i++) {
+        delay(1000);
+        disconnected = sim800l->disconnectGPRS();
+      }
+    }
+
+    if (sim800l->getPowerMode() == NORMAL) {
+      sim800l->setPowerMode(SLEEP);
+      delay(1000);
+    }
+    sim800l->enterSleepMode();
   }
-  sim800l->setPowerMode(MINIMUM);
-#endif //SIM800L_ENABLED
 
   setCpuFrequencyMhz(80);
   setBrightness(0);
