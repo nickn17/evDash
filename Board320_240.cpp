@@ -1614,7 +1614,9 @@ void Board320_240::mainLoop() {
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
       && liveData->settings.sleepModeEnabled) {
-    sim800lSendData();
+    if (liveData->params.sim800l_enabled) {
+      sim800lSendData();
+    }
     goToSleep();
    }
 
