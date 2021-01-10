@@ -68,6 +68,7 @@ typedef struct {
   // Car params
   bool sleepModeQueue;
   bool getValidResponse;
+  time_t wakeUpTime;
   bool ignitionOn;
   bool chargingOn;
   bool chargerACconnected;

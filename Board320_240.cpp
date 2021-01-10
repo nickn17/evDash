@@ -161,7 +161,7 @@ void Board320_240::goToSleep() {
   commInterface->disconnectDevice();
 
   //Sleep SIM800L
-  if (bootCount == 1) {
+  if (bootCount == 1 && liveData->settings.gprsHwSerialPort <= 2 && !liveData->params.sim800l_enabled) {
     sim800lSetup();
   }
   if (liveData->params.sim800l_enabled) {
@@ -234,6 +234,7 @@ void Board320_240::afterSleep() {
   if (liveData->params.getValidResponse) {
     syslog->println("Wake up conditions satisfied... Good morning!");
     liveData->params.sleepModeQueue = false;
+    liveData->params.wakeUpTime = liveData->params.currentTime;
   } else {
     syslog->println("No response from module...");
     goToSleep();
@@ -1610,12 +1611,13 @@ void Board320_240::mainLoop() {
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
-      && liveData->settings.sleepModeEnabled) {
+      && liveData->settings.sleepModeEnabled
+      && liveData->params.currentTime - liveData->params.wakeUpTime > 30 ) {
     if (liveData->params.sim800l_enabled) {
       sim800lSendData();
     }
     goToSleep();
-   }
+  }
 
   // Read data from BLE/CAN
   commInterface->mainLoop();

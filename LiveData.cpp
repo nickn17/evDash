@@ -39,6 +39,7 @@ void LiveData::initParams() {
   // Car data
   params.sleepModeQueue = false;
   params.getValidResponse = false;
+  params.wakeUpTime = 0;
   params.ignitionOn = false;
   params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;
