@@ -135,6 +135,7 @@ typedef struct {
   float auxTemperature;
   float indoorTemperature;
   float outdoorTemperature;
+  float evaporatorTempC;
   float tireFrontLeftTempC;
   float tireFrontLeftPressureBar;
   float tireFrontRightTempC;

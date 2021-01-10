@@ -342,6 +342,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
 
   jsonData["inC"] = liveData->params.indoorTemperature;
   jsonData["outC"] = liveData->params.outdoorTemperature;
+  jsonData["evapC"] = liveData->params.evaporatorTempC;
   jsonData["c1C"] = liveData->params.coolantTemp1C;
   jsonData["c2C"] = liveData->params.coolantTemp2C;
 
