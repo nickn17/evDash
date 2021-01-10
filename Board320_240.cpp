@@ -231,11 +231,11 @@ void Board320_240::afterSleep() {
     commInterface->mainLoop();
   }
 
-  if (liveData->params.auxVoltage >= 12) {
+  if (liveData->params.getValidResponse) {
     syslog->println("Wake up conditions satisfied... Good morning!");
     liveData->params.sleepModeQueue = false;
   } else {
-    syslog->println("No response from BMS (or AUX battery too low)...");
+    syslog->println("No response from module...");
     goToSleep();
   }
 }

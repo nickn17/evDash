@@ -245,6 +245,7 @@ void CarKiaEniro::parseRowMerged() {
       //liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      liveData->params.getValidResponse = true;
 
       // Ignition Off/on
       // tempByte = liveData->hexToDecFromResponse(106, 108, 1, false);

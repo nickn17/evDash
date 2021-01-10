@@ -35,7 +35,7 @@ void BoardInterface::shutdownDevice() {
     displayMessage(msg, "");
     delay(1000);
   }
-
+/*
   if (liveData->params.sim800l_enabled) {
     if (sim800l->isConnectedGPRS()) {
       bool disconnected = sim800l->disconnectGPRS();
@@ -51,7 +51,7 @@ void BoardInterface::shutdownDevice() {
     }
     sim800l->enterSleepMode();
   }
-
+*/
   setCpuFrequencyMhz(80);
   setBrightness(0);
   //WiFi.disconnect(true);

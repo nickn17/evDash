@@ -38,6 +38,7 @@ void LiveData::initParams() {
   params.displayScreenAutoMode = SCREEN_AUTO;
   // Car data
   params.sleepModeQueue = false;
+  params.getValidResponse = false;
   params.ignitionOn = false;
   params.lastIgnitionOnTime = 0;
   params.operationTimeSec = 0;

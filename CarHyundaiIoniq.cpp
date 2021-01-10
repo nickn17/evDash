@@ -177,6 +177,7 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 1, false);
       liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
+      liveData->params.getValidResponse = true;
 
       float tmpAuxPerc;
       if(liveData->params.ignitionOn) {
