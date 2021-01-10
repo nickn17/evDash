@@ -326,13 +326,10 @@ bool CarHyundaiIoniq::commandAllowed() {
     if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
       return true;
     }
-    if(liveData->commandRequest.equals("ATSH7E4") || liveData->commandRequest.equals("ATSH770")) {
+    if(liveData->commandRequest.equals("ATSH7E4")) {
       return true;
     }
     if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("2101")) {
-      return true;
-    }
-    if(liveData->currentAtshRequest.equals("ATSH770") && liveData->commandRequest.equals("22BC03")) {
       return true;
     }
 

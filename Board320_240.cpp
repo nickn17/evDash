@@ -231,13 +231,13 @@ void Board320_240::afterSleep() {
     commInterface->mainLoop();
   }
 
-  if (!liveData->params.ignitionOn && !liveData->params.chargingOn) {
-    syslog->println("Not started & Not charging.");
+  if (liveData->params.auxVoltage >= 12) {
+    syslog->println("Wake up conditions satisfied... Good morning!");
+    liveData->params.sleepModeQueue = false;
+  } else {
+    syslog->println("No response from BMS (or AUX battery too low)...");
     goToSleep();
   }
-
-  syslog->println("Wake up conditions satisfied... Good morning!");
-  liveData->params.sleepModeQueue = false;
 }
 
 /**
