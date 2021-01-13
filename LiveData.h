@@ -36,6 +36,14 @@
 #define SCREEN_SOC10  6
 #define SCREEN_HUD    7
 
+// Battery management mode (liquid)
+#define BAT_MAN_MODE_NOT_IMPLEMENTED  -1
+#define BAT_MAN_MODE_UNKNOWN          0
+#define BAT_MAN_MODE_PTC_HEATER       1
+#define BAT_MAN_MODE_LOW_TEMPERATURE_RANGE  2
+#define BAT_MAN_MODE_COOLING          3
+#define BAT_MAN_MODE_OFF              4
+
 //
 #define MONTH_SEC     2678400
 
@@ -75,7 +83,7 @@ typedef struct {
   bool chargerDCconnected;
   time_t lastIgnitionOnTime;
   time_t lastChargingOnTime;
-  uint64_t operationTimeSec;
+  uint64_t operationTimeSec; 
   bool sdcardCanNotify;
   bool forwardDriveMode;
   bool reverseDriveMode;
@@ -90,9 +98,6 @@ typedef struct {
   bool leftRearDoorOpen;
   bool rightRearDoorOpen;
   bool hoodDoorOpen;
-  /*  uint8_t lightInfo;
-    uint8_t brakeLightInfo;
-    uint8_t espState;*/
   float batteryTotalAvailableKWh;
   float speedKmh;
   float motorRpm;
@@ -129,12 +134,17 @@ typedef struct {
   float bmsUnknownTempB;
   float bmsUnknownTempC;
   float bmsUnknownTempD;
-  float inverterTempC;
-  float motorTempC;
   float auxPerc;
   float auxCurrentAmp;
   float auxVoltage;
   float auxTemperature;
+  int8_t batteryManagementMode;
+
+  // MCU
+  float inverterTempC;
+  float motorTempC;
+
+  // HVAC
   float indoorTemperature;
   float outdoorTemperature;
   float evaporatorTempC;
@@ -148,6 +158,7 @@ typedef struct {
   float tireRearRightPressureBar;
   uint16_t cellCount;
   float cellVoltage[98]; // 1..98 has index 0..97
+  
   // Screen - charging graph
   float chargingGraphMinKw[101]; // 0..100% .. Min power Kw
   float chargingGraphMaxKw[101]; // 0..100% .. Max power Kw
@@ -155,11 +166,13 @@ typedef struct {
   float chargingGraphBatMaxTempC[101]; // 0..100% .. Max bat.temp in.C
   float chargingGraphHeaterTempC[101]; // 0..100% .. Heater temp in.C
   float chargingGraphWaterCoolantTempC[101]; // 0..100% .. Heater temp in.C
+  
   // Screen - consumption info
   float soc10ced[11]; // 0..10 (5%, 10%, 20%, 30%, 40%).. (never discharged soc% to 0)
   float soc10cec[11]; // 0..10 (5%, 10%, 20%, 30%, 40%)..
   float soc10odo[11]; // odo history
   time_t soc10time[11]; // time for avg speed
+  
   // additional
   char debugData[256];
   char debugData2[256];
@@ -289,4 +302,5 @@ class LiveData {
     float km2distance(float inKm);
     float celsius2temperature(float inCelsius);
     float bar2pressure(float inBar);
+    String getBatteryManagementModeStr(int8_t mode);
 };

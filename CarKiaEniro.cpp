@@ -80,7 +80,7 @@ void CarKiaEniro::activateCommandQueue() {
     "ATSH7E2",
     "2101",     // speed, ...
     "2102",     // aux, ...
-    
+
     // MCU
     "ATSH7E3",
     "2102",     // motor/invertor temp
@@ -207,11 +207,11 @@ void CarKiaEniro::parseRowMerged() {
 
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-//    if (liveData->commandRequest.equals("2101")) {
-//      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-//      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-//        liveData->params.speedKmh = 0;
-//    }
+    //    if (liveData->commandRequest.equals("2101")) {
+    //      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+    //      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+    //        liveData->params.speedKmh = 0;
+    //    }
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
@@ -344,6 +344,16 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
+      // Battery management mode
+      tempByte = liveData->hexToDecFromResponse(34, 36, 1, false);
+      switch (tempByte & 0xf) {
+        case 3:   liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE; break;
+        case 4:   liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING; break;
+        case 6:   liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF; break;
+        case 0xE: liveData->params.batteryManagementMode = BAT_MAN_MODE_PTC_HEATER; break;
+        default:  liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
+      }
+
       // log 220106 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
@@ -420,7 +430,7 @@ bool CarKiaEniro::commandAllowed() {
       return false;
     }
 
-    // no AUX 
+    // no AUX
     if (liveData->currentAtshRequest.equals("ATSH7E2") && liveData->commandRequest.equals("2102")) {
       return false;
     }

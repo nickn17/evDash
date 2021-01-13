@@ -4,8 +4,8 @@
 LogSerial* syslog;
 
 /**
- * Debug level
- */
+   Debug level
+*/
 void debug(String msg, uint8_t debugLevel) {
   syslog->println(msg);
 }
@@ -102,6 +102,7 @@ void LiveData::initParams() {
   params.bmsUnknownTempB = -100;
   params.bmsUnknownTempC = -100;
   params.bmsUnknownTempD = -100;
+  params.batteryManagementMode = BAT_MAN_MODE_NOT_IMPLEMENTED;
   params.auxPerc = -1;
   params.auxCurrentAmp = -1;
   params.auxVoltage = -1;
@@ -132,7 +133,7 @@ void LiveData::initParams() {
     params.chargingGraphHeaterTempC[i] = -100;
     params.chargingGraphWaterCoolantTempC[i] = -100;
   }
-  // 
+  //
   tmpStr = "";
   tmpStr.toCharArray(params.debugData, tmpStr.length() + 1);
   tmpStr.toCharArray(params.debugData2, tmpStr.length() + 1);
@@ -178,14 +179,14 @@ float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
 */
 
 float LiveData::hexToDecFromResponse(byte from, byte to, byte bytes, bool signedNum) {
-    return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
+  return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
 }
 
 /**
   Combination of responseRowMerged.substring -> strtol -> float
- */
+*/
 float LiveData::decFromResponse(byte from, byte to, char **str_end, int base) {
-    return float(strtol(responseRowMerged.substring(from, to).c_str(), str_end, base));
+  return float(strtol(responseRowMerged.substring(from, to).c_str(), str_end, base));
 }
 
 /**
@@ -207,4 +208,18 @@ float LiveData::celsius2temperature(float inCelsius) {
 */
 float LiveData::bar2pressure(float inBar) {
   return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
+}
+
+/**
+   batteryManagementModeStr
+*/
+String LiveData::getBatteryManagementModeStr(int8_t mode) {
+  switch (mode) {
+    case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE: return "LTR";
+    case BAT_MAN_MODE_COOLING: return "COOL";
+    case BAT_MAN_MODE_OFF: return "OFF";
+    case BAT_MAN_MODE_PTC_HEATER: return "PTC";
+    case BAT_MAN_MODE_UNKNOWN: return "UNK";
+    default: return "";
+  }
 }

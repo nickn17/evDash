@@ -24,7 +24,7 @@
 #define TFT_WHITE       0xFFFF      /* 255, 255, 255 */
 #define TFT_ORANGE      0xFDA0      /* 255, 180,   0 */
 #define TFT_GREENYELLOW 0xB7E0      /* 180, 255,   0 */
-#define TFT_PINK        0xFE19      /* 255, 192, 203 */ //Lighter pink, was 0xFC9F      
+#define TFT_PINK        0xFC9F      /* 255, 192, 203 */ //Lighter pink, was 0xFC9F      
 #define TFT_BROWN       0x9A60      /* 150,  75,   0 */
 #define TFT_GOLD        0xFEA0      /* 255, 215,   0 */
 #define TFT_SILVER      0xC618      /* 192, 192, 192 */

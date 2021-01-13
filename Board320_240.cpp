@@ -492,27 +492,30 @@ void Board320_240::drawSceneSpeed() {
   posx = 5;
   posy = 5;
   spr.setTextDatum(TL_DATUM);
-  sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm  " : "%01.00fmi  "), liveData->km2distance(liveData->params.odoKm));
+  sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
   spr.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.setTextDatum(TR_DATUM);
+  if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)  {
+    spr.drawString(liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode), 320 - posx, posy, GFXFF);
+  } else 
   if (liveData->params.motorRpm > -1) {
-    spr.setTextDatum(TR_DATUM);
-    sprintf(tmpStr3, "     %01.00frpm" , liveData->params.motorRpm);
+    sprintf(tmpStr3, "%01.00frpm" , liveData->params.motorRpm);
     spr.drawString(tmpStr3, 320 - posx, posy, GFXFF);
   }
 
   // Bottom info
   // Cummulative regen/power
   posy = 240 - 5;
-  sprintf(tmpStr3, "-%01.01f    ", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
+  sprintf(tmpStr3, "-%01.01f", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
   spr.setTextDatum(BL_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   posx = 320 - 5;
-  sprintf(tmpStr3, "    +%01.01f", liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
+  sprintf(tmpStr3, "+%01.01f", liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
   spr.setTextDatum(BR_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   // Bat.power
   posx = 320 / 2;
-  sprintf(tmpStr3, "   %01.01fkw   ", liveData->params.batPowerKw);
+  sprintf(tmpStr3, "%01.01fkw", liveData->params.batPowerKw);
   spr.setTextDatum(BC_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
 
@@ -531,7 +534,7 @@ void Board320_240::drawSceneSpeed() {
   spr.setFreeFont(&Orbitron_Light_32);
   spr.setTextColor(TFT_WHITE, TFT_BLACK);
   spr.setTextDatum(TR_DATUM);
-  sprintf(tmpStr3, " %01.00f%%", liveData->params.socPerc);
+  sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
   spr.drawString(tmpStr3, 320, 94, GFXFF);
   if (liveData->params.socPerc > 0) {
     float capacity = liveData->params.batteryTotalAvailableKWh * (liveData->params.socPerc / 100);
@@ -539,7 +542,7 @@ void Board320_240::drawSceneSpeed() {
     if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) {
       capacity = (liveData->params.socPerc * 0.615) * (1 + (liveData->params.socPerc * 0.0008));
     }
-    sprintf(tmpStr3, " %01.01f", capacity);
+    sprintf(tmpStr3, "%01.01f", capacity);
     spr.drawString(tmpStr3, 320, 129, GFXFF);
     spr.drawString("kWh", 320, 164, GFXFF);
   }
@@ -836,19 +839,19 @@ void Board320_240::drawSceneChargingGraph() {
   // Bat.module temperatures
   spr.setTextSize(1); // Size for small 5x7 font
   spr.setTextDatum(BL_DATUM);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00fC " : "1=%01.00fF "), liveData->celsius2temperature(liveData->params.batModuleTempC[0]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00fC" : "1=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]));
   spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   spr.drawString(tmpStr1, 0,  zeroY - (maxKw * mulY), 2);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00fC " : "2=%01.00fF "), liveData->celsius2temperature(liveData->params.batModuleTempC[1]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00fC" : "2=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]));
   spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   spr.drawString(tmpStr1, 48,  zeroY - (maxKw * mulY), 2);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00fC " : "3=%01.00fF "), liveData->celsius2temperature(liveData->params.batModuleTempC[2]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00fC" : "3=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]));
   spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   spr.drawString(tmpStr1, 96,  zeroY - (maxKw * mulY), 2);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00fC " : "4=%01.00fF "), liveData->celsius2temperature(liveData->params.batModuleTempC[3]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00fC" : "4=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]));
   spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
   spr.drawString(tmpStr1, 144,  zeroY - (maxKw * mulY), 2);
   sprintf(tmpStr1, "ir %01.00fkOhm", liveData->params.isolationResistanceKOhm );
@@ -864,8 +867,10 @@ void Board320_240::drawSceneChargingGraph() {
   //
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.coolingWaterTempC != -1) {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "W=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.coolingWaterTempC));
-    spr.setTextColor(TFT_PURPLE, TFT_TEMP);
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"), 
+      liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode),
+      liveData->celsius2temperature(liveData->params.coolingWaterTempC));
+    spr.setTextColor(TFT_PINK, TFT_TEMP);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
