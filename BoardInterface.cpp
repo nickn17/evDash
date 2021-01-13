@@ -104,7 +104,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 6;
+  liveData->settings.settingsVersion = 7;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -120,7 +120,6 @@ void BoardInterface::loadSettings() {
   liveData->settings.pressureUnit = 'b';
   liveData->settings.defaultScreen = 1;
   liveData->settings.lcdBrightness = 0;
-  liveData->settings.sleepModeEnabled = 0;
   liveData->settings.predrawnChargingGraphs = 1;
   liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
   liveData->settings.wifiEnabled = 0;
@@ -149,6 +148,7 @@ void BoardInterface::loadSettings() {
   liveData->settings.debugLevel = 1; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   liveData->settings.sdcardLogIntervalSec = 2;
   liveData->settings.gprsLogIntervalSec = 60;
+  liveData->settings.sleepModeLevel = 0;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -209,6 +209,10 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.debugLevel = 0; // show all
         liveData->tmpSettings.sdcardLogIntervalSec = 2;
         liveData->tmpSettings.gprsLogIntervalSec = 60;
+      }
+      if (liveData->tmpSettings.settingsVersion == 6) {
+        liveData->tmpSettings.settingsVersion = 7;
+        liveData->tmpSettings.sleepModeLevel = 0;
       }
 
       // Save upgraded structure

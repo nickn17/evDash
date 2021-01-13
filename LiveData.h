@@ -73,6 +73,7 @@ typedef struct {
   // Display
   byte displayScreen;
   byte displayScreenAutoMode;
+  time_t lastButtonPushedTime;
   // Car params
   bool sleepModeQueue;
   bool getValidResponse;
@@ -188,7 +189,7 @@ typedef struct {
 // Setting stored to flash
 typedef struct {
   byte initFlag; // 183 value
-  byte settingsVersion; // current 5
+  byte settingsVersion; // current 7
   // === settings version 1
   // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
@@ -204,7 +205,7 @@ typedef struct {
   // =================================
   byte defaultScreen; // 1 .. 6
   byte lcdBrightness; // 0 - auto, 1 .. 100%
-  byte sleepModeEnabled; // 0 - off, 1 - on
+  byte sleepModeEnabled; // deprecated (free to use)
   byte predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
@@ -239,6 +240,8 @@ typedef struct {
   uint8_t debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec; // every x seconds
+  // === settings version 7
+  uint8_t sleepModeLevel; // 0 - off, 1 - screen only, 2 - deep sleep
   //
 } SETTINGS_STRUC;
 

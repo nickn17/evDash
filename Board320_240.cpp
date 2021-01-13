@@ -35,6 +35,8 @@ void Board320_240::initBoard() {
   ++bootCount;
   syslog->print("Boot count: ");
   syslog->println(bootCount);
+  syslog->print("SleepMode: ");
+  syslog->println(liveData->settings.sleepModeLevel);
 }
 
 /**
@@ -44,7 +46,8 @@ void Board320_240::afterSetup() {
 
   // Check if board was sleeping
   bool afterSetup = false;
-  if (liveData->settings.sleepModeEnabled && !skipAdapterScan()) {
+
+  if (liveData->settings.sleepModeLevel == 2 && !skipAdapterScan()) {
     // Init comm device
     afterSetup = true;
     BoardInterface::afterSetup();
@@ -210,7 +213,7 @@ void Board320_240::afterSleep() {
   }
 
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
-    liveData->settings.sleepModeEnabled = false;
+    liveData->settings.sleepModeLevel = 0;
     syslog->println("Button pressed = SleepMode Disabled & Waking up");
     return;
   }
@@ -1064,7 +1067,13 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_SCREEN_BRIGHTNESS: sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness); suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1; break;
     case MENU_PREDRAWN_GRAPHS:  suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]"; break;
     case MENU_HEADLIGHTS_REMINDER: suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]"; break;
-    case MENU_SLEEP_MODE:     suffix = (liveData->settings.sleepModeEnabled == 1) ? "[on]" : "[off]"; break;
+    case MENU_SLEEP_MODE:       switch (liveData->settings.sleepModeLevel) {
+        case 0: suffix = "[off]" ; break;
+        case 1: suffix = "[screen only]" ; break;
+        case 2: suffix = "[deep sleep]" ; break;
+        default: suffix = "[unknown]";
+      }
+      break;
     case MENU_GPS:              sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);  suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1; break;
     //
     case MENU_SDCARD_ENABLED:   sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 1) ? "on" : "off"); suffix = tmpStr1; break;
@@ -1215,7 +1224,7 @@ void Board320_240::menuItemClick() {
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       case 3066: liveData->settings.defaultScreen = 7; showParentMenu = true; break;
       // SleepMode off/on
-      case MENU_SLEEP_MODE:           liveData->settings.sleepModeEnabled = (liveData->settings.sleepModeEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_SLEEP_MODE:           liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == 2) ? 0 : liveData->settings.sleepModeLevel + 1; showMenu(); return; break;
       case MENU_SCREEN_BRIGHTNESS:    liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
         setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness); showMenu(); return; break;
       // Pre-drawn charg.graphs off/on
@@ -1487,6 +1496,7 @@ void Board320_240::mainLoop() {
   } else {
     if (!btnMiddlePressed) {
       btnMiddlePressed = true;
+      liveData->params.lastButtonPushedTime = liveData->params.currentTime;
       tft.setRotation(liveData->settings.displayRotation);
       if (liveData->menuVisible) {
         menuItemClick();
@@ -1501,6 +1511,7 @@ void Board320_240::mainLoop() {
   } else {
     if (!btnLeftPressed) {
       btnLeftPressed = true;
+      liveData->params.lastButtonPushedTime = liveData->params.currentTime;
       tft.setRotation(liveData->settings.displayRotation);
       // Menu handling
       if (liveData->menuVisible) {
@@ -1521,6 +1532,7 @@ void Board320_240::mainLoop() {
   } else {
     if (!btnRightPressed) {
       btnRightPressed = true;
+      liveData->params.lastButtonPushedTime = liveData->params.currentTime;
       tft.setRotation(liveData->settings.displayRotation);
       // Menu handling
       if (liveData->menuVisible) {
@@ -1606,7 +1618,8 @@ void Board320_240::mainLoop() {
   // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time was synchronized)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
-      && liveData->settings.sleepModeEnabled) {
+      && liveData->settings.sleepModeLevel > 0
+      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
     setBrightness(0);
   } else {
     setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
@@ -1616,7 +1629,7 @@ void Board320_240::mainLoop() {
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
-      && liveData->settings.sleepModeEnabled
+      && liveData->settings.sleepModeLevel == 2
       && liveData->params.currentTime - liveData->params.wakeUpTime > 30 ) {
     if (liveData->params.sim800l_enabled) {
       sim800lSendData();
