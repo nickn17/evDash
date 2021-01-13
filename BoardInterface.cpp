@@ -336,6 +336,9 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
   jsonData["tmpC"] = round(liveData->params.bmsUnknownTempC);
   jsonData["tmpD"] = round(liveData->params.bmsUnknownTempD);
 
+  jsonData["invC"] = round(liveData->params.inverterTempC);
+  jsonData["motC"] = round(liveData->params.motorTempC);
+
   jsonData["auxPerc"] = liveData->params.auxPerc;
   jsonData["auxV"] = liveData->params.auxVoltage;
   jsonData["auxA"] = liveData->params.auxCurrentAmp;

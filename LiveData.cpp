@@ -62,6 +62,8 @@ void LiveData::initParams() {
   params.parkModeOrNeutral = false;
   params.speedKmh = -1;
   params.motorRpm = -1;
+  params.inverterTempC = -100;
+  params.motorTempC = -100;
   params.odoKm = -1;
   params.socPerc = -1;
   params.socPercPrevious = -1;

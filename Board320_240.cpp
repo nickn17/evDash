@@ -44,7 +44,7 @@ void Board320_240::afterSetup() {
 
   // Check if board was sleeping
   bool afterSetup = false;
-  if (liveData->settings.sleepModeEnabled) {
+  if (liveData->settings.sleepModeEnabled && !skipAdapterScan()) {
     // Init comm device
     afterSetup = true;
     BoardInterface::afterSetup();

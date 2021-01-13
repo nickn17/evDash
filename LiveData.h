@@ -129,6 +129,8 @@ typedef struct {
   float bmsUnknownTempB;
   float bmsUnknownTempC;
   float bmsUnknownTempD;
+  float inverterTempC;
+  float motorTempC;
   float auxPerc;
   float auxCurrentAmp;
   float auxVoltage;

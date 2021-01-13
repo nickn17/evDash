@@ -80,6 +80,10 @@ void CarKiaEniro::activateCommandQueue() {
     "ATSH7E2",
     "2101",     // speed, ...
     "2102",     // aux, ...
+    
+    // MCU
+    "ATSH7E3",
+    "2102",     // motor/invertor temp
 
     // BMS
     "ATSH7E4",
@@ -211,6 +215,14 @@ void CarKiaEniro::parseRowMerged() {
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
+    }
+  }
+
+  // MCU 7E3
+  if (liveData->currentAtshRequest.equals("ATSH7E3")) {
+    if (liveData->commandRequest.equals("2102")) {
+      liveData->params.inverterTempC = liveData->hexToDecFromResponse(32, 34, 1, true);
+      liveData->params.motorTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
     }
   }
 
