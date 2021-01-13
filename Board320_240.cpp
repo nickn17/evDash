@@ -183,14 +183,19 @@ void Board320_240::goToSleep() {
     sim800l->enterSleepMode();
   }
 
-  syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
-  syslog->flush();
-
-  delay(1000);
-
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
+
+  if(liveData->settings.sleepModeLevel == 2) {
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
+    syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
+  } else {
+    syslog->println("Going to sleep for ever! (shutdown)");
+  }
+
+  syslog->flush();
+  delay(1000);
+
   esp_deep_sleep_start();
 }
 
@@ -1071,6 +1076,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
         case 0: suffix = "[off]" ; break;
         case 1: suffix = "[screen only]" ; break;
         case 2: suffix = "[deep sleep]" ; break;
+        case 3: suffix = "[shutdown]" ; break;
         default: suffix = "[unknown]";
       }
       break;
@@ -1224,7 +1230,7 @@ void Board320_240::menuItemClick() {
       case 3065: liveData->settings.defaultScreen = 5; showParentMenu = true; break;
       case 3066: liveData->settings.defaultScreen = 7; showParentMenu = true; break;
       // SleepMode off/on
-      case MENU_SLEEP_MODE:           liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == 2) ? 0 : liveData->settings.sleepModeLevel + 1; showMenu(); return; break;
+      case MENU_SLEEP_MODE:           liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == 3) ? 0 : liveData->settings.sleepModeLevel + 1; showMenu(); return; break;
       case MENU_SCREEN_BRIGHTNESS:    liveData->settings.lcdBrightness += 20; if (liveData->settings.lcdBrightness > 100) liveData->settings.lcdBrightness = 0;
         setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness); showMenu(); return; break;
       // Pre-drawn charg.graphs off/on
@@ -1618,7 +1624,7 @@ void Board320_240::mainLoop() {
   // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time was synchronized)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
-      && liveData->settings.sleepModeLevel > 0
+      && liveData->settings.sleepModeLevel >= 1
       && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
     setBrightness(0);
   } else {
@@ -1629,8 +1635,9 @@ void Board320_240::mainLoop() {
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
       && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
-      && liveData->settings.sleepModeLevel == 2
-      && liveData->params.currentTime - liveData->params.wakeUpTime > 30 ) {
+      && liveData->settings.sleepModeLevel >= 2
+      && liveData->params.currentTime - liveData->params.wakeUpTime > 30
+      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
     if (liveData->params.sim800l_enabled) {
       sim800lSendData();
     }
