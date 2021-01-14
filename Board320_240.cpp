@@ -1432,16 +1432,16 @@ void Board320_240::redrawScreen() {
   if (liveData->params.sim800l_enabled) {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) {
       spr.fillRect(127, 7, 7, 7,
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime || liveData->params.lastDataSent == 0) ?
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime || liveData->params.lastDataSent == 0) ?
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ?
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ?
                     TFT_GREEN   /* last request was 200 OK */ :
                     TFT_YELLOW  /* data sent but response timed out */ :
                     TFT_RED     /* failed to send data */
                   );
     } else if (liveData->params.displayScreen != SCREEN_BLANK) {
       spr.fillRect(308, 0, 5, 5,
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime || liveData->params.lastDataSent == 0) ?
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime || liveData->params.lastDataSent == 0) ?
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ?
+                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ?
                     TFT_GREEN   /* last request was 200 OK */ :
                     TFT_YELLOW  /* data sent but response timed out */ :
                     TFT_RED     /* failed to send data */
@@ -1779,9 +1779,9 @@ bool Board320_240::sim800lSetup() {
   gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
   gprsHwUart->begin(9600);
 
-  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128);
+  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, 768 , 128, syslog);
+  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++) {
@@ -1900,6 +1900,13 @@ bool Board320_240::sim800lSendData() {
   jsonData["odoKm"] = liveData->params.odoKm;
   jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
   jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
+
+  //Send GPS data via GPRS (if enabled)
+  if (liveData->settings.gpsHwSerialPort <= 2) {
+    jsonData["gpsLat"] = liveData->params.gpsLat;
+    jsonData["gpsLon"] = liveData->params.gpsLon;
+    jsonData["gpsAlt"] = liveData->params.gpsAlt;
+  }
 
   char payload[768];
   serializeJson(jsonData, payload);
