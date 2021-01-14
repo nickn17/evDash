@@ -258,18 +258,6 @@ void CarKiaEniro::parseRowMerged() {
       //liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      liveData->params.getValidResponse = true;
-
-      // Ignition Off/on
-      // tempByte = liveData->hexToDecFromResponse(106, 108, 1, false);
-      // liveData->params.chargingOn = (bitRead(tempByte, 2) == 1);
-      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = AC; bit 6 = DC; bit 7 = charging
-      liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
-      liveData->params.chargerDCconnected = (bitRead(tempByte, 6) == 1);
-      liveData->params.chargingOn = (bitRead(tempByte, 7) == 1);
-      if (liveData->params.chargingOn) {
-        liveData->params.lastChargingOnTime = liveData->params.currentTime;
-      }
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -341,6 +329,17 @@ void CarKiaEniro::parseRowMerged() {
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220106")) {
+      // Charging ON, AC/DC
+      liveData->params.getValidResponse = true;
+      tempByte = liveData->hexToDecFromResponse(48, 50, 1, false); // bit 5 = DC; bit 6 = AC; 
+      liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
+      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && ((tempByte & 0xf) >= 5) && ((tempByte & 0xf) <= 9);
+      if (liveData->params.chargingOn) {
+        liveData->params.lastChargingOnTime = liveData->params.currentTime;
+      }
+
+      //
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
