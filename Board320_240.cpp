@@ -97,6 +97,7 @@ void Board320_240::afterSetup() {
       syslog->println("hwUart0 collision with serial console! Disabling serial console");
       syslog->flush();
       syslog->end();
+      delay(500);
     }
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
