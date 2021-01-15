@@ -194,7 +194,7 @@ void Board320_240::goToSleep() {
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
 
-  if(liveData->settings.sleepModeLevel == 2) {
+  if(liveData->settings.sleepModeLevel == 2 && bootCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600) {
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
     syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
   } else {
