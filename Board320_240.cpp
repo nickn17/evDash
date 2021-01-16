@@ -93,12 +93,7 @@ void Board320_240::afterSetup() {
   if (liveData->settings.gpsHwSerialPort <= 2) {
     syslog->print("GPS initialization on hwUart: ");
     syslog->println(liveData->settings.gpsHwSerialPort);
-    if (liveData->settings.gpsHwSerialPort == 0) {
-      syslog->println("hwUart0 collision with serial console! Disabling serial console");
-      syslog->flush();
-      syslog->end();
-      delay(500);
-    }
+
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
 
@@ -1660,29 +1655,31 @@ void Board320_240::mainLoop() {
 */
 
 void Board320_240::syncTimes(time_t newTime) {
-  if (liveData->params.chargingStartTime != 0)
-    liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
+  if (newTime - liveData->params.currentTime > MONTH_SEC) {
+    if (liveData->params.chargingStartTime != 0)
+      liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
 
-  if (liveData->params.lastDataSent != 0)
-    liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
+    if (liveData->params.lastDataSent != 0)
+      liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
 
-  if (liveData->params.sim800l_lastOkReceiveTime != 0)
-    liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
+    if (liveData->params.sim800l_lastOkReceiveTime != 0)
+      liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
 
-  if (liveData->params.sim800l_lastOkSendTime != 0)
-    liveData->params.sim800l_lastOkSendTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkSendTime);
+    if (liveData->params.sim800l_lastOkSendTime != 0)
+      liveData->params.sim800l_lastOkSendTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkSendTime);
 
-  if (liveData->params.lastButtonPushedTime != 0)
-    liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
+    if (liveData->params.lastButtonPushedTime != 0)
+      liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
 
-  if (liveData->params.wakeUpTime != 0)
-    liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
+    if (liveData->params.wakeUpTime != 0)
+      liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
 
-  if (liveData->params.lastIgnitionOnTime != 0)
-    liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
+    if (liveData->params.lastIgnitionOnTime != 0)
+      liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
 
-  if (liveData->params.lastChargingOnTime != 0)
-    liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
+    if (liveData->params.lastChargingOnTime != 0)
+      liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
+  }
 
   liveData->params.currentTime = newTime;
 }

@@ -56,20 +56,21 @@ LiveData* liveData;
 */
 void setup(void) {
 
-  // Serial console
-  syslog = new LogSerial();
-  syslog->println("\nBooting device...");
-
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
 
+  // Serial console
+  syslog = new LogSerial();
+
   // Turn off serial console
-  if (liveData->settings.serialConsolePort == 255) {
-    syslog->println("Serial console disabled...");
-    syslog->flush();
+  if (liveData->settings.serialConsolePort == 255
+    || liveData->settings.gpsHwSerialPort == 0
+    || liveData->settings.gprsHwSerialPort == 0) {
     syslog->end();
   }
+
+  syslog->println("\nBooting device...");
 
   // Init board
 #ifdef BOARD_TTGO_T4
