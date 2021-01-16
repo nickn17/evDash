@@ -19,7 +19,7 @@ Board
   https://rlx.sk/sk/m5stack/7285-esp32-basic-core-iot-development-kit-m5-k001-m5stack.html
 - optional M5 COMMU (CAN) module
 - optional M5 GPS NEO-M8N (with external atenna)
-- optional M5 SIM800L GPS module (dev)
+- optional M5 SIM800L GSM module (dev)
   
 or 
 - older device LILYGO TTGO T4 v1.3 (~USD $30) 
