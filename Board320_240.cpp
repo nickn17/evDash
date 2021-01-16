@@ -97,6 +97,7 @@ void Board320_240::afterSetup() {
       syslog->println("hwUart0 collision with serial console! Disabling serial console");
       syslog->flush();
       syslog->end();
+      delay(500);
     }
     gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
     gpsHwUart->begin(9600);
@@ -106,7 +107,9 @@ void Board320_240::afterSetup() {
     // https://github.com/noerw/mobile-sensebox/blob/master/esp8266-gps/gps.h
     // uBlox NEO-7M can't persist settings, so we update them on runtime to get a higher update rate
     // commands extracted via u-center (https://www.youtube.com/watch?v=iWd0gCOYsdo)
-    uint8_t ubloxconfig[216] = {
+    uint8_t ubloxconfig[] = {
+      // disable sleep mode
+      0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x4C, 0x37,
       // enable GPGGA & RMC sentences (only these are evaluated by TinyGPS++)
       0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x05, 0x38, //GGA
       0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x04, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x09, 0x54, //RMC
@@ -183,10 +186,16 @@ void Board320_240::goToSleep() {
     sim800l->enterSleepMode();
   }
 
+  //Sleep GPS
+  if (liveData->settings.gpsHwSerialPort <= 2) {
+    uint8_t GPSoff[] = {0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x4D, 0x3B};
+    gpsHwUart->write(GPSoff, sizeof(GPSoff));
+  }
+
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
 
-  if(liveData->settings.sleepModeLevel == 2) {
+  if(liveData->settings.sleepModeLevel == 2 && bootCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600) {
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
     syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
   } else {
