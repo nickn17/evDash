@@ -4,7 +4,7 @@
  * Constructor
  */
 LogSerial::LogSerial() : HardwareSerial(0) {
-  HardwareSerial::begin(115200);
+  //HardwareSerial::begin(115200);  # used syslog->begin(115200); (in evDash.ino)
 }
 
 /**

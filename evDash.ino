@@ -63,15 +63,6 @@ void setup(void) {
   // Serial console
   syslog = new LogSerial();
 
-  // Turn off serial console
-  if (liveData->settings.serialConsolePort == 255
-    || liveData->settings.gpsHwSerialPort == 0
-    || liveData->settings.gprsHwSerialPort == 0) {
-    syslog->end();
-  }
-
-  syslog->println("\nBooting device...");
-
   // Init board
 #ifdef BOARD_TTGO_T4
   board = new BoardTtgoT4v13();
@@ -82,6 +73,15 @@ void setup(void) {
   board->setLiveData(liveData);
   board->loadSettings();
   board->initBoard();
+
+  // Turn on serial console
+  if (liveData->settings.serialConsolePort != 255
+    && liveData->settings.gpsHwSerialPort != liveData->settings.serialConsolePort
+    && liveData->settings.gprsHwSerialPort != liveData->settings.serialConsolePort) {
+    syslog->begin(115200);
+  }
+
+  syslog->println("\nBooting device...");
 
   // Init selected car interface
   switch (liveData->settings.carType) {
