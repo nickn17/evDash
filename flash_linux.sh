@@ -7,7 +7,7 @@
 
 # Select distribution:
 # TTGO T4
-DIST=./dist/ttgo_t4_v13
+# DIST=./dist/ttgo_t4_v13
 
 # or m5stack
 DIST=./dist/m5stack_core1
