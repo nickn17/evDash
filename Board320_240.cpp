@@ -1590,7 +1590,7 @@ void Board320_240::mainLoop() {
   // currentTime
   struct tm now;
   getLocalTime(&now, 0);
-  liveData->params.currentTime = mktime(&now);
+  syncTimes(mktime(&now));
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
@@ -1632,7 +1632,6 @@ void Board320_240::mainLoop() {
 
   // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time was synchronized)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
-      && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && liveData->settings.sleepModeLevel >= 1
       && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
     setBrightness(0);
@@ -1642,7 +1641,6 @@ void Board320_240::mainLoop() {
 
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
-      && (liveData->params.currentTime - liveData->params.lastIgnitionOnTime < MONTH_SEC || liveData->params.lastIgnitionOnTime == 0)
       && !liveData->params.chargingOn
       && liveData->settings.sleepModeLevel >= 2
       && liveData->params.currentTime - liveData->params.wakeUpTime > 30
@@ -1655,6 +1653,38 @@ void Board320_240::mainLoop() {
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
+}
+
+/**
+  sync all times
+*/
+
+void Board320_240::syncTimes(time_t newTime) {
+  if (liveData->params.chargingStartTime != 0)
+    liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
+
+  if (liveData->params.lastDataSent != 0)
+    liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
+
+  if (liveData->params.sim800l_lastOkReceiveTime != 0)
+    liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
+
+  if (liveData->params.sim800l_lastOkSendTime != 0)
+    liveData->params.sim800l_lastOkSendTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkSendTime);
+
+  if (liveData->params.lastButtonPushedTime != 0)
+    liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
+
+  if (liveData->params.wakeUpTime != 0)
+    liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
+
+  if (liveData->params.lastIgnitionOnTime != 0)
+    liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
+
+  if (liveData->params.lastChargingOnTime != 0)
+    liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
+
+  liveData->params.currentTime = newTime;
 }
 
 /**

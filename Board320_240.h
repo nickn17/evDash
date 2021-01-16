@@ -58,6 +58,7 @@ class Board320_240 : public BoardInterface {
     void sdcardToggleRecording() override;
     // GPS
     void syncGPS();
+    void syncTimes(time_t newTime);
     // SIM800L
     bool sim800lSetup();
     bool sim800lLoop();
