@@ -1701,10 +1701,9 @@ void Board320_240::mainLoop() {
       liveData->params.lastVoltageOkTime = liveData->params.currentTime;
   }
 
-  // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time was synchronized)
+  // Turn off display if Ignition is off for more than 10s
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
       && liveData->settings.sleepModeLevel >= 1
-      && liveData->settings.voltmeterBasedSleep == 0
       && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
     setBrightness(0);
   } else {
@@ -1722,17 +1721,6 @@ void Board320_240::mainLoop() {
       sim800lSendData();
     }
     goToSleep();
-  }
-
-  // Turn off display if liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 10 seconds
-  if (liveData->settings.voltmeterEnabled == 1
-      && liveData->settings.voltmeterBasedSleep == 1
-      && liveData->settings.sleepModeLevel >= 1
-      && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 10
-      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
-    setBrightness(0);
-  } else {
-    setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
