@@ -37,6 +37,9 @@ void LiveData::initParams() {
   params.displayScreen = SCREEN_AUTO;
   params.displayScreenAutoMode = SCREEN_AUTO;
   params.lastButtonPushedTime = 0;
+  // VoltageMeter INA3221
+  params.lastVoltageReadTime = 0;
+  params.lastVoltageOkTime = 0;
   // Car data
   params.sleepModeQueue = false;
   params.getValidResponse = false;

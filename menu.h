@@ -37,6 +37,7 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_GPS, 3, -1, "GPS"},
   {MENU_GPRS, 3, -1, "GSM/GPRS"},
   {MENU_SERIAL_CONSOLE, 3, -1, "Serial console"},
+  {MENU_VOLTMETER, 3, -1, "Voltmeter INA3221"},
   {MENU_DEBUG_LEVEL, 3, -1, "Debug level"},
   //{MENU_REMOTE_UPLOAD, 3, -1, "[dev] Remote upload"},
   //{MENU_NTP, 3, -1, "[dev] NTP"},
@@ -63,7 +64,14 @@ MENU_ITEM menuItemsSource[100] = {
   {MENU_SDCARD_MOUNT_STATUS, MENU_SDCARD, -1, "Status"},
   {MENU_SDCARD_REC, MENU_SDCARD, -1, "Record"},
   //{MENU_SDCARD_INTERVAL, MENU_SDCARD, -1, "Log interval sec."},
-  
+
+  {MENU_VOLTMETER*10, MENU_VOLTMETER, 3, "<- parent menu"},
+  {MENU_VOLTMETER_ENABLED, MENU_VOLTMETER, -1, "Voltmeter enabled"},
+  {MENU_VOLTMETER_SLEEP, MENU_VOLTMETER, -1, "Control SleepMode"},
+  {MENU_VOLTMETER_SLEEPVOL, MENU_VOLTMETER, -1, "Sleep Vol."},
+  {MENU_VOLTMETER_WAKEUPVOL, MENU_VOLTMETER, -1, "WakeUp Vol."},
+  {MENU_VOLTMETER_CUTOFFVOL, MENU_VOLTMETER, -1, "CutOff Vol."},
+
   {3060, 306, 3, "<- parent menu"},
   {3061, 306, -1, "Auto mode"},
   {3062, 306, -1, "Basic info"},
