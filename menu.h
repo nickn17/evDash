@@ -13,7 +13,8 @@ MENU_ITEM menuItemsSource[100] = {
   {8, 0, -1, "Factory reset"},
   {MENU_SAVE_SETTINGS, 0, -1, "Save settings"},
   {MENU_APP_VERSION, 0, -1, "Version"},
-  {11, 0, -1, "Shutdown"},
+  {MENU_SHUTDOWN, 0, -1, "Shutdown"},
+  {MENU_CAR_COMMANDS, 0, -1, "Car commands [CAN]"},
 
   {100, 1, 0, "<- parent menu"},
   {101, 1, -1,  "Kia eNiro 2020 64kWh"},
@@ -103,4 +104,6 @@ MENU_ITEM menuItemsSource[100] = {
   {10007, 9999, -1, "-"},
   {10008, 9999, -1, "-"},
   {10009, 9999, -1, "-"},
+
+  {MENU_CAR_COMMANDS*1000, MENU_CAR_COMMANDS, 0, "<- parent menu"},  
 };

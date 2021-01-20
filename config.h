@@ -70,6 +70,9 @@ typedef struct {
 #define MENU_ADAPTER_TYPE 5
 #define MENU_SAVE_SETTINGS 9
 #define MENU_APP_VERSION 10
+#define MENU_SHUTDOWN 11
+#define MENU_CAR_COMMANDS 12
+
 //
 #define MENU_ADAPTER_BLE4 501
 #define MENU_ADAPTER_CAN 502
