@@ -665,14 +665,14 @@ void Board320_240::drawSceneBatteryCells() {
     posx = ((i % 8) * 40) + 4;
     posy = ((floor(i / 8) + (liveData->params.cellCount > 96 ? 0 : 1)) * 13) + 68;
     sprintf(tmpStr3, "%01.02f", liveData->params.cellVoltage[i]);
-    spr.setTextColor(TFT_NAVY);
+    spr.setTextColor(TFT_SILVER);
     if (liveData->params.cellVoltage[i] == minVal && minVal != maxVal)
       spr.setTextColor(TFT_RED);
     if (liveData->params.cellVoltage[i] == maxVal && minVal != maxVal)
       spr.setTextColor(TFT_GREEN);
     // Battery cell imbalance detetection
     if (liveData->params.cellVoltage[i] > 2.0 && liveData->params.cellVoltage[i] < 3.0)
-      spr.setTextColor(TFT_WHITE);
+      spr.setTextColor(TFT_WHITE, TFT_RED);
     spr.drawString(tmpStr3, posx, posy, 2);
   }
 }
