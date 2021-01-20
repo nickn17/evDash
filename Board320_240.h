@@ -18,6 +18,7 @@
 #include <SD.h>
 #include <SPI.h>
 #include "SIM800L.h"
+#include "SDL_Arduino_INA3221.h"
 
 class Board320_240 : public BoardInterface {
 
@@ -28,6 +29,7 @@ class Board320_240 : public BoardInterface {
     HardwareSerial* gpsHwUart = NULL;
     HardwareSerial* gprsHwUart = NULL;
     SIM800L* sim800l;
+    SDL_Arduino_INA3221 ina3221;
     TinyGPSPlus gps;
     char tmpStr1[20];
     char tmpStr2[20];

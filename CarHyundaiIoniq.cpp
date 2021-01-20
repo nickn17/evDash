@@ -176,22 +176,27 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, false);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 1, false);
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
-      liveData->params.getValidResponse = true;
+      
+      if(liveData->settings.voltmeterEnabled == 0) {
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
 
-      float tmpAuxPerc;
-      if(liveData->params.ignitionOn) {
-        tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V 
-      } else {
-        tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
+        float tmpAuxPerc;
+        if(liveData->params.ignitionOn) {
+          tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V 
+        } else {
+          tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
+        }
+
+        if(tmpAuxPerc > 100) {
+          liveData->params.auxPerc = 100;
+        } else if(tmpAuxPerc < 0) {
+          liveData->params.auxPerc = 0;
+        } else {
+          liveData->params.auxPerc = tmpAuxPerc;
+        }
       }
-      if(tmpAuxPerc > 100) {
-        liveData->params.auxPerc = 100;
-      } else if(tmpAuxPerc < 0) {
-        liveData->params.auxPerc = 0;
-      } else {
-        liveData->params.auxPerc = tmpAuxPerc;
-      }
+
+      liveData->params.getValidResponse = true;
 
       liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(24, 28, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(28, 32, 2, false) / 10.0;

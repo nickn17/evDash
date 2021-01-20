@@ -108,6 +108,11 @@ void Board320_240::afterSetup() {
     sim800lSetup();
   }
 
+  // Init Voltmeter
+  if(liveData->settings.voltmeterEnabled == 1) {
+    ina3221.begin();
+  }
+
   // Init comm device
   if (!afterSetup) {
     BoardInterface::afterSetup();
@@ -189,6 +194,25 @@ void Board320_240::afterSleep() {
     liveData->settings.sleepModeLevel = 0;
     syslog->println("Button pressed = SleepMode Disabled & Waking up");
     return;
+  }
+
+  if (liveData->settings.voltmeterBasedSleep == 1) {
+    ina3221.begin();
+    liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
+
+    if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff) {
+      syslog->print("AUX voltage under cut-off voltage: ");
+      syslog->println(liveData->settings.voltmeterCutOff);
+      liveData->settings.sleepModeLevel = 3;
+      goToSleep();
+    } else if (liveData->params.auxVoltage < liveData->settings.voltmeterWakeUp) {
+      syslog->print("AUX voltage under: ");
+      syslog->println(liveData->settings.voltmeterWakeUp);
+      goToSleep();
+    } else {
+      syslog->println("Wake up conditions satisfied... Good morning!");
+      return;
+    }
   }
 
   liveData->params.sleepModeQueue = true;
@@ -1056,6 +1080,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
     case MENU_GPRS:             sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);  suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1; break;
     case MENU_SDCARD:           sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024)); suffix = tmpStr1; break;
     case MENU_SERIAL_CONSOLE:   suffix = (liveData->settings.serialConsolePort == 255) ? "[off]" : "[on]"; break;
+    case MENU_VOLTMETER:        suffix = (liveData->settings.voltmeterEnabled == 0) ? "[off]" : "[on]"; break;
     case MENU_DEBUG_LEVEL:      switch (liveData->settings.debugLevel) {
         case 0: suffix = "[all]" ; break;
         case 1: suffix = "[comm]" ; break;
@@ -1086,6 +1111,13 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title) {
                                              (liveData->params.sdcardInit) ? "READY" : "MOUNT"); suffix = tmpStr1; break;
     case MENU_SDCARD_REC:       sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->params.sdcardRecording) ? "STOP" : "START"); suffix = tmpStr1; break;
     case MENU_SDCARD_INTERVAL:   sprintf(tmpStr1, "[%d]", liveData->settings.sdcardLogIntervalSec); suffix = tmpStr1; break;
+    //
+    case MENU_VOLTMETER_ENABLED:    sprintf(tmpStr1, "[%s]", (liveData->settings.voltmeterEnabled == 1) ? "on" : "off"); suffix = tmpStr1; break;
+    case MENU_VOLTMETER_SLEEP:      sprintf(tmpStr1, "[%s]", (liveData->settings.voltmeterBasedSleep == 1) ? "on" : "off"); suffix = tmpStr1; break;
+    case MENU_VOLTMETER_SLEEPVOL:   sprintf(tmpStr1, "[%.1f V]", liveData->settings.voltmeterSleep);  suffix = tmpStr1; break;
+    case MENU_VOLTMETER_WAKEUPVOL:  sprintf(tmpStr1, "[%.1f V]", liveData->settings.voltmeterWakeUp);  suffix = tmpStr1; break;
+    case MENU_VOLTMETER_CUTOFFVOL:  sprintf(tmpStr1, "[%.1f V]", liveData->settings.voltmeterCutOff);  suffix = tmpStr1; break;
+
     //
     case MENU_WIFI_ENABLED:     suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]"; break;
     case MENU_WIFI_SSID:        sprintf(tmpStr1, "%s", liveData->settings.wifiSsid); suffix = tmpStr1; break;
@@ -1246,6 +1278,12 @@ void Board320_240::menuItemClick() {
       case MENU_SDCARD_AUTOSTARTLOG:  liveData->settings.sdcardAutstartLog = (liveData->settings.sdcardAutstartLog == 1) ? 0 : 1; showMenu(); return; break;
       case MENU_SDCARD_MOUNT_STATUS:  sdcardMount(); break;
       case MENU_SDCARD_REC:           sdcardToggleRecording(); showMenu(); return; break;
+      // Voltmeter INA 3221
+      case MENU_VOLTMETER_ENABLED:    liveData->settings.voltmeterEnabled = (liveData->settings.voltmeterEnabled == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_VOLTMETER_SLEEP:      liveData->settings.voltmeterBasedSleep = (liveData->settings.voltmeterBasedSleep == 1) ? 0 : 1; showMenu(); return; break;
+      case MENU_VOLTMETER_SLEEPVOL:   liveData->settings.voltmeterSleep = (liveData->settings.voltmeterSleep >= 14.0) ? 11.0 : liveData->settings.voltmeterSleep + 0.2; showMenu(); return; break;
+      case MENU_VOLTMETER_WAKEUPVOL:  liveData->settings.voltmeterWakeUp = (liveData->settings.voltmeterWakeUp >= 14.0) ? 11.0 : liveData->settings.voltmeterWakeUp + 0.2; showMenu(); return; break;
+      case MENU_VOLTMETER_CUTOFFVOL:  liveData->settings.voltmeterCutOff = (liveData->settings.voltmeterCutOff >= 13.0) ? 10.0 : liveData->settings.voltmeterCutOff + 0.2; showMenu(); return; break;
       // Distance
       case 4011: liveData->settings.distanceUnit = 'k'; showParentMenu = true; break;
       case 4012: liveData->settings.distanceUnit = 'm'; showParentMenu = true; break;
@@ -1640,9 +1678,33 @@ void Board320_240::mainLoop() {
     }
   }
 
+  //Read voltmeter INA3221 (if enabled)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 2) {
+    liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
+
+    float tmpAuxPerc;
+    if(liveData->params.ignitionOn) {
+      tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V 
+    } else {
+      tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
+    }
+
+    if(tmpAuxPerc > 100) {
+      liveData->params.auxPerc = 100;
+    } else if(tmpAuxPerc < 0) {
+      liveData->params.auxPerc = 0;
+    } else {
+      liveData->params.auxPerc = tmpAuxPerc;
+    }
+
+    if (liveData->params.auxVoltage > liveData->settings.voltmeterSleep)
+      liveData->params.lastVoltageOkTime = liveData->params.currentTime;
+  }
+
   // Turn off display if Ignition is off for more than 10s, less than month (prevent sleep when gps time was synchronized)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
       && liveData->settings.sleepModeLevel >= 1
+      && liveData->settings.voltmeterBasedSleep == 0
       && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
     setBrightness(0);
   } else {
@@ -1654,10 +1716,34 @@ void Board320_240::mainLoop() {
       && !liveData->params.chargingOn
       && liveData->settings.sleepModeLevel >= 2
       && liveData->params.currentTime - liveData->params.wakeUpTime > 30
-      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
+      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10
+      && liveData->settings.voltmeterBasedSleep == 0) {
     if (liveData->params.sim800l_enabled) {
       sim800lSendData();
     }
+    goToSleep();
+  }
+
+  // Turn off display if liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 10 seconds
+  if (liveData->settings.voltmeterEnabled == 1
+      && liveData->settings.voltmeterBasedSleep == 1
+      && liveData->settings.sleepModeLevel >= 1
+      && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 10
+      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
+    setBrightness(0);
+  } else {
+    setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+  }
+
+  // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
+  if (liveData->settings.voltmeterEnabled == 1
+      && liveData->settings.voltmeterBasedSleep == 1
+      && liveData->settings.sleepModeLevel >= 2
+      && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30
+      && liveData->params.currentTime - liveData->params.wakeUpTime > 30
+      && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10) {
+    if (liveData->params.sim800l_enabled)
+      sim800lSendData();
     goToSleep();
   }
 
@@ -1694,6 +1780,12 @@ void Board320_240::syncTimes(time_t newTime) {
 
     if (liveData->params.lastChargingOnTime != 0)
       liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
+
+    if (liveData->params.lastVoltageReadTime != 0)
+      liveData->params.lastVoltageReadTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageReadTime);
+
+    if (liveData->params.lastVoltageOkTime != 0)
+      liveData->params.lastVoltageOkTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageOkTime);
   }
 
   liveData->params.currentTime = newTime;

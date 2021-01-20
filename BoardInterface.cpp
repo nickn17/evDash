@@ -104,7 +104,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 7;
+  liveData->settings.settingsVersion = 8;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -169,7 +169,6 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 2;
         liveData->tmpSettings.defaultScreen = liveData->settings.defaultScreen;
         liveData->tmpSettings.lcdBrightness = liveData->settings.lcdBrightness;
-        liveData->tmpSettings.sleepModeEnabled = liveData->settings.sleepModeEnabled;
       }
       if (liveData->tmpSettings.settingsVersion == 2) {
         liveData->tmpSettings.settingsVersion = 3;
@@ -213,6 +212,14 @@ void BoardInterface::loadSettings() {
       if (liveData->tmpSettings.settingsVersion == 6) {
         liveData->tmpSettings.settingsVersion = 7;
         liveData->tmpSettings.sleepModeLevel = 0;
+      }
+      if (liveData->tmpSettings.settingsVersion == 7) {
+        liveData->tmpSettings.settingsVersion = 8;
+        liveData->tmpSettings.voltmeterEnabled = 0;
+        liveData->tmpSettings.voltmeterBasedSleep = 0;
+        liveData->tmpSettings.voltmeterCutOff = 12.0;
+        liveData->tmpSettings.voltmeterSleep = 12.8;
+        liveData->tmpSettings.voltmeterWakeUp = 13.0;
       }
 
       // Save upgraded structure
