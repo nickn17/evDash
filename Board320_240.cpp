@@ -508,6 +508,15 @@ void Board320_240::drawSceneSpeed() {
   // Brake lights
   spr.fillRect(80, 240-26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
   spr.fillRect(320-80-10, 240-26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  // Lights 
+  spr.fillRect(210, 36, 20, (liveData->params.dayLights) ? 2: 8, (liveData->params.headLights) ? TFT_GREEN: 
+    (liveData->params.autoLights) ? TFT_YELLOW: 
+    (liveData->params.dayLights) ? TFT_BLUE: 
+      TFT_BLACK);
+  spr.fillRect(235, 36, 20, (liveData->params.dayLights) ? 2: 8, (liveData->params.headLights) ? TFT_GREEN: 
+    (liveData->params.autoLights) ? TFT_YELLOW: 
+    (liveData->params.dayLights) ? TFT_BLUE: 
+      TFT_BLACK);
 
   // Soc%, bat.kWh
   spr.setFreeFont(&Orbitron_Light_32);
