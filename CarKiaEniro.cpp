@@ -601,12 +601,12 @@ void CarKiaEniro::loadTestData() {
   liveData->params.headLights = true;
   liveData->settings.sdcardEnabled = 1;
   liveData->params.queueLoopCounter = 1;
-  liveData->params.trunkDoorOpen = true;
+  /*liveData->params.trunkDoorOpen = true;
   liveData->params.leftFrontDoorOpen = true;
   liveData->params.rightFrontDoorOpen = true;
   liveData->params.leftRearDoorOpen = true;
   liveData->params.rightRearDoorOpen = true;
-  liveData->params.hoodDoorOpen = true;
+  liveData->params.hoodDoorOpen = true;*/
 }
 
 /**

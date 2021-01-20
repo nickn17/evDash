@@ -910,6 +910,11 @@ void Board320_240::drawSceneChargingGraph() {
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
+  if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) {
+    sprintf(tmpStr1, ((liveData->params.chargerACconnected) ? "AC=%d" : "DC=%d"), ((liveData->params.chargingOn) ? 1: 0));
+    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
+    posy++;
+  }
 
   // Print charging time
   time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
