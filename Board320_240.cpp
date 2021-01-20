@@ -440,7 +440,7 @@ void Board320_240::drawSceneSpeed() {
 
   int32_t posx, posy;
 
-  spr.fillRect(0, 36, 200, 160, TFT_DARKRED);
+  spr.fillRect(0, 34, 206, 170, TFT_DARKRED);
 
   posx = 320 / 2;
   posy = 40;
@@ -472,7 +472,8 @@ void Board320_240::drawSceneSpeed() {
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)  {
-    spr.drawString(liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode), 320 - posx, posy, GFXFF);
+    sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode), liveData->celsius2temperature(liveData->params.coolingWaterTempC));
+    spr.drawString(tmpStr1, 320 - posx, posy, GFXFF);
   } else 
   if (liveData->params.motorRpm > -1) {
     sprintf(tmpStr3, "%01.00frpm" , liveData->params.motorRpm);
@@ -498,7 +499,8 @@ void Board320_240::drawSceneSpeed() {
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
   spr.fillCircle(290, 60, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  spr.setTextColor(TFT_WHITE, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.fillCircle(290, 60, 22, TFT_BLACK);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);//(liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(MC_DATUM);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
@@ -649,6 +651,9 @@ void Board320_240::drawSceneBatteryCells() {
       spr.setTextColor(TFT_RED, TFT_BLACK);
     if (liveData->params.cellVoltage[i] == maxVal && minVal != maxVal)
       spr.setTextColor(TFT_GREEN, TFT_BLACK);
+    // Battery cell imbalance detetection
+    if (liveData->params.cellVoltage[i] > 2.0 && liveData->params.cellVoltage[i] < 3.0)
+      spr.setTextColor(TFT_WHITE, TFT_RED);
     spr.drawString(tmpStr3, posx, posy, 2);
   }
 }
@@ -842,7 +847,7 @@ void Board320_240::drawSceneChargingGraph() {
 
   //
   spr.setTextDatum(TR_DATUM);
-  if (liveData->params.coolingWaterTempC != -1) {
+  if (liveData->params.coolingWaterTempC != -100) {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"), 
       liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode),
       liveData->celsius2temperature(liveData->params.coolingWaterTempC));
@@ -861,27 +866,27 @@ void Board320_240::drawSceneChargingGraph() {
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (liveData->params.coolantTemp1C != -1 && liveData->params.coolantTemp2C != -1) {
+  if (liveData->params.coolantTemp1C != -100 && liveData->params.coolantTemp2C != -100) {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00fC" : "C1/2:%01.00f/%01.00fF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (liveData->params.bmsUnknownTempA != -1) {
+  if (liveData->params.bmsUnknownTempA != -100) {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "A=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempA));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (liveData->params.bmsUnknownTempB != -1) {
+  if (liveData->params.bmsUnknownTempB != -100) {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "B=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempB));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (liveData->params.bmsUnknownTempC != -1) {
+  if (liveData->params.bmsUnknownTempC != -100) {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempC));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  if (liveData->params.bmsUnknownTempD != -1) {
+  if (liveData->params.bmsUnknownTempD != -100) {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "D=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempD));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
@@ -1328,6 +1333,11 @@ void Board320_240::redrawScreen() {
   switch (liveData->params.displayScreen) {
     // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
     case SCREEN_AUTO:
+      if (liveData->params.batCellMinV > 2.0 && liveData->params.batCellMinV < 3.0) {
+        if (liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+          liveData->params.displayScreenAutoMode = SCREEN_CELLS;
+        drawSceneBatteryCells();
+      } else
       if (liveData->params.speedKmh > 5) {
         if (liveData->params.displayScreenAutoMode != SCREEN_SPEED)
           liveData->params.displayScreenAutoMode = SCREEN_SPEED;

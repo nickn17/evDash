@@ -249,6 +249,7 @@ void BoardInterface::afterSetup() {
 
   commInterface->initComm(liveData, this);
   commInterface->connectDevice();
+  carInterface->setCommInterface(commInterface);
 }
 
 /**
@@ -281,6 +282,7 @@ void BoardInterface::customConsoleCommand(String cmd) {
   }
   // CAN comparer
   if (key == "record") commInterface->recordLoop(value.toInt());
+  if (key == "test") carInterface->testHandler(value);
 }
 
 /**

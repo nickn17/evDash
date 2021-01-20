@@ -168,3 +168,17 @@ void CommInterface::compareCanRecords() {
   syslog->println();
   syslog->println(canComparerData[1]);
 }
+
+/**
+ * 
+ */
+void CommInterface::sendPID(const uint16_t pid, const String& cmd) {
+  
+}
+
+/**
+ * 
+ */
+uint8_t CommInterface::receivePID() {
+  
+}

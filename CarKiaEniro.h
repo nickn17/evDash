@@ -11,4 +11,5 @@ class CarKiaEniro : public CarInterface {
     void parseRowMerged() override;
     bool commandAllowed() override;
     void loadTestData() override;  
+    void testHandler(String command) override;
 };

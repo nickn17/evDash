@@ -15,6 +15,7 @@
 #include <sys/time.h>
 #include "LiveData.h"
 #include "CarKiaEniro.h"
+#include "CommInterface.h"
 #include <vector>
 
 #define commandQueueLoopFromKiaENiro 8
@@ -164,8 +165,10 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.forwardDriveMode = (driveMode == 4);
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral  = (driveMode == 1);
-      // Speed
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+      // Speed for eniro
+      if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39) {
+        liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+      }
     }
   }
 
@@ -207,11 +210,13 @@ void CarKiaEniro::parseRowMerged() {
 
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-    //    if (liveData->commandRequest.equals("2101")) {
-    //      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-    //      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-    //        liveData->params.speedKmh = 0;
-    //    }
+    if (liveData->commandRequest.equals("2101")) {
+      if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) {
+        liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+        if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+          liveData->params.speedKmh = 0;
+      }
+    }
     if (liveData->commandRequest.equals("2102")) {
       liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
@@ -323,15 +328,10 @@ void CarKiaEniro::parseRowMerged() {
       for (int i = 30; i < 32; i++) { // ai/aj position
         liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
-      // log 220105 to sdcard
-      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
-      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
-    }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("220106")) {
+
       // Charging ON, AC/DC
       liveData->params.getValidResponse = true;
-      tempByte = liveData->hexToDecFromResponse(48, 50, 1, false); // bit 5 = DC; bit 6 = AC; 
+      tempByte = liveData->hexToDecFromResponse(48, 50, 1, false); // bit 5 = DC; bit 6 = AC;
       liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
       liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
       liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && ((tempByte & 0xf) >= 5) && ((tempByte & 0xf) <= 9);
@@ -339,6 +339,12 @@ void CarKiaEniro::parseRowMerged() {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
 
+      // log 220105 to sdcard
+      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
+      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220106")) {
       //
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
@@ -356,6 +362,7 @@ void CarKiaEniro::parseRowMerged() {
       // log 220106 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
+      syslog->println(liveData->params.debugData2);
     }
   }
 }
@@ -589,4 +596,48 @@ void CarKiaEniro::loadTestData() {
   liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
+}
+
+/**
+   Test handler
+*/
+void CarKiaEniro::testHandler(String command) {
+
+  syslog->println("test handler - enter");
+  syslog->setDebugLevel(DEBUG_COMM);
+
+  //commInterface->sendPID(0x770, "3E"); // IGMP
+  //commInterface->sendPID(0x736, "3E"); // VESS
+  //commInterface->sendPID(0x7a0, "3E"); // BCM
+  //commInterface->sendPID(0x7c6, "3E"); // CLUSTER
+  // commInterface->sendPID(0x7A5, "3E"); // SMK
+  commInterface->sendPID(0x7e4, "3E"); // BMS
+  delay(10);
+  for (uint16_t i = 0; i < 100; i++) {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  //commInterface->sendPID(0x770, "1003"); // IGMP
+  //commInterface->sendPID(0x736, "1003"); // VESS
+  //commInterface->sendPID(0x7a0, "1003"); // BCM
+  //commInterface->sendPID(0x7c6, "1003"); // CLUSTER
+  //commInterface->sendPID(0x7A5, "1003"); // SMK
+  commInterface->sendPID(0x7e4, "1003"); // BMS
+  delay(10);
+  for (uint16_t i = 0; i < 100; i++) {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  commInterface->sendPID(0x7e4, command);//"2FBC1103");
+  delay(10);
+  for (uint16_t i = 0; i < 100; i++) {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+
+  syslog->setDebugLevel(liveData->settings.debugLevel);
+  syslog->println("test handler - exit");
 }

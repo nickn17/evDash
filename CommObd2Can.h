@@ -43,9 +43,9 @@ class CommObd2Can : public CommInterface {
     void executeCommand(String cmd) override;
   
   private:
-    void sendPID(const uint16_t pid, const String& cmd);
+    void sendPID(const uint16_t pid, const String& cmd) override;
     void sendFlowControlFrame();
-    uint8_t receivePID();
+    uint8_t receivePID() override;
     enFrame_t getFrameType(const uint8_t firstByte);
     bool processFrameBytes();
     bool processFrame();
