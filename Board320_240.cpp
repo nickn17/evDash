@@ -254,7 +254,7 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
   spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
   spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
   spr.setTextDatum(TL_DATUM); // Topleft
-  spr.setTextColor(TFT_SILVER, bgColor); // Bk, fg color
+  spr.setTextColor(TFT_SILVER); // Bk, fg color
   spr.setTextSize(1); // Size for small 5x7 font
   spr.drawString(desc, posx, posy, 2);
 
@@ -276,7 +276,7 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
 
     // Main number - kwh on roads, amps on charges
     posy = (y * 60) + 24;
-    spr.setTextColor(fgColor, bgColor);
+    spr.setTextColor(fgColor);
     spr.setFreeFont(&Orbitron_Light_32);
     spr.drawString(text, posx, posy, 7);
 
@@ -284,7 +284,7 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
 
     // All others 1x1 cells
     spr.setTextDatum(MC_DATUM);
-    spr.setTextColor(fgColor, bgColor);
+    spr.setTextColor(fgColor);
     spr.setFreeFont(&Orbitron_Light_24);
     posx = (x * 80) + (w * 80 / 2) - 3;
     posy = (y * 60) + (h * 60 / 2) + 4;
@@ -306,12 +306,12 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
   spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 32) - 1, h * 32, TFT_BLACK);
   spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 32) - 1, w * 80, TFT_BLACK);
   spr.setTextDatum(TL_DATUM); // Topleft
-  spr.setTextColor(TFT_SILVER, bgColor); // Bk, fg bgColor
+  spr.setTextColor(TFT_SILVER); // Bk, fg bgColor
   spr.setTextSize(1); // Size for small 5x7 font
   spr.drawString(desc, posx, posy, 2);
 
   spr.setTextDatum(TC_DATUM);
-  spr.setTextColor(fgColor, bgColor);
+  spr.setTextColor(fgColor);
   posx = (x * 80) + (w * 80 / 2) - 3;
   spr.drawString(text, posx, posy + 14, 2);
 }
@@ -329,7 +329,7 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
   spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
 
   spr.setTextDatum(TL_DATUM);
-  spr.setTextColor(TFT_SILVER, color);
+  spr.setTextColor(TFT_SILVER);
   spr.setTextSize(1);
   posx = (x * 80) + 4;
   posy = (y * 60) + 0;
@@ -366,10 +366,10 @@ void Board320_240::drawSceneMain() {
   // Added later - kwh total in tires box
   // TODO: refactoring
   spr.setTextDatum(TL_DATUM);
-  spr.setTextColor(TFT_GREEN, TFT_BLACK);
+  spr.setTextColor(TFT_GREEN);
   sprintf(tmpStr1, "C: %01.01f +%01.01fkWh", liveData->params.cumulativeEnergyChargedKWh, liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
   spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30, 2);
-  spr.setTextColor(TFT_YELLOW, TFT_BLACK);
+  spr.setTextColor(TFT_YELLOW);
   sprintf(tmpStr1, "D: %01.01f -%01.01fkWh", liveData->params.cumulativeEnergyDischargedKWh, liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
   spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44, 2);
 
@@ -445,7 +445,7 @@ void Board320_240::drawSceneSpeed() {
   posx = 320 / 2;
   posy = 40;
   spr.setTextDatum(TR_DATUM);
-  spr.setTextColor(TFT_WHITE, TFT_DARKRED);
+  spr.setTextColor(TFT_WHITE);
   spr.setTextSize(2); // Size for small 5cix7 font
   sprintf(tmpStr3, "0");
   if (liveData->params.speedKmh > 10)
@@ -464,7 +464,7 @@ void Board320_240::drawSceneSpeed() {
 
   // Bottom 2 numbers with charged/discharged kWh from start
   spr.setFreeFont(&Roboto_Thin_24);
-  spr.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setTextColor(TFT_WHITE);
   posx = 5;
   posy = 5;
   spr.setTextDatum(TL_DATUM);
@@ -500,17 +500,18 @@ void Board320_240::drawSceneSpeed() {
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
   spr.fillCircle(290, 60, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   spr.fillCircle(290, 60, 22, TFT_BLACK);
-  spr.setTextColor(TFT_WHITE, TFT_BLACK);//(liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.setTextColor(TFT_WHITE);//(liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(MC_DATUM);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
   spr.drawString(tmpStr3, 290, 60, GFXFF);
   // Brake lights
-  spr.fillRect(210, 40, 40, 40, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  spr.fillRect(80, 240-26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  spr.fillRect(320-80-10, 240-26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
 
   // Soc%, bat.kWh
   spr.setFreeFont(&Orbitron_Light_32);
-  spr.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setTextColor(TFT_WHITE);
   spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
   spr.drawString(tmpStr3, 320, 94, GFXFF);
@@ -620,7 +621,7 @@ void Board320_240::drawSceneBatteryCells() {
     //spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
     spr.setTextSize(1); // Size for small 5x7 font
     spr.setTextDatum(TL_DATUM);
-    spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED), TFT_BLACK);
+    spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED));
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00fC" : "%01.01fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]));
     spr.drawString(tmpStr1, posx + 4, posy, 2);
   }
@@ -646,14 +647,14 @@ void Board320_240::drawSceneBatteryCells() {
     posx = ((i % 8) * 40) + 4;
     posy = ((floor(i / 8) + (liveData->params.cellCount > 96 ? 0 : 1)) * 13) + 68;
     sprintf(tmpStr3, "%01.02f", liveData->params.cellVoltage[i]);
-    spr.setTextColor(TFT_NAVY, TFT_BLACK);
+    spr.setTextColor(TFT_NAVY);
     if (liveData->params.cellVoltage[i] == minVal && minVal != maxVal)
-      spr.setTextColor(TFT_RED, TFT_BLACK);
+      spr.setTextColor(TFT_RED);
     if (liveData->params.cellVoltage[i] == maxVal && minVal != maxVal)
-      spr.setTextColor(TFT_GREEN, TFT_BLACK);
+      spr.setTextColor(TFT_GREEN);
     // Battery cell imbalance detetection
     if (liveData->params.cellVoltage[i] > 2.0 && liveData->params.cellVoltage[i] < 3.0)
-      spr.setTextColor(TFT_WHITE, TFT_RED);
+      spr.setTextColor(TFT_WHITE);
     spr.drawString(tmpStr3, posx, posy, 2);
   }
 }
@@ -773,7 +774,7 @@ void Board320_240::drawSceneChargingGraph() {
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.outdoorTemperature));
   drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
 
-  spr.setTextColor(TFT_SILVER, TFT_TEMP);
+  spr.setTextColor(TFT_SILVER);
 
   for (int i = 0; i <= 10; i++) {
     color = TFT_DARKRED2;
@@ -821,27 +822,27 @@ void Board320_240::drawSceneChargingGraph() {
   spr.setTextSize(1); // Size for small 5x7 font
   spr.setTextDatum(BL_DATUM);
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00fC" : "1=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]));
-  spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 0,  zeroY - (maxKw * mulY), 2);
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00fC" : "2=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]));
-  spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 48,  zeroY - (maxKw * mulY), 2);
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00fC" : "3=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]));
-  spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 96,  zeroY - (maxKw * mulY), 2);
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00fC" : "4=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]));
-  spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED, TFT_TEMP);
+  spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 144,  zeroY - (maxKw * mulY), 2);
   sprintf(tmpStr1, "ir %01.00fkOhm", liveData->params.isolationResistanceKOhm );
 
   // Bms max.regen/power available
-  spr.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setTextColor(TFT_WHITE);
   sprintf(tmpStr1, "xC=%01.00fkW ", liveData->params.availableChargePower);
   spr.drawString(tmpStr1, 192,  zeroY - (maxKw * mulY), 2);
-  spr.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.setTextColor(TFT_WHITE);
   sprintf(tmpStr1, "xD=%01.00fkW", liveData->params.availableDischargePower);
   spr.drawString(tmpStr1, 256,  zeroY - (maxKw * mulY), 2);
 
@@ -851,11 +852,11 @@ void Board320_240::drawSceneChargingGraph() {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"), 
       liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode),
       liveData->celsius2temperature(liveData->params.coolingWaterTempC));
-    spr.setTextColor(TFT_PINK, TFT_TEMP);
+    spr.setTextColor(TFT_PINK);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
-  spr.setTextColor(TFT_WHITE, TFT_TEMP);
+  spr.setTextColor(TFT_WHITE);
   if (liveData->params.batFanFeedbackHz > 0) {
     sprintf(tmpStr1, "FF=%03.00fHz", liveData->params.batFanFeedbackHz);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
@@ -899,7 +900,7 @@ void Board320_240::drawSceneChargingGraph() {
   else
     sprintf(tmpStr1, "%02d:%02d", (diffTime / 60), diffTime % 60);
   spr.setTextDatum(TL_DATUM);
-  spr.setTextColor(TFT_SILVER, TFT_BLACK);
+  spr.setTextColor(TFT_SILVER);
   spr.drawString(tmpStr1, 0, zeroY - (maxKw * mulY), 2);
 }
 
@@ -916,7 +917,7 @@ void Board320_240::drawSceneSoc10Table() {
   float diffTime;
 
   spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextColor(TFT_SILVER, TFT_TEMP);
+  spr.setTextColor(TFT_SILVER);
   spr.setTextDatum(TL_DATUM);
   spr.drawString("CONSUMPTION | DISCH.100%->4% SOC",  2, zeroY, 2);
 
@@ -1102,7 +1103,7 @@ void Board320_240::showMenu() {
       if (tmpCurrMenuItem >= liveData->menuItemOffset) {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
         spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
-        spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
+        spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
         posY += spr.fontHeight();
       }
@@ -1318,7 +1319,7 @@ void Board320_240::redrawScreen() {
       !liveData->params.headLights && !liveData->params.autoLights) {
     spr.fillSprite(TFT_RED);
     spr.setFreeFont(&Orbitron_Light_32);
-    spr.setTextColor(TFT_WHITE, TFT_RED);
+    spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(MC_DATUM);
     spr.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
     spr.pushSprite(0, 0);
@@ -1400,7 +1401,7 @@ void Board320_240::redrawScreen() {
   if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
     spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
     spr.setTextSize(1);
-    spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE, TFT_BLACK);
+    spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "%d", liveData->params.gpsSat);
     spr.drawString(tmpStr1, 174, 2, 2);
@@ -1445,7 +1446,7 @@ void Board320_240::redrawScreen() {
   if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
     // Print message
     spr.setTextSize(1);
-    spr.setTextColor(TFT_WHITE, TFT_BLACK);
+    spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
     spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
     spr.drawString("Press middle button to menu.", 0, 200, 2);
