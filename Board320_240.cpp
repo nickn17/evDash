@@ -154,7 +154,7 @@ void Board320_240::goToSleep() {
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
 
-  if(liveData->settings.sleepModeLevel == 2 && bootCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600) {
+  if (liveData->settings.sleepModeLevel == 2 && bootCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600) {
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
     syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
   } else {
@@ -386,7 +386,7 @@ void Board320_240::drawSceneMain() {
   // socPerc
   sprintf(tmpStr1, "%01.00f%%", liveData->params.socPerc);
   sprintf(tmpStr2, (liveData->params.sohPerc ==  100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), liveData->params.sohPerc);
-  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---": tmpStr1), tmpStr2, (liveData->params.socPerc < 10 || liveData->params.sohPerc < 100 ? TFT_RED : (liveData->params.socPerc  > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
+  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---" : tmpStr1), tmpStr2, (liveData->params.socPerc < 10 || liveData->params.sohPerc < 100 ? TFT_RED : (liveData->params.socPerc  > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
 
   // batPowerAmp
   sprintf(tmpStr1, (abs(liveData->params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), liveData->params.batPowerAmp);
@@ -440,7 +440,7 @@ void Board320_240::drawSceneSpeed() {
 
   int32_t posx, posy;
 
-  spr.fillRect(0, 34, 206, 170, TFT_DARKRED);
+  //spr.fillRect(0, 34, 206, 170, TFT_BLACK); // TFT_DARKRED
 
   posx = 320 / 2;
   posy = 40;
@@ -474,8 +474,7 @@ void Board320_240::drawSceneSpeed() {
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)  {
     sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode), liveData->celsius2temperature(liveData->params.coolingWaterTempC));
     spr.drawString(tmpStr1, 320 - posx, posy, GFXFF);
-  } else 
-  if (liveData->params.motorRpm > -1) {
+  } else if (liveData->params.motorRpm > -1) {
     sprintf(tmpStr3, "%01.00frpm" , liveData->params.motorRpm);
     spr.drawString(tmpStr3, 320 - posx, posy, GFXFF);
   }
@@ -498,108 +497,118 @@ void Board320_240::drawSceneSpeed() {
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  spr.fillCircle(290, 60, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  spr.fillCircle(290, 60, 22, TFT_BLACK);
+  spr.fillCircle(295, 60, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.fillCircle(295, 60, 22, TFT_BLACK);
   spr.setTextColor(TFT_WHITE);//(liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(MC_DATUM);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-  spr.drawString(tmpStr3, 290, 60, GFXFF);
+  spr.drawString(tmpStr3, 295, 60, GFXFF);
   // Brake lights
-  spr.fillRect(80, 240-26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-  spr.fillRect(320-80-10, 240-26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-  // Lights 
-  spr.fillRect(210, 36, 20, (liveData->params.dayLights) ? 2: 8, (liveData->params.headLights) ? TFT_GREEN: 
-    (liveData->params.autoLights) ? TFT_YELLOW: 
-    (liveData->params.dayLights) ? TFT_BLUE: 
-      TFT_BLACK);
-  spr.fillRect(235, 36, 20, (liveData->params.dayLights) ? 2: 8, (liveData->params.headLights) ? TFT_GREEN: 
-    (liveData->params.autoLights) ? TFT_YELLOW: 
-    (liveData->params.dayLights) ? TFT_BLUE: 
-      TFT_BLACK);
+  spr.fillRect(80, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  spr.fillRect(320 - 80 - 10, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  // Lights
+  uint16_t tmpWord;
+  tmpWord = (liveData->params.headLights) ? TFT_GREEN :
+            (liveData->params.autoLights) ? TFT_YELLOW :
+            (liveData->params.dayLights) ? TFT_BLUE :
+            TFT_BLACK;
+  spr.fillRect(210, 36, 20, ((liveData->params.dayLights) ? 2 : 8), tmpWord);
+  spr.fillRect(235, 36, 20, ((liveData->params.dayLights) ? 2 : 8), tmpWord);
+  // Min.Cell V
+  spr.setTextDatum(TR_DATUM);
+  sprintf(tmpStr3, "%01.02f", liveData->params.batCellMinV);
+  spr.drawString(tmpStr3, 260, 60, GFXFF);
 
   // Soc%, bat.kWh
-  spr.setFreeFont(&Orbitron_Light_32);
   spr.setTextColor(TFT_WHITE);
-  spr.setTextDatum(TR_DATUM);
-  sprintf(tmpStr3, "%01.00f%%", liveData->params.socPerc);
-  spr.drawString(tmpStr3, 320, 94, GFXFF);
+  spr.setTextDatum(BR_DATUM);
+  sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
+  spr.setFreeFont(&Orbitron_Light_32);
+  spr.drawString(tmpStr3, 285, 165, GFXFF);
+  spr.setFreeFont(&Orbitron_Light_24);
+  spr.drawString("%", 320, 155, GFXFF);
   if (liveData->params.socPerc > 0) {
     float capacity = liveData->params.batteryTotalAvailableKWh * (liveData->params.socPerc / 100);
     // calibration for Niro/Kona, real available capacity is ~66.5kWh, 0-10% ~6.2kWh, 90-100% ~7.2kWh
     if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) {
       capacity = (liveData->params.socPerc * 0.615) * (1 + (liveData->params.socPerc * 0.0008));
     }
-    sprintf(tmpStr3, "%01.01f", capacity);
-    spr.drawString(tmpStr3, 320, 129, GFXFF);
-    spr.drawString("kWh", 320, 164, GFXFF);
+    spr.setFreeFont(&Orbitron_Light_32);
+    sprintf(tmpStr3, "%01.00f", capacity);
+    spr.drawString(tmpStr3, 285, 200, GFXFF);
+    spr.setFreeFont(&Orbitron_Light_24);
+    sprintf(tmpStr3, ".%d", int(10 * (capacity - (int)capacity)));
+    spr.drawString(tmpStr3, 320, 200, GFXFF);
+    spr.setTextColor(TFT_SILVER);
+    spr.drawString("kWh", 320, 174, 2);
   }
 }
 
 void Board320_240::drawSceneHud() {
 
-    float batColor;
-    
-    // FULL brigtness
-    setBrightness(100);
-    
-     // Change rotation to vertical & mirror
-    if (tft.getRotation() != 7) {
-      tft.setRotation(7);
-      tft.fillScreen(TFT_BLACK);
+  float batColor;
+
+  // FULL brigtness
+  setBrightness(100);
+
+  // Change rotation to vertical & mirror
+  if (tft.getRotation() != 7) {
+    tft.setRotation(7);
+    tft.fillScreen(TFT_BLACK);
+  }
+
+  if (liveData->commConnected && firstReload < 3) {
+    tft.fillScreen(TFT_BLACK);
+    firstReload++;
+  }
+
+  tft.setTextDatum(TR_DATUM); // top-right alignment
+  tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
+
+  // Draw speed
+  tft.setTextSize(3);
+  sprintf(tmpStr3, "0");
+  if (liveData->params.speedKmh > 10) {
+    if (liveData->params.speedKmh != lastSpeedKmh) {
+      tft.fillRect(0, 210, 320, 30, TFT_BLACK);
+      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+      lastSpeedKmh = liveData->params.speedKmh;
     }
-
-    if (liveData->commConnected && firstReload < 3) {
-      tft.fillScreen(TFT_BLACK);
-      firstReload++;
-    }
-
-    tft.setTextDatum(TR_DATUM); // top-right alignment
-    tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
-
-    // Draw speed
-    tft.setTextSize(3);
+  }
+  else
+  {
     sprintf(tmpStr3, "0");
-    if (liveData->params.speedKmh > 10) {
-      if (liveData->params.speedKmh != lastSpeedKmh) {
-        tft.fillRect(0, 210, 320, 30, TFT_BLACK);
-        sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
-        lastSpeedKmh = liveData->params.speedKmh;
-      }
-    }
-    else
-    {
-      sprintf(tmpStr3, "0");
-    }
-    tft.drawString(tmpStr3, 320, 0, 7);
+  }
+  tft.drawString(tmpStr3, 320, 0, 7);
 
-    // Draw power kWh/100km (>25kmh) else kW
-    tft.setTextSize(1);
-    if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0) {
-      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.batPowerKwh100));
-    }
-    else {
-      sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
-    }
-    tft.fillRect(181, 149, 150, 50, TFT_BLACK);
-    tft.drawString(tmpStr3, 320, 150, 7);
-    
-    // Draw soc%
-    sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
-    tft.drawString(tmpStr3, 160 , 150, 7);
+  // Draw power kWh/100km (>25kmh) else kW
+  tft.setTextSize(1);
+  if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0) {
+    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.batPowerKwh100));
+  }
+  else {
+    sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
+  }
+  tft.fillRect(181, 149, 150, 50, TFT_BLACK);
+  tft.drawString(tmpStr3, 320, 150, 7);
 
-    // Cold gate battery
-    batColor = (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED;
-    tft.fillRect(0, 70, 50, 140, batColor);
-    tft.fillRect(15, 60, 20, 10, batColor);
-    tft.setTextColor(TFT_WHITE, batColor);
-    tft.setFreeFont(&Roboto_Thin_24);
-    tft.setTextDatum(MC_DATUM);
-    sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-    tft.drawString(tmpStr3, 25, 180, GFXFF);
+  // Draw soc%
+  sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
+  tft.drawString(tmpStr3, 160 , 150, 7);
 
-    // Brake lights
-    tft.fillRect(0, 215, 320, 25, (liveData->params.brakeLights) ? TFT_DARKRED : TFT_BLACK);
+  // Cold gate battery
+  batColor = (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED;
+  tft.fillRect(0, 70, 50, 140, batColor);
+  tft.fillRect(15, 60, 20, 10, batColor);
+  tft.setTextColor(TFT_WHITE, batColor);
+  tft.setFreeFont(&Roboto_Thin_24);
+  tft.setTextDatum(MC_DATUM);
+  sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
+  tft.drawString(tmpStr3, 25, 180, GFXFF);
+
+  // Brake lights
+  tft.fillRect(0, 215, 320, 25, (liveData->params.brakeLights) ? TFT_DARKRED : TFT_BLACK);
 }
 
 /**
@@ -858,9 +867,9 @@ void Board320_240::drawSceneChargingGraph() {
   //
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.coolingWaterTempC != -100) {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"), 
-      liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode),
-      liveData->celsius2temperature(liveData->params.coolingWaterTempC));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"),
+            liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode),
+            liveData->celsius2temperature(liveData->params.coolingWaterTempC));
     spr.setTextColor(TFT_PINK);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
@@ -1347,8 +1356,7 @@ void Board320_240::redrawScreen() {
         if (liveData->params.displayScreenAutoMode != SCREEN_CELLS)
           liveData->params.displayScreenAutoMode = SCREEN_CELLS;
         drawSceneBatteryCells();
-      } else
-      if (liveData->params.speedKmh > 5) {
+      } else if (liveData->params.speedKmh > 5) {
         if (liveData->params.displayScreenAutoMode != SCREEN_SPEED)
           liveData->params.displayScreenAutoMode = SCREEN_SPEED;
         drawSceneSpeed();
@@ -1420,36 +1428,54 @@ void Board320_240::redrawScreen() {
   if (liveData->params.sim800l_enabled) {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) {
       spr.fillRect(127, 7, 7, 7,
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ?
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ?
-                    TFT_GREEN   /* last request was 200 OK */ :
-                    TFT_YELLOW  /* data sent but response timed out */ :
-                    TFT_RED     /* failed to send data */
+                   (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ?
+                   (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ?
+                   TFT_GREEN   /* last request was 200 OK */ :
+                   TFT_YELLOW  /* data sent but response timed out */ :
+                   TFT_RED     /* failed to send data */
                   );
     } else if (liveData->params.displayScreen != SCREEN_BLANK) {
       spr.fillRect(308, 0, 5, 5,
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ?
-                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ?
-                    TFT_GREEN   /* last request was 200 OK */ :
-                    TFT_YELLOW  /* data sent but response timed out */ :
-                    TFT_RED     /* failed to send data */
+                   (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ?
+                   (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ?
+                   TFT_GREEN   /* last request was 200 OK */ :
+                   TFT_YELLOW  /* data sent but response timed out */ :
+                   TFT_RED     /* failed to send data */
                   );
     }
   }
 
   // Door status
-  if (liveData->params.trunkDoorOpen)
-    spr.fillRect(20, 0, 320 - 40, 20, TFT_YELLOW);
-  if (liveData->params.leftFrontDoorOpen)
-    spr.fillRect(0, 20, 20, 98, TFT_YELLOW);
-  if (liveData->params.rightFrontDoorOpen)
-    spr.fillRect(0, 122, 20, 98, TFT_YELLOW);
-  if (liveData->params.leftRearDoorOpen)
-    spr.fillRect(320 - 20, 20, 20, 98, TFT_YELLOW);
-  if (liveData->params.rightRearDoorOpen)
-    spr.fillRect(320 - 20, 122, 20, 98, TFT_YELLOW);
-  if (liveData->params.hoodDoorOpen)
-    spr.fillRect(20, 240 - 20, 320 - 40, 20, TFT_YELLOW);
+  if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) {
+    if (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen || liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen) {
+      spr.fillRect(40, 40, 50, 90, 0x4208);
+      if (liveData->params.trunkDoorOpen)
+        spr.fillRect(45, 36, 40, 20, TFT_GOLD);
+      if (liveData->params.leftFrontDoorOpen)
+        spr.fillRect(20, 60, 20, 4, TFT_GOLD);
+      if (liveData->params.rightFrontDoorOpen)
+        spr.fillRect(90, 60, 20, 4, TFT_GOLD);
+      if (liveData->params.leftRearDoorOpen)
+        spr.fillRect(20, 90, 20, 4, TFT_GOLD);
+      if (liveData->params.rightRearDoorOpen)
+        spr.fillRect(90, 90, 20, 4, TFT_GOLD);
+      if (liveData->params.hoodDoorOpen)
+        spr.fillRect(45, 120, 40, 15, TFT_GOLD);
+    }
+  } else {
+    if (liveData->params.trunkDoorOpen)
+      spr.fillRect(20, 0, 320 - 40, 10, TFT_GOLD);
+    if (liveData->params.leftFrontDoorOpen)
+      spr.fillRect(0, 20, 10, 98, TFT_GOLD);
+    if (liveData->params.rightFrontDoorOpen)
+      spr.fillRect(0, 122, 10, 98, TFT_GOLD);
+    if (liveData->params.leftRearDoorOpen)
+      spr.fillRect(320 - 10, 20, 10, 98, TFT_GOLD);
+    if (liveData->params.rightRearDoorOpen)
+      spr.fillRect(320 - 10, 122, 10, 98, TFT_GOLD);
+    if (liveData->params.hoodDoorOpen)
+      spr.fillRect(20, 240 - 10, 320 - 40, 10, TFT_GOLD);
+  }
 
   // BLE not connected
   if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4) {
@@ -1859,7 +1885,7 @@ bool Board320_240::sim800lLoop() {
     syslog->print("HTTP POST OK: ");
     syslog->println(sim800l->getDataReceived());
     liveData->params.sim800l_lastOkReceiveTime = liveData->params.currentTime;
-  } else if(rc != 1 && rc != 0) {
+  } else if (rc != 1 && rc != 0) {
     syslog->print("HTTP POST error: ");
     syslog->println(rc);
   }

@@ -463,7 +463,7 @@ void CarHyundaiIoniq::loadTestData() {
   // ATSH7C6
   liveData->currentAtshRequest = "ATSH7C6";
   // 22b002
-  liveData->commandRequest = "22b002";
+  liveData->commandRequest = "22B002";
   liveData->responseRowMerged = "62B002E000000000AA003B0B0000000000000000";
   parseRowMerged();
 

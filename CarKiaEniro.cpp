@@ -530,7 +530,7 @@ void CarKiaEniro::loadTestData() {
   // ATSH7C6
   liveData->currentAtshRequest = "ATSH7C6";
   // 22b002
-  liveData->commandRequest = "22b002";
+  liveData->commandRequest = "22B002";
   liveData->responseRowMerged = "62B002E0000000FFB400330B0000000000000000";
   parseRowMerged();
 
@@ -596,6 +596,17 @@ void CarKiaEniro::loadTestData() {
   liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
+  // DEMO DATA
+  liveData->params.brakeLights = true;
+  liveData->params.headLights = true;
+  liveData->settings.sdcardEnabled = 1;
+  liveData->params.queueLoopCounter = 1;
+  liveData->params.trunkDoorOpen = true;
+  liveData->params.leftFrontDoorOpen = true;
+  liveData->params.rightFrontDoorOpen = true;
+  liveData->params.leftRearDoorOpen = true;
+  liveData->params.rightRearDoorOpen = true;
+  liveData->params.hoodDoorOpen = true;
 }
 
 /**
