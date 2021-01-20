@@ -19,7 +19,8 @@ Required libraries
 - TFT_eSPI
 - ESP32_AnalogWrite
 - esp32-micro-sdcard (arduino-cli)
-- TinyGPSPlus (m5stack GPS)
+- TinyGPSPlus (m5stack GPS) https://github.com/mikalhart/TinyGPSPlus
+- INA3221 https://github.com/switchdoclabs/SDL_Arduino_INA3221
 
 Configure TFT eSPI
 
