@@ -489,7 +489,7 @@ void Board320_240::drawSceneSpeed() {
   // Bottom 2 numbers with charged/discharged kWh from start
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextColor(TFT_WHITE);
-  posx = 5;
+  posx = 0;
   posy = 5;
   spr.setTextDatum(TL_DATUM);
   sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
@@ -521,13 +521,24 @@ void Board320_240::drawSceneSpeed() {
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  spr.fillCircle(295, 60, 25, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  spr.fillCircle(295, 60, 22, TFT_BLACK);
+  spr.fillRect(210, 36, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 90, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   spr.setTextColor(TFT_WHITE);//(liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
   spr.setFreeFont(&Roboto_Thin_24);
-  spr.setTextDatum(MC_DATUM);
-  sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-  spr.drawString(tmpStr3, 295, 60, GFXFF);
+  spr.setTextDatum(TR_DATUM);
+  sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
+  spr.drawString(tmpStr3, 320, 44, GFXFF);
+  sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
+  spr.drawString(tmpStr3, 320, 65, GFXFF);
+  // Min.Cell V
+  spr.setTextDatum(TL_DATUM);
+  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0)? TFT_RED: TFT_WHITE);
+  sprintf(tmpStr3, "%01.02fV", liveData->params.batCellMaxV);
+  spr.drawString(tmpStr3, 210, 44, GFXFF);
+  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0)? TFT_RED: TFT_WHITE);
+  sprintf(tmpStr3, "%01.02fV", liveData->params.batCellMinV);
+  spr.drawString(tmpStr3, 210, 65, GFXFF);
+
   // Brake lights
   spr.fillRect(80, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
   spr.fillRect(320 - 80 - 10, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
@@ -537,15 +548,11 @@ void Board320_240::drawSceneSpeed() {
             (liveData->params.autoLights) ? TFT_YELLOW :
             (liveData->params.dayLights) ? TFT_BLUE :
             TFT_BLACK;
-  spr.fillRect(210, 36, 20, ((liveData->params.dayLights) ? 2 : 8), tmpWord);
-  spr.fillRect(235, 36, 20, ((liveData->params.dayLights) ? 2 : 8), tmpWord);
-  // Min.Cell V
-  spr.setTextDatum(TR_DATUM);
-  sprintf(tmpStr3, "%01.02f", liveData->params.batCellMinV);
-  spr.drawString(tmpStr3, 260, 60, GFXFF);
+  spr.fillRect(145, 26, 20, 4, tmpWord);
+  spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor(TFT_WHITE);
+  spr.setTextColor((liveData->params.socPerc <= 15)? TFT_RED: (liveData->params.socPerc > 85)? TFT_YELLOW: TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
@@ -558,6 +565,7 @@ void Board320_240::drawSceneSpeed() {
     if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) {
       capacity = (liveData->params.socPerc * 0.615) * (1 + (liveData->params.socPerc * 0.0008));
     }
+    spr.setTextColor(TFT_WHITE);
     spr.setFreeFont(&Orbitron_Light_32);
     sprintf(tmpStr3, "%01.00f", capacity);
     spr.drawString(tmpStr3, 285, 200, GFXFF);
@@ -695,7 +703,7 @@ void Board320_240::drawSceneBatteryCells() {
     if (liveData->params.cellVoltage[i] == maxVal && minVal != maxVal)
       spr.setTextColor(TFT_GREEN);
     // Battery cell imbalance detetection
-    if (liveData->params.cellVoltage[i] > 2.0 && liveData->params.cellVoltage[i] < 3.0)
+    if (liveData->params.cellVoltage[i] > 1.5 && liveData->params.cellVoltage[i] < 3.0)
       spr.setTextColor(TFT_WHITE, TFT_RED);
     spr.drawString(tmpStr3, posx, posy, 2);
   }
@@ -1395,7 +1403,7 @@ void Board320_240::redrawScreen() {
   switch (liveData->params.displayScreen) {
     // 1. Auto mode = >5kpm Screen 3 - speed, other wise basic Screen2 - Main screen, if charging then Screen 5 Graph
     case SCREEN_AUTO:
-      if (liveData->params.batCellMinV > 2.0 && liveData->params.batCellMinV < 3.0) {
+      if (liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) {
         if (liveData->params.displayScreenAutoMode != SCREEN_CELLS)
           liveData->params.displayScreenAutoMode = SCREEN_CELLS;
         drawSceneBatteryCells();
