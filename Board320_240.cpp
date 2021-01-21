@@ -1970,7 +1970,7 @@ bool Board320_240::sim800lSetup() {
   return true;
 }
 
-bool Board320_240::sim800lLoop() {
+void Board320_240::sim800lLoop() {
   if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime) {
     liveData->params.lastDataSent = liveData->params.currentTime;
     sim800lSendData();
