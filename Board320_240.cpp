@@ -531,8 +531,8 @@ void Board320_240::drawSceneSpeed() {
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
   spr.drawString(tmpStr3, 320, 65, GFXFF);
   if (liveData->params.motorTempC != -100) {
-    sprintf(tmpStr3, "m:%01.00f/%01.00f", liveData->celsius2temperature(liveData->params.inverterTempC, liveData->celsius2temperature(liveData->params.motorTempC));
-            spr.drawString(tmpStr3, 320, 95, GFXFF);
+    sprintf(tmpStr3, "m:%01.00f/%01.00f", liveData->celsius2temperature(liveData->params.inverterTempC), liveData->celsius2temperature(liveData->params.motorTempC));
+    spr.drawString(tmpStr3, 320, 95, GFXFF);
   }
   // Min.Cell V
   spr.setTextDatum(TR_DATUM);
