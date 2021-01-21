@@ -109,7 +109,7 @@ void Board320_240::afterSetup() {
   }
 
   // Init Voltmeter
-  if(liveData->settings.voltmeterEnabled == 1) {
+  if (liveData->settings.voltmeterEnabled == 1) {
     ina3221.begin();
   }
 
@@ -521,23 +521,27 @@ void Board320_240::drawSceneSpeed() {
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  spr.fillRect(210, 36, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  spr.fillRect(210, 90, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
-  spr.setTextColor(TFT_WHITE);//(liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 36, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ?  ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 90, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ?  ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  spr.setTextColor(TFT_WHITE);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
   spr.drawString(tmpStr3, 320, 44, GFXFF);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
   spr.drawString(tmpStr3, 320, 65, GFXFF);
+  if (liveData->params.motorTempC != -100) {
+    sprintf(tmpStr3, "m:%01.00f/%01.00f", liveData->celsius2temperature(liveData->params.inverterTempC, liveData->celsius2temperature(liveData->params.motorTempC));
+            spr.drawString(tmpStr3, 320, 95, GFXFF);
+  }
   // Min.Cell V
-  spr.setTextDatum(TL_DATUM);
-  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0)? TFT_RED: TFT_WHITE);
+  spr.setTextDatum(TR_DATUM);
+  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, "%01.02fV", liveData->params.batCellMaxV);
-  spr.drawString(tmpStr3, 210, 44, GFXFF);
-  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0)? TFT_RED: TFT_WHITE);
+  spr.drawString(tmpStr3, 280, 44, GFXFF);
+  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, "%01.02fV", liveData->params.batCellMinV);
-  spr.drawString(tmpStr3, 210, 65, GFXFF);
+  spr.drawString(tmpStr3, 280, 65, GFXFF);
 
   // Brake lights
   spr.fillRect(80, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
@@ -552,7 +556,7 @@ void Board320_240::drawSceneSpeed() {
   spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15)? TFT_RED: (liveData->params.socPerc > 85)? TFT_YELLOW: TFT_GREEN);
+  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 85) ? TFT_YELLOW : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
@@ -943,7 +947,7 @@ void Board320_240::drawSceneChargingGraph() {
     posy++;
   }
   if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) {
-    sprintf(tmpStr1, ((liveData->params.chargerACconnected) ? "AC=%d" : "DC=%d"), ((liveData->params.chargingOn) ? 1: 0));
+    sprintf(tmpStr1, ((liveData->params.chargerACconnected) ? "AC=%d" : "DC=%d"), ((liveData->params.chargingOn) ? 1 : 0));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX),  zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
@@ -1691,15 +1695,15 @@ void Board320_240::mainLoop() {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
     float tmpAuxPerc;
-    if(liveData->params.ignitionOn) {
-      tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V 
+    if (liveData->params.ignitionOn) {
+      tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V
     } else {
       tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
     }
 
-    if(tmpAuxPerc > 100) {
+    if (tmpAuxPerc > 100) {
       liveData->params.auxPerc = 100;
-    } else if(tmpAuxPerc < 0) {
+    } else if (tmpAuxPerc < 0) {
       liveData->params.auxPerc = 0;
     } else {
       liveData->params.auxPerc = tmpAuxPerc;
