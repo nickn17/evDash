@@ -562,7 +562,7 @@ void Board320_240::drawSceneSpeed() {
   spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 85) ? TFT_YELLOW : TFT_GREEN);
+  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 91) ? TFT_YELLOW : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
