@@ -23,16 +23,13 @@ Board
 - optional M5 GPS NEO-M8N (with external atenna)
   
 or 
-- older device LILYGO TTGO T4 v1.3 (~USD $30) 
+- older device LILYGO TTGO T4 v1.3 (~USD $30)   DEPRECATED device
   https://www.banggood.com/LILYGO-TTGO-T-Watcher-BTC-Ticker-ESP32-For-Bitcoin-Price-Program-4M-SPI-Flash-Psram-LCD-Display-Module-p-1345292.html
-  I RECOMMEND TO REMOVE LION BATTERY DUE TO HIGH SUMMER TEMPERATURES
 
 OBD2 adapter
-- Supported is only this model... Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30)
-
-Others
-- 3D printed case for TTGO-T4
-  https://www.thingiverse.com/thing:3099913
+- For nonstop use we !strongly! recommend to use direct connection to CAN (2 pins on OBD2 connector).
+- It's due to security! Anybody can control your car via OBD2 and BT/BLE adapters are not secured well (unlock doors, ACC off/on, etc).
+- Supported is only this model... Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30). We can add another BLE adapter if you provide 3x UUID (service/notify,read/write)
 
 ## Quick installation with ESP32 flash tool
 
