@@ -496,7 +496,7 @@ void Board320_240::drawSceneSpeed() {
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextColor(TFT_WHITE);
   posx = 0;
-  posy = 5;
+  posy = 0;
   spr.setTextDatum(TL_DATUM);
   sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
   spr.drawString(tmpStr3, posx, posy, GFXFF);
@@ -527,27 +527,27 @@ void Board320_240::drawSceneSpeed() {
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  spr.fillRect(210, 36, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ?  ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
-  spr.fillRect(210, 90, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ?  ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 55, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ?  ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 120, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ?  ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
   spr.setTextColor(TFT_WHITE);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
-  spr.drawString(tmpStr3, 320, 44, GFXFF);
+  spr.drawString(tmpStr3, 320, 66, GFXFF);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
-  spr.drawString(tmpStr3, 320, 65, GFXFF);
+  spr.drawString(tmpStr3, 320, 92, GFXFF);
   if (liveData->params.motorTempC != -100) {
-    sprintf(tmpStr3, "m %01.00f / %01.00f", liveData->celsius2temperature(liveData->params.inverterTempC), liveData->celsius2temperature(liveData->params.motorTempC));
-    spr.drawString(tmpStr3, 320, 98, GFXFF);
+    sprintf(tmpStr3, "i%01.00f / m%01.00f", liveData->celsius2temperature(liveData->params.inverterTempC), liveData->celsius2temperature(liveData->params.motorTempC));
+    spr.drawString(tmpStr3, 320, 26, GFXFF);
   }
   // Min.Cell V
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, "%01.02fV", liveData->params.batCellMaxV);
-  spr.drawString(tmpStr3, 280, 44, GFXFF);
+  spr.drawString(tmpStr3, 280, 66, GFXFF);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, "%01.02fV", liveData->params.batCellMinV);
-  spr.drawString(tmpStr3, 280, 65, GFXFF);
+  spr.drawString(tmpStr3, 280, 92, GFXFF);
 
   // Brake lights
   spr.fillRect(80, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
@@ -1464,8 +1464,8 @@ void Board320_240::redrawScreen() {
   // SDCARD recording
   /*liveData->params.sdcardRecording*/
   if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1) {
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 145 : 310, 10, 4, TFT_BLACK);
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 145 : 310, 10, 3,
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 174 : 310, 10, 4, TFT_BLACK);
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 174 : 310, 10, 3,
                    (liveData->params.sdcardInit == 1) ?
                    (liveData->params.sdcardRecording) ?
                    (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1477,7 +1477,7 @@ void Board320_240::redrawScreen() {
   }
   // GPS state
   if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
-    spr.drawCircle(160, 10, 5, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+    spr.drawCircle(160, 10, 8, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
     spr.setTextSize(1);
     spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
