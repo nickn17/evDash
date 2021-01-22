@@ -1,6 +1,12 @@
 # evDash (old enirodashboard)
 
-Supported devices
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! Use it at your own risk !!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+evDash Discord server: https://discord.gg/rfAvH7xzTr
+
+Supported hardware
 1. M5STACK CORE1 IOT Development Kit (best option)
 2. LILYGO TTGO T4 v1.3 (!!! limited support, no SDcard/GSM/GPS/CAN module)
 
@@ -9,17 +15,12 @@ Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV, Kia Niro Phev 8.9kWh
 Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 adapter is required or CAN (m5 COMMU module).
 See Release notes, quick installation via flash tool bellow. 
 
-Use it at your own risk!
-
-evDash Discord server: https://discord.gg/rfAvH7xzTr
-
 ## Required hardware
 Board
 - M5STACK CORE1 IOT Development Kit(~EUR 35)
   https://rlx.sk/sk/m5stack/7285-esp32-basic-core-iot-development-kit-m5-k001-m5stack.html
 - optional M5 COMMU (CAN) module
 - optional M5 GPS NEO-M8N (with external atenna)
-- optional M5 SIM800L GSM module (dev)
   
 or 
 - older device LILYGO TTGO T4 v1.3 (~USD $30) 
