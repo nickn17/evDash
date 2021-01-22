@@ -64,7 +64,7 @@ class Board320_240 : public BoardInterface {
     void syncTimes(time_t newTime);
     // SIM800L
     bool sim800lSetup();
-    bool sim800lLoop();
+    void sim800lLoop();
     bool sim800lSendData();
     // Basic GUI
     void setBrightness(byte lcdBrightnessPerc) override;

@@ -53,8 +53,8 @@
 #define SIM800L_RCV_BUFFER 128  // Receive buffer
 
 // DEEP SLEEP
-#define TIME_TO_SLEEP 60    // Sleep time in secs
-#define SHUTDOWN_AFTER 48   // Shutdown after X hours of sleep
+#define TIME_TO_SLEEP 30    // Sleep time in secs
+#define SHUTDOWN_AFTER 72   // Shutdown after X hours of sleep
 
 // MENU ITEM
 typedef struct {

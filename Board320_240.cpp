@@ -12,6 +12,7 @@
 #include "SIM800L.h"
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
+RTC_DATA_ATTR unsigned int sleepCount = 0;
 
 /**
    Init board
@@ -47,6 +48,8 @@ void Board320_240::afterSetup() {
   syslog->println(bootCount);
   syslog->print("SleepMode: ");
   syslog->println(liveData->settings.sleepModeLevel);
+  syslog->print("Continuous sleep count: ");
+  syslog->println(sleepCount);
 
   if (liveData->settings.sleepModeLevel >= 2 && !skipAdapterScan()) {
     // Init comm device
@@ -54,6 +57,7 @@ void Board320_240::afterSetup() {
     BoardInterface::afterSetup();
     // Wake or continue with sleeping
     afterSleep();
+    sleepCount = 0;
   }
 
   // Init display
@@ -159,12 +163,14 @@ void Board320_240::goToSleep() {
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
 
-  if (liveData->settings.sleepModeLevel == 2 && bootCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600) {
+  if (liveData->settings.sleepModeLevel == 2 && sleepCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600) {
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
     syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
   } else {
     syslog->println("Going to sleep for ever! (shutdown)");
   }
+
+  ++sleepCount;
 
   syslog->flush();
   delay(1000);
@@ -1970,7 +1976,7 @@ bool Board320_240::sim800lSetup() {
   return true;
 }
 
-bool Board320_240::sim800lLoop() {
+void Board320_240::sim800lLoop() {
   if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime) {
     liveData->params.lastDataSent = liveData->params.currentTime;
     sim800lSendData();
