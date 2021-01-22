@@ -1461,11 +1461,22 @@ void Board320_240::redrawScreen() {
   if (liveData->params.displayScreen == SCREEN_HUD)
     return;
 
+  // GPS state
+  if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
+    spr.fillCircle(160, 10, 8, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+    spr.fillCircle(160, 10, 6, TFT_BLACK);
+    spr.setTextSize(1);
+    spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE);
+    spr.setTextDatum(TL_DATUM);
+    sprintf(tmpStr1, "%d", liveData->params.gpsSat);
+    spr.drawString(tmpStr1, 174, 2, 2);
+  }
+
   // SDCARD recording
   /*liveData->params.sdcardRecording*/
   if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1) {
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 174 : 310, 10, 4, TFT_BLACK);
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 174 : 310, 10, 3,
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
+    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
                    (liveData->params.sdcardInit == 1) ?
                    (liveData->params.sdcardRecording) ?
                    (strlen(liveData->params.sdcardFilename) != 0) ?
@@ -1474,15 +1485,6 @@ void Board320_240::redrawScreen() {
                    TFT_ORANGE /* sdcard init ready but recording not started*/ :
                    TFT_YELLOW /* failed to initialize sdcard */
                   );
-  }
-  // GPS state
-  if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)) {
-    spr.drawCircle(160, 10, 8, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
-    spr.setTextSize(1);
-    spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE);
-    spr.setTextDatum(TL_DATUM);
-    sprintf(tmpStr1, "%d", liveData->params.gpsSat);
-    spr.drawString(tmpStr1, 174, 2, 2);
   }
 
   // SIM800L status
