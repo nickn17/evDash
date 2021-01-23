@@ -250,6 +250,11 @@ typedef struct {
   float voltmeterSleep;
   float voltmeterWakeUp;
   byte voltmeterBasedSleep; // 0 - off, 1 - on
+  // === settings version 9
+  uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds
+  uint16_t sleepModeIntervalSec; // In sleep, check CANbus / Volmeter every X seconds
+  uint16_t sleepModeShutdownHrs; // 0 - disabled # shutdown after X hours of sleep
+  uint16_t remoteUploadModuleType; // 0 - SIM800L
   //
 } SETTINGS_STRUC;
 

@@ -46,15 +46,10 @@
 
 // SIM800L
 #define SIM800L_RST 5          // SIM800L Reset Pin
-#define SIM800L_TIMER 60       // Sent data every X seconds
 #define SIM800L_SND_TIMEOUT 5  // Send data timeout in seconds
-#define SIM800L_RCV_TIMEOUT 30 // Receive data timeout in seconds
+#define SIM800L_RCV_TIMEOUT 20 // Receive data timeout in seconds
 #define SIM800L_INT_BUFFER 768 // Internal buffer
 #define SIM800L_RCV_BUFFER 128 // Receive buffer
-
-// DEEP SLEEP
-#define TIME_TO_SLEEP 30  // Sleep time in secs
-#define SHUTDOWN_AFTER 72 // Shutdown after X hours of sleep
 
 // MENU ITEM
 typedef struct
@@ -80,7 +75,6 @@ typedef struct
 #define MENU_ADAPTER_BT3 503
 //
 #define MENU_WIFI 301
-#define MENU_GPRS 302
 #define MENU_NTP 303
 #define MENU_SDCARD 304
 #define MENU_SCREEN_ROTATION 305
@@ -115,3 +109,10 @@ typedef struct
 #define MENU_VOLTMETER_WAKEUPVOL 3154
 #define MENU_VOLTMETER_CUTOFFVOL 3155
 //
+#define MENU_SLEEP_MODE_MODE 3111
+#define MENU_SLEEP_MODE_WAKEINTERVAL 3112
+#define MENU_SLEEP_MODE_SHUTDOWNHRS 3113
+//
+#define MENU_REMOTE_UPLOAD_UART 3091
+#define MENU_REMOTE_UPLOAD_TYPE 3092
+#define MENU_REMOTE_UPLOAD_INTERVAL 3093

@@ -182,10 +182,11 @@ void Board320_240::goToSleep()
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
 
-  if (liveData->settings.sleepModeLevel == 2 && sleepCount * TIME_TO_SLEEP <= SHUTDOWN_AFTER * 3600)
+  if (liveData->settings.sleepModeLevel == 2 && sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600
+      || liveData->settings.sleepModeShutdownHrs == 0)
   {
-    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
-    syslog->println("Going to sleep for " + String(TIME_TO_SLEEP) + " seconds!");
+    esp_sleep_enable_timer_wakeup(liveData->settings.sleepModeIntervalSec * 1000000ULL);
+    syslog->println("Going to sleep for " + String(liveData->settings.sleepModeIntervalSec) + " seconds!");
   }
   else
   {
@@ -1248,9 +1249,27 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
       WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
       }
       break;*/
-  case MENU_GPRS:
+  case MENU_REMOTE_UPLOAD:
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);
     suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_UART:
+    sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);
+    suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_TYPE:
+    switch (liveData->settings.remoteUploadModuleType)
+    {
+    case 0:
+      suffix = "[SIM800L]";
+      break;
+    default:
+      suffix = "[unknown]";
+    }
+    break;
+  case MENU_REMOTE_UPLOAD_INTERVAL:
+    sprintf(tmpStr1, "[%d sec]", liveData->settings.remoteUploadIntervalSec);
+    suffix = tmpStr1;
     break;
   case MENU_SDCARD:
     sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024));
@@ -1319,6 +1338,33 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     default:
       suffix = "[unknown]";
     }
+    break;
+  case MENU_SLEEP_MODE_MODE:
+    switch (liveData->settings.sleepModeLevel)
+    {
+    case 0:
+      suffix = "[off]";
+      break;
+    case 1:
+      suffix = "[screen only]";
+      break;
+    case 2:
+      suffix = "[deep sleep]";
+      break;
+    case 3:
+      suffix = "[shutdown]";
+      break;
+    default:
+      suffix = "[unknown]";
+    }
+    break;
+  case MENU_SLEEP_MODE_WAKEINTERVAL:
+    sprintf(tmpStr1, "[%d sec]", liveData->settings.sleepModeIntervalSec);
+    suffix = tmpStr1;
+    break;
+  case MENU_SLEEP_MODE_SHUTDOWNHRS:
+    sprintf(tmpStr1, "[%d hrs]", liveData->settings.sleepModeShutdownHrs);
+    suffix = tmpStr1;
     break;
   case MENU_GPS:
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);
@@ -1614,8 +1660,18 @@ void Board320_240::menuItemClick()
       showParentMenu = true;
       break;
     // SleepMode off/on
-    case MENU_SLEEP_MODE:
+    case MENU_SLEEP_MODE_MODE:
       liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == 3) ? 0 : liveData->settings.sleepModeLevel + 1;
+      showMenu();
+      return;
+      break;
+    case MENU_SLEEP_MODE_WAKEINTERVAL:
+      liveData->settings.sleepModeIntervalSec = (liveData->settings.sleepModeIntervalSec == 600) ? 30 : liveData->settings.sleepModeIntervalSec + 30;
+      showMenu();
+      return;
+      break;
+    case MENU_SLEEP_MODE_SHUTDOWNHRS:
+      liveData->settings.sleepModeShutdownHrs = (liveData->settings.sleepModeShutdownHrs == 168) ? 0 : liveData->settings.sleepModeShutdownHrs + 12;
       showMenu();
       return;
       break;
@@ -1638,8 +1694,18 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_GPRS:
+    case MENU_REMOTE_UPLOAD_UART:
       liveData->settings.gprsHwSerialPort = (liveData->settings.gprsHwSerialPort == 2) ? 255 : liveData->settings.gprsHwSerialPort + 1;
+      showMenu();
+      return;
+      break;
+    case MENU_REMOTE_UPLOAD_TYPE:
+      liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
+      showMenu();
+      return;
+      break;
+    case MENU_REMOTE_UPLOAD_INTERVAL:
+      liveData->settings.remoteUploadIntervalSec = (liveData->settings.remoteUploadIntervalSec == 300) ? 30 : liveData->settings.remoteUploadIntervalSec + 30;
       showMenu();
       return;
       break;
@@ -2517,7 +2583,7 @@ bool Board320_240::sim800lSetup()
 
 void Board320_240::sim800lLoop()
 {
-  if (liveData->params.lastDataSent + SIM800L_TIMER < liveData->params.currentTime)
+  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec)
   {
     liveData->params.lastDataSent = liveData->params.currentTime;
     sim800lSendData();

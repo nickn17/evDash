@@ -104,7 +104,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 8;
+  liveData->settings.settingsVersion = 9;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -220,6 +220,13 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.voltmeterCutOff = 12.0;
         liveData->tmpSettings.voltmeterSleep = 12.8;
         liveData->tmpSettings.voltmeterWakeUp = 13.0;
+      }
+      if (liveData->tmpSettings.settingsVersion == 8) {
+        liveData->tmpSettings.settingsVersion = 9;
+        liveData->tmpSettings.remoteUploadIntervalSec = 60;
+        liveData->tmpSettings.sleepModeIntervalSec = 30;
+        liveData->tmpSettings.sleepModeShutdownHrs = 72;
+        liveData->tmpSettings.remoteUploadModuleType = 0;
       }
 
       // Save upgraded structure
