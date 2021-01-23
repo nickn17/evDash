@@ -240,7 +240,7 @@ typedef struct {
   // === settings version 6
   // =================================
   byte serialConsolePort; // 255-off, 0 - hw serial (std)
-  uint8_t debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  uint8_t debugLevel; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard, 4 - GPS
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec; // every x seconds
   // === settings version 7
