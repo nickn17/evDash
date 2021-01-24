@@ -225,12 +225,12 @@ typedef struct {
   byte sdcardEnabled; // 0/1
   byte sdcardAutstartLog; // 0/1
   // GPRS SIM800L
-  byte gprsEnabled; // 0/1
-  char gprsApn[64];
+  byte gprsEnabled_deprecated; // Deprecated - Variable is free to use
+  char gprsApn[64]; // Will be used as mqtt server url in future builds
   // Remote upload
-  byte remoteUploadEnabled; // 0/1
-  char remoteApiUrl[64];
-  char remoteApiKey[32];
+  byte remoteUploadEnabled_deprecated; // Deprecated - Variable is free to use
+  char remoteApiUrl[64]; // Will be used as mqtt password in future builds
+  char remoteApiKey[32]; // Will be used as mqtt username in future builds
   //
   byte headlightsReminder;
   // === settings version 5
@@ -251,10 +251,13 @@ typedef struct {
   float voltmeterWakeUp;
   byte voltmeterBasedSleep; // 0 - off, 1 - on
   // === settings version 9
-  uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds
+  uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds (0 = disabled) // will be used as mqtt upload interval in future builds
   uint16_t sleepModeIntervalSec; // In sleep, check CANbus / Volmeter every X seconds
   uint16_t sleepModeShutdownHrs; // 0 - disabled # shutdown after X hours of sleep
   uint16_t remoteUploadModuleType; // 0 - SIM800L
+  // == settings version 10
+  uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
+  char abrpApiKey[48]; // ABRP APIkey
   //
 } SETTINGS_STRUC;
 

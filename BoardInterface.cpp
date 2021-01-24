@@ -104,7 +104,7 @@ void BoardInterface::loadSettings() {
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 9;
+  liveData->settings.settingsVersion = 10;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -132,11 +132,9 @@ void BoardInterface::loadSettings() {
   liveData->settings.ntpDaySaveTime = 0;
   liveData->settings.sdcardEnabled = 0;
   liveData->settings.sdcardAutstartLog = 1;
-  liveData->settings.gprsEnabled = 0;
   tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.gprsApn, tmpStr.length() + 1);
   // Remote upload
-  liveData->settings.remoteUploadEnabled = 0;
   tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.remoteApiUrl, tmpStr.length() + 1);
   tmpStr = "not_set";
@@ -187,11 +185,9 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.ntpDaySaveTime = 0;
         liveData->tmpSettings.sdcardEnabled = 0;
         liveData->tmpSettings.sdcardAutstartLog = 1;
-        liveData->tmpSettings.gprsEnabled = 0;
         tmpStr = "internet.t-mobile.cz";
         tmpStr.toCharArray(liveData->tmpSettings.gprsApn, tmpStr.length() + 1);
         // Remote upload
-        liveData->tmpSettings.remoteUploadEnabled = 0;
         tmpStr = "http://api.example.com";
         tmpStr.toCharArray(liveData->tmpSettings.remoteApiUrl, tmpStr.length() + 1);
         tmpStr = "example";
@@ -227,6 +223,12 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.sleepModeIntervalSec = 30;
         liveData->tmpSettings.sleepModeShutdownHrs = 72;
         liveData->tmpSettings.remoteUploadModuleType = 0;
+      }
+      if (liveData->tmpSettings.settingsVersion == 9) {
+        liveData->tmpSettings.settingsVersion = 10;
+        liveData->tmpSettings.remoteUploadAbrpIntervalSec = 0;
+        tmpStr = "empty";
+        tmpStr.toCharArray(liveData->tmpSettings.abrpApiKey, tmpStr.length() + 1);
       }
 
       // Save upgraded structure
@@ -290,6 +292,7 @@ void BoardInterface::customConsoleCommand(String cmd) {
   if (key == "gprsApn") value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
+  if (key == "abrpApiKey") value.toCharArray(liveData->settings.abrpApiKey, value.length() + 1);
   if (key == "debugLevel") { 
     liveData->settings.debugLevel = value.toInt(); 
     syslog->setDebugLevel(liveData->settings.debugLevel);     

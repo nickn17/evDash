@@ -46,8 +46,8 @@
 
 // SIM800L
 #define SIM800L_RST 5          // SIM800L Reset Pin
-#define SIM800L_SND_TIMEOUT 5  // Send data timeout in seconds
-#define SIM800L_RCV_TIMEOUT 20 // Receive data timeout in seconds
+#define SIM800L_SND_TIMEOUT 4  // Send data timeout in seconds
+#define SIM800L_RCV_TIMEOUT 5  // Receive data timeout in seconds
 #define SIM800L_INT_BUFFER 768 // Internal buffer
 #define SIM800L_RCV_BUFFER 128 // Receive buffer
 
@@ -115,4 +115,5 @@ typedef struct
 //
 #define MENU_REMOTE_UPLOAD_UART 3091
 #define MENU_REMOTE_UPLOAD_TYPE 3092
-#define MENU_REMOTE_UPLOAD_INTERVAL 3093
+#define MENU_REMOTE_UPLOAD_API_INTERVAL 3093
+#define MENU_REMOTE_UPLOAD_ABRP_INTERVAL 3094

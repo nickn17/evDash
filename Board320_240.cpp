@@ -1266,9 +1266,13 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
       suffix = "[unknown]";
     }
     break;
-  case MENU_REMOTE_UPLOAD_INTERVAL:
+  case MENU_REMOTE_UPLOAD_API_INTERVAL:
     sprintf(tmpStr1, "[%d sec]", liveData->settings.remoteUploadIntervalSec);
-    suffix = tmpStr1;
+    suffix = (liveData->settings.remoteUploadIntervalSec == 0) ? "[off]" : tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
+    sprintf(tmpStr1, "[%d sec]", liveData->settings.remoteUploadAbrpIntervalSec);
+    suffix = (liveData->settings.remoteUploadAbrpIntervalSec == 0) ? "[off]" : tmpStr1;
     break;
   case MENU_SDCARD:
     sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024));
@@ -1703,8 +1707,15 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_REMOTE_UPLOAD_INTERVAL:
-      liveData->settings.remoteUploadIntervalSec = (liveData->settings.remoteUploadIntervalSec == 300) ? 30 : liveData->settings.remoteUploadIntervalSec + 30;
+    case MENU_REMOTE_UPLOAD_API_INTERVAL:
+      liveData->settings.remoteUploadIntervalSec = (liveData->settings.remoteUploadIntervalSec == 120) ? 0 : liveData->settings.remoteUploadIntervalSec + 10;
+      liveData->settings.remoteUploadAbrpIntervalSec = 0;
+      showMenu();
+      return;
+      break;
+    case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
+      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec == 120) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 10;
+      liveData->settings.remoteUploadIntervalSec = 0;
       showMenu();
       return;
       break;
@@ -2582,7 +2593,15 @@ bool Board320_240::sim800lSetup()
 
 void Board320_240::sim800lLoop()
 {
-  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec)
+  // Upload to API
+  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
+  {
+    liveData->params.lastDataSent = liveData->params.currentTime;
+    sim800lSendData();
+  }
+
+  // Upload to ABRP
+  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
     liveData->params.lastDataSent = liveData->params.currentTime;
     sim800lSendData();
@@ -2605,7 +2624,7 @@ void Board320_240::sim800lLoop()
 
 bool Board320_240::sim800lSendData()
 {
-  syslog->println("Sending data via GPRS");
+  syslog->println("Sending data to API");
 
   if (liveData->params.socPerc < 0)
   {
@@ -2645,56 +2664,127 @@ bool Board320_240::sim800lSendData()
 
   syslog->println("Start HTTP POST...");
 
-  StaticJsonDocument<768> jsonData;
+  if (liveData->settings.remoteUploadIntervalSec != 0) {
 
-  jsonData["apikey"] = liveData->settings.remoteApiKey;
-  jsonData["carType"] = liveData->settings.carType;
-  jsonData["ignitionOn"] = liveData->params.ignitionOn;
-  jsonData["chargingOn"] = liveData->params.chargingOn;
-  jsonData["socPerc"] = liveData->params.socPerc;
-  jsonData["sohPerc"] = liveData->params.sohPerc;
-  jsonData["batPowerKw"] = liveData->params.batPowerKw;
-  jsonData["batPowerAmp"] = liveData->params.batPowerAmp;
-  jsonData["batVoltage"] = liveData->params.batVoltage;
-  jsonData["auxVoltage"] = liveData->params.auxVoltage;
-  jsonData["auxAmp"] = liveData->params.auxCurrentAmp;
-  jsonData["batMinC"] = liveData->params.batMinC;
-  jsonData["batMaxC"] = liveData->params.batMaxC;
-  jsonData["batInletC"] = liveData->params.batInletC;
-  jsonData["batFanStatus"] = liveData->params.batFanStatus;
-  jsonData["speedKmh"] = liveData->params.speedKmh;
-  jsonData["odoKm"] = liveData->params.odoKm;
-  jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
-  jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
+    StaticJsonDocument<768> jsonData;
 
-  //Send GPS data via GPRS (if enabled)
-  if (liveData->settings.gpsHwSerialPort <= 2)
-  {
-    jsonData["gpsLat"] = liveData->params.gpsLat;
-    jsonData["gpsLon"] = liveData->params.gpsLon;
-    jsonData["gpsAlt"] = liveData->params.gpsAlt;
-  }
+    jsonData["apikey"] = liveData->settings.remoteApiKey;
+    jsonData["carType"] = liveData->settings.carType;
+    jsonData["ignitionOn"] = liveData->params.ignitionOn;
+    jsonData["chargingOn"] = liveData->params.chargingOn;
+    jsonData["socPerc"] = liveData->params.socPerc;
+    jsonData["sohPerc"] = liveData->params.sohPerc;
+    jsonData["batPowerKw"] = liveData->params.batPowerKw;
+    jsonData["batPowerAmp"] = liveData->params.batPowerAmp;
+    jsonData["batVoltage"] = liveData->params.batVoltage;
+    jsonData["auxVoltage"] = liveData->params.auxVoltage;
+    jsonData["auxAmp"] = liveData->params.auxCurrentAmp;
+    jsonData["batMinC"] = liveData->params.batMinC;
+    jsonData["batMaxC"] = liveData->params.batMaxC;
+    jsonData["batInletC"] = liveData->params.batInletC;
+    jsonData["batFanStatus"] = liveData->params.batFanStatus;
+    jsonData["speedKmh"] = liveData->params.speedKmh;
+    jsonData["odoKm"] = liveData->params.odoKm;
+    jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
+    jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
-  char payload[768];
-  serializeJson(jsonData, payload);
+    //Send GPS data via GPRS (if enabled)
+    if (liveData->settings.gpsHwSerialPort <= 2)
+    {
+      jsonData["gpsLat"] = liveData->params.gpsLat;
+      jsonData["gpsLon"] = liveData->params.gpsLon;
+      jsonData["gpsAlt"] = liveData->params.gpsAlt;
+    }
 
-  syslog->print("Sending payload: ");
-  syslog->println(payload);
+    char payload[768];
+    serializeJson(jsonData, payload);
 
-  syslog->print("Remote API server: ");
-  syslog->println(liveData->settings.remoteApiUrl);
+    syslog->print("Sending payload: ");
+    syslog->println(payload);
 
-  uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
-  if (rc == 200)
-  {
-    syslog->println("HTTP POST send successful");
-    liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
-  }
-  else
-  {
-    // Failed...
-    syslog->print("HTTP POST error: ");
-    syslog->println(rc);
+    syslog->print("Remote API server: ");
+    syslog->println(liveData->settings.remoteApiUrl);
+
+    uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
+    if (rc == 200)
+    {
+      syslog->println("HTTP POST send successful");
+      liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+    }
+    else
+    {
+      // Failed...
+      syslog->print("HTTP POST error: ");
+      syslog->println(rc);
+    }
+
+  } else if (liveData->settings.remoteUploadAbrpIntervalSec != 0) {
+
+    StaticJsonDocument<768> jsonData;
+
+    switch(liveData->settings.carType) {
+      case CAR_KIA_ENIRO_2020_64:     jsonData["car_model"] = "kia:niro:19:64:other"; break;
+      case CAR_HYUNDAI_KONA_2020_64:  jsonData["car_model"] = "hyundai:kona:19:64:other"; break;
+      case CAR_HYUNDAI_IONIQ_2018:    jsonData["car_model"] = "hyundai:ioniq:17:28:other"; break;
+      case CAR_KIA_ENIRO_2020_39:     jsonData["car_model"] = "kia:niro:19:39:other"; break;
+      case CAR_HYUNDAI_KONA_2020_39:  jsonData["car_model"] = "hyundai:kona:19:39:other"; break;
+      case CAR_RENAULT_ZOE:           jsonData["car_model"] = "renault:zoe:r240:22:other"; break;
+      case CAR_BMW_I3_2014:           jsonData["car_model"] = "bmw:i3:14:22:other"; break;
+      default:                        syslog->println("Car not supported by ABRP Uploader"); return false; break;
+    }
+
+    jsonData["utc"] = liveData->params.currentTime;
+    jsonData["soc"] = liveData->params.socPerc;
+    jsonData["power"] = liveData->params.batPowerKw * -1;
+    jsonData["speed"] = liveData->params.speedKmh;
+    jsonData["lat"] = liveData->params.gpsLat;
+    jsonData["lon"] = liveData->params.gpsLon;
+    jsonData["is_charging"] = (liveData->params.chargingOn) ? 1 : 0;
+    if (liveData->params.chargingOn)
+      jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
+
+    jsonData["capacity"] = liveData->params.batteryTotalAvailableKWh;
+    jsonData["kwh_charged"] = liveData->params.cumulativeEnergyChargedKWh;
+    jsonData["soh"] = liveData->params.sohPerc;
+    jsonData["elevation"] = liveData->params.gpsAlt;
+    jsonData["ext_temp"] = liveData->params.outdoorTemperature;
+    jsonData["batt_temp"] = liveData->params.batMinC;
+    jsonData["voltage"] = liveData->params.batVoltage;
+    jsonData["current"] = liveData->params.batPowerAmp * -1;
+    jsonData["odometer"] = liveData->params.odoKm;
+
+    String payload;
+    serializeJson(jsonData, payload);
+
+    String tmpStr = "api_key=32b2162f-9599-4647-8139-66e9f9528370"; // dev ApiKey
+    tmpStr.concat("&token=");
+    tmpStr.concat(liveData->settings.abrpApiKey); // User token
+    tmpStr.concat("&tlm=");
+    tmpStr.concat(payload);
+
+    tmpStr.replace("\"", "%22");
+
+    char dta[tmpStr.length() + 1];
+    tmpStr.toCharArray(dta, tmpStr.length() + 1);
+
+    syslog->print("Sending data: ");
+    syslog->println(dta);
+
+    uint16_t rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
+    if (rc == 200)
+    {
+      syslog->println("HTTP POST send successful");
+      liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+    }
+    else
+    {
+      // Failed...
+      syslog->print("HTTP POST error: ");
+      syslog->println(rc);
+    }
+
+  } else {
+    syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
   }
 
   return true;

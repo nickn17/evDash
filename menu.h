@@ -80,7 +80,8 @@ MENU_ITEM menuItemsSource[100] = {
     {MENU_REMOTE_UPLOAD * 10, MENU_REMOTE_UPLOAD, 3, "<- parent menu"},
     {MENU_REMOTE_UPLOAD_UART, MENU_REMOTE_UPLOAD, -1, "SerialConsole"},
     {MENU_REMOTE_UPLOAD_TYPE, MENU_REMOTE_UPLOAD, -1, "Module Type"},
-    {MENU_REMOTE_UPLOAD_INTERVAL, MENU_REMOTE_UPLOAD, -1, "Upload Interval"},
+    {MENU_REMOTE_UPLOAD_API_INTERVAL, MENU_REMOTE_UPLOAD, -1, "API Upload Int."},
+    {MENU_REMOTE_UPLOAD_ABRP_INTERVAL, MENU_REMOTE_UPLOAD, -1, "ABRP Upload Int."},
 
     {3060, 306, 3, "<- parent menu"},
     {3061, 306, -1, "Auto mode"},

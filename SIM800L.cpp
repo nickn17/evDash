@@ -215,11 +215,13 @@ uint16_t SIM800L::readPostResponse(uint16_t clientReadTimeoutMs) {
   }
 
   // Extract status information
-  int16_t idxBase = strIndex(internalBuffer, "+HTTPACTION: 1,");
+  int16_t idxBase = strIndex(internalBuffer, "+HTTPACTION:");
   if(idxBase < 0) {
     if(enableDebug) debugStream->println(F("SIM800L : doPost() - Invalid answer on HTTP POST"));
     return 703;
   }
+
+
 
   // Get the HTTP return code
   uint16_t httpRC = 0;
@@ -301,6 +303,12 @@ uint16_t SIM800L::doGet(const char* url, uint16_t serverReadTimeoutMs) {
  * Do HTTP/S GET on a specific URL with headers
  */
 uint16_t SIM800L::doGet(const char* url, const char* headers, uint16_t serverReadTimeoutMs) {
+  if(timeLastPostSent > 0) {
+    return 420;
+  }
+
+  terminateHTTP();
+  
   // Cleanup the receive buffer
   initRecvBuffer();
   dataSize = 0;
@@ -318,91 +326,13 @@ uint16_t SIM800L::doGet(const char* url, const char* headers, uint16_t serverRea
     return 703;
   }
 
-  // Wait answer from the server
-  if(!readResponse(serverReadTimeoutMs)) {
-    if(enableDebug) debugStream->println(F("SIM800L : doGet() - Server timeout"));
-    return 408;
-  }
+  timeLastPostSent = millis();
+  currentSizeResponse = 0;
+  seenCR = false;
+  countCRLF = 0;
+  initInternalBuffer();
 
-  // Extract status information
-  int16_t idxBase = strIndex(internalBuffer, "+HTTPACTION: 0,");
-  if(idxBase < 0) {
-    if(enableDebug) debugStream->println(F("SIM800L : doGet() - Invalid answer on HTTP GET"));
-    return 703;
-  }
-
-  // Get the HTTP return code
-  uint16_t httpRC = 0;
-  httpRC += (internalBuffer[idxBase + 15] - '0') * 100;
-  httpRC += (internalBuffer[idxBase + 16] - '0') * 10;
-  httpRC += (internalBuffer[idxBase + 17] - '0') * 1;
-
-  if(enableDebug) {
-    debugStream->print(F("SIM800L : doGet() - HTTP status "));
-    debugStream->println(httpRC);
-  }
-
-  if(httpRC == 200) {
-    // Get the size of the data to receive
-    dataSize = 0;
-    for(uint16_t i = 0; (internalBuffer[idxBase + 19 + i] - '0') >= 0 && (internalBuffer[idxBase + 19 + i] - '0') <= 9; i++) {
-      if(i != 0) {
-        dataSize = dataSize * 10;
-      }
-      dataSize += (internalBuffer[idxBase + 19 + i] - '0');
-    }
-
-    if(enableDebug) {
-      debugStream->print(F("SIM800L : doGet() - Data size received of "));
-      debugStream->print(dataSize);
-      debugStream->println(F(" bytes"));
-    }
-
-    // Ask for reading and detect the start of the reading...
-    sendCommand_P(AT_CMD_HTTPREAD);
-    if(!readResponseCheckAnswer_P(DEFAULT_TIMEOUT, AT_RSP_HTTPREAD, 2)) {
-      return 705;
-    }
-
-    // Read number of bytes defined in the dataSize
-    for(uint16_t i = 0; i < dataSize && i < recvBufferSize; i++) {
-      while(!stream->available());
-      if(stream->available()) {
-        // Load the next char
-        recvBuffer[i] = stream->read();
-        // If the character is CR or LF, ignore it (it's probably part of the module communication schema)
-        if((recvBuffer[i] == '\r') || (recvBuffer[i] == '\n')) {
-          i--;
-        }
-      }
-    }
-
-    if(recvBufferSize < dataSize) {
-      dataSize = recvBufferSize;
-      if(enableDebug) {
-        debugStream->println(F("SIM800L : doGet() - Buffer overflow while loading data from HTTP. Keep only first bytes..."));
-      }
-    }
-
-    // We are expecting a final OK
-    if(!readResponseCheckAnswer_P(DEFAULT_TIMEOUT, AT_RSP_OK)) {
-      if(enableDebug) debugStream->println(F("SIM800L : doGet() - Invalid end of data while reading HTTP result from the module"));
-      return 705;
-    }
-
-    if(enableDebug) {
-      debugStream->print(F("SIM800L : doGet() - Received from HTTP GET : "));
-      debugStream->println(recvBuffer);
-    }
-  }
-
-  // Terminate HTTP/S session
-  uint16_t termRC = terminateHTTP();
-  if(termRC > 0) {
-    return termRC;
-  }
-
-  return httpRC;
+  return 200;
 }
 
 /**
