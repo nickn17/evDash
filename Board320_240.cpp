@@ -182,8 +182,7 @@ void Board320_240::goToSleep()
   //Sleep ESP32
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
 
-  if (liveData->settings.sleepModeLevel == 2 && sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600
-      || liveData->settings.sleepModeShutdownHrs == 0)
+  if (liveData->settings.sleepModeLevel == 2 && sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600 || liveData->settings.sleepModeShutdownHrs == 0)
   {
     esp_sleep_enable_timer_wakeup(liveData->settings.sleepModeIntervalSec * 1000000ULL);
     syslog->println("Going to sleep for " + String(liveData->settings.sleepModeIntervalSec) + " seconds!");
@@ -2034,9 +2033,9 @@ void Board320_240::redrawScreen()
         spr.fillRect(45, 36, 40, 20, TFT_GOLD);
       if (liveData->params.leftFrontDoorOpen)
         spr.fillRect(20, 60, 20, 4, TFT_GOLD);
-      if (liveData->params.rightFrontDoorOpen)
-        spr.fillRect(90, 60, 20, 4, TFT_GOLD);
       if (liveData->params.leftRearDoorOpen)
+        spr.fillRect(90, 60, 20, 4, TFT_GOLD);
+      if (liveData->params.rightFrontDoorOpen)
         spr.fillRect(20, 90, 20, 4, TFT_GOLD);
       if (liveData->params.rightRearDoorOpen)
         spr.fillRect(90, 90, 20, 4, TFT_GOLD);
