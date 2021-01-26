@@ -257,7 +257,7 @@ typedef struct {
   uint16_t remoteUploadModuleType; // 0 - SIM800L
   // == settings version 10
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
-  char abrpApiKey[48]; // ABRP APIkey
+  char abrpApiToken[48]; // ABRP APIkey
   //
 } SETTINGS_STRUC;
 

@@ -2760,9 +2760,10 @@ bool Board320_240::sim800lSendData()
     String payload;
     serializeJson(jsonData, payload);
 
-    String tmpStr = "api_key=32b2162f-9599-4647-8139-66e9f9528370"; // dev ApiKey
+    String tmpStr = "api_key="; // dev ApiKey
+    tmpStr.concat(ABRP_API_KEY);
     tmpStr.concat("&token=");
-    tmpStr.concat(liveData->settings.abrpApiKey); // User token
+    tmpStr.concat(liveData->settings.abrpApiToken); // User token
     tmpStr.concat("&tlm=");
     tmpStr.concat(payload);
 

@@ -51,6 +51,8 @@
 #define SIM800L_INT_BUFFER 768 // Internal buffer
 #define SIM800L_RCV_BUFFER 128 // Receive buffer
 
+#define ABRP_API_KEY "b8992aa2-cec6-43a9-8561-32499cf98ceb"
+
 // MENU ITEM
 typedef struct
 {

@@ -10,7 +10,7 @@
    gprsApn=xxx
    remoteApiUrl=xxx
    remoteApiKey=xxx
-   abrpApiKey=xxx
+   abrpApiToken=xxx
 
   Required libraries, see INSTALLATION.rd
   SIM800L m5stack support by (https://github.com/kolaCZek)

@@ -228,7 +228,7 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.settingsVersion = 10;
         liveData->tmpSettings.remoteUploadAbrpIntervalSec = 0;
         tmpStr = "empty";
-        tmpStr.toCharArray(liveData->tmpSettings.abrpApiKey, tmpStr.length() + 1);
+        tmpStr.toCharArray(liveData->tmpSettings.abrpApiToken, tmpStr.length() + 1);
       }
 
       // Save upgraded structure
@@ -292,7 +292,7 @@ void BoardInterface::customConsoleCommand(String cmd) {
   if (key == "gprsApn") value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
-  if (key == "abrpApiKey") value.toCharArray(liveData->settings.abrpApiKey, value.length() + 1);
+  if (key == "abrpApiToken") value.toCharArray(liveData->settings.abrpApiToken, value.length() + 1);
   if (key == "debugLevel") { 
     liveData->settings.debugLevel = value.toInt(); 
     syslog->setDebugLevel(liveData->settings.debugLevel);     
