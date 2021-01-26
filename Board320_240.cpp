@@ -2688,8 +2688,8 @@ bool Board320_240::sim800lSendData()
     jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
-    //Send GPS data via GPRS (if enabled)
-    if (liveData->settings.gpsHwSerialPort <= 2)
+    //Send GPS data via GPRS (if enabled && valid)
+    if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
       jsonData["gpsLon"] = liveData->params.gpsLon;
@@ -2737,16 +2737,20 @@ bool Board320_240::sim800lSendData()
     jsonData["soc"] = liveData->params.socPerc;
     jsonData["power"] = liveData->params.batPowerKw * -1;
     jsonData["speed"] = liveData->params.speedKmh;
-    jsonData["lat"] = liveData->params.gpsLat;
-    jsonData["lon"] = liveData->params.gpsLon;
     jsonData["is_charging"] = (liveData->params.chargingOn) ? 1 : 0;
     if (liveData->params.chargingOn)
       jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
 
+    if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
+    {
+      jsonData["lat"] = liveData->params.gpsLat;
+      jsonData["lon"] = liveData->params.gpsLon;
+      jsonData["elevation"] = liveData->params.gpsAlt;
+    }
+
     jsonData["capacity"] = liveData->params.batteryTotalAvailableKWh;
     jsonData["kwh_charged"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["soh"] = liveData->params.sohPerc;
-    jsonData["elevation"] = liveData->params.gpsAlt;
     jsonData["ext_temp"] = liveData->params.outdoorTemperature;
     jsonData["batt_temp"] = liveData->params.batMinC;
     jsonData["voltage"] = liveData->params.batVoltage;
