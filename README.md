@@ -35,15 +35,15 @@ OBD2 adapter
 
 ## Quick installation with ESP32 flash tool
 
-See INSTALLATION.md
+See [INSTALLATION.md](INSTALLATION.md)
 
 ## RELEASE NOTES
 
-see. [RELEASENOTES.md] file
+see. [RELEASENOTES.md](RELEASENOTES.md) file
 
 ## Installation from sources
 
-See INSTALLATION.md
+See [INSTALLATION.md](INSTALLATION.md)
 
 ## Screens and shortcuts
 
