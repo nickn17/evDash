@@ -23,77 +23,78 @@
 /**
    activateCommandQueue
 */
-void CarKiaEniro::activateCommandQueue() {
+void CarKiaEniro::activateCommandQueue()
+{
 
   // Optimizer
   lastAllowTpms = 0;
 
   // Command queue
   std::vector<String> commandQueueKiaENiro = {
-    "AT Z",      // Reset all
-    "AT I",      // Print the version ID
-    "AT S0",     // Printing of spaces on
-    "AT E0",     // Echo off
-    "AT L0",     // Linefeeds off
-    "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-    //"AT AL",     // Allow Long (>7 byte) messages
-    //"AT AR",     // Automatically receive
-    //"AT H1",     // Headers on (debug only)
-    //"AT D1",     // Display of the DLC on
-    //"AT CAF0",   // Automatic formatting off
-    ////"AT AT0",     // disabled adaptive timing
-    "AT DP",
-    "AT ST16",    // reduced timeout to 1, orig.16
+      "AT Z",    // Reset all
+      "AT I",    // Print the version ID
+      "AT S0",   // Printing of spaces on
+      "AT E0",   // Echo off
+      "AT L0",   // Linefeeds off
+      "AT SP 6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
+      //"AT AL",     // Allow Long (>7 byte) messages
+      //"AT AR",     // Automatically receive
+      //"AT H1",     // Headers on (debug only)
+      //"AT D1",     // Display of the DLC on
+      //"AT CAF0",   // Automatic formatting off
+      ////"AT AT0",     // disabled adaptive timing
+      "AT DP",
+      "AT ST16", // reduced timeout to 1, orig.16
 
-    // Loop from (KIA ENIRO)
+      // Loop from (KIA ENIRO)
 
-    // IGPM
-    "ATSH770",
-    "22BC01", // 009 62BC01400000000001AAAAAAAA
-    "22BC03",     // low beam
-    "22BC04", // 00B 62BC04B33F74EA0D002042AAAA
-    "22BC05", // 00B 62BC05BF13200001000000AAAA
-    "22BC06",     // brake light
-    "22BC07", // 00B 62BC070849DBC000101900AAAA
+      // IGPM
+      "ATSH770",
+      "22BC01", // 009 62BC01400000000001AAAAAAAA
+      "22BC03", // low beam
+      "22BC04", // 00B 62BC04B33F74EA0D002042AAAA
+      "22BC05", // 00B 62BC05BF13200001000000AAAA
+      "22BC06", // brake light
+      "22BC07", // 00B 62BC070849DBC000101900AAAA
 
-    // ABS / ESP + AHB
-    "ATSH7D1",
-    "22C101",     // brake, park/drive mode
-    "22C102",   // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
-    "22C103",   // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
+      // ABS / ESP + AHB
+      "ATSH7D1",
+      "22C101", // brake, park/drive mode
+      "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
+      "22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
-    // BCM / TPMS
-    "ATSH7A0",
-    "22C00B",   // tire pressure/temp
+      // BCM / TPMS
+      "ATSH7A0",
+      "22C00B", // tire pressure/temp
 
-    // Aircondition
-    "ATSH7B3",
-    "220100",   // in/out temp
-    "220102",   // coolant temp1, 2
+      // Aircondition
+      "ATSH7B3",
+      "220100", // in/out temp
+      "220102", // coolant temp1, 2
 
-    // CLUSTER MODULE
-    "ATSH7C6",
-    "22B001",   // 008 62B00100000000000000000000
-    "22B002",   // odo
-    "22B003",   // 008 62B00398000000010000000000
+      // CLUSTER MODULE
+      "ATSH7C6",
+      "22B001", // 008 62B00100000000000000000000
+      "22B002", // odo
+      "22B003", // 008 62B00398000000010000000000
 
-    // VMCU
-    "ATSH7E2",
-    "2101",     // speed, ...
-    "2102",     // aux, ...
+      // VMCU
+      "ATSH7E2",
+      "2101", // speed, ...
+      "2102", // aux, ...
 
-    // MCU
-    "ATSH7E3",
-    "2102",     // motor/invertor temp
+      // MCU
+      "ATSH7E3",
+      "2102", // motor/invertor temp
 
-    // BMS
-    "ATSH7E4",
-    "220101",   // power kw, ...
-    "220102",   // cell voltages
-    "220103",   // cell voltages
-    "220104",   // cell voltages
-    "220105",   // soh, soc, ..
-    "220106",   // cooling water temp
+      // BMS
+      "ATSH7E4",
+      "220101", // power kw, ...
+      "220102", // cell voltages
+      "220103", // cell voltages
+      "220104", // cell voltages
+      "220105", // soh, soc, ..
+      "220106", // cooling water temp
 
   };
 
@@ -102,26 +103,34 @@ void CarKiaEniro::activateCommandQueue() {
   liveData->params.batteryTotalAvailableKWh = 64;
   // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
   // Calculates based on nick.n17 dashboard data
-  if (liveData->settings.carType == CAR_KIA_ENIRO_2020_39 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) {
+  if (liveData->settings.carType == CAR_KIA_ENIRO_2020_39 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
+  {
     liveData->params.batteryTotalAvailableKWh = 39.2;
   }
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
   //for (int i = 0; i < commandQueueCountKiaENiro; i++) {
-  for (auto cmd : commandQueueKiaENiro) {
-    liveData->commandQueue.push_back({ 0, cmd }); // stxChar not used, keep it 0
+  for (auto cmd : commandQueueKiaENiro)
+  {
+    liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
   }
 
   //
   liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
   liveData->commandQueueCount = commandQueueKiaENiro.size();
+  if (liveData->settings.carType == CAR_KIA_ESOUL_2020_64)
+  {
+    liveData->rxTimeoutMs = 500;            // timeout for receiving of CAN response
+    liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed
+  }
 }
 
 /**
    parseRowMerged
 */
-void CarKiaEniro::parseRowMerged() {
+void CarKiaEniro::parseRowMerged()
+{
 
   uint8_t tempByte;
   float tempFloat;
@@ -129,20 +138,23 @@ void CarKiaEniro::parseRowMerged() {
 
   // IGPM
   // RESPONDING WHEN CAR IS OFF
-  if (liveData->currentAtshRequest.equals("ATSH770")) {
-    if (liveData->commandRequest.equals("22BC03")) {
+  if (liveData->currentAtshRequest.equals("ATSH770"))
+  {
+    if (liveData->commandRequest.equals("22BC03"))
+    {
       //
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
       liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
       liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
-      liveData->params.leftRearDoorOpen  = (bitRead(tempByte, 4) == 1);
+      liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
       liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
       //
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-      liveData->params.trunkDoorOpen  = (bitRead(tempByte, 0) == 1);
-      if (liveData->params.ignitionOn) {
+      liveData->params.trunkDoorOpen = (bitRead(tempByte, 0) == 1);
+      if (liveData->params.ignitionOn)
+      {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
 
@@ -151,7 +163,8 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.autoLights = (bitRead(tempByte, 4) == 1);
       liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
     }
-    if (liveData->commandRequest.equals("22BC06")) {
+    if (liveData->commandRequest.equals("22BC06"))
+    {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
     }
@@ -159,49 +172,59 @@ void CarKiaEniro::parseRowMerged() {
 
   // ABS / ESP + AHB 7D1
   // RESPONDING WHEN CAR IS OFF
-  if (liveData->currentAtshRequest.equals("ATSH7D1")) {
-    if (liveData->commandRequest.equals("22C101")) {
+  if (liveData->currentAtshRequest.equals("ATSH7D1"))
+  {
+    if (liveData->commandRequest.equals("22C101"))
+    {
       uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
       liveData->params.forwardDriveMode = (driveMode == 4);
       liveData->params.reverseDriveMode = (driveMode == 2);
-      liveData->params.parkModeOrNeutral  = (driveMode == 1);
+      liveData->params.parkModeOrNeutral = (driveMode == 1);
       // Speed for eniro
-      if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39) {
+      if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
+      {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
       }
     }
   }
 
   // TPMS 7A0
-  if (liveData->currentAtshRequest.equals("ATSH7A0")) {
-    if (liveData->commandRequest.equals("22C00B")) {
-      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      // === OK Valid
-      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      // === OK Valid
-      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     // === OK Valid
-      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     // === OK Valid
+  if (liveData->currentAtshRequest.equals("ATSH7A0"))
+  {
+    if (liveData->commandRequest.equals("22C00B"))
+    {
+      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false) - 50;                    // === OK Valid
+      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;                   // === OK Valid
+      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;                    // === OK Valid
+      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;                     // === OK Valid
     }
   }
 
   // Aircon 7B3
-  if (liveData->currentAtshRequest.equals("ATSH7B3")) {
-    if (liveData->commandRequest.equals("220100")) {
+  if (liveData->currentAtshRequest.equals("ATSH7B3"))
+  {
+    if (liveData->commandRequest.equals("220100"))
+    {
       liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
       liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
       liveData->params.evaporatorTempC = (liveData->hexToDecFromResponse(20, 22, 1, false) / 2) - 40;
     }
-    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00") {
+    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00")
+    {
       liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
       liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
     }
   }
 
   // Cluster module 7C6
-  if (liveData->currentAtshRequest.equals("ATSH7C6")) {
-    if (liveData->commandRequest.equals("22B002")) {
+  if (liveData->currentAtshRequest.equals("ATSH7C6"))
+  {
+    if (liveData->commandRequest.equals("22B002"))
+    {
       tempFloat = liveData->params.odoKm;
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
       //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
@@ -209,31 +232,39 @@ void CarKiaEniro::parseRowMerged() {
   }
 
   // VMCU 7E2
-  if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-    if (liveData->commandRequest.equals("2101")) {
-      if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) {
+  if (liveData->currentAtshRequest.equals("ATSH7E2"))
+  {
+    if (liveData->commandRequest.equals("2101"))
+    {
+      if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
+      {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
         if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
           liveData->params.speedKmh = 0;
       }
     }
-    if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+    if (liveData->commandRequest.equals("2102"))
+    {
+      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
       liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
     }
   }
 
   // MCU 7E3
-  if (liveData->currentAtshRequest.equals("ATSH7E3")) {
-    if (liveData->commandRequest.equals("2102")) {
+  if (liveData->currentAtshRequest.equals("ATSH7E3"))
+  {
+    if (liveData->commandRequest.equals("2102"))
+    {
       liveData->params.inverterTempC = liveData->hexToDecFromResponse(32, 34, 1, true);
       liveData->params.motorTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
     }
   }
 
   // BMS 7e4
-  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
-    if (liveData->commandRequest.equals("220101")) {
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("220101"))
+    {
       liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
       if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
@@ -246,7 +277,7 @@ void CarKiaEniro::parseRowMerged() {
       //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 1, false);
-      liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
+      liveData->params.batPowerAmp = -liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
       if (liveData->params.batPowerKw < 0) // Reset charging start time
@@ -266,7 +297,8 @@ void CarKiaEniro::parseRowMerged() {
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
-      for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {
+      for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++)
+      {
         if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
           liveData->params.batMinC = liveData->params.batModuleTempC[i];
         if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
@@ -275,10 +307,11 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.batTempC = liveData->params.batMinC;
 
       liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
-      if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
-        if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
+      if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
+      {
+        if (liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
           liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
-        if ( liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
+        if (liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
           liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
         liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
         liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
@@ -287,34 +320,43 @@ void CarKiaEniro::parseRowMerged() {
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF") {
-      for (int i = 0; i < 32; i++) {
+    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
+    {
+      for (int i = 0; i < 32; i++)
+      {
         liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("220103")) {
-      for (int i = 0; i < 32; i++) {
+    if (liveData->commandRequest.equals("220103"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
         liveData->params.cellVoltage[32 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("220104")) {
-      for (int i = 0; i < 32; i++) {
+    if (liveData->commandRequest.equals("220104"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
         liveData->params.cellVoltage[64 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("220105")) {
+    if (liveData->commandRequest.equals("220105"))
+    {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
       liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
       // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
-      if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
+      if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
+      {
         byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
-        if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1) {
+        if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1)
+        {
           liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
           liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
           liveData->params.soc10odo[index] = liveData->params.odoKm;
@@ -325,7 +367,8 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
       liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
       //
-      for (int i = 30; i < 32; i++) { // ai/aj position
+      for (int i = 30; i < 32; i++)
+      { // ai/aj position
         liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
 
@@ -335,7 +378,8 @@ void CarKiaEniro::parseRowMerged() {
       liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
       liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
       liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && ((tempByte & 0xf) >= 5) && ((tempByte & 0xf) <= 9);
-      if (liveData->params.chargingOn) {
+      if (liveData->params.chargingOn)
+      {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
 
@@ -344,19 +388,30 @@ void CarKiaEniro::parseRowMerged() {
       tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("220106")) {
+    if (liveData->commandRequest.equals("220106"))
+    {
       //
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
       // Battery management mode
       tempByte = liveData->hexToDecFromResponse(34, 36, 1, false);
-      switch (tempByte & 0xf) {
-        case 3:   liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE; break;
-        case 4:   liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING; break;
-        case 6:   liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF; break;
-        case 0xE: liveData->params.batteryManagementMode = BAT_MAN_MODE_PTC_HEATER; break;
-        default:  liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
+      switch (tempByte & 0xf)
+      {
+      case 3:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
+        break;
+      case 4:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING;
+        break;
+      case 6:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF;
+        break;
+      case 0xE:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_PTC_HEATER;
+        break;
+      default:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
       }
 
       // log 220106 to sdcard
@@ -370,7 +425,8 @@ void CarKiaEniro::parseRowMerged() {
 /**
    Is command from queue allowed for execute, or continue with next
 */
-bool CarKiaEniro::commandAllowed() {
+bool CarKiaEniro::commandAllowed()
+{
 
   /* syslog->print("Command allowed: ");
     syslog->print(liveData->currentAtshRequest);
@@ -378,14 +434,18 @@ bool CarKiaEniro::commandAllowed() {
     syslog->println(liveData->commandRequest);*/
 
   //SleepMode Queue Filter
-  if (liveData->params.sleepModeQueue) {
-    if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+  if (liveData->params.sleepModeQueue)
+  {
+    if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
+    {
       return true;
     }
-    if (liveData->commandRequest.equals("ATSH7E4")) {
+    if (liveData->commandRequest.equals("ATSH7E4"))
+    {
       return true;
     }
-    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101")) {
+    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101"))
+    {
       return true;
     }
 
@@ -393,51 +453,65 @@ bool CarKiaEniro::commandAllowed() {
   }
 
   // TPMS (once per 30 secs.)
-  if (liveData->commandRequest.equals("ATSH7A0")) {
+  if (liveData->commandRequest.equals("ATSH7A0"))
+  {
     return lastAllowTpms + 30 < liveData->params.currentTime;
   }
-  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22C00B")) {
-    if (lastAllowTpms + 30 < liveData->params.currentTime) {
+  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22C00B"))
+  {
+    if (lastAllowTpms + 30 < liveData->params.currentTime)
+    {
       lastAllowTpms = liveData->params.currentTime;
-    } else {
+    }
+    else
+    {
       return false;
     }
   }
 
   // BMS (only for SCREEN_CELLS)
-  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
-    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104")) {
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104"))
+    {
       if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
         return false;
     }
   }
 
   // HUD speedup
-  if (liveData->params.displayScreen == SCREEN_HUD) {
+  if (liveData->params.displayScreen == SCREEN_HUD)
+  {
     // no cooling water temp
-    if (liveData->currentAtshRequest.equals("ATSH7E4")) {
-      if (liveData->commandRequest.equals("220106")) {
+    if (liveData->currentAtshRequest.equals("ATSH7E4"))
+    {
+      if (liveData->commandRequest.equals("220106"))
+      {
         return false;
       }
     }
 
     // no aircondition
-    if (liveData->currentAtshRequest.equals("ATSH7B3")) {
+    if (liveData->currentAtshRequest.equals("ATSH7B3"))
+    {
       return false;
     }
 
     // no ODO
-    if (liveData->currentAtshRequest.equals("ATSH7C6")) {
+    if (liveData->currentAtshRequest.equals("ATSH7C6"))
+    {
       return false;
     }
 
     // no BCM / TPMS
-    if (liveData->currentAtshRequest.equals("ATSH7A0")) {
+    if (liveData->currentAtshRequest.equals("ATSH7A0"))
+    {
       return false;
     }
 
     // no AUX
-    if (liveData->currentAtshRequest.equals("ATSH7E2") && liveData->commandRequest.equals("2102")) {
+    if (liveData->currentAtshRequest.equals("ATSH7E2") && liveData->commandRequest.equals("2102"))
+    {
       return false;
     }
   }
@@ -448,7 +522,8 @@ bool CarKiaEniro::commandAllowed() {
 /**
    loadTestData
 */
-void CarKiaEniro::loadTestData() {
+void CarKiaEniro::loadTestData()
+{
 
   // IGPM
   liveData->currentAtshRequest = "ATSH770";
@@ -541,14 +616,14 @@ void CarKiaEniro::loadTestData() {
 
   // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
   liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
-  for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {
+  for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++)
+  {
     if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
       liveData->params.batMinC = liveData->params.batModuleTempC[i];
     if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
       liveData->params.batMaxC = liveData->params.batModuleTempC[i];
   }
   liveData->params.batTempC = liveData->params.batMinC;
-
 
   //
   liveData->params.soc10ced[10] = 2200;
@@ -614,7 +689,8 @@ void CarKiaEniro::loadTestData() {
 /**
    Test handler
 */
-void CarKiaEniro::testHandler(String command) {
+void CarKiaEniro::testHandler(String command)
+{
 
   syslog->println("test handler - enter");
   syslog->setDebugLevel(DEBUG_COMM);
@@ -626,7 +702,8 @@ void CarKiaEniro::testHandler(String command) {
   // commInterface->sendPID(0x7A5, "3E"); // SMK
   commInterface->sendPID(0x7e4, "3E"); // BMS
   delay(10);
-  for (uint16_t i = 0; i < 100; i++) {
+  for (uint16_t i = 0; i < 100; i++)
+  {
     if (commInterface->receivePID() != 0xff)
       break;
     delay(20);
@@ -638,14 +715,16 @@ void CarKiaEniro::testHandler(String command) {
   //commInterface->sendPID(0x7A5, "1003"); // SMK
   commInterface->sendPID(0x7e4, "1003"); // BMS
   delay(10);
-  for (uint16_t i = 0; i < 100; i++) {
+  for (uint16_t i = 0; i < 100; i++)
+  {
     if (commInterface->receivePID() != 0xff)
       break;
     delay(20);
   }
-  commInterface->sendPID(0x7e4, command);//"2FBC1103");
+  commInterface->sendPID(0x7e4, command); //"2FBC1103");
   delay(10);
-  for (uint16_t i = 0; i < 100; i++) {
+  for (uint16_t i = 0; i < 100; i++)
+  {
     if (commInterface->receivePID() != 0xff)
       break;
     delay(20);

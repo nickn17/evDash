@@ -18,9 +18,10 @@ MENU_ITEM menuItemsSource[100] = {
 
     {100, 1, 0, "<- parent menu"},
     {101, 1, -1, "Kia eNiro 2020 64kWh"},
-    {102, 1, -1, "Hyundai Kona 2020 64kWh"},
-    {103, 1, -1, "Hyundai Ioniq 2018 28kWh"},
     {104, 1, -1, "Kia eNiro 2020 39kWh"},
+    {109, 1, -1, "Kia eSoul 2020 64kWh"},
+    {103, 1, -1, "Hyundai Ioniq 2018 28kWh"},
+    {102, 1, -1, "Hyundai Kona 2020 64kWh"},
     {105, 1, -1, "Hyundai Kona 2020 39kWh"},
     {106, 1, -1, "Renault Zoe 22kWh (DEV)"},
     {107, 1, -1, "Kia Niro PHEV 8.9kWh (DEV)"},

@@ -644,7 +644,7 @@ void Board320_240::drawSceneSpeed()
   {
     float capacity = liveData->params.batteryTotalAvailableKWh * (liveData->params.socPerc / 100);
     // calibration for Niro/Kona, real available capacity is ~66.5kWh, 0-10% ~6.2kWh, 90-100% ~7.2kWh
-    if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64)
+    if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_KIA_ESOUL_2020_64)
     {
       capacity = (liveData->params.socPerc * 0.615) * (1 + (liveData->params.socPerc * 0.0008));
     }
@@ -1223,6 +1223,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case 108:
     prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
     break;
+  case 109:
+    prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
+    break;
   case 120:
     prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
     break;
@@ -1606,6 +1609,11 @@ void Board320_240::menuItemClick()
       break;
     case 108:
       liveData->settings.carType = CAR_BMW_I3_2014;
+      showMenu();
+      return;
+      break;
+    case 109:
+      liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
       showMenu();
       return;
       break;
@@ -2726,10 +2734,11 @@ bool Board320_240::sim800lSendData()
       case CAR_KIA_ENIRO_2020_64:     jsonData["car_model"] = "kia:niro:19:64:other"; break;
       case CAR_HYUNDAI_KONA_2020_64:  jsonData["car_model"] = "hyundai:kona:19:64:other"; break;
       case CAR_HYUNDAI_IONIQ_2018:    jsonData["car_model"] = "hyundai:ioniq:17:28:other"; break;
-      case CAR_KIA_ENIRO_2020_39:     jsonData["car_model"] = "kia:niro:19:39:other"; break;
+      case CAR_KIA_ENIRO_2020_39:     jsonData["car_model"] = "kia:eniro:19:39:other"; break;
       case CAR_HYUNDAI_KONA_2020_39:  jsonData["car_model"] = "hyundai:kona:19:39:other"; break;
       case CAR_RENAULT_ZOE:           jsonData["car_model"] = "renault:zoe:r240:22:other"; break;
       case CAR_BMW_I3_2014:           jsonData["car_model"] = "bmw:i3:14:22:other"; break;
+      case CAR_KIA_ESOUL_2020_64:     jsonData["car_model"] = "kia:soul:19:64:other"; break;
       default:                        syslog->println("Car not supported by ABRP Uploader"); return false; break;
     }
 
