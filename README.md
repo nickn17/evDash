@@ -14,7 +14,8 @@ Supported hardware
 3. DEPRECATED!!! LILYGO TTGO T4 v1.3 (limited support/no SDcard/GSM/GPS/CAN module)
 
 Working only with electric vehicles
-Kia e-NIRO (EV), Hyundai Kona EV, Hyundai Ioniq EV. Community supported Niro PHEV, Renault ZOE 28, BMW i3.
+Fully supported: Kia e-NIRO/e-Soul (EV), Hyundai Kona EV, Hyundai Ioniq EV. 
+Community supported: Niro PHEV, Renault ZOE 28, BMW i3.
 See Release notes, quick installation via flash tool bellow.
 
 ## Required hardware
@@ -30,7 +31,7 @@ OBD2 adapter
 
 - For nonstop use we !strongly! Recommend to use direct connection to CAN (2 pins on OBD2 connector).
 - It's due to security! Anybody can control your car via OBD2 and BT/BLE adapters are not secured well (unlock doors, ACC off/on, etc).
-- Supported is only this model... Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2 (~USD $30). We can add another BLE adapter if you provide 3x UUID (service/notify,read/write)
+- Supported is only this model... Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2. We can add another BLE adapter if you provide 3x UUID (service/notify,read/write)
 
 ## Quick installation with ESP32 flash tool
 
