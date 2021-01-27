@@ -39,7 +39,7 @@ See INSTALLATION.md
 
 ## RELEASE NOTES
 
-see. [[RELEASENOTES.md]] file
+see. [RELEASENOTES.md] file
 
 ## Installation from sources
 
