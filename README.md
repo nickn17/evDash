@@ -4,8 +4,8 @@
 !!! Use it at your own risk !!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-evDash Discord server: https://discord.gg/rfAvH7xzTr
-Project is maintained by EV owners car community
+- evDash Discord server: https://discord.gg/rfAvH7xzTr
+- Project is maintained by EV owners car community
 
 Supported hardware
 
