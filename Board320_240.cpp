@@ -2734,7 +2734,7 @@ bool Board320_240::sim800lSendData()
       case CAR_KIA_ENIRO_2020_64:     jsonData["car_model"] = "kia:niro:19:64:other"; break;
       case CAR_HYUNDAI_KONA_2020_64:  jsonData["car_model"] = "hyundai:kona:19:64:other"; break;
       case CAR_HYUNDAI_IONIQ_2018:    jsonData["car_model"] = "hyundai:ioniq:17:28:other"; break;
-      case CAR_KIA_ENIRO_2020_39:     jsonData["car_model"] = "kia:eniro:19:39:other"; break;
+      case CAR_KIA_ENIRO_2020_39:     jsonData["car_model"] = "kia:niro:19:39:other"; break;
       case CAR_HYUNDAI_KONA_2020_39:  jsonData["car_model"] = "hyundai:kona:19:39:other"; break;
       case CAR_RENAULT_ZOE:           jsonData["car_model"] = "renault:zoe:r240:22:other"; break;
       case CAR_BMW_I3_2014:           jsonData["car_model"] = "bmw:i3:14:22:other"; break;
