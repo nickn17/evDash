@@ -444,7 +444,7 @@ bool CarKiaEniro::commandAllowed()
     {
       return true;
     }
-    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220101"))
+    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220105"))
     {
       return true;
     }
