@@ -691,47 +691,33 @@ void CarKiaEniro::loadTestData()
 */
 void CarKiaEniro::testHandler(const String &cmd)
 {
+  int8_t idx = cmd.indexOf("/");
+  if (idx == -1)
+    return;
+  String key = cmd.substring(0, idx);
+  String value = cmd.substring(idx + 1);
 
-  syslog->println("test handler - enter");
-  syslog->setDebugLevel(DEBUG_COMM);
-
-  //commInterface->sendPID(0x770, "3E"); // IGMP
-  //commInterface->sendPID(0x736, "3E"); // VESS
-  //commInterface->sendPID(0x7a0, "3E"); // BCM
-  //commInterface->sendPID(0x7c6, "3E"); // CLUSTER
-  // commInterface->sendPID(0x7A5, "3E"); // SMK
-  commInterface->sendPID(0x7e4, "3E"); // BMS
-  delay(10);
-  for (uint16_t i = 0; i < 100; i++)
+  if (key.equals("batch"))
   {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
+    // test=batch/1
+    for (uint16_t i = 0; i < 250; i++)
+    {
+      String command = "2FBC";
+      if (i < 16)
+        command += "0";
+      command += String(i, HEX);
+      command.toUpperCase();
+        command += "00";
+      //syslog->println(String(command + "03"));
+      syslog->println(command);
+      eNiroCarControl(liveData->hexToDec("0770", 2, false), command);
+    }
   }
-  //commInterface->sendPID(0x770, "1003"); // IGMP
-  //commInterface->sendPID(0x736, "1003"); // VESS
-  //commInterface->sendPID(0x7a0, "1003"); // BCM
-  //commInterface->sendPID(0x7c6, "1003"); // CLUSTER
-  //commInterface->sendPID(0x7A5, "1003"); // SMK
-  commInterface->sendPID(0x7e4, "1003"); // BMS
-  delay(10);
-  for (uint16_t i = 0; i < 100; i++)
+  else
   {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
+    // test=07C6/2FB00103
+    eNiroCarControl(liveData->hexToDec(key, 2, false), value);
   }
-  commInterface->sendPID(0x7e4, cmd); //"2FBC1103");
-  delay(10);
-  for (uint16_t i = 0; i < 100; i++)
-  {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
-  }
-
-  syslog->setDebugLevel(liveData->settings.debugLevel);
-  syslog->println("test handler - exit");
 }
 
 /**
@@ -930,9 +916,8 @@ void CarKiaEniro::carCommand(const String &cmd)
  */
 void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
-  syslog->println("EXECUTING COMMAND");
-  syslog->println("cmd");
-  syslog->setDebugLevel(DEBUG_COMM);
+  //syslog->println("EXECUTING COMMAND");
+  //syslog->println(cmd);
 
   commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
   delay(10);
@@ -959,6 +944,7 @@ void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
 
   // EXECUTE COMMAND
   commInterface->sendPID(pid, cmd);
+  syslog->setDebugLevel(DEBUG_COMM);
   delay(10);
   for (uint16_t i = 0; i < 100; i++)
   {
@@ -968,5 +954,4 @@ void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
   }
 
   syslog->setDebugLevel(liveData->settings.debugLevel);
-  syslog->println("COMMAND EXECUTED");
 }
