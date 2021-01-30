@@ -1459,14 +1459,20 @@ void Board320_240::showMenu()
 {
 
   uint16_t posY = 0, tmpCurrMenuItem = 0;
+  int8_t idx;
 
   liveData->menuVisible = true;
   spr.fillSprite(TFT_BLACK);
   spr.setTextDatum(TL_DATUM);
   spr.setFreeFont(&Roboto_Thin_24);
 
+  // dynamic car menu
+  std::vector<String> customMenu;
+  customMenu = carInterface->customMenu(liveData->menuCurrent);
+
   // Page scroll
   uint8_t visibleCount = (int)(tft.height() / spr.fontHeight());
+
   if (liveData->menuItemSelected >= liveData->menuItemOffset + visibleCount)
     liveData->menuItemOffset = liveData->menuItemSelected - visibleCount + 1;
   if (liveData->menuItemSelected < liveData->menuItemOffset)
@@ -1489,6 +1495,20 @@ void Board320_240::showMenu()
     }
   }
 
+  for (uint16_t i = 0; i < customMenu.size(); ++i)
+  {
+    if (tmpCurrMenuItem >= liveData->menuItemOffset)
+    {
+      bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
+      spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
+      spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE);
+      idx = customMenu.at(i).indexOf("=");
+      spr.drawString(customMenu.at(i).substring(idx + 1), 0, posY + 2, GFXFF);
+      posY += spr.fontHeight();
+    }
+    tmpCurrMenuItem++;
+  }
+
   spr.pushSprite(0, 0);
 }
 
@@ -1497,7 +1517,6 @@ void Board320_240::showMenu()
 */
 void Board320_240::hideMenu()
 {
-
   liveData->menuVisible = false;
   liveData->menuCurrent = 0;
   liveData->menuItemSelected = 0;
@@ -1509,8 +1528,8 @@ void Board320_240::hideMenu()
 */
 void Board320_240::menuMove(bool forward)
 {
+  uint16_t tmpCount = 0 + carInterface->customMenu(liveData->menuCurrent).size();
 
-  uint16_t tmpCount = 0;
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
   {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
@@ -1534,7 +1553,7 @@ void Board320_240::menuItemClick()
 {
 
   // Locate menu item for meta data
-  MENU_ITEM *tmpMenuItem;
+  MENU_ITEM *tmpMenuItem = NULL;
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
   uint16_t i;
@@ -1549,6 +1568,24 @@ void Board320_240::menuItemClick()
       {
         tmpMenuItem = &liveData->menuItems[i];
         break;
+      }
+      tmpCurrMenuItem++;
+    }
+  }
+
+  // Look for item in car custom menu
+  if (tmpMenuItem == NULL)
+  {
+    std::vector<String> customMenu;
+    customMenu = carInterface->customMenu(liveData->menuCurrent);
+    for (uint16_t i = 0; i < customMenu.size(); ++i)
+    {
+      if (liveData->menuItemSelected == tmpCurrMenuItem)
+      {
+        String tmp = customMenu.at(i).substring(0, customMenu.at(i).indexOf("="));
+        syslog->println(tmp);
+        carInterface->carCommand(tmp);
+        return;
       }
       tmpCurrMenuItem++;
     }
@@ -2672,7 +2709,8 @@ bool Board320_240::sim800lSendData()
 
   syslog->println("Start HTTP POST...");
 
-  if (liveData->settings.remoteUploadIntervalSec != 0) {
+  if (liveData->settings.remoteUploadIntervalSec != 0)
+  {
 
     StaticJsonDocument<768> jsonData;
 
@@ -2725,21 +2763,42 @@ bool Board320_240::sim800lSendData()
       syslog->print("HTTP POST error: ");
       syslog->println(rc);
     }
-
-  } else if (liveData->settings.remoteUploadAbrpIntervalSec != 0) {
+  }
+  else if (liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  {
 
     StaticJsonDocument<768> jsonData;
 
-    switch(liveData->settings.carType) {
-      case CAR_KIA_ENIRO_2020_64:     jsonData["car_model"] = "kia:niro:19:64:other"; break;
-      case CAR_HYUNDAI_KONA_2020_64:  jsonData["car_model"] = "hyundai:kona:19:64:other"; break;
-      case CAR_HYUNDAI_IONIQ_2018:    jsonData["car_model"] = "hyundai:ioniq:17:28:other"; break;
-      case CAR_KIA_ENIRO_2020_39:     jsonData["car_model"] = "kia:niro:19:39:other"; break;
-      case CAR_HYUNDAI_KONA_2020_39:  jsonData["car_model"] = "hyundai:kona:19:39:other"; break;
-      case CAR_RENAULT_ZOE:           jsonData["car_model"] = "renault:zoe:r240:22:other"; break;
-      case CAR_BMW_I3_2014:           jsonData["car_model"] = "bmw:i3:14:22:other"; break;
-      case CAR_KIA_ESOUL_2020_64:     jsonData["car_model"] = "kia:soul:19:64:other"; break;
-      default:                        syslog->println("Car not supported by ABRP Uploader"); return false; break;
+    switch (liveData->settings.carType)
+    {
+    case CAR_KIA_ENIRO_2020_64:
+      jsonData["car_model"] = "kia:niro:19:64:other";
+      break;
+    case CAR_HYUNDAI_KONA_2020_64:
+      jsonData["car_model"] = "hyundai:kona:19:64:other";
+      break;
+    case CAR_HYUNDAI_IONIQ_2018:
+      jsonData["car_model"] = "hyundai:ioniq:17:28:other";
+      break;
+    case CAR_KIA_ENIRO_2020_39:
+      jsonData["car_model"] = "kia:niro:19:39:other";
+      break;
+    case CAR_HYUNDAI_KONA_2020_39:
+      jsonData["car_model"] = "hyundai:kona:19:39:other";
+      break;
+    case CAR_RENAULT_ZOE:
+      jsonData["car_model"] = "renault:zoe:r240:22:other";
+      break;
+    case CAR_BMW_I3_2014:
+      jsonData["car_model"] = "bmw:i3:14:22:other";
+      break;
+    case CAR_KIA_ESOUL_2020_64:
+      jsonData["car_model"] = "kia:soul:19:64:other";
+      break;
+    default:
+      syslog->println("Car not supported by ABRP Uploader");
+      return false;
+      break;
     }
 
     jsonData["utc"] = liveData->params.currentTime;
@@ -2796,8 +2855,9 @@ bool Board320_240::sim800lSendData()
       syslog->print("HTTP POST error: ");
       syslog->println(rc);
     }
-
-  } else {
+  }
+  else
+  {
     syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
   }
 
