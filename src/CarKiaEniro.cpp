@@ -133,7 +133,7 @@ void CarKiaEniro::parseRowMerged()
 {
 
   uint8_t tempByte;
-  float tempFloat;
+//  float tempFloat;
   String tmpStr;
 
   // IGPM
@@ -225,7 +225,7 @@ void CarKiaEniro::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22B002"))
     {
-      tempFloat = liveData->params.odoKm;
+      //tempFloat = liveData->params.odoKm;
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
       //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
     }

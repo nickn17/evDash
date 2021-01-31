@@ -122,7 +122,7 @@ void CarRenaultZoe::activateCommandQueue() {
 */
 void CarRenaultZoe::parseRowMerged() {
 
-  uint8_t tempByte;
+//  uint8_t tempByte;
   uint16_t tempWord;
   float tempFloat;
   

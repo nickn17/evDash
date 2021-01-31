@@ -83,6 +83,8 @@ bool CommInterface::doNextQueueCommand() {
   syslog->info(DEBUG_COMM, liveData->commandRequest);
   liveData->responseRowMerged = "";
   executeCommand(liveData->commandRequest);
+
+  return true;
 }
 
 /**
@@ -99,6 +101,8 @@ bool CommInterface::parseResponse() {
   } else if (liveData->responseRow.length() >= 4) {
     liveData->responseRowMerged += liveData->responseRow;
   }
+
+  return true;
 }
 
 /**
@@ -181,4 +185,5 @@ void CommInterface::sendPID(const uint16_t pid, const String& cmd) {
  */
 uint8_t CommInterface::receivePID() {
   
+  return 0;
 }

@@ -1,7 +1,6 @@
 //#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
-#include <TFT_eSPI.h>
 //#include <WiFi.h>
 //#include <WiFiClient.h>
 #include <sys/time.h>
@@ -9,7 +8,6 @@
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include <ArduinoJson.h>
-#include "SIM800L.h"
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
@@ -20,10 +18,12 @@ RTC_DATA_ATTR unsigned int sleepCount = 0;
 void Board320_240::initBoard()
 {
 
-  // Set button pins for input
+// Set button pins for input
+#ifdef BOARD_TTGO_T4
   pinMode(pinButtonMiddle, INPUT);
   pinMode(pinButtonLeft, INPUT);
   pinMode(pinButtonRight, INPUT);
+#endif // BOARD_TTGO_T4
 
   // Init time library
   struct timeval tv;
@@ -81,7 +81,7 @@ void Board320_240::afterSetup()
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
-  if (digitalRead(pinButtonRight) == LOW)
+  if (isButtonPressed(pinButtonRight))
   {
     loadTestData();
   }
@@ -179,25 +179,18 @@ void Board320_240::goToSleep()
     gpsHwUart->write(GPSoff, sizeof(GPSoff));
   }
 
-  //Sleep ESP32
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
+  int sleepSeconds = 0;
 
-  if (liveData->settings.sleepModeLevel == 2 && sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600 || liveData->settings.sleepModeShutdownHrs == 0)
+  if (liveData->settings.sleepModeLevel == 2 &&
+      (sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600 ||
+       liveData->settings.sleepModeShutdownHrs == 0))
   {
-    esp_sleep_enable_timer_wakeup(liveData->settings.sleepModeIntervalSec * 1000000ULL);
-    syslog->println("Going to sleep for " + String(liveData->settings.sleepModeIntervalSec) + " seconds!");
-  }
-  else
-  {
-    syslog->println("Going to sleep for ever! (shutdown)");
+    sleepSeconds = liveData->settings.sleepModeIntervalSec;
   }
 
   ++sleepCount;
 
-  syslog->flush();
-  delay(1000);
-
-  esp_deep_sleep_start();
+  enterSleepMode(sleepSeconds);
 }
 
 /*
@@ -301,8 +294,12 @@ void Board320_240::afterSleep()
 */
 void Board320_240::setBrightness(byte lcdBrightnessPerc)
 {
-
-  analogWrite(TFT_BL, lcdBrightnessPerc);
+#ifdef BOARD_TTGO_T4
+  analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
+#endif // BOARD_TTGO_T4
+#if defined(BOARD_M5STACK_CORE) || defined(BOARD_M5STACK_CORE2)
+  tft.setBrightness(lcdBrightnessPerc);
+#endif // BOARD_M5STACK_CORE OR BOARD_M5STACK_CORE2
 }
 
 /**
@@ -570,7 +567,8 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)
   {
-    sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode), liveData->celsius2temperature(liveData->params.coolingWaterTempC));
+    sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
+            liveData->celsius2temperature(liveData->params.coolingWaterTempC));
     spr.drawString(tmpStr1, 320 - posx, posy, GFXFF);
   }
   else if (liveData->params.motorRpm > -1)
@@ -635,7 +633,7 @@ void Board320_240::drawSceneSpeed()
   spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 91) ? TFT_YELLOW
                                                                                                 : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
-  sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
+  sprintf(tmpStr3, "%01.00f %c", liveData->params.socPerc, '%');
   spr.setFreeFont(&Orbitron_Light_32);
   spr.drawString(tmpStr3, 285, 165, GFXFF);
   spr.setFreeFont(&Orbitron_Light_24);
@@ -716,7 +714,7 @@ void Board320_240::drawSceneHud()
   tft.drawString(tmpStr3, 320, 150, 7);
 
   // Draw soc%
-  sprintf(tmpStr3, "%01.00f%", liveData->params.socPerc);
+  sprintf(tmpStr3, "%01.00f%c", liveData->params.socPerc, '%');
   tft.drawString(tmpStr3, 160, 150, 7);
 
   // Cold gate battery
@@ -1011,7 +1009,7 @@ void Board320_240::drawSceneChargingGraph()
   if (liveData->params.coolingWaterTempC != -100)
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"),
-            liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode),
+            liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
             liveData->celsius2temperature(liveData->params.coolingWaterTempC));
     spr.setTextColor(TFT_PINK);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
@@ -1070,9 +1068,9 @@ void Board320_240::drawSceneChargingGraph()
   // Print charging time
   time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
   if ((diffTime / 60) > 99)
-    sprintf(tmpStr1, "%02d:%02d:%02d", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
+    sprintf(tmpStr1, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
   else
-    sprintf(tmpStr1, "%02d:%02d", (diffTime / 60), diffTime % 60);
+    sprintf(tmpStr1, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_SILVER);
   spr.drawString(tmpStr1, 0, zeroY - (maxKw * mulY), 2);
@@ -1593,7 +1591,7 @@ void Board320_240::menuItemClick()
 
   // Exit menu, parent level menu, open item
   bool showParentMenu = false;
-  if (liveData->menuItemSelected > 0)
+  if (liveData->menuItemSelected > 0 && tmpMenuItem != NULL)
   {
     syslog->println(tmpMenuItem->id);
     // Device list
@@ -1908,7 +1906,7 @@ void Board320_240::menuItemClick()
       return;
     // Shutdown
     case 11:
-      shutdownDevice();
+      enterSleepMode(0);
       return;
     default:
       // Submenu
@@ -2152,7 +2150,7 @@ void Board320_240::mainLoop()
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
   // MIDDLE - menu select
-  if (digitalRead(pinButtonMiddle) == HIGH)
+  if (!isButtonPressed(pinButtonMiddle))
   {
     btnMiddlePressed = false;
   }
@@ -2174,7 +2172,7 @@ void Board320_240::mainLoop()
     }
   }
   // LEFT - screen rotate, menu
-  if (digitalRead((liveData->settings.displayRotation == 1) ? pinButtonRight : pinButtonLeft) == HIGH)
+  if (!isButtonPressed(pinButtonLeft))
   {
     btnLeftPressed = false;
   }
@@ -2203,7 +2201,7 @@ void Board320_240::mainLoop()
     }
   }
   // RIGHT - menu, debug screen rotation
-  if (digitalRead((liveData->settings.displayRotation == 1) ? pinButtonLeft : pinButtonRight) == HIGH)
+  if (!isButtonPressed(pinButtonRight))
   {
     btnRightPressed = false;
   }
@@ -2237,7 +2235,7 @@ void Board320_240::mainLoop()
     }
   }
   // Both left&right button (hide menu)
-  if (digitalRead(pinButtonLeft) == LOW && digitalRead(pinButtonRight) == LOW)
+  if (isButtonPressed(pinButtonLeft) && isButtonPressed(pinButtonRight))
   {
     hideMenu();
   }
@@ -2427,7 +2425,7 @@ void Board320_240::syncTimes(time_t newTime)
 */
 bool Board320_240::skipAdapterScan()
 {
-  return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonLeft) == LOW || digitalRead(pinButtonRight) == LOW;
+  return isButtonPressed(pinButtonMiddle) || isButtonPressed(pinButtonLeft) || isButtonPressed(pinButtonRight);
 }
 
 /**

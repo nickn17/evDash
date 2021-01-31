@@ -90,7 +90,7 @@ void CarHyundaiIoniq::activateCommandQueue() {
 void CarHyundaiIoniq::parseRowMerged() {
 
   uint8_t tempByte;
-  float tempFloat;
+//  float tempFloat;
   String tmpStr;
 
   // VMCU 7E2

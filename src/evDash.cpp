@@ -16,28 +16,24 @@
   SIM800L m5stack support by (https://github.com/kolaCZek)
 */
 
-////////////////////////////////////////////////////////////
-// SELECT HARDWARE
-////////////////////////////////////////////////////////////
+#include "Arduino.h"
 
-// Boards
-//#define BOARD_TTGO_T4
-#define BOARD_M5STACK_CORE
-
-////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////
-
+#include "config.h"
 #include <SPI.h>
 #include "BoardInterface.h"
 
 #ifdef BOARD_TTGO_T4
 #include "BoardTtgoT4v13.h"
 #endif // BOARD_TTGO_T4
+
 #ifdef BOARD_M5STACK_CORE
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
 
-#include "config.h"
+#ifdef BOARD_M5STACK_CORE2
+#include "BoardM5stackCore2.h"
+#endif // BOARD_M5STACK_CORE2
+
 #include "LiveData.h"
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
@@ -68,9 +64,15 @@ void setup(void) {
 #ifdef BOARD_TTGO_T4
   board = new BoardTtgoT4v13();
 #endif // BOARD_TTGO_T4
+
 #ifdef BOARD_M5STACK_CORE
   board = new BoardM5stackCore();
 #endif // BOARD_M5STACK_CORE
+
+#ifdef BOARD_M5STACK_CORE2
+  board = new BoardM5stackCore2();
+#endif // BOARD_M5STACK_CORE2
+
   board->setLiveData(liveData);
   board->loadSettings();
   board->initBoard();

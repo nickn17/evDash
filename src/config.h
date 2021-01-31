@@ -2,18 +2,23 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v2.2.1-dev-b-vscode"
+#define APP_VERSION "v2.3.0-dev"
 #define APP_RELEASE_DATE "2020-01-22"
 
 // TFT COLORS FOR TTGO
-#define TFT_BLACK 0x0000                    /*   0,   0,   0 */
-#define TFT_NAVY 0x000F                     /*   0,   0, 128 */
-#define TFT_DARKGREEN 0x03E0                /*   0, 128,   0 */
-#define TFT_DARKCYAN 0x03EF                 /*   0, 128, 128 */
-#define TFT_MAROON 0x7800                   /* 128,   0,   0 */
-#define TFT_PURPLE 0x780F                   /* 128,   0, 128 */
-#define TFT_OLIVE 0x7BE0                    /* 128, 128,   0 */
+
+#define TFT_BLACK 0x0000     /*   0,   0,   0 */
+#define TFT_NAVY 0x000F      /*   0,   0, 128 */
+#define TFT_DARKGREEN 0x03E0 /*   0, 128,   0 */
+#define TFT_DARKCYAN 0x03EF  /*   0, 128, 128 */
+#define TFT_MAROON 0x7800    /* 128,   0,   0 */
+#define TFT_PURPLE 0x780F    /* 128,   0, 128 */
+#define TFT_OLIVE 0x7BE0     /* 128, 128,   0 */
+
+#ifdef BOARD_TTGO_T4
 #define TFT_LIGHTGREY 0xD69A                /* 211, 211, 211 */
+#endif // BOARD_TTGO_T4
+
 #define TFT_DARKGREY 0x7BEF                 /* 128, 128, 128 */
 #define TFT_BLUE 0x001F                     /*   0,   0, 255 */
 #define TFT_GREEN 0x07E0                    /*   0, 255,   0 */
@@ -30,8 +35,9 @@
 #define TFT_SILVER 0xC618                   /* 192, 192, 192 */
 #define TFT_SKYBLUE 0x867D                  /* 135, 206, 235 */
 #define TFT_VIOLET 0x915C                   /* 180,  46, 226 */
-#define TFT_DEFAULT_BK 0x0000               // 0x38E0
-#define TFT_TEMP 0x0000                     // NAVY
+
+#define TFT_DEFAULT_BK 0x0000 // 0x38E0
+#define TFT_TEMP 0x0000       // NAVY
 #define TFT_GREENYELLOW 0xB7E0
 #define TFT_DARKRED 0x3800    /* 128,   0,   0 */
 #define TFT_DARKRED2 0x1800   /* 128,   0,   0 */
