@@ -13,7 +13,7 @@
 #define TFT_DC   32
 #define TFT_RST   5
 //#define TFT_BACKLIGHT_ON HIGH
-#define TFT_BL 4
+//#define TFT_BL 4
 
 #define USE_HSPI_PORT
 //#define SPI_FREQUENCY  40000000   // Maximum for ILI9341
