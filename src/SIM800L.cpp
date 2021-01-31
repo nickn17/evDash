@@ -663,7 +663,7 @@ bool SIM800L::setPowerMode(PowerMode powerMode) {
   }
 
   // Send the command
-  char value;
+  //char value;
   switch(powerMode) {
     case MINIMUM :
       sendCommand_P(AT_CMD_CFUN0);

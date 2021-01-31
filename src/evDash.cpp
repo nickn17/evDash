@@ -15,8 +15,10 @@
   Required libraries, see INSTALLATION.rd
   SIM800L m5stack support by (https://github.com/kolaCZek)
 */
-#include "config.h"
 
+#include "Arduino.h"
+
+#include "config.h"
 #include <SPI.h>
 #include "BoardInterface.h"
 

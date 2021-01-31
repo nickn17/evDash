@@ -4,8 +4,8 @@
 #include <EEPROM.h>
 #include <BLEDevice.h>
 #include "BoardInterface.h"
-#include "CommObd2Ble4.h";
-#include "CommObd2Can.h";
+#include "CommObd2Ble4.h"
+#include "CommObd2Can.h"
 #include "LiveData.h"
 
 /**
@@ -389,4 +389,6 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
 
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);
+
+  return true;
 }

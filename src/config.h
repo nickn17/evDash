@@ -5,12 +5,9 @@
 #define APP_VERSION "v2.2.1-dev-b-vscode"
 #define APP_RELEASE_DATE "2020-01-22"
 
-// Boards
-//#define BOARD_TTGO_T4
-//#define BOARD_M5STACK_CORE
-#define BOARD_M5STACK_CORE2
-
 // TFT COLORS FOR TTGO
+//#ifdef BOARD_TTGO_T4
+
 #define TFT_BLACK 0x0000                    /*   0,   0,   0 */
 #define TFT_NAVY 0x000F                     /*   0,   0, 128 */
 #define TFT_DARKGREEN 0x03E0                /*   0, 128,   0 */
@@ -35,6 +32,8 @@
 #define TFT_SILVER 0xC618                   /* 192, 192, 192 */
 #define TFT_SKYBLUE 0x867D                  /* 135, 206, 235 */
 #define TFT_VIOLET 0x915C                   /* 180,  46, 226 */
+//#endif // BOARD_TTGO_T4
+
 #define TFT_DEFAULT_BK 0x0000               // 0x38E0
 #define TFT_TEMP 0x0000                     // NAVY
 #define TFT_GREENYELLOW 0xB7E0

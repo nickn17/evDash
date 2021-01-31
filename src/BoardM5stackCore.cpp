@@ -1,23 +1,27 @@
+#ifdef BOARD_M5STACK_CORE
+
 #include "BoardInterface.h"
 #include "Board320_240.h"
-#include "BoardM5stackCore2.h"
+#include "BoardM5stackCore.h"
 
 /**
   Init board
 */
-void BoardM5stackCore2::initBoard() {
+void BoardM5stackCore::initBoard() {
 
   invertDisplay = true;
+  
   pinButtonLeft = BUTTON_LEFT;
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
   M5.begin();
 
+  //
   Board320_240::initBoard();
 }
 
-bool BoardM5stackCore2::isButtonPressed(int button) {
+bool BoardM5stackCore::isButtonPressed(int button) {
   switch (button)
   {
   case BUTTON_LEFT:
@@ -35,7 +39,9 @@ bool BoardM5stackCore2::isButtonPressed(int button) {
   }
 }
 
-void BoardM5stackCore2::enterSleepMode(int secs) {
+void BoardM5stackCore::enterSleepMode(int secs) {
+  
+  M5.setWakeupButton(GPIO_NUM_37);
 
   if (secs > 0)
   {
@@ -52,9 +58,11 @@ void BoardM5stackCore2::enterSleepMode(int secs) {
   M5.Axp.DeepSleep(secs * 1000000ULL);
 }
 
-void BoardM5stackCore2::mainLoop() {
+void BoardM5stackCore::mainLoop() {
 
   Board320_240::mainLoop();
   M5.update();
 
 }
+
+#endif // BOARD_M5STACK_CORE

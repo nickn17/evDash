@@ -1,3 +1,5 @@
+#ifdef BOARD_TTGO_T4
+
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include "BoardTtgoT4v13.h"
@@ -45,3 +47,5 @@ void enterSleepMode(int secs) {
 
   esp_deep_sleep_start();
 }
+
+#endif // BOARD_TTGO_T4
