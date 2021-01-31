@@ -283,7 +283,10 @@ void CarKiaEniro::parseRowMerged()
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
       liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+      if (liveData->settings.voltmeterEnabled == 0)
+      {
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+      }
       liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
       liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
@@ -417,7 +420,7 @@ void CarKiaEniro::parseRowMerged()
       // log 220106 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
-      syslog->println(liveData->params.debugData2);
+      //syslog->println(liveData->params.debugData2);
     }
   }
 }
@@ -689,39 +692,262 @@ void CarKiaEniro::loadTestData()
 /**
    Test handler
 */
-void CarKiaEniro::testHandler(String command)
+void CarKiaEniro::testHandler(const String &cmd)
 {
+  int8_t idx = cmd.indexOf("/");
+  if (idx == -1)
+    return;
+  String key = cmd.substring(0, idx);
+  String value = cmd.substring(idx + 1);
 
-  syslog->println("test handler - enter");
+  if (key.equals("batch"))
+  {
+    // test=batch/1
+    for (uint16_t i = 0; i < 250; i++)
+    {
+      String command = "2FBC";
+      if (i < 16)
+        command += "0";
+      command += String(i, HEX);
+      command.toUpperCase();
+      command += "00";
+      //syslog->println(String(command + "03"));
+      syslog->println(command);
+      eNiroCarControl(liveData->hexToDec("0770", 2, false), command);
+    }
+  }
+  else
+  {
+    // test=07C6/2FB00103
+    eNiroCarControl(liveData->hexToDec(key, 2, false), value);
+  }
+}
+
+/**
+ * Custom menu
+ */
+std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
+{
+  if (menuId == MENU_CAR_COMMANDS)
+    return {
+        "doorsUnlock=Unlock doors",
+        "doorsLock=Lock doors",
+        "chargeCableLockOff=Charge cable lock off",
+        "chargeCableLockOn=Charge cable lock on",
+        "roomLampOff=Room lamp off",
+        "roomLampOn=Room lamp on",
+        "luggageLampOff=Luggage lamp off",
+        "luggageLampOn=Luggage lamp on",
+        "mirrorsUnfold=Unfold mirrors",
+        "mirrorsFold=Fold mirrors",
+        "heatSteeringWheelOff=Heat steering wheel off",
+        "heatSteeringWheelOn=Heat steering wheel on",
+        "clusterIndicatorsOff=Cluster indicators off",
+        "clusterIndicatorsOn=Cluster indicators on",
+        "turnSignalLeftOff=Turn signal left off",
+        "turnSignalLeftOn=Turn signal left on",
+        "turnSignalRightOff=Turn signal right off",
+        "turnSignalRightOn=Turn signal right on",
+        "headLightLowOff=Head light low off",
+        "headLightLowOn=Head light low on",
+        "headLightHighOff=Head light high off",
+        "headLightHighOn=Head light high on",
+        "frontFogLightOff=Front fog light off",
+        "frontFogLightOn=Front fog light on",
+        "rearLightOff=Rear light off",
+        "rearLightOn=Rear light on",
+        "rearFogLightOff=Rear fog light off",
+        "rearFogLightOn=Rear fog light on",
+        "rearDefoggerOff=Rear deffoger off",
+        "rearDefoggerOn=Rear deffoger on",
+        "rearLeftBrakeLightOff=Left brake light off",
+        "rearLeftBrakeLightOn=Left brake light on",
+        "rearRightBrakeLightOff=Right brake light off",
+        "rearRightBrakeLightOn=Right brake light on",
+    };
+
+  return {};
+}
+
+/**
+ * Execute custom command
+ */
+void CarKiaEniro::carCommand(const String &cmd)
+{
+  if (cmd.equals("doorsUnlock"))
+  {
+    eNiroCarControl(0x770, "2FBC1103");
+  }
+  if (cmd.equals("doorsLock"))
+  {
+    eNiroCarControl(0x770, "2FBC1003");
+  }
+  if (cmd.equals("chargeCableLockOff"))
+  {
+    eNiroCarControl(0x770, "2FBC4103");
+  }
+  if (cmd.equals("chargeCableLockOn"))
+  {
+    eNiroCarControl(0x770, "2FBC3F03");
+  }
+  if (cmd.equals("roomLampOff"))
+  {
+    eNiroCarControl(0x7A0, "2FB01900");
+  }
+  if (cmd.equals("roomLampOn"))
+  {
+    eNiroCarControl(0x7A0, "2FB01903");
+  }
+  if (cmd.equals("luggageLampOff"))
+  {
+    eNiroCarControl(0x770, "2FBC1C00");
+  }
+  if (cmd.equals("luggageLampOn"))
+  {
+    eNiroCarControl(0x770, "2FBC1C03");
+  }
+  if (cmd.equals("mirrorsUnfold"))
+  {
+    eNiroCarControl(0x7A0, "2FB05C03");
+  }
+  if (cmd.equals("mirrorsFold"))
+  {
+    eNiroCarControl(0x7A0, "2FB05B03");
+  }
+  if (cmd.equals("heatSteeringWheelOff"))
+  {
+    eNiroCarControl(0x7A0, "2FB05900"); // heat power
+    eNiroCarControl(0x7A0, "2FB05A00"); // LED indicator
+  }
+  if (cmd.equals("heatSteeringWheelOn"))
+  {
+    eNiroCarControl(0x7A0, "2FB05903"); // heat power
+    eNiroCarControl(0x7A0, "2FB05A03"); // LED indicator
+  }
+  if (cmd.equals("clusterIndicatorsOff"))
+  {
+    eNiroCarControl(0x7C6, "2FB00100");
+  }
+  if (cmd.equals("clusterIndicatorsOn"))
+  {
+    eNiroCarControl(0x7C6, "2FB00103");
+  }
+  if (cmd.equals("turnSignalLeftOff"))
+  {
+    eNiroCarControl(0x770, "2FBC1500");
+  }
+  if (cmd.equals("turnSignalLeftOn"))
+  {
+    eNiroCarControl(0x770, "2FBC1503");
+  }
+  if (cmd.equals("turnSignalRightOff"))
+  {
+    eNiroCarControl(0x770, "2FBC1600");
+  }
+  if (cmd.equals("turnSignalRightOn"))
+  {
+    eNiroCarControl(0x770, "2FBC1603");
+  }
+  if (cmd.equals("headLightLowOff"))
+  {
+    eNiroCarControl(0x770, "2FBC0100");
+  }
+  if (cmd.equals("headLightLowOn"))
+  {
+    eNiroCarControl(0x770, "2FBC0103");
+  }
+  if (cmd.equals("headLightHighOff"))
+  {
+    eNiroCarControl(0x770, "2FBC0200");
+  }
+  if (cmd.equals("headLightHighOn"))
+  {
+    eNiroCarControl(0x770, "2FBC0203");
+  }
+  if (cmd.equals("frontFogLightOff"))
+  {
+    eNiroCarControl(0x770, "2FBC0300");
+  }
+  if (cmd.equals("frontFogLightOn"))
+  {
+    eNiroCarControl(0x770, "2FBC0303");
+  }
+  if (cmd.equals("rearLightOff"))
+  {
+    eNiroCarControl(0x770, "2FBC0400");
+  }
+  if (cmd.equals("rearLightOn"))
+  {
+    eNiroCarControl(0x770, "2FBC0403");
+  }
+  if (cmd.equals("rearFogLightOff"))
+  {
+    eNiroCarControl(0x770, "2FBC0800");
+  }
+  if (cmd.equals("rearFogLightOn"))
+  {
+    eNiroCarControl(0x770, "2FBC0803");
+  }
+  if (cmd.equals("rearDefoggerOff"))
+  {
+    eNiroCarControl(0x770, "2FBC0C00");
+  }
+  if (cmd.equals("rearDefoggerOn"))
+  {
+    eNiroCarControl(0x770, "2FBC0C03");
+  }
+  if (cmd.equals("rearLeftBrakeLightOff"))
+  {
+    eNiroCarControl(0x770, "2FBC2B00");
+  }
+  if (cmd.equals("rearLeftBrakeLightOn"))
+  {
+    eNiroCarControl(0x770, "2FBC2B03");
+  }
+  if (cmd.equals("rearRightBrakeLightOff"))
+  {
+    eNiroCarControl(0x770, "2FBC2C00");
+  }
+  if (cmd.equals("rearRightBrakeLightOn"))
+  {
+    eNiroCarControl(0x770, "2FBC2C03");
+  }
+}
+
+/**
+ * Eniro cmds
+ */
+void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
+{
+  //syslog->println("EXECUTING COMMAND");
+  //syslog->println(cmd);
+
+  commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
+  delay(10);
+  for (uint16_t i = 0; i < 100; i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  commInterface->sendPID(pid, "1003"); // CHANGE SESSION
+  delay(10);
+  for (uint16_t i = 0; i < 100; i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+    {
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("5003"))
+      {
+        break;
+      }
+    }
+    delay(20);
+  }
+
+  // EXECUTE COMMAND
+  commInterface->sendPID(pid, cmd);
   syslog->setDebugLevel(DEBUG_COMM);
-
-  //commInterface->sendPID(0x770, "3E"); // IGMP
-  //commInterface->sendPID(0x736, "3E"); // VESS
-  //commInterface->sendPID(0x7a0, "3E"); // BCM
-  //commInterface->sendPID(0x7c6, "3E"); // CLUSTER
-  // commInterface->sendPID(0x7A5, "3E"); // SMK
-  commInterface->sendPID(0x7e4, "3E"); // BMS
-  delay(10);
-  for (uint16_t i = 0; i < 100; i++)
-  {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
-  }
-  //commInterface->sendPID(0x770, "1003"); // IGMP
-  //commInterface->sendPID(0x736, "1003"); // VESS
-  //commInterface->sendPID(0x7a0, "1003"); // BCM
-  //commInterface->sendPID(0x7c6, "1003"); // CLUSTER
-  //commInterface->sendPID(0x7A5, "1003"); // SMK
-  commInterface->sendPID(0x7e4, "1003"); // BMS
-  delay(10);
-  for (uint16_t i = 0; i < 100; i++)
-  {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
-  }
-  commInterface->sendPID(0x7e4, command); //"2FBC1103");
   delay(10);
   for (uint16_t i = 0; i < 100; i++)
   {
@@ -731,5 +957,4 @@ void CarKiaEniro::testHandler(String command)
   }
 
   syslog->setDebugLevel(liveData->settings.debugLevel);
-  syslog->println("test handler - exit");
 }

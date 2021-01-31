@@ -1457,14 +1457,20 @@ void Board320_240::showMenu()
 {
 
   uint16_t posY = 0, tmpCurrMenuItem = 0;
+  int8_t idx;
 
   liveData->menuVisible = true;
   spr.fillSprite(TFT_BLACK);
   spr.setTextDatum(TL_DATUM);
   spr.setFreeFont(&Roboto_Thin_24);
 
+  // dynamic car menu
+  std::vector<String> customMenu;
+  customMenu = carInterface->customMenu(liveData->menuCurrent);
+
   // Page scroll
   uint8_t visibleCount = (int)(tft.height() / spr.fontHeight());
+
   if (liveData->menuItemSelected >= liveData->menuItemOffset + visibleCount)
     liveData->menuItemOffset = liveData->menuItemSelected - visibleCount + 1;
   if (liveData->menuItemSelected < liveData->menuItemOffset)
@@ -1487,6 +1493,20 @@ void Board320_240::showMenu()
     }
   }
 
+  for (uint16_t i = 0; i < customMenu.size(); ++i)
+  {
+    if (tmpCurrMenuItem >= liveData->menuItemOffset)
+    {
+      bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
+      spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
+      spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE);
+      idx = customMenu.at(i).indexOf("=");
+      spr.drawString(customMenu.at(i).substring(idx + 1), 0, posY + 2, GFXFF);
+      posY += spr.fontHeight();
+    }
+    tmpCurrMenuItem++;
+  }
+
   spr.pushSprite(0, 0);
 }
 
@@ -1495,7 +1515,6 @@ void Board320_240::showMenu()
 */
 void Board320_240::hideMenu()
 {
-
   liveData->menuVisible = false;
   liveData->menuCurrent = 0;
   liveData->menuItemSelected = 0;
@@ -1507,8 +1526,8 @@ void Board320_240::hideMenu()
 */
 void Board320_240::menuMove(bool forward)
 {
+  uint16_t tmpCount = 0 + carInterface->customMenu(liveData->menuCurrent).size();
 
-  uint16_t tmpCount = 0;
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
   {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
@@ -1547,6 +1566,24 @@ void Board320_240::menuItemClick()
       {
         tmpMenuItem = &liveData->menuItems[i];
         break;
+      }
+      tmpCurrMenuItem++;
+    }
+  }
+
+  // Look for item in car custom menu
+  if (tmpMenuItem == NULL)
+  {
+    std::vector<String> customMenu;
+    customMenu = carInterface->customMenu(liveData->menuCurrent);
+    for (uint16_t i = 0; i < customMenu.size(); ++i)
+    {
+      if (liveData->menuItemSelected == tmpCurrMenuItem)
+      {
+        String tmp = customMenu.at(i).substring(0, customMenu.at(i).indexOf("="));
+        syslog->println(tmp);
+        carInterface->carCommand(tmp);
+        return;
       }
       tmpCurrMenuItem++;
     }
