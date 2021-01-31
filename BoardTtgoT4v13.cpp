@@ -19,3 +19,11 @@ void BoardTtgoT4v13::initBoard() {
 
   Board320_240::initBoard();
 }
+
+bool BoardTtgoT4v13::isButtonPressed(int button) {
+  if(digitalRead(button) == HIGH) {
+    return false;
+  } else {
+    return true;
+  }
+}

@@ -26,6 +26,7 @@ class BoardInterface {
     virtual void initBoard()=0;
     virtual void afterSetup()=0;
     virtual void mainLoop()=0;
+    virtual bool isButtonPressed(int button) {return false;};
     virtual bool skipAdapterScan() {return false;};
     bool carCommandAllowed() { return carInterface->commandAllowed(); }
     // Graphics & GUI

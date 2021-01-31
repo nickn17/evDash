@@ -26,9 +26,9 @@
 #define SDCARD_MISO  19
 #define SDCARD_SCLK  18
 
-#define BUTTON_LEFT 37
-#define BUTTON_MIDDLE 38
-#define BUTTON_RIGHT 39
+#define BUTTON_LEFT 1
+#define BUTTON_MIDDLE 2
+#define BUTTON_RIGHT 3
 
 //
 #include "BoardInterface.h"
@@ -39,5 +39,6 @@ class BoardM5stackCore : public Board320_240 {
   protected:
   public:
     void initBoard() override;
+    bool isButtonPressed(int button) override;
     void mainLoop() override;
 };

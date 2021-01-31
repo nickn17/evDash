@@ -39,7 +39,7 @@ class BoardTtgoT4v13 : public Board320_240 {
   protected:   
   public:
     void initBoard() override;
-  
+    bool isButtonPressed(int button) override;
 };
 
 #endif // BOARDTTGOT4V13_H

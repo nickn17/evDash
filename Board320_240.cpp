@@ -1,7 +1,6 @@
 //#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
-#include <TFT_eSPI.h>
 //#include <WiFi.h>
 //#include <WiFiClient.h>
 #include <sys/time.h>
@@ -9,7 +8,6 @@
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include <ArduinoJson.h>
-#include "SIM800L.h"
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
@@ -21,9 +19,11 @@ void Board320_240::initBoard()
 {
 
   // Set button pins for input
+  #ifdef BOARD_TTGO_T4
   pinMode(pinButtonMiddle, INPUT);
   pinMode(pinButtonLeft, INPUT);
   pinMode(pinButtonRight, INPUT);
+  #endif // BOARD_TTGO_T4
 
   // Init time library
   struct timeval tv;
@@ -301,8 +301,12 @@ void Board320_240::afterSleep()
 */
 void Board320_240::setBrightness(byte lcdBrightnessPerc)
 {
-
+  #ifdef BOARD_TTGO_T4
   analogWrite(TFT_BL, lcdBrightnessPerc);
+  #endif // BOARD_TTGO_T4
+  #if defined(BOARD_M5STACK_CORE) || defined(BOARD_M5STACK_CORE2)
+  tft.setBrightness(lcdBrightnessPerc);
+  #endif // BOARD_M5STACK_CORE OR BOARD_M5STACK_CORE2
 }
 
 /**
@@ -2115,7 +2119,7 @@ void Board320_240::mainLoop()
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
   // MIDDLE - menu select
-  if (digitalRead(pinButtonMiddle) == HIGH)
+  if (BoardInterface::isButtonPressed(pinButtonMiddle))
   {
     btnMiddlePressed = false;
   }
@@ -2137,7 +2141,7 @@ void Board320_240::mainLoop()
     }
   }
   // LEFT - screen rotate, menu
-  if (digitalRead((liveData->settings.displayRotation == 1) ? pinButtonRight : pinButtonLeft) == HIGH)
+  if (BoardInterface::isButtonPressed(pinButtonLeft))
   {
     btnLeftPressed = false;
   }
@@ -2166,7 +2170,7 @@ void Board320_240::mainLoop()
     }
   }
   // RIGHT - menu, debug screen rotation
-  if (digitalRead((liveData->settings.displayRotation == 1) ? pinButtonLeft : pinButtonRight) == HIGH)
+  if (BoardInterface::isButtonPressed(pinButtonRight))
   {
     btnRightPressed = false;
   }
@@ -2200,7 +2204,7 @@ void Board320_240::mainLoop()
     }
   }
   // Both left&right button (hide menu)
-  if (digitalRead(pinButtonLeft) == LOW && digitalRead(pinButtonRight) == LOW)
+  if (BoardInterface::isButtonPressed(pinButtonLeft) && BoardInterface::isButtonPressed(pinButtonRight))
   {
     hideMenu();
   }
