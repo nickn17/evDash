@@ -1532,7 +1532,7 @@ void Board320_240::menuItemClick()
 {
 
   // Locate menu item for meta data
-  MENU_ITEM *tmpMenuItem;
+  MENU_ITEM *tmpMenuItem = NULL;
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
   uint16_t i;
@@ -1554,7 +1554,7 @@ void Board320_240::menuItemClick()
 
   // Exit menu, parent level menu, open item
   bool showParentMenu = false;
-  if (liveData->menuItemSelected > 0)
+  if (liveData->menuItemSelected > 0 && tmpMenuItem != NULL)
   {
     syslog->println(tmpMenuItem->id);
     // Device list

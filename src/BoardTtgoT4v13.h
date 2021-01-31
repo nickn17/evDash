@@ -1,7 +1,4 @@
-#ifndef BOARDTTGOT4V13_H
-#define BOARDTTGOT4V13_H
-
-#ifdef BOARD_TTGO_T4
+#pragma once
 
 // Setup for TTGO T4 v13
 #define USER_SETUP_LOADED 1
@@ -44,6 +41,3 @@ class BoardTtgoT4v13 : public Board320_240 {
     bool isButtonPressed(int button) override;
 };
 
-#endif // BOARD_TTGO_T4
-
-#endif // BOARDTTGOT4V13_H
