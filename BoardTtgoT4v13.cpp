@@ -27,3 +27,21 @@ bool BoardTtgoT4v13::isButtonPressed(int button) {
     return true;
   }
 }
+
+void enterSleepMode(int secs) {
+
+  if (secs > 0)
+  {
+    syslog->println("Going to sleep for " + String(secs) + " seconds!");
+    esp_sleep_enable_timer_wakeup(secs * 1000000ULL);
+  }
+  else
+  {
+    syslog->println("Going to sleep for ever! (shutdown)");
+  }
+
+  syslog->flush();
+  delay(100);
+
+  esp_deep_sleep_start();
+}

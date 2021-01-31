@@ -35,6 +35,23 @@ bool BoardM5stackCore2::isButtonPressed(int button) {
   }
 }
 
+void BoardM5stackCore2::enterSleepMode(int secs) {
+
+  if (secs > 0)
+  {
+    syslog->println("Going to sleep for " + String(secs) + " seconds!");
+  }
+  else
+  {
+    syslog->println("Shutting down...");
+  }
+
+  syslog->flush();
+  delay(100);
+
+  M5.Axp.DeepSleep(secs * 1000000ULL);
+}
+
 void BoardM5stackCore2::mainLoop() {
 
   Board320_240::mainLoop();

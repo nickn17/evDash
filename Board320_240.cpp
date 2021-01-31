@@ -179,25 +179,16 @@ void Board320_240::goToSleep()
     gpsHwUart->write(GPSoff, sizeof(GPSoff));
   }
 
-  //Sleep ESP32
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0); // pinButtonLeft
+  int sleepSeconds = 0;
 
   if (liveData->settings.sleepModeLevel == 2 && sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600 || liveData->settings.sleepModeShutdownHrs == 0)
   {
-    esp_sleep_enable_timer_wakeup(liveData->settings.sleepModeIntervalSec * 1000000ULL);
-    syslog->println("Going to sleep for " + String(liveData->settings.sleepModeIntervalSec) + " seconds!");
-  }
-  else
-  {
-    syslog->println("Going to sleep for ever! (shutdown)");
+    sleepSeconds = liveData->settings.sleepModeIntervalSec;
   }
 
   ++sleepCount;
 
-  syslog->flush();
-  delay(1000);
-
-  esp_deep_sleep_start();
+  enterSleepMode(sleepSeconds);
 }
 
 /*
@@ -1875,7 +1866,7 @@ void Board320_240::menuItemClick()
       return;
     // Shutdown
     case 11:
-      shutdownDevice();
+      enterSleepMode(0);
       return;
     default:
       // Submenu
