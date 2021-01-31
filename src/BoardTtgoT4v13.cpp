@@ -30,7 +30,7 @@ bool BoardTtgoT4v13::isButtonPressed(int button) {
   }
 }
 
-void enterSleepMode(int secs) {
+void BoardTtgoT4v13::enterSleepMode(int secs) {
 
   if (secs > 0)
   {

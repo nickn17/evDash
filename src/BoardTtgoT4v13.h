@@ -42,6 +42,7 @@ class BoardTtgoT4v13 : public Board320_240 {
   public:
     void initBoard() override;
     bool isButtonPressed(int button) override;
+    void enterSleepMode(int secs) override;
 };
 
 #endif // BOARD_TTGO_T4
