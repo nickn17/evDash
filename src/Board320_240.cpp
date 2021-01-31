@@ -2267,7 +2267,6 @@ void Board320_240::mainLoop()
   // currentTime
   struct tm now;
   getLocalTime(&now, 0);
-  syncTimes(mktime(&now));
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
