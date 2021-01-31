@@ -16,7 +16,8 @@ void BoardM5stackCore::initBoard() {
   pinButtonMiddle = BUTTON_MIDDLE;
 
   M5.begin();
-
+  M5.Power.begin();
+  
   //
   Board320_240::initBoard();
 }
@@ -55,7 +56,8 @@ void BoardM5stackCore::enterSleepMode(int secs) {
   syslog->flush();
   delay(100);
 
-  M5.Axp.DeepSleep(secs * 1000000ULL);
+  //M5.Axp.DeepSleep(secs * 1000000ULL);
+  M5.Power.deepSleep(secs * 1000000ULL);
 }
 
 void BoardM5stackCore::mainLoop() {
