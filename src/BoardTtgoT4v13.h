@@ -1,7 +1,4 @@
-#ifndef BOARDTTGOT4V13_H
-#define BOARDTTGOT4V13_H
-
-#ifdef BOARD_TTGO_T4
+#pragma once
 
 // Setup for TTGO T4 v13
 #define USER_SETUP_LOADED 1
@@ -16,7 +13,7 @@
 #define TFT_DC   32
 #define TFT_RST   5
 //#define TFT_BACKLIGHT_ON HIGH
-#define TFT_BL 4
+//#define TFT_BL 4
 
 #define USE_HSPI_PORT
 //#define SPI_FREQUENCY  40000000   // Maximum for ILI9341
@@ -45,6 +42,3 @@ class BoardTtgoT4v13 : public Board320_240 {
     void enterSleepMode(int secs) override;
 };
 
-#endif // BOARD_TTGO_T4
-
-#endif // BOARDTTGOT4V13_H

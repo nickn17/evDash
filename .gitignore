@@ -1,6 +1,5 @@
+platformio.ini
 .idea
 .DS_Store
 .pio/
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/settings.json
+.vscode/
