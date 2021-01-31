@@ -23,7 +23,7 @@ monitor_port = COM12
 monitor_speed = 115200
 
 ; M5Stack configuration
-[env:m5stack-core-esp32]
+[env:m5stack-core]
 platform = espressif32
 board = m5stack-core-esp32
 board_build.partitions = no_ota.csv
@@ -39,7 +39,7 @@ lib_deps =
 	https://github.com/coryjfowler/MCP_CAN_lib
 
 ; TTGO-T4 v1.3 configuration
-[env:ttgo-t4-v13-esp32]
+[env:ttgo-t4-v13]
 platform = espressif32
 board = m5stack-core-esp32
 board_build.partitions = no_ota.csv
