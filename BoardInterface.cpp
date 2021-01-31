@@ -11,31 +11,35 @@
 /**
    Set live data
 */
-void BoardInterface::setLiveData(LiveData* pLiveData) {
+void BoardInterface::setLiveData(LiveData *pLiveData)
+{
   liveData = pLiveData;
 }
 
 /**
    Attach car interface
 */
-void BoardInterface::attachCar(CarInterface* pCarInterface) {
+void BoardInterface::attachCar(CarInterface *pCarInterface)
+{
   carInterface = pCarInterface;
 }
 
 /**
   Shutdown device
 */
-void BoardInterface::shutdownDevice() {
+void BoardInterface::shutdownDevice()
+{
 
   syslog->println("Shutdown.");
 
   char msg[20];
-  for (int i = 3; i >= 1; i--) {
+  for (int i = 3; i >= 1; i--)
+  {
     sprintf(msg, "Shutdown in %d sec.", i);
     displayMessage(msg, "");
     delay(1000);
   }
-/*
+  /*
   if (liveData->params.sim800l_enabled) {
     if (sim800l->isConnectedGPRS()) {
       bool disconnected = sim800l->disconnectGPRS();
@@ -70,7 +74,8 @@ void BoardInterface::shutdownDevice() {
 /**
   Load settings from flash memory, upgrade structure if version differs
 */
-void BoardInterface::saveSettings() {
+void BoardInterface::saveSettings()
+{
 
   // Flash to memory
   syslog->println("Settings saved to eeprom.");
@@ -81,7 +86,8 @@ void BoardInterface::saveSettings() {
 /**
   Reset settings (factory reset)
 */
-void BoardInterface::resetSettings() {
+void BoardInterface::resetSettings()
+{
 
   // Flash to memory
   syslog->println("Factory reset.");
@@ -98,7 +104,8 @@ void BoardInterface::resetSettings() {
 /**
   Load setting from flash memory, upgrade structure if version differs
 */
-void BoardInterface::loadSettings() {
+void BoardInterface::loadSettings()
+{
 
   String tmpStr;
 
@@ -140,13 +147,25 @@ void BoardInterface::loadSettings() {
   tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.remoteApiKey, tmpStr.length() + 1);
   liveData->settings.headlightsReminder = 0;
-  liveData->settings.gpsHwSerialPort = 255; // off
+  liveData->settings.gpsHwSerialPort = 255;  // off
   liveData->settings.gprsHwSerialPort = 255; // off
-  liveData->settings.serialConsolePort = 0; // hwuart0
-  liveData->settings.debugLevel = 1; // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
+  liveData->settings.serialConsolePort = 0;  // hwuart0
+  liveData->settings.debugLevel = 1;         // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   liveData->settings.sdcardLogIntervalSec = 2;
   liveData->settings.gprsLogIntervalSec = 60;
   liveData->settings.sleepModeLevel = 0;
+  liveData->settings.voltmeterEnabled = 0;
+  liveData->settings.voltmeterBasedSleep = 0;
+  liveData->settings.voltmeterCutOff = 12.0;
+  liveData->settings.voltmeterSleep = 12.8;
+  liveData->settings.voltmeterWakeUp = 13.0;
+  liveData->settings.remoteUploadIntervalSec = 60;
+  liveData->settings.sleepModeIntervalSec = 30;
+  liveData->settings.sleepModeShutdownHrs = 72;
+  liveData->settings.remoteUploadModuleType = 0;
+  liveData->settings.remoteUploadAbrpIntervalSec = 0;
+  tmpStr = "empty";
+  tmpStr.toCharArray(liveData->settings.abrpApiToken, tmpStr.length() + 1);
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -154,25 +173,32 @@ void BoardInterface::loadSettings() {
   EEPROM.get(0, liveData->tmpSettings);
 
   // Init flash with default settings
-  if (liveData->tmpSettings.initFlag != 183) {
+  if (liveData->tmpSettings.initFlag != 183)
+  {
     syslog->println("Settings not found. Initialization.");
     saveSettings();
-  } else {
+  }
+  else
+  {
     syslog->print("Loaded settings ver.: ");
     syslog->println(liveData->tmpSettings.settingsVersion);
 
     // Upgrade structure
-    if (liveData->settings.settingsVersion != liveData->tmpSettings.settingsVersion) {
-      if (liveData->tmpSettings.settingsVersion == 1) {
+    if (liveData->settings.settingsVersion != liveData->tmpSettings.settingsVersion)
+    {
+      if (liveData->tmpSettings.settingsVersion == 1)
+      {
         liveData->tmpSettings.settingsVersion = 2;
         liveData->tmpSettings.defaultScreen = liveData->settings.defaultScreen;
         liveData->tmpSettings.lcdBrightness = liveData->settings.lcdBrightness;
       }
-      if (liveData->tmpSettings.settingsVersion == 2) {
+      if (liveData->tmpSettings.settingsVersion == 2)
+      {
         liveData->tmpSettings.settingsVersion = 3;
         liveData->tmpSettings.predrawnChargingGraphs = liveData->settings.predrawnChargingGraphs;
       }
-      if (liveData->tmpSettings.settingsVersion == 3) {
+      if (liveData->tmpSettings.settingsVersion == 3)
+      {
         liveData->tmpSettings.settingsVersion = 4;
         liveData->tmpSettings.commType = COMM_TYPE_OBD2BLE4; // BLE4
         liveData->tmpSettings.wifiEnabled = 0;
@@ -194,22 +220,26 @@ void BoardInterface::loadSettings() {
         tmpStr.toCharArray(liveData->tmpSettings.remoteApiKey, tmpStr.length() + 1);
         liveData->tmpSettings.headlightsReminder = 0;
       }
-      if (liveData->tmpSettings.settingsVersion == 4) {
+      if (liveData->tmpSettings.settingsVersion == 4)
+      {
         liveData->tmpSettings.settingsVersion = 5;
         liveData->tmpSettings.gpsHwSerialPort = 255; // off
       }
-      if (liveData->tmpSettings.settingsVersion == 5) {
+      if (liveData->tmpSettings.settingsVersion == 5)
+      {
         liveData->tmpSettings.settingsVersion = 6;
         liveData->tmpSettings.serialConsolePort = 0; // hwuart0
-        liveData->tmpSettings.debugLevel = 0; // show all
+        liveData->tmpSettings.debugLevel = 0;        // show all
         liveData->tmpSettings.sdcardLogIntervalSec = 2;
         liveData->tmpSettings.gprsLogIntervalSec = 60;
       }
-      if (liveData->tmpSettings.settingsVersion == 6) {
+      if (liveData->tmpSettings.settingsVersion == 6)
+      {
         liveData->tmpSettings.settingsVersion = 7;
         liveData->tmpSettings.sleepModeLevel = 0;
       }
-      if (liveData->tmpSettings.settingsVersion == 7) {
+      if (liveData->tmpSettings.settingsVersion == 7)
+      {
         liveData->tmpSettings.settingsVersion = 8;
         liveData->tmpSettings.voltmeterEnabled = 0;
         liveData->tmpSettings.voltmeterBasedSleep = 0;
@@ -217,14 +247,16 @@ void BoardInterface::loadSettings() {
         liveData->tmpSettings.voltmeterSleep = 12.8;
         liveData->tmpSettings.voltmeterWakeUp = 13.0;
       }
-      if (liveData->tmpSettings.settingsVersion == 8) {
+      if (liveData->tmpSettings.settingsVersion == 8)
+      {
         liveData->tmpSettings.settingsVersion = 9;
         liveData->tmpSettings.remoteUploadIntervalSec = 60;
         liveData->tmpSettings.sleepModeIntervalSec = 30;
         liveData->tmpSettings.sleepModeShutdownHrs = 72;
         liveData->tmpSettings.remoteUploadModuleType = 0;
       }
-      if (liveData->tmpSettings.settingsVersion == 9) {
+      if (liveData->tmpSettings.settingsVersion == 9)
+      {
         liveData->tmpSettings.settingsVersion = 10;
         liveData->tmpSettings.remoteUploadAbrpIntervalSec = 0;
         tmpStr = "empty";
@@ -246,7 +278,8 @@ void BoardInterface::loadSettings() {
 /**
    After setup
 */
-void BoardInterface::afterSetup() {
+void BoardInterface::afterSetup()
+{
 
   syslog->println("BoardInterface::afterSetup");
 
@@ -254,11 +287,17 @@ void BoardInterface::afterSetup() {
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
 
-  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4) {;
+  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4)
+  {
+    ;
     commInterface = new CommObd2Ble4();
-  } else if (liveData->settings.commType == COMM_TYPE_OBD2CAN) {
+  }
+  else if (liveData->settings.commType == COMM_TYPE_OBD2CAN)
+  {
     commInterface = new CommObd2Can();
-  } else if (liveData->settings.commType == COMM_TYPE_OBD2BT3) {
+  }
+  else if (liveData->settings.commType == COMM_TYPE_OBD2BT3)
+  {
     //commInterface = new CommObd2Bt3();
     syslog->println("BT3 not implemented");
   }
@@ -271,12 +310,15 @@ void BoardInterface::afterSetup() {
 /**
    Custom commands
 */
-void BoardInterface::customConsoleCommand(String cmd) {
+void BoardInterface::customConsoleCommand(String cmd)
+{
 
-  if (cmd.equals("reboot")) ESP.restart();
+  if (cmd.equals("reboot"))
+    ESP.restart();
   // CAN comparer
-  if (cmd.equals("compare")) commInterface->compareCanRecords();
-  
+  if (cmd.equals("compare"))
+    commInterface->compareCanRecords();
+
   int8_t idx = cmd.indexOf("=");
   if (idx == -1)
     return;
@@ -284,37 +326,50 @@ void BoardInterface::customConsoleCommand(String cmd) {
   String key = cmd.substring(0, idx);
   String value = cmd.substring(idx + 1);
 
-  if (key == "serviceUUID") value.toCharArray(liveData->settings.serviceUUID, value.length() + 1);
-  if (key == "charTxUUID") value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
-  if (key == "charRxUUID") value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
-  if (key == "wifiSsid") value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
-  if (key == "wifiPassword") value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
-  if (key == "gprsApn") value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
-  if (key == "remoteApiUrl") value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
-  if (key == "remoteApiKey") value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
-  if (key == "abrpApiToken") value.toCharArray(liveData->settings.abrpApiToken, value.length() + 1);
-  if (key == "debugLevel") { 
-    liveData->settings.debugLevel = value.toInt(); 
-    syslog->setDebugLevel(liveData->settings.debugLevel);     
+  if (key == "serviceUUID")
+    value.toCharArray(liveData->settings.serviceUUID, value.length() + 1);
+  if (key == "charTxUUID")
+    value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
+  if (key == "charRxUUID")
+    value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
+  if (key == "wifiSsid")
+    value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
+  if (key == "wifiPassword")
+    value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
+  if (key == "gprsApn")
+    value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
+  if (key == "remoteApiUrl")
+    value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
+  if (key == "remoteApiKey")
+    value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
+  if (key == "abrpApiToken")
+    value.toCharArray(liveData->settings.abrpApiToken, value.length() + 1);
+  if (key == "debugLevel")
+  {
+    liveData->settings.debugLevel = value.toInt();
+    syslog->setDebugLevel(liveData->settings.debugLevel);
   }
   // CAN comparer
-  if (key == "record") commInterface->recordLoop(value.toInt());
-  if (key == "test") carInterface->testHandler(value);
+  if (key == "record")
+    commInterface->recordLoop(value.toInt());
+  if (key == "test")
+    carInterface->testHandler(value);
 }
 
 /**
    Parser response from obd2/can
 */
-void BoardInterface::parseRowMerged() {
+void BoardInterface::parseRowMerged()
+{
 
   carInterface->parseRowMerged();
 }
 
-
 /**
    Serialize parameters
 */
-bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey) {
+bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
+{
 
   StaticJsonDocument<2048> jsonData;
 

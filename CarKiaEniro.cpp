@@ -283,7 +283,10 @@ void CarKiaEniro::parseRowMerged()
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
       liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+      if (liveData->settings.voltmeterEnabled == 0)
+      {
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+      }
       liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
       liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
@@ -707,7 +710,7 @@ void CarKiaEniro::testHandler(const String &cmd)
         command += "0";
       command += String(i, HEX);
       command.toUpperCase();
-        command += "00";
+      command += "00";
       //syslog->println(String(command + "03"));
       syslog->println(command);
       eNiroCarControl(liveData->hexToDec("0770", 2, false), command);
