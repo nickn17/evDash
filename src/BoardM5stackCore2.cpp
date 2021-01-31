@@ -14,7 +14,7 @@ void BoardM5stackCore2::initBoard() {
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
-  M5.begin();
+  M5.begin(true, true, false, true);
 
   Board320_240::initBoard();
 }
@@ -42,16 +42,17 @@ void BoardM5stackCore2::enterSleepMode(int secs) {
   if (secs > 0)
   {
     syslog->println("Going to sleep for " + String(secs) + " seconds!");
+    syslog->flush();
+    delay(100);
+    M5.Axp.DeepSleep(secs * 1000000ULL);
   }
   else
   {
     syslog->println("Shutting down...");
+    syslog->flush();
+    delay(100);
+    M5.Axp.PowerOff();
   }
-
-  syslog->flush();
-  delay(100);
-
-  M5.Axp.DeepSleep(secs * 1000000ULL);
 }
 
 void BoardM5stackCore2::mainLoop() {
