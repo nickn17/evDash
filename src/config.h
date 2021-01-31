@@ -51,7 +51,12 @@
 #define TFT_GRAPH_RAPIDGATE35 0x8300
 
 // SIM800L
-#define SIM800L_RST 5          // SIM800L Reset Pin
+#ifdef BOARD_M5STACK_CORE
+#define SIM800L_RST 5          // SIM800L Reset Pin (M5Stack)
+#endif // BOARD_M5STACK_CORE
+#ifdef BOARD_M5STACK_CORE2
+#define SIM800L_RST 33         // SIM800L Reset Pin (Core2)
+#endif // BOARD_M5STACK_CORE2
 #define SIM800L_SND_TIMEOUT 4  // Send data timeout in seconds
 #define SIM800L_RCV_TIMEOUT 5  // Receive data timeout in seconds
 #define SIM800L_INT_BUFFER 768 // Internal buffer
