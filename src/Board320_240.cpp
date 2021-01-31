@@ -2258,15 +2258,16 @@ void Board320_240::mainLoop()
     syncGPS();
   }
 
+  // currentTime
+  struct tm now;
+  getLocalTime(&now);
+  syncTimes(mktime(&now));
+
   // SIM800L
   if (liveData->params.sim800l_enabled)
   {
     sim800lLoop();
   }
-
-  // currentTime
-  struct tm now;
-  getLocalTime(&now, 0);
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
@@ -2317,6 +2318,8 @@ void Board320_240::mainLoop()
   if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 2)
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
+
+    liveData->params.lastVoltageReadTime = liveData->params.currentTime;
 
     float tmpAuxPerc;
     if (liveData->params.ignitionOn)
@@ -2559,7 +2562,6 @@ void Board320_240::syncGPS()
     printf("%02d%02d%02d%02d%02d%02d\n", gps.date.year() - 2000, gps.date.month() - 1, gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
     struct timeval now = {.tv_sec = t};
     settimeofday(&now, NULL);
-    syncTimes(mktime(&tm));
   }
 }
 
