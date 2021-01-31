@@ -40,4 +40,6 @@ bool BoardM5stackCore::isButtonPressed(int button) {
 void BoardM5stackCore::mainLoop() {
 
   Board320_240::mainLoop();
+  M5.update();
+
 }

@@ -81,7 +81,7 @@ void Board320_240::afterSetup()
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
-  if (digitalRead(pinButtonRight) == LOW)
+  if (isButtonPressed(pinButtonRight))
   {
     loadTestData();
   }
@@ -2119,7 +2119,7 @@ void Board320_240::mainLoop()
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
   // MIDDLE - menu select
-  if (BoardInterface::isButtonPressed(pinButtonMiddle))
+  if (!isButtonPressed(pinButtonMiddle))
   {
     btnMiddlePressed = false;
   }
@@ -2141,7 +2141,7 @@ void Board320_240::mainLoop()
     }
   }
   // LEFT - screen rotate, menu
-  if (BoardInterface::isButtonPressed(pinButtonLeft))
+  if (!isButtonPressed(pinButtonLeft))
   {
     btnLeftPressed = false;
   }
@@ -2170,7 +2170,7 @@ void Board320_240::mainLoop()
     }
   }
   // RIGHT - menu, debug screen rotation
-  if (BoardInterface::isButtonPressed(pinButtonRight))
+  if (!isButtonPressed(pinButtonRight))
   {
     btnRightPressed = false;
   }
@@ -2204,7 +2204,7 @@ void Board320_240::mainLoop()
     }
   }
   // Both left&right button (hide menu)
-  if (BoardInterface::isButtonPressed(pinButtonLeft) && BoardInterface::isButtonPressed(pinButtonRight))
+  if (isButtonPressed(pinButtonLeft) && isButtonPressed(pinButtonRight))
   {
     hideMenu();
   }
@@ -2394,7 +2394,7 @@ void Board320_240::syncTimes(time_t newTime)
 */
 bool Board320_240::skipAdapterScan()
 {
-  return digitalRead(pinButtonMiddle) == LOW || digitalRead(pinButtonLeft) == LOW || digitalRead(pinButtonRight) == LOW;
+  return isButtonPressed(pinButtonMiddle) || isButtonPressed(pinButtonLeft) || isButtonPressed(pinButtonRight);
 }
 
 /**
