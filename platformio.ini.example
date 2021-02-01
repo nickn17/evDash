@@ -7,6 +7,12 @@ board_build.partitions = no_ota.csv
 framework = arduino
 build_flags = 
 	-D BOARD_M5STACK_CORE2
+	-D COMMU_CS_PIN=27
+	-D COMMU_INT_PIN=2
+	-D SERIAL0_RX=3
+	-D SERIAL0_TX=1
+	-D SERIAL2_RX=13
+	-D SERIAL2_TX=14
 lib_deps = 
 	https://github.com/m5stack/M5Core2
 	mikalhart/TinyGPSPlus@^1.0.2
@@ -30,6 +36,12 @@ board_build.partitions = no_ota.csv
 framework = arduino
 build_flags = 
 	-D BOARD_M5STACK_CORE
+	-D COMMU_CS_PIN=12
+	-D COMMU_INT_PIN=15
+	-D SERIAL0_RX=3
+	-D SERIAL0_TX=1
+	-D SERIAL2_RX=16
+	-D SERIAL2_TX=17
 lib_deps = 
 	https://github.com/m5stack/M5Stack
 	mikalhart/TinyGPSPlus@^1.0.2
