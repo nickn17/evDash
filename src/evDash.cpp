@@ -52,7 +52,6 @@ LiveData* liveData;
   Setup device
 */
 void setup(void) {
-
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
