@@ -2575,17 +2575,15 @@ bool Board320_240::sim800lSetup()
 
   gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
 
-  if (liveData->settings.gprsHwSerialPort == 0) {
-    gprsHwUart->begin(9600, SERIAL_8N1, SERIAL0_RX, SERIAL0_TX);
-  } else if (liveData->settings.gprsHwSerialPort == 2) {
+  if (liveData->settings.gprsHwSerialPort == 2) {
     gprsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
   } else {
     gprsHwUart->begin(9600);
   }
 
-  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
+  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
+  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 5 && !sim800l_ready; i++)
@@ -2877,7 +2875,12 @@ void Board320_240::initGPS()
   syslog->println(liveData->settings.gpsHwSerialPort);
 
   gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
-  gpsHwUart->begin(9600);
+
+  if (liveData->settings.gpsHwSerialPort == 2) {
+    gpsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+  } else {
+    gpsHwUart->begin(9600);
+  }
 
   // Enable static hold
   // https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_%28UBX-13003221%29.pdf

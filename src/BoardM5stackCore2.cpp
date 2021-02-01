@@ -14,7 +14,8 @@ void BoardM5stackCore2::initBoard() {
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
-  M5.begin(true, true, false, true, kMBusModeInput);
+  M5.begin(true, true, false, true, kMBusModeInput);  // power from bus (for example power over COMMU)
+  //M5.begin(true, true, false, true);                // power from USB connector
   M5.Axp.SetLed(false);
 
   Board320_240::initBoard();
