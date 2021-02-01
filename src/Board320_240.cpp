@@ -302,8 +302,13 @@ void Board320_240::setBrightness(byte lcdBrightnessPerc)
   tft.setBrightness(brightnessVal);
 #endif // BOARD_M5STACK_CORE
 #ifdef BOARD_M5STACK_CORE2
-  uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
-  tft.setBrightness(brightnessVal); // This does not work... :/
+  if (lcdBrightnessPerc == 0) {
+    M5.Axp.SetDCDC3(false);
+  } else {
+    M5.Axp.SetDCDC3(true);
+    uint16_t lcdVolt = map(lcdBrightnessPerc, 0, 100, 2500, 3300);
+    M5.Axp.SetLcdVoltage(lcdVolt);
+  }
 #endif // BOARD_M5STACK_CORE2
 }
 
