@@ -297,9 +297,14 @@ void Board320_240::setBrightness(byte lcdBrightnessPerc)
 #ifdef BOARD_TTGO_T4
   analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
 #endif // BOARD_TTGO_T4
-#if defined(BOARD_M5STACK_CORE) || defined(BOARD_M5STACK_CORE2)
-  tft.setBrightness(lcdBrightnessPerc);
-#endif // BOARD_M5STACK_CORE OR BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORE
+  uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
+  tft.setBrightness(brightnessVal);
+#endif // BOARD_M5STACK_CORE
+#ifdef BOARD_M5STACK_CORE2
+  uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
+  tft.setBrightness(brightnessVal); // This does not work... :/
+#endif // BOARD_M5STACK_CORE2
 }
 
 /**
@@ -2353,7 +2358,7 @@ void Board320_240::mainLoop()
   {
     setBrightness(0);
   }
-  else
+  else if (liveData->params.displayScreen != SCREEN_BLANK)
   {
     setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
   }
