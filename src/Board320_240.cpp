@@ -2469,7 +2469,7 @@ bool Board320_240::sdcardMount()
         SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);*/
 
     syslog->print(" M5STACK ");
-    SdState = SD.begin(pinSdcardCs);
+    SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
 
     if (SdState)
     {

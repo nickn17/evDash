@@ -24,7 +24,6 @@ void BoardM5stackCore::initBoard() {
 }
 
 void BoardM5stackCore::wakeupBoard() {
-  SD.begin(TFCARD_CS_PIN, SPI, 40000000);
   M5.Lcd.begin();
 }
 

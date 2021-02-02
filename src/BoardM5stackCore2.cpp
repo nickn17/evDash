@@ -51,8 +51,6 @@ void BoardM5stackCore2::wakeupBoard() {
 
   M5.Lcd.begin();
   M5.Touch.begin();
-  
-  SD.begin(TFCARD_CS_PIN, SPI, 40000000);
   M5.Rtc.begin();
 }
 
