@@ -705,15 +705,17 @@ void CarKiaEniro::testHandler(const String &cmd)
     // test=batch/1
     for (uint16_t i = 0; i < 250; i++)
     {
-      String command = "2FBC";
+      String command = "2F";
       if (i < 16)
         command += "0";
       command += String(i, HEX);
       command.toUpperCase();
-      command += "00";
+      command += "0100";
       //syslog->println(String(command + "03"));
-      syslog->println(command);
-      eNiroCarControl(liveData->hexToDec("0770", 2, false), command);
+      syslog->print(command);
+      syslog->print(" " );
+      
+      eNiroCarControl(liveData->hexToDec("07B3", 2, false), command);
     }
   }
   else
@@ -921,18 +923,19 @@ void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
   //syslog->println("EXECUTING COMMAND");
   //syslog->println(cmd);
-
   commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
   delay(10);
-  for (uint16_t i = 0; i < 100; i++)
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
   {
     if (commInterface->receivePID() != 0xff)
       break;
     delay(20);
   }
+  delay(liveData->delayBetweenCommandsMs);
+
   commInterface->sendPID(pid, "1003"); // CHANGE SESSION
   delay(10);
-  for (uint16_t i = 0; i < 100; i++)
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
   {
     if (commInterface->receivePID() != 0xff)
     {
@@ -944,17 +947,19 @@ void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
     }
     delay(20);
   }
+  delay(liveData->delayBetweenCommandsMs);
 
   // EXECUTE COMMAND
   commInterface->sendPID(pid, cmd);
   syslog->setDebugLevel(DEBUG_COMM);
   delay(10);
-  for (uint16_t i = 0; i < 100; i++)
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
   {
     if (commInterface->receivePID() != 0xff)
       break;
     delay(20);
   }
+  delay(liveData->delayBetweenCommandsMs);
 
   syslog->setDebugLevel(liveData->settings.debugLevel);
 }

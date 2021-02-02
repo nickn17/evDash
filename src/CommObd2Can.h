@@ -10,9 +10,14 @@
 
 class CommObd2Can : public CommInterface {
 
-  protected:
+  protected:    
+    #ifdef COMMU_INT_PIN
     const uint8_t pinCanInt = COMMU_INT_PIN;
     const uint8_t pinCanCs = COMMU_CS_PIN;
+    #else
+    const uint8_t pinCanInt = 0;
+    const uint8_t pinCanCs = 0;
+    #endif
   	std::unique_ptr <MCP_CAN> CAN;
     long unsigned int rxId;
     unsigned char rxLen = 0;

@@ -77,7 +77,9 @@ build_flags =
 	-D LOAD_GFXFF
 	-D SMOOTH_FONT
 	-D TFCARD_CS_PIN=13
-lib_deps = 
+	-D SERIAL2_RX=16
+ 	-D SERIAL2_TX=17
+ lib_deps = 
 	https://github.com/Bodmer/TFT_eSPI
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
