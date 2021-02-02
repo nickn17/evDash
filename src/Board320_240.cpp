@@ -643,7 +643,7 @@ void Board320_240::drawSceneSpeed()
   spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 91) ? TFT_YELLOW
                                                                                                 : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
-  sprintf(tmpStr3, "%01.00f %c", liveData->params.socPerc, '%');
+  sprintf(tmpStr3, "%01.00f", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
   spr.drawString(tmpStr3, 285, 165, GFXFF);
   spr.setFreeFont(&Orbitron_Light_24);
