@@ -17,7 +17,6 @@ void BoardM5stackCore::initBoard() {
 
   M5.Power.begin();
   Wire.begin(21, 22);
-  Power.setWakeupButton(BUTTON_A_PIN);
 
   //
   Board320_240::initBoard();
