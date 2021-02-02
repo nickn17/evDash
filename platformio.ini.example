@@ -75,7 +75,8 @@ build_flags =
 	-D LOAD_FONT7
 	-D LOAD_FONT8
 	-D LOAD_GFXFF
-	-D SMOOTH_FONT	
+	-D SMOOTH_FONT
+	-D TFCARD_CS_PIN=13
 lib_deps = 
 	https://github.com/Bodmer/TFT_eSPI
 	mikalhart/TinyGPSPlus@^1.0.2
