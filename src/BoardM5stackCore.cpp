@@ -15,11 +15,15 @@ void BoardM5stackCore::initBoard() {
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
-  M5.begin(true, true, false, true);
   M5.Power.begin();
-  
+  Wire.begin(21, 22);
+
   //
   Board320_240::initBoard();
+}
+
+void BoardM5stackCore::wakeupBoard() {
+  M5.begin(true, true, false, true);
 }
 
 bool BoardM5stackCore::isButtonPressed(int button) {

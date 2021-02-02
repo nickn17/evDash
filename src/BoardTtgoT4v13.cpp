@@ -30,6 +30,10 @@ bool BoardTtgoT4v13::isButtonPressed(int button) {
   }
 }
 
+void BoardTtgoT4v13::wakeupBoard() {
+  return;
+}
+
 void BoardTtgoT4v13::enterSleepMode(int secs) {
 
   if (secs > 0)

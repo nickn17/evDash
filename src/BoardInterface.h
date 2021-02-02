@@ -24,6 +24,7 @@ class BoardInterface {
     void setLiveData(LiveData* pLiveData);
     void attachCar(CarInterface* pCarInterface);
     virtual void initBoard()=0;
+    virtual void wakeupBoard()=0;
     virtual void afterSetup()=0;
     virtual void mainLoop()=0;
     virtual bool isButtonPressed(int button) {return false;};

@@ -14,11 +14,17 @@ void BoardM5stackCore2::initBoard() {
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
-  M5.begin(true, true, false, true, kMBusModeInput);  // power from bus (power over COMMU for example)
-  //M5.begin(true, true, false, true);                // power from USB connector
-  M5.Axp.SetLed(false);
+  M5.Axp.SetBusPowerMode(1); // Allow power from BUS
+  Wire.begin(32, 33);        // Enable i2c
 
   Board320_240::initBoard();
+}
+
+void BoardM5stackCore2::wakeupBoard() {
+  M5.begin(true, true, false, true, kMBusModeInput);  // power from bus (power over COMMU for example)
+  //M5.begin(true, true, false, true);                // power from USB connector
+
+  M5.Axp.SetLed(false);
 }
 
 bool BoardM5stackCore2::isButtonPressed(int button) {

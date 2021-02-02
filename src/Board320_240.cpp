@@ -53,15 +53,26 @@ void Board320_240::afterSetup()
   syslog->print("Continuous sleep count: ");
   syslog->println(sleepCount);
 
+  // Init Voltmeter
+  if (liveData->settings.voltmeterEnabled == 1)
+  {
+    ina3221.begin();
+  }
+
   if (liveData->settings.sleepModeLevel >= 2 && !skipAdapterScan())
   {
-    // Init comm device
-    afterSetup = true;
-    BoardInterface::afterSetup();
+    // Init comm device if COMM device based wakeup
+    if (liveData->settings.voltmeterBasedSleep == 0) {
+      afterSetup = true;
+      BoardInterface::afterSetup();
+    }
+
     // Wake or continue with sleeping
     afterSleep();
     sleepCount = 0;
   }
+
+  wakeupBoard();
 
   // Init display
   syslog->println("Init TFT display");
@@ -119,12 +130,6 @@ void Board320_240::afterSetup()
   if (liveData->settings.gprsHwSerialPort <= 2)
   {
     sim800lSetup();
-  }
-
-  // Init Voltmeter
-  if (liveData->settings.voltmeterEnabled == 1)
-  {
-    ina3221.begin();
   }
 
   // Init comm device
@@ -199,7 +204,6 @@ void Board320_240::goToSleep()
 */
 void Board320_240::afterSleep()
 {
-
   // Wakeup reason
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
