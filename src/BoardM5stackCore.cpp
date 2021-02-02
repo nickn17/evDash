@@ -17,13 +17,15 @@ void BoardM5stackCore::initBoard() {
 
   M5.Power.begin();
   Wire.begin(21, 22);
+  Power.setWakeupButton(BUTTON_A_PIN);
 
   //
   Board320_240::initBoard();
 }
 
 void BoardM5stackCore::wakeupBoard() {
-  M5.begin(true, true, false, true);
+  SD.begin(TFCARD_CS_PIN, SPI, 40000000);
+  M5.Lcd.begin();
 }
 
 bool BoardM5stackCore::isButtonPressed(int button) {

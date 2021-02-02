@@ -14,17 +14,61 @@ void BoardM5stackCore2::initBoard() {
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
-  M5.Axp.SetBusPowerMode(1); // Allow power from BUS
-  Wire.begin(32, 33);        // Enable i2c
+  Wire.begin(32, 33);
+  Wire1.begin(21, 22);
+  Wire1.setClock(400000);
+
+  //AXP192 30H
+  Write1Byte(0x30, (Read8bit(0x30) & 0x04) | 0X02);
+  //AXP192 GPIO1:OD OUTPUT
+  Write1Byte(0x92, Read8bit(0x92) & 0xf8);
+  //AXP192 GPIO2:OD OUTPUT
+  Write1Byte(0x93, Read8bit(0x93) & 0xf8);
+  //AXP192 RTC CHG
+  Write1Byte(0x35, (Read8bit(0x35) & 0x1c) | 0xa2);
+  //AXP192 GPIO4
+  Write1Byte(0X95, (Read8bit(0x95) & 0x72) | 0X84);
+  Write1Byte(0X36, 0X4C);
+  Write1Byte(0x82,0xff);
+
+  M5.Axp.SetESPVoltage(3350);
+  M5.Axp.SetBusPowerMode(1);          // 1 - Power from bus; 0 - Power from USB
+  M5.Axp.SetLDOVoltage(2, 3300);
+  M5.Axp.SetLDOVoltage(3, 2000);
+  M5.Axp.SetLDOEnable(2, true);
+  M5.Axp.SetDCDC3(false);
+  M5.Axp.SetLed(false);
 
   Board320_240::initBoard();
 }
 
 void BoardM5stackCore2::wakeupBoard() {
-  M5.begin(true, true, false, true, kMBusModeInput);  // power from bus (power over COMMU for example)
-  //M5.begin(true, true, false, true);                // power from USB connector
+  M5.Axp.SetLcdVoltage(2800);
+  M5.Axp.SetDCDC3(true);
+  M5.Axp.SetLCDRSet(0);
+  delay(100);
+  M5.Axp.SetLCDRSet(1);
 
-  M5.Axp.SetLed(false);
+  M5.Lcd.begin();
+  M5.Touch.begin();
+  
+  SD.begin(TFCARD_CS_PIN, SPI, 40000000);
+  M5.Rtc.begin();
+}
+
+void BoardM5stackCore2::Write1Byte(uint8_t Addr, uint8_t Data) {
+    Wire1.beginTransmission(0x34);
+    Wire1.write(Addr);
+    Wire1.write(Data);
+    Wire1.endTransmission();
+}
+
+uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr) {
+    Wire1.beginTransmission(0x34);
+    Wire1.write(Addr);
+    Wire1.endTransmission();
+    Wire1.requestFrom(0x34, 1);
+    return Wire1.read();
 }
 
 bool BoardM5stackCore2::isButtonPressed(int button) {
