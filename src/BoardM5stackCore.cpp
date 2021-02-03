@@ -23,7 +23,7 @@ void BoardM5stackCore::initBoard() {
 }
 
 void BoardM5stackCore::wakeupBoard() {
-  M5.Lcd.begin();
+
 }
 
 bool BoardM5stackCore::isButtonPressed(int button) {

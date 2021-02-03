@@ -39,6 +39,8 @@ void BoardM5stackCore2::initBoard() {
   M5.Axp.SetDCDC3(false);
   M5.Axp.SetLed(false);
 
+  M5.Rtc.begin();
+
   Board320_240::initBoard();
 }
 
@@ -48,10 +50,7 @@ void BoardM5stackCore2::wakeupBoard() {
   M5.Axp.SetLCDRSet(0);
   delay(100);
   M5.Axp.SetLCDRSet(1);
-
-  M5.Lcd.begin();
   M5.Touch.begin();
-  M5.Rtc.begin();
 }
 
 void BoardM5stackCore2::Write1Byte(uint8_t Addr, uint8_t Data) {
