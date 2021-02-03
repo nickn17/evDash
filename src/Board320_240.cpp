@@ -1439,7 +1439,10 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1;
     break;
   case MENU_CURRENT_TIME:
-    suffix = ctime(&liveData->params.currentTime);
+    struct tm now;
+    getLocalTime(&now);
+    sprintf(tmpStr1, "%d-%d-%d %d:%d:%d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+    suffix = tmpStr1;
     break;
   case MENU_TIMEZONE:
     sprintf(tmpStr1, "[%d hrs]", liveData->settings.timezone);
@@ -2163,7 +2166,7 @@ void Board320_240::redrawScreen()
     {
       spr.fillRect(140, 7, 7, 7,
                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ? (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
-      );
+      );      
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
