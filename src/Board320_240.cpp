@@ -6,6 +6,7 @@
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
+#include <Time.h>
 #include <ArduinoJson.h>
 #include "Solarlib.h"
 
@@ -28,7 +29,10 @@ void Board320_240::initBoard()
   // Init time library
   struct timeval tv;
   tv.tv_sec = 1589011873;
-  settimeofday(&tv, NULL);
+  struct timezone tz;
+  tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
+  tz.tz_dsttime = 0;
+  settimeofday(&tv, &tz);
   struct tm tm;
   getLocalTime(&tm, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&tm);
@@ -320,14 +324,7 @@ void Board320_240::setBrightness()
   lcdBrightnessPerc = liveData->settings.lcdBrightness;
   if (lcdBrightnessPerc == 0)
   { // automatic brightness (based on gps&and sun angle)
-    if (liveData->params.lcdBrightnessCalc == -1)
-    {
-      lcdBrightnessPerc = 100;
-    }
-    else
-    {
-      lcdBrightnessPerc = liveData->params.lcdBrightnessCalc;
-    }
+    lcdBrightnessPerc = ((liveData->params.lcdBrightnessCalc == -1) ? 100 : liveData->params.lcdBrightnessCalc);
   }
   if (liveData->params.displayScreen == SCREEN_BLANK)
   {
@@ -1382,7 +1379,8 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case MENU_SCREEN_BRIGHTNESS:
     sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness);
-    suffix = (liveData->settings.lcdBrightness == 0) ? "[auto]" : tmpStr1;
+    sprintf(tmpStr2, "[auto/%d%%]", ((liveData->params.lcdBrightnessCalc == -1) ? 100 : liveData->params.lcdBrightnessCalc));
+    suffix = ((liveData->settings.lcdBrightness == 0) ? tmpStr2 : tmpStr1);
     break;
   case MENU_PREDRAWN_GRAPHS:
     suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]";
@@ -2638,14 +2636,17 @@ void Board320_240::syncGPS()
     {
       if (liveData->params.lcdBrightnessCalc == -1)
       {
-        initSolarCalc(0, liveData->params.gpsLat, liveData->params.gpsLon);
+        initSolarCalc(liveData->settings.timezone, liveData->params.gpsLat, liveData->params.gpsLon);
       }
-      struct tm tm;
-      time_t t = mktime(&tm);
-      double sunDeg = getSEC_Corr(t);
-      syslog->print("Solar Elevation, degrees: ");
+      // angle from zenith
+      // <70 = 100% brightnesss
+      // >100 = 10%
+      double sunDeg = getSZA(liveData->params.currentTime);
+      syslog->print("SUN from zenith, degrees: ");
       syslog->println(sunDeg);
-      int8_t newBrightness = ((sunDeg > 10) ? 100 : 10);
+      int32_t newBrightness = (100 - sunDeg) * 3;
+      newBrightness = (newBrightness < 10 ? 10 : (newBrightness > 100) ? 100
+                                                                       : newBrightness);
       if (liveData->params.lcdBrightnessCalc != newBrightness)
       {
         liveData->params.lcdBrightnessCalc = newBrightness;
@@ -2675,7 +2676,10 @@ void Board320_240::syncGPS()
     time_t t = mktime(&tm);
     printf("%02d%02d%02d%02d%02d%02d\n", gps.date.year() - 2000, gps.date.month() - 1, gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
     struct timeval now = {.tv_sec = t};
-    settimeofday(&now, NULL);
+    struct timezone tz;
+    tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
+    tz.tz_dsttime = 0;
+    settimeofday(&now, &tz);
   }
 }
 
