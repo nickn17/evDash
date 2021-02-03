@@ -48,6 +48,9 @@ MENU_ITEM menuItemsSource[100] = {
     {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
     {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
     {MENU_SLEEP_MODE, 3, -1, "SleepMode"},
+    {MENU_TIMEZONE, 3, -1, "Timezone"},
+    {MENU_DAYLIGHT_SAVING, 3, -1, "Daylight saving"},
+    {MENU_RHD, 3, -1, "RHD (Right hand drive)"},
 
     {400, 4, 0, "<- parent menu"},
     {MENU_DISTANCE_UNIT, 4, -1, "Distance"},

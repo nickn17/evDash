@@ -76,6 +76,7 @@ typedef struct
   byte displayScreen;
   byte displayScreenAutoMode;
   time_t lastButtonPushedTime;
+  int8_t lcdBrightnessCalc;
   //voltagemeter INA3221
   time_t lastVoltageReadTime;
   time_t lastVoltageOkTime;
@@ -195,7 +196,7 @@ typedef struct
 typedef struct
 {
   byte initFlag;        // 183 value
-  byte settingsVersion; // current 8
+  byte settingsVersion; // see bellow for latest version
   // === settings version 1
   // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
@@ -247,20 +248,29 @@ typedef struct
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec;   // every x seconds
   // === settings version 7
+  // =================================
   uint8_t sleepModeLevel; // 0 - off, 1 - screen only, 2 - deep sleep
   // === settings version 8
+  // =================================
   float voltmeterCutOff;
   float voltmeterSleep;
   float voltmeterWakeUp;
   byte voltmeterBasedSleep; // 0 - off, 1 - on
   // === settings version 9
+  // =================================
   uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds (0 = disabled) // will be used as mqtt upload interval in future builds
   uint16_t sleepModeIntervalSec;    // In sleep, check CANbus / Volmeter every X seconds
   uint16_t sleepModeShutdownHrs;    // 0 - disabled # shutdown after X hours of sleep
   uint16_t remoteUploadModuleType;  // 0 - SIM800L
   // == settings version 10
+  // =================================
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
   char abrpApiToken[48]; // ABRP APIkey
+  // == settings version 11
+  // =================================
+  int8_t timezone;                  // 0 - default, -11 .. +14 hrs
+  byte daylightSaving;              // 0/1
+  byte rightHandDrive;              // 0 - default is LHD, 1 RHD (UK)
   //
 } SETTINGS_STRUC;
 

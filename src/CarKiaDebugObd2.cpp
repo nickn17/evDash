@@ -368,9 +368,9 @@ void CarKiaDebugObd2::parseRowMerged()
         byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
         if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1)
         {
-          struct tm now;
-          getLocalTime(&now, 0);
-          time_t time_now_epoch = mktime(&now);
+          struct tm tm;
+          getLocalTime(&tm, 0);
+          time_t time_now_epoch = mktime(&tm);
           liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
           liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
           liveData->params.soc10odo[index] = liveData->params.odoKm;

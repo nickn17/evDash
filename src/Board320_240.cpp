@@ -3,11 +3,11 @@
 #include <analogWrite.h>
 //#include <WiFi.h>
 //#include <WiFiClient.h>
-#include <sys/time.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include <ArduinoJson.h>
+#include "Solarlib.h"
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
@@ -29,9 +29,9 @@ void Board320_240::initBoard()
   struct timeval tv;
   tv.tv_sec = 1589011873;
   settimeofday(&tv, NULL);
-  struct tm now;
-  getLocalTime(&now, 0);
-  liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&now);
+  struct tm tm;
+  getLocalTime(&tm, 0);
+  liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&tm);
 
   // Deep sleep boot counter
   ++bootCount;
@@ -80,7 +80,7 @@ void Board320_240::afterSetup()
   tft.begin();
   tft.invertDisplay(invertDisplay);
   tft.setRotation(liveData->settings.displayRotation);
-  setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+  setBrightness();
   tft.fillScreen(TFT_BLACK);
 
   bool psramUsed = false; // 320x240 16bpp sprites requires psram
@@ -295,10 +295,50 @@ void Board320_240::afterSleep()
 }
 
 /**
+ * Turn off screen (brightness 0)
+ */
+void Board320_240::turnOffScreen()
+{
+#ifdef BOARD_TTGO_T4
+  analogWrite(4 /*TFT_BL*/, 0);
+#endif // BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE
+  uint8_t brightnessVal = map(0 /* 0% */, 0, 100, 0, 255);
+  tft.setBrightness(brightnessVal);
+#endif // BOARD_M5STACK_CORE
+#ifdef BOARD_M5STACK_CORE2
+  M5.Axp.SetDCDC3(false);
+#endif // BOARD_M5STACK_CORE2
+}
+
+/**
    Set brightness level
 */
-void Board320_240::setBrightness(byte lcdBrightnessPerc)
+void Board320_240::setBrightness()
 {
+  uint8_t lcdBrightnessPerc;
+  lcdBrightnessPerc = liveData->settings.lcdBrightness;
+  if (lcdBrightnessPerc == 0)
+  { // automatic brightness (based on gps&and sun angle)
+    if (liveData->params.lcdBrightnessCalc == -1)
+    {
+      lcdBrightnessPerc = 100;
+    }
+    else
+    {
+      lcdBrightnessPerc = liveData->params.lcdBrightnessCalc;
+    }
+  }
+  if (liveData->params.displayScreen == SCREEN_BLANK)
+  {
+    turnOffScreen();
+    return;
+  }
+  if (liveData->params.displayScreen == SCREEN_HUD)
+  {
+    lcdBrightnessPerc = 100;
+  }
+
 #ifdef BOARD_TTGO_T4
   analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
 #endif // BOARD_TTGO_T4
@@ -617,7 +657,7 @@ void Board320_240::drawSceneSpeed()
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   // Bat.power
   posx = 320 / 2;
-  sprintf(tmpStr3,  (liveData->params.batPowerKw == -1000) ? "n/a kw" : "%01.01fkw", liveData->params.batPowerKw);
+  sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a kw" : "%01.01fkw", liveData->params.batPowerKw);
   spr.setTextDatum(BC_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
 
@@ -690,9 +730,6 @@ void Board320_240::drawSceneHud()
 {
 
   float batColor;
-
-  // FULL brigtness
-  setBrightness(100);
 
   // Change rotation to vertical & mirror
   if (tft.getRotation() != 7)
@@ -1038,7 +1075,7 @@ void Board320_240::drawSceneChargingGraph()
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00f%cC" : "%s /W=%01.00f%cF"),
             liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
-            liveData->celsius2temperature(liveData->params.coolingWaterTempC), 
+            liveData->celsius2temperature(liveData->params.coolingWaterTempC),
             char(127));
     spr.setTextColor(TFT_PINK);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
@@ -1059,7 +1096,7 @@ void Board320_240::drawSceneChargingGraph()
   }
   if (liveData->params.coolantTemp1C != -100 && liveData->params.coolantTemp2C != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00f%cC" : "C1/2:%01.00f/%01.00f%cF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00f%cC" : "C1/2:%01.00f/%01.00f%cF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C), char(127));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
@@ -1402,6 +1439,16 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_GPS:
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);
     suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1;
+    break;
+  case MENU_TIMEZONE:
+    sprintf(tmpStr1, "[%d hrs]", liveData->settings.timezone);
+    suffix = tmpStr1;
+    break;
+  case MENU_DAYLIGHT_SAVING:
+    suffix = (liveData->settings.daylightSaving == 1) ? "[on]" : "[off]";
+    break;
+  case MENU_RHD:
+    suffix = (liveData->settings.rightHandDrive == 1) ? "[on]" : "[off]";
     break;
   //
   case MENU_SDCARD_ENABLED:
@@ -1754,7 +1801,7 @@ void Board320_240::menuItemClick()
       liveData->settings.lcdBrightness += 20;
       if (liveData->settings.lcdBrightness > 100)
         liveData->settings.lcdBrightness = 0;
-      setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+      setBrightness();
       showMenu();
       return;
       break;
@@ -1804,6 +1851,21 @@ void Board320_240::menuItemClick()
     case MENU_DEBUG_LEVEL:
       liveData->settings.debugLevel = (liveData->settings.debugLevel == DEBUG_GPS) ? 0 : liveData->settings.debugLevel + 1;
       syslog->setDebugLevel(liveData->settings.debugLevel);
+      showMenu();
+      return;
+      break;
+    case MENU_TIMEZONE:
+      liveData->settings.timezone = (liveData->settings.timezone == 14) ? -11 : liveData->settings.timezone + 1;
+      showMenu();
+      return;
+      break;
+    case MENU_DAYLIGHT_SAVING:
+      liveData->settings.daylightSaving = (liveData->settings.daylightSaving == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_RHD:
+      liveData->settings.rightHandDrive = (liveData->settings.rightHandDrive == 1) ? 0 : 1;
       showMenu();
       return;
       break;
@@ -2223,8 +2285,7 @@ void Board320_240::mainLoop()
         if (liveData->params.displayScreen > displayScreenCount - 1)
           liveData->params.displayScreen = 0; // rotate screens
         // Turn off display on screen 0
-        setBrightness((liveData->params.displayScreen == SCREEN_BLANK) ? 0 : (liveData->settings.lcdBrightness == 0) ? 100
-                                                                                                                     : liveData->settings.lcdBrightness);
+        setBrightness();
         redrawScreen();
       }
     }
@@ -2260,6 +2321,8 @@ void Board320_240::mainLoop()
           liveData->params.displayScreen = SCREEN_SPEED;
           redrawScreen();
         }
+
+        setBrightness();
       }
     }
   }
@@ -2380,11 +2443,11 @@ void Board320_240::mainLoop()
   // Turn off display if Ignition is off for more than 10s
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->settings.sleepModeLevel >= 1 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
-    setBrightness(0);
+    turnOffScreen();
   }
-  else if (liveData->params.displayScreen != SCREEN_BLANK)
+  else
   {
-    setBrightness((liveData->settings.lcdBrightness == 0) ? 100 : liveData->settings.lcdBrightness);
+    setBrightness();
   }
 
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
@@ -2569,6 +2632,28 @@ void Board320_240::syncGPS()
     liveData->params.gpsLon = gps.location.lng();
     if (gps.altitude.isValid())
       liveData->params.gpsAlt = gps.altitude.meters();
+
+    // Automatic brightness by sunset/sunrise
+    if (liveData->settings.lcdBrightness == 0) // only for automatic mode
+    {
+      if (liveData->params.lcdBrightnessCalc == -1)
+      {
+        initSolarCalc(0, liveData->params.gpsLat, liveData->params.gpsLon);
+      }
+      struct tm tm;
+      time_t t = mktime(&tm);
+      double sunDeg = getSEC_Corr(t);
+      syslog->print("Solar Elevation, degrees: ");
+      syslog->println(sunDeg);
+      int8_t newBrightness = ((sunDeg > 10) ? 100 : 10);
+      if (liveData->params.lcdBrightnessCalc != newBrightness)
+      {
+        liveData->params.lcdBrightnessCalc = newBrightness;
+        syslog->print("New automatic brightness: ");
+        syslog->println(newBrightness);
+        setBrightness();
+      }
+    }
   }
   if (gps.satellites.isValid())
   {

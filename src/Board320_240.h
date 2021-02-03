@@ -86,7 +86,8 @@ public:
   void sim800lLoop();
   bool sim800lSendData();
   // Basic GUI
-  void setBrightness(byte lcdBrightnessPerc) override;
+  void turnOffScreen() override;
+  void setBrightness() override;
   void displayMessage(const char *row1, const char *row2) override;
   void redrawScreen() override;
   // Custom screens

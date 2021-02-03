@@ -18,6 +18,7 @@ lib_deps =
 	bblanchon/ArduinoJson@^6.17.2
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
 
 ;targets = upload
 upload_protocol = esptool
@@ -45,6 +46,7 @@ lib_deps =
 	bblanchon/ArduinoJson@^6.17.2
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
 
 ; TTGO-T4 v1.3 configuration
 [env:ttgo-t4-v13]
@@ -86,6 +88,7 @@ build_flags =
 	bblanchon/ArduinoJson@^6.17.2
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
 
 ;targets = upload
 upload_protocol = esptool

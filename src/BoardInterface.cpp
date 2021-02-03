@@ -57,7 +57,7 @@ void BoardInterface::shutdownDevice()
   }
 */
   setCpuFrequencyMhz(80);
-  setBrightness(0);
+  turnOffScreen();
   //WiFi.disconnect(true);
   //WiFi.mode(WIFI_OFF);
 
@@ -111,7 +111,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 10;
+  liveData->settings.settingsVersion = 11;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -166,6 +166,10 @@ void BoardInterface::loadSettings()
   liveData->settings.remoteUploadAbrpIntervalSec = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.abrpApiToken, tmpStr.length() + 1);
+  // v11
+  liveData->settings.timezone = 0;
+  liveData->settings.daylightSaving = 0;
+  liveData->settings.rightHandDrive = 0;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -261,6 +265,13 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.remoteUploadAbrpIntervalSec = 0;
         tmpStr = "empty";
         tmpStr.toCharArray(liveData->tmpSettings.abrpApiToken, tmpStr.length() + 1);
+      }
+      if (liveData->tmpSettings.settingsVersion == 10)
+      {
+        liveData->tmpSettings.settingsVersion = 11;
+        liveData->tmpSettings.timezone = 0;
+        liveData->tmpSettings.daylightSaving = 0;
+        liveData->tmpSettings.rightHandDrive = 0;
       }
 
       // Save upgraded structure
