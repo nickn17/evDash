@@ -767,17 +767,17 @@ void Board320_240::drawSceneBatteryCells()
 
   int32_t posx, posy;
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batHeaterC));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
   drawSmallCell(0, 0, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batInletC));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
   drawSmallCell(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
   drawSmallCell(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
   drawSmallCell(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
   drawSmallCell(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
   drawSmallCell(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   // Ioniq (up to 12 cells)
   for (uint16_t i = 4; i < liveData->params.batModuleTempCount; i++)
@@ -790,7 +790,7 @@ void Board320_240::drawSceneBatteryCells()
     spr.setTextSize(1); // Size for small 5x7 font
     spr.setTextDatum(TL_DATUM);
     spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED));
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00fC" : "%01.01fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]), char(127));
     spr.drawString(tmpStr1, posx + 4, posy, 2);
   }
 
@@ -946,13 +946,13 @@ void Board320_240::drawSceneChargingGraph()
   sprintf(tmpStr1, "%03.00f", liveData->params.batVoltage);
   drawSmallCell(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batHeaterC));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
   drawSmallCell(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batInletC));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
   drawSmallCell(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.batMinC));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batMinC), char(127));
   drawSmallCell(2, 1, 1, 1, tmpStr1, "BAT.MIN", (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f C" : "%01.01f F"), liveData->celsius2temperature(liveData->params.outdoorTemperature));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.outdoorTemperature), char(127));
   drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
 
   spr.setTextColor(TFT_SILVER);
@@ -1007,19 +1007,19 @@ void Board320_240::drawSceneChargingGraph()
   // Bat.module temperatures
   spr.setTextSize(1); // Size for small 5x7 font
   spr.setTextDatum(BL_DATUM);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00fC" : "1=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00f%cC" : "1=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 0, zeroY - (maxKw * mulY), 2);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00fC" : "2=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00f%cC" : "2=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 48, zeroY - (maxKw * mulY), 2);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00fC" : "3=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00f%cC" : "3=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 96, zeroY - (maxKw * mulY), 2);
 
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00fC" : "4=%01.00fF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]));
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00f%cC" : "4=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
   spr.drawString(tmpStr1, 144, zeroY - (maxKw * mulY), 2);
   sprintf(tmpStr1, "ir %01.00fkOhm", liveData->params.isolationResistanceKOhm);
@@ -1036,9 +1036,10 @@ void Board320_240::drawSceneChargingGraph()
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.coolingWaterTempC != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00fC" : "%s /W=%01.00fF"),
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00f%cC" : "%s /W=%01.00f%cF"),
             liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
-            liveData->celsius2temperature(liveData->params.coolingWaterTempC));
+            liveData->celsius2temperature(liveData->params.coolingWaterTempC), 
+            char(127));
     spr.setTextColor(TFT_PINK);
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
@@ -1058,31 +1059,31 @@ void Board320_240::drawSceneChargingGraph()
   }
   if (liveData->params.coolantTemp1C != -100 && liveData->params.coolantTemp2C != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00fC" : "C1/2:%01.00f/%01.00fF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00f%cC" : "C1/2:%01.00f/%01.00f%cF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (liveData->params.bmsUnknownTempA != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "A=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempA));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "A=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempA), char(127));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (liveData->params.bmsUnknownTempB != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "B=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempB));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "B=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempB), char(127));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (liveData->params.bmsUnknownTempC != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempC));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempC), char(127));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
   if (liveData->params.bmsUnknownTempD != -100)
   {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "D=%01.00fC" : "W=%01.00fF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempD));
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "D=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempD), char(127));
     spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15), 2);
     posy++;
   }
