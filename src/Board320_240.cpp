@@ -28,7 +28,32 @@ void Board320_240::initBoard()
 
   // Init time library
   struct timeval tv;
-  tv.tv_sec = 1589011873;
+
+  #ifdef BOARD_M5STACK_CORE2
+    RTC_TimeTypeDef RTCtime;
+    RTC_DateTypeDef RTCdate;
+
+    M5.Rtc.GetTime(&RTCtime);
+    M5.Rtc.GetDate(&RTCdate);
+
+    if (RTCdate.Year > 2020) {
+      struct tm tm_tmp;
+      tm_tmp.tm_year = RTCdate.Year - 1900;
+      tm_tmp.tm_mon = RTCdate.Month - 1;
+      tm_tmp.tm_mday = RTCdate.Date;
+      tm_tmp.tm_hour = RTCtime.Hours;
+      tm_tmp.tm_min = RTCtime.Minutes;
+      tm_tmp.tm_sec = RTCtime.Seconds;
+
+      time_t t = mktime(&tm_tmp);
+      tv.tv_sec = t;
+    } else {
+      tv.tv_sec = 1589011873;
+    }
+  #else
+    tv.tv_sec = 1589011873;
+  #endif
+
   struct timezone tz;
   tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
   tz.tz_dsttime = 0;
@@ -2690,6 +2715,21 @@ void Board320_240::syncGPS()
     tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
     tz.tz_dsttime = 0;
     settimeofday(&now, &tz);
+
+#ifdef BOARD_M5STACK_CORE2
+  RTC_TimeTypeDef RTCtime;
+  RTC_DateTypeDef RTCdate;
+
+  RTCdate.Year = gps.date.year();
+  RTCdate.Month = gps.date.month();
+  RTCdate.Date = gps.date.day();
+  RTCtime.Hours = gps.time.hour();
+  RTCtime.Minutes = gps.time.minute();
+  RTCtime.Seconds = gps.time.second();
+
+  M5.Rtc.SetTime(&RTCtime);
+  M5.Rtc.SetDate(&RTCdate);
+#endif
   }
 }
 
