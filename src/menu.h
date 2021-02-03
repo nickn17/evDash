@@ -48,6 +48,7 @@ MENU_ITEM menuItemsSource[100] = {
     {MENU_PREDRAWN_GRAPHS, 3, -1, "Pre-drawn ch.graphs"},
     {MENU_HEADLIGHTS_REMINDER, 3, -1, "Headlight reminder"},
     {MENU_SLEEP_MODE, 3, -1, "SleepMode"},
+    {MENU_CURRENT_TIME, 3, -1, "Time: "},
     {MENU_TIMEZONE, 3, -1, "Timezone"},
     {MENU_DAYLIGHT_SAVING, 3, -1, "Daylight saving"},
     {MENU_RHD, 3, -1, "RHD (Right hand drive)"},

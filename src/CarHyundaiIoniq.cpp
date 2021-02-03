@@ -6,68 +6,69 @@
 /**
    activateliveData->commandQueue
 */
-void CarHyundaiIoniq::activateCommandQueue() {
+void CarHyundaiIoniq::activateCommandQueue()
+{
 
   // Optimizer
-  lastAllowTpms       = 0;
-  lastAllowOdo        = 0;
-  lastAllowAircon     = 0;
-  lastAllowDriveMode  = 0;
+  lastAllowTpms = 0;
+  lastAllowOdo = 0;
+  lastAllowAircon = 0;
+  lastAllowDriveMode = 0;
 
   // Command queue
   std::vector<String> commandQueueHyundaiIoniq = {
-    "AT Z",      // Reset all
-    "AT I",      // Print the version ID
-    "AT E0",     // Echo off
-    "AT L0",     // Linefeeds off
-    "AT S0",     // Printing of spaces on
-    "AT SP 6",   // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-    //"AT AL",     // Allow Long (>7 byte) messages
-    //"AT AR",     // Automatically receive
-    //"AT H1",     // Headers on (debug only)
-    //"AT D1",     // Display of the DLC on
-    //"AT CAF0",   // Automatic formatting off
-    "AT DP",
-    "AT ST16",
+      "AT Z",    // Reset all
+      "AT I",    // Print the version ID
+      "AT E0",   // Echo off
+      "AT L0",   // Linefeeds off
+      "AT S0",   // Printing of spaces on
+      "AT SP 6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
+      //"AT AL",     // Allow Long (>7 byte) messages
+      //"AT AR",     // Automatically receive
+      //"AT H1",     // Headers on (debug only)
+      //"AT D1",     // Display of the DLC on
+      //"AT CAF0",   // Automatic formatting off
+      "AT DP",
+      "AT ST16",
 
-    // Loop from (HYUNDAI IONIQ)
-    // BMS
-    "ATSH7E4",
-    "2101",   // power kw, ...
-    "2102",   // cell voltages, screen 3 only
-    "2103",   // cell voltages, screen 3 only
-    "2104",   // cell voltages, screen 3 only
-    "2105",   // soh, soc, ..
+      // Loop from (HYUNDAI IONIQ)
+      // BMS
+      "ATSH7E4",
+      "2101", // power kw, ...
+      "2102", // cell voltages, screen 3 only
+      "2103", // cell voltages, screen 3 only
+      "2104", // cell voltages, screen 3 only
+      "2105", // soh, soc, ..
 
-    // VMCU
-    "ATSH7E2",
-    "2101",     // speed, ...
-    "2102",     // aux, ...
+      // VMCU
+      "ATSH7E2",
+      "2101", // speed, ...
+      "2102", // aux, ...
 
-    // IGPM
-    "ATSH770",
-    "22BC03",     // low beam
-    "22BC06",     // brake light
+      // IGPM
+      "ATSH770",
+      "22BC03", // low beam
+      "22BC06", // brake light
 
-    // ABS / ESP + AHB
-    "ATSH7D1",
-    "22C101",     // brake, park/drive mode
+      // ABS / ESP + AHB
+      "ATSH7D1",
+      "22C101", // brake, park/drive mode
 
-    // Aircondition
-    // IONIQ OK
-    "ATSH7B3",
-    "220100",   // in/out temp
-    "220102",   // coolant temp1, 2
+      // Aircondition
+      // IONIQ OK
+      "ATSH7B3",
+      "220100", // in/out temp
+      "220102", // coolant temp1, 2
 
-    // BCM / TPMS
-    // IONIQ OK
-    "ATSH7A0",
-    "22c00b",   // tire pressure/temp
+      // BCM / TPMS
+      // IONIQ OK
+      "ATSH7A0",
+      "22c00b", // tire pressure/temp
 
-    // CLUSTER MODULE
-    // IONIQ OK
-    "ATSH7C6",
-    "22B002",   // odo
+      // CLUSTER MODULE
+      // IONIQ OK
+      "ATSH7C6",
+      "22B002", // odo
   };
 
   // 28kWh version
@@ -76,8 +77,9 @@ void CarHyundaiIoniq::activateCommandQueue() {
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
-  for (auto cmd : commandQueueHyundaiIoniq) {
-    liveData->commandQueue.push_back({ 0, cmd });
+  for (auto cmd : commandQueueHyundaiIoniq)
+  {
+    liveData->commandQueue.push_back({0, cmd});
   }
 
   liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq;
@@ -87,38 +89,55 @@ void CarHyundaiIoniq::activateCommandQueue() {
 /**
    parseRowMerged
 */
-void CarHyundaiIoniq::parseRowMerged() {
+void CarHyundaiIoniq::parseRowMerged()
+{
 
   uint8_t tempByte;
-//  float tempFloat;
+  //  float tempFloat;
   String tmpStr;
 
   // VMCU 7E2
-  if (liveData->currentAtshRequest.equals("ATSH7E2")) {
-    if (liveData->commandRequest.equals("2101")) {
+  if (liveData->currentAtshRequest.equals("ATSH7E2"))
+  {
+    if (liveData->commandRequest.equals("2101"))
+    {
       liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
       if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
         liveData->params.speedKmh = 0;
     }
-    if (liveData->commandRequest.equals("2102")) {
-      liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+    if (liveData->commandRequest.equals("2102"))
+    {
+      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
     }
   }
 
   // IGPM
-  if (liveData->currentAtshRequest.equals("ATSH770")) {
-    if (liveData->commandRequest.equals("22BC03")) {
+  if (liveData->currentAtshRequest.equals("ATSH770"))
+  {
+    if (liveData->commandRequest.equals("22BC03"))
+    {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
-      liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
-      liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
-      liveData->params.leftRearDoorOpen  = (bitRead(tempByte, 4) == 1);
-      liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
+      if (liveData->settings.rightHandDrive)
+      {
+        liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+        liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+        liveData->params.leftRearDoorOpen = (bitRead(tempByte, 2) == 1);
+        liveData->params.rightRearDoorOpen = (bitRead(tempByte, 4) == 1);
+      }
+      else
+      {
+        liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+        liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+        liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
+        liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
+      }
 
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
-      liveData->params.trunkDoorOpen  = (bitRead(tempByte, 0) == 1);
+      liveData->params.trunkDoorOpen = (bitRead(tempByte, 0) == 1);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-      if (liveData->params.ignitionOn) {
+      if (liveData->params.ignitionOn)
+      {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
 
@@ -127,44 +146,54 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.autoLights = (bitRead(tempByte, 4) == 1);
       liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
     }
-    if (liveData->commandRequest.equals("22BC06")) {
+    if (liveData->commandRequest.equals("22BC06"))
+    {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
     }
   }
 
   // ABS / ESP + AHB 7D1
-  if (liveData->currentAtshRequest.equals("ATSH7D1")) {
-    if (liveData->commandRequest.equals("22C101")) {
+  if (liveData->currentAtshRequest.equals("ATSH7D1"))
+  {
+    if (liveData->commandRequest.equals("22C101"))
+    {
       uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
       liveData->params.forwardDriveMode = (driveMode == 4);
       liveData->params.reverseDriveMode = (driveMode == 2);
-      liveData->params.parkModeOrNeutral  = (driveMode == 1);
+      liveData->params.parkModeOrNeutral = (driveMode == 1);
     }
   }
 
   // Cluster module 7c6
-  if (liveData->currentAtshRequest.equals("ATSH7C6")) {
-    if (liveData->commandRequest.equals("22B002")) {
+  if (liveData->currentAtshRequest.equals("ATSH7C6"))
+  {
+    if (liveData->commandRequest.equals("22B002"))
+    {
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
     }
   }
 
   // Aircon 7b3
-  if (liveData->currentAtshRequest.equals("ATSH7B3")) {
-    if (liveData->commandRequest.equals("220100")) {
+  if (liveData->currentAtshRequest.equals("ATSH7B3"))
+  {
+    if (liveData->commandRequest.equals("220100"))
+    {
       liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
       liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
     }
-    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00") {
+    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00")
+    {
       liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
       liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
     }
   }
 
   // BMS 7e4
-  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
-    if (liveData->commandRequest.equals("2101")) {
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("2101"))
+    {
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(80, 88) / 10.0;
       if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
         liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
@@ -176,29 +205,38 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, false);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(58, 60, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(60, 62, 1, false);
-      
-      if(liveData->settings.voltmeterEnabled == 0) {
+
+      if (liveData->settings.voltmeterEnabled == 0)
+      {
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
 
         float tmpAuxPerc;
-        if(liveData->params.ignitionOn) {
-          tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V 
-        } else {
+        if (liveData->params.ignitionOn)
+        {
+          tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V
+        }
+        else
+        {
           tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
         }
 
-        if(tmpAuxPerc > 100) {
+        if (tmpAuxPerc > 100)
+        {
           liveData->params.auxPerc = 100;
-        } else if(tmpAuxPerc < 0) {
+        }
+        else if (tmpAuxPerc < 0)
+        {
           liveData->params.auxPerc = 0;
-        } else {
+        }
+        else
+        {
           liveData->params.auxPerc = tmpAuxPerc;
         }
       }
 
       liveData->params.getValidResponse = true;
 
-      liveData->params.batPowerAmp = - liveData->hexToDecFromResponse(24, 28, 2, true) / 10.0;
+      liveData->params.batPowerAmp = -liveData->hexToDecFromResponse(24, 28, 2, true) / 10.0;
       liveData->params.batVoltage = liveData->hexToDecFromResponse(28, 32, 2, false) / 10.0;
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
       if (liveData->params.batPowerKw < 1) // Reset charging start time
@@ -215,21 +253,23 @@ void CarHyundaiIoniq::parseRowMerged() {
       //liveData->params.batMaxC = liveData->hexToDecFromResponse(32, 34, 1, true);
       //liveData->params.batMinC = liveData->hexToDecFromResponse(34, 36, 1, true);
 
-      tempByte = liveData->hexToDecFromResponse(22, 24, 1, false);   // bit 5 = AC; bit 6 = DC; bit 7 = charging on
+      tempByte = liveData->hexToDecFromResponse(22, 24, 1, false); // bit 5 = AC; bit 6 = DC; bit 7 = charging on
       liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
       liveData->params.chargerDCconnected = (bitRead(tempByte, 6) == 1);
       liveData->params.chargingOn = (bitRead(tempByte, 7) == 1);
 
-      if(liveData->params.chargingOn) {
+      if (liveData->params.chargingOn)
+      {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batInletC = liveData->hexToDecFromResponse(48, 50, 1, true);
-      if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
-        if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] == -100 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
+      if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
+      {
+        if (liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] == -100 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
           liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
-        if ( liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] == -100 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
+        if (liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] == -100 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
           liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
         liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
         liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
@@ -237,25 +277,32 @@ void CarHyundaiIoniq::parseRowMerged() {
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("2102") && liveData->responseRowMerged.substring(10, 12) == "FF") {
-      for (int i = 0; i < 32; i++) {
+    if (liveData->commandRequest.equals("2102") && liveData->responseRowMerged.substring(10, 12) == "FF")
+    {
+      for (int i = 0; i < 32; i++)
+      {
         liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(12 + (i * 2), 12 + (i * 2) + 2, 1, false) / 50;
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("2103")) {
-      for (int i = 0; i < 32; i++) {
+    if (liveData->commandRequest.equals("2103"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
         liveData->params.cellVoltage[32 + i] = liveData->hexToDecFromResponse(12 + (i * 2), 12 + (i * 2) + 2, 1, false) / 50;
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("2104")) {
-      for (int i = 0; i < 32; i++) {
+    if (liveData->commandRequest.equals("2104"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
         liveData->params.cellVoltage[64 + i] = liveData->hexToDecFromResponse(12 + (i * 2), 12 + (i * 2) + 2, 1, false) / 50;
       }
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("2105")) {
+    if (liveData->commandRequest.equals("2105"))
+    {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDecFromResponse(54, 58, 2, false) / 10.0;
       liveData->params.socPerc = liveData->hexToDecFromResponse(66, 68, 1, false) / 2.0;
@@ -270,7 +317,8 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(34, 36, 1, true);
 
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
-      for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++) {
+      for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++)
+      {
         if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
           liveData->params.batMinC = liveData->params.batModuleTempC[i];
         if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
@@ -279,9 +327,11 @@ void CarHyundaiIoniq::parseRowMerged() {
       liveData->params.batTempC = liveData->params.batMinC;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
-      if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
+      if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
+      {
         byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
-        if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1) {
+        if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1)
+        {
           liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
           liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
           liveData->params.soc10odo[index] = liveData->params.odoKm;
@@ -290,37 +340,41 @@ void CarHyundaiIoniq::parseRowMerged() {
       }
       liveData->params.batHeaterC = liveData->hexToDecFromResponse(50, 52, 1, true);
       //
-      for (int i = 30; i < 32; i++) { // ai/aj position
+      for (int i = 30; i < 32; i++)
+      { // ai/aj position
         liveData->params.cellVoltage[96 - 30 + i] = -1;
       }
     }
     // BMS 7e4
     // IONIQ FAILED
-    if (liveData->commandRequest.equals("2106")) {
+    if (liveData->commandRequest.equals("2106"))
+    {
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
     }
   }
 
   // TPMS 7a0
-  if (liveData->currentAtshRequest.equals("ATSH7A0")) {
-    if (liveData->commandRequest.equals("22c00b")) {
-      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;    // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;     // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;      // === OK Valid
-      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;      // === OK Valid
-      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;     // === OK Valid
-      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;     // === OK Valid
+  if (liveData->currentAtshRequest.equals("ATSH7A0"))
+  {
+    if (liveData->commandRequest.equals("22c00b"))
+    {
+      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false) - 50;                    // === OK Valid
+      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;                   // === OK Valid
+      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;                    // === OK Valid
+      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;                     // === OK Valid
     }
   }
-
 }
 
 /**
    Is command from queue allowed for execute, or continue with next
 */
-bool CarHyundaiIoniq::commandAllowed() {
+bool CarHyundaiIoniq::commandAllowed()
+{
 
   /* syslog->print("Command allowed: ");
     syslog->print(liveData->currentAtshRequest);
@@ -328,14 +382,18 @@ bool CarHyundaiIoniq::commandAllowed() {
     syslog->println(liveData->commandRequest);*/
 
   //SleepMode Queue Filter
-  if (liveData->params.sleepModeQueue) {
-    if(liveData->commandQueueIndex < liveData->commandQueueLoopFrom) {
+  if (liveData->params.sleepModeQueue)
+  {
+    if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
+    {
       return true;
     }
-    if(liveData->commandRequest.equals("ATSH7E4")) {
+    if (liveData->commandRequest.equals("ATSH7E4"))
+    {
       return true;
     }
-    if(liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("2101")) {
+    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("2101"))
+    {
       return true;
     }
 
@@ -343,60 +401,85 @@ bool CarHyundaiIoniq::commandAllowed() {
   }
 
   // TPMS (once per 29 secs.)
-  if (liveData->commandRequest.equals("ATSH7A0")) {
+  if (liveData->commandRequest.equals("ATSH7A0"))
+  {
     return lastAllowTpms + 29 < liveData->params.currentTime;
   }
-  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22c00b")) {
-    if (lastAllowTpms + 29 < liveData->params.currentTime) {
+  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22c00b"))
+  {
+    if (lastAllowTpms + 29 < liveData->params.currentTime)
+    {
       lastAllowTpms = liveData->params.currentTime;
-    } else {
+    }
+    else
+    {
       return false;
     }
   }
 
   // ODO (onec per 12 secs.)
-  if (liveData->commandRequest.equals("ATSH7C6")) {
+  if (liveData->commandRequest.equals("ATSH7C6"))
+  {
     return lastAllowOdo + 12 < liveData->params.currentTime;
   }
-  if (liveData->currentAtshRequest.equals("ATSH7C6") && liveData->commandRequest.equals("22B002")) {
-    if (lastAllowOdo + 12 < liveData->params.currentTime) {
+  if (liveData->currentAtshRequest.equals("ATSH7C6") && liveData->commandRequest.equals("22B002"))
+  {
+    if (lastAllowOdo + 12 < liveData->params.currentTime)
+    {
       lastAllowOdo = liveData->params.currentTime;
-    } else {
+    }
+    else
+    {
       return false;
     }
   }
 
   //AirCon (once per 31 secs.)
-  if (liveData->commandRequest.equals("ATSH7B3")) {
+  if (liveData->commandRequest.equals("ATSH7B3"))
+  {
     return lastAllowAircon + 31 < liveData->params.currentTime;
   }
-  if (liveData->currentAtshRequest.equals("ATSH7B3")) {
-    if (liveData->commandRequest.equals("220102")) {
-        if (lastAllowAircon + 31 < liveData->params.currentTime) {
-          lastAllowAircon = liveData->params.currentTime;
-        } else {
-          return false;
-        }
-    } else {
+  if (liveData->currentAtshRequest.equals("ATSH7B3"))
+  {
+    if (liveData->commandRequest.equals("220102"))
+    {
+      if (lastAllowAircon + 31 < liveData->params.currentTime)
+      {
+        lastAllowAircon = liveData->params.currentTime;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
       return lastAllowAircon + 31 < liveData->params.currentTime;
     }
   }
 
   //DriveMode (once per 13s)
-  if (liveData->commandRequest.equals("ATSH7D1")) {
+  if (liveData->commandRequest.equals("ATSH7D1"))
+  {
     return lastAllowDriveMode + 13 < liveData->params.currentTime;
   }
-  if (liveData->currentAtshRequest.equals("ATSH7D1") && liveData->commandRequest.equals("22C101")) {
-    if (lastAllowDriveMode + 13 < liveData->params.currentTime) {
+  if (liveData->currentAtshRequest.equals("ATSH7D1") && liveData->commandRequest.equals("22C101"))
+  {
+    if (lastAllowDriveMode + 13 < liveData->params.currentTime)
+    {
       lastAllowDriveMode = liveData->params.currentTime;
-    } else {
+    }
+    else
+    {
       return false;
     }
   }
 
   // BMS (only for SCREEN_CELLS)
-  if (liveData->currentAtshRequest.equals("ATSH7E4")) {
-    if (liveData->commandRequest.equals("2102") || liveData->commandRequest.equals("2103") || liveData->commandRequest.equals("2104")) {
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("2102") || liveData->commandRequest.equals("2103") || liveData->commandRequest.equals("2104"))
+    {
       if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
         return false;
     }
@@ -408,7 +491,8 @@ bool CarHyundaiIoniq::commandAllowed() {
 /**
    loadTestData
 */
-void CarHyundaiIoniq::loadTestData() {
+void CarHyundaiIoniq::loadTestData()
+{
 
   // VMCU ATSH7E2
   liveData->currentAtshRequest = "ATSH7E2";
@@ -545,5 +629,4 @@ void CarHyundaiIoniq::loadTestData() {
     liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
     liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
   */
-
 }

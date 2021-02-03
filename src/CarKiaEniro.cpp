@@ -133,7 +133,7 @@ void CarKiaEniro::parseRowMerged()
 {
 
   uint8_t tempByte;
-//  float tempFloat;
+  //  float tempFloat;
   String tmpStr;
 
   // IGPM
@@ -145,10 +145,20 @@ void CarKiaEniro::parseRowMerged()
       //
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
-      liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
-      liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
-      liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
-      liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
+      if (liveData->settings.rightHandDrive)
+      {
+        liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+        liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+        liveData->params.leftRearDoorOpen = (bitRead(tempByte, 2) == 1);
+        liveData->params.rightRearDoorOpen = (bitRead(tempByte, 4) == 1);
+      }
+      else
+      {
+        liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+        liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+        liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
+        liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
+      }
       //
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
       liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
@@ -713,8 +723,8 @@ void CarKiaEniro::testHandler(const String &cmd)
       command += "0100";
       //syslog->println(String(command + "03"));
       syslog->print(command);
-      syslog->print(" " );
-      
+      syslog->print(" ");
+
       eNiroCarControl(liveData->hexToDec("07B3", 2, false), command);
     }
   }

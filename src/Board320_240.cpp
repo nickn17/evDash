@@ -1438,6 +1438,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);
     suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1;
     break;
+  case MENU_CURRENT_TIME:
+    suffix = ctime(&liveData->params.currentTime);
+    break;
   case MENU_TIMEZONE:
     sprintf(tmpStr1, "[%d hrs]", liveData->settings.timezone);
     suffix = tmpStr1;
@@ -1849,6 +1852,10 @@ void Board320_240::menuItemClick()
     case MENU_DEBUG_LEVEL:
       liveData->settings.debugLevel = (liveData->settings.debugLevel == DEBUG_GPS) ? 0 : liveData->settings.debugLevel + 1;
       syslog->setDebugLevel(liveData->settings.debugLevel);
+      showMenu();
+      return;
+      break;
+    case MENU_CURRENT_TIME:
       showMenu();
       return;
       break;
