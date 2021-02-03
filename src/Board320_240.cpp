@@ -62,7 +62,7 @@ void Board320_240::initBoard()
   getLocalTime(&tm, 0);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&tm);
 
-  // Deep sleep boot counter
+  // Boot counter
   ++bootCount;
 }
 
@@ -88,7 +88,7 @@ void Board320_240::afterSetup()
     ina3221.begin();
   }
 
-  if (liveData->settings.sleepModeLevel >= 2 && !skipAdapterScan())
+  if (liveData->settings.sleepModeLevel >= 2 && !skipAdapterScan() && bootCount > 1)
   {
     // Init comm device if COMM device based wakeup
     if (liveData->settings.voltmeterBasedSleep == 0)
@@ -97,12 +97,13 @@ void Board320_240::afterSetup()
       BoardInterface::afterSetup();
     }
 
-    // Wake or continue with sleeping
+    // Wake or go to sleep again
     afterSleep();
     sleepCount = 0;
   }
 
   wakeupBoard();
+  liveData->params.wakeUpTime = liveData->params.currentTime;
 
   // Init display
   syslog->println("Init TFT display");
@@ -174,15 +175,7 @@ void Board320_240::afterSetup()
 */
 void Board320_240::goToSleep()
 {
-
-  //Sleep MCP2515
-  commInterface->disconnectDevice();
-
   //Sleep SIM800L
-  if (bootCount == 1 && liveData->settings.gprsHwSerialPort <= 2 && !liveData->params.sim800l_enabled)
-  {
-    sim800lSetup();
-  }
   if (liveData->params.sim800l_enabled)
   {
     if (sim800l->isConnectedGPRS())
@@ -204,10 +197,6 @@ void Board320_240::goToSleep()
   }
 
   //Sleep GPS
-  if (bootCount == 1 && liveData->settings.gpsHwSerialPort <= 2 && gpsHwUart == NULL)
-  {
-    initGPS();
-  }
   if (gpsHwUart != NULL)
   {
     uint8_t GPSoff[] = {0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x4D, 0x3B};
@@ -2474,7 +2463,10 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->settings.sleepModeLevel >= 1 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
+    && liveData->settings.sleepModeLevel >= 1
+    && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10
+    && liveData->params.currentTime - liveData->params.wakeUpTime > 30)
   {
     turnOffScreen();
   }
@@ -2484,7 +2476,11 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && liveData->settings.voltmeterBasedSleep == 0)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
+    && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= 2
+    && liveData->params.currentTime - liveData->params.wakeUpTime > 30
+    && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10
+    && liveData->settings.voltmeterBasedSleep == 0)
   {
     if (liveData->params.sim800l_enabled)
     {
@@ -2494,10 +2490,17 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
+  if (liveData->settings.voltmeterEnabled == 1
+    && liveData->settings.voltmeterBasedSleep == 1
+    && liveData->settings.sleepModeLevel >= 2
+    && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30
+    && liveData->params.currentTime - liveData->params.wakeUpTime > 30
+    && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
     if (liveData->params.sim800l_enabled)
+    {
       sim800lSendData();
+    }
     goToSleep();
   }
 
