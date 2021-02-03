@@ -79,8 +79,8 @@ void LiveData::initParams() {
   params.availableChargePower = -1;
   params.availableDischargePower = -1;
   params.isolationResistanceKOhm = -1;
-  params.batPowerAmp = -1;
-  params.batPowerKw = -1;
+  params.batPowerAmp = -1000;
+  params.batPowerKw = -1000;
   params.batPowerKwh100 = -1;
   params.batVoltage = -1;
   params.batCellMinV = -1;
@@ -90,8 +90,8 @@ void LiveData::initParams() {
   params.batInletC = -100;
   params.batFanStatus = -1;
   params.batFanFeedbackHz = -1;
-  params.batMinC = -1;
-  params.batMaxC = -1;
+  params.batMinC = -100;
+  params.batMaxC = -100;
   for (int i = 0; i < 25; i++) {
     params.batModuleTempC[i] = -100;
   }
@@ -108,7 +108,7 @@ void LiveData::initParams() {
   params.bmsUnknownTempD = -100;
   params.batteryManagementMode = BAT_MAN_MODE_NOT_IMPLEMENTED;
   params.auxPerc = -1;
-  params.auxCurrentAmp = -1;
+  params.auxCurrentAmp = -1000;
   params.auxVoltage = -1;
   params.indoorTemperature = -100;
   params.outdoorTemperature = -100;
