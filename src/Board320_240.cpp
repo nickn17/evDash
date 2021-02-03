@@ -2514,7 +2514,7 @@ void Board320_240::mainLoop()
 
 void Board320_240::syncTimes(time_t newTime)
 {
-  if (newTime - liveData->params.currentTime > MONTH_SEC)
+  if (newTime - liveData->params.currentTime > 15)
   {
     if (liveData->params.chargingStartTime != 0)
       liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
@@ -2719,20 +2719,20 @@ void Board320_240::syncGPS()
     tz.tz_dsttime = 0;
     settimeofday(&now, &tz);
 
-#ifdef BOARD_M5STACK_CORE2
-  RTC_TimeTypeDef RTCtime;
-  RTC_DateTypeDef RTCdate;
+    #ifdef BOARD_M5STACK_CORE2
+      RTC_TimeTypeDef RTCtime;
+      RTC_DateTypeDef RTCdate;
 
-  RTCdate.Year = gps.date.year();
-  RTCdate.Month = gps.date.month();
-  RTCdate.Date = gps.date.day();
-  RTCtime.Hours = gps.time.hour();
-  RTCtime.Minutes = gps.time.minute();
-  RTCtime.Seconds = gps.time.second();
+      RTCdate.Year = gps.date.year();
+      RTCdate.Month = gps.date.month();
+      RTCdate.Date = gps.date.day();
+      RTCtime.Hours = gps.time.hour();
+      RTCtime.Minutes = gps.time.minute();
+      RTCtime.Seconds = gps.time.second();
 
-  M5.Rtc.SetTime(&RTCtime);
-  M5.Rtc.SetDate(&RTCdate);
-#endif
+      M5.Rtc.SetTime(&RTCtime);
+      M5.Rtc.SetDate(&RTCdate);
+    #endif
   }
 }
 
