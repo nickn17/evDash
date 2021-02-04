@@ -250,14 +250,12 @@ void Board320_240::afterSleep()
 
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
   {
-    liveData->settings.sleepModeLevel = 0;
-    syslog->println("Button pressed = SleepMode Disabled & Waking up");
+    syslog->println("Button pressed = Waking up");
     return;
   }
 
   if (liveData->settings.voltmeterBasedSleep == 1)
   {
-    ina3221.begin();
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
     if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff)
@@ -275,6 +273,7 @@ void Board320_240::afterSleep()
     }
     else
     {
+      liveData->params.lastVoltageOkTime = liveData->params.currentTime;
       syslog->println("Wake up conditions satisfied... Good morning!");
       return;
     }
@@ -290,9 +289,9 @@ void Board320_240::afterSleep()
       firstRun = false;
     }
 
-    if (millis() > 5000)
+    if (millis() > 30000)
     {
-      syslog->println("Time's up (5s timeout)...");
+      syslog->println("Time's up (30s timeout)...");
       goToSleep();
     }
 
@@ -303,7 +302,7 @@ void Board320_240::afterSleep()
   {
     syslog->println("Wake up conditions satisfied... Good morning!");
     liveData->params.sleepModeQueue = false;
-    liveData->params.wakeUpTime = liveData->params.currentTime;
+    return;
   }
   else
   {
@@ -321,11 +320,11 @@ void Board320_240::turnOffScreen()
   analogWrite(4 /*TFT_BL*/, 0);
 #endif // BOARD_TTGO_T4
 #ifdef BOARD_M5STACK_CORE
-  uint8_t brightnessVal = map(0 /* 0% */, 0, 100, 0, 255);
-  tft.setBrightness(brightnessVal);
+  tft.setBrightness(0);
 #endif // BOARD_M5STACK_CORE
 #ifdef BOARD_M5STACK_CORE2
   M5.Axp.SetDCDC3(false);
+  M5.Axp.SetLcdVoltage(2500);
 #endif // BOARD_M5STACK_CORE2
 }
 
@@ -350,25 +349,18 @@ void Board320_240::setBrightness()
     lcdBrightnessPerc = 100;
   }
 
-#ifdef BOARD_TTGO_T4
-  analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
-#endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_CORE
-  uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
-  tft.setBrightness(brightnessVal);
-#endif // BOARD_M5STACK_CORE
-#ifdef BOARD_M5STACK_CORE2
-  if (lcdBrightnessPerc == 0)
-  {
-    M5.Axp.SetDCDC3(false);
-  }
-  else
-  {
+  #ifdef BOARD_TTGO_T4
+    analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
+  #endif // BOARD_TTGO_T4
+  #ifdef BOARD_M5STACK_CORE
+    uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
+    tft.setBrightness(brightnessVal);
+  #endif // BOARD_M5STACK_CORE
+  #ifdef BOARD_M5STACK_CORE2
     M5.Axp.SetDCDC3(true);
     uint16_t lcdVolt = map(lcdBrightnessPerc, 0, 100, 2500, 3300);
     M5.Axp.SetLcdVoltage(lcdVolt);
-  }
-#endif // BOARD_M5STACK_CORE2
+  #endif // BOARD_M5STACK_CORE2
 }
 
 /**
@@ -2466,7 +2458,7 @@ void Board320_240::mainLoop()
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
     && liveData->settings.sleepModeLevel >= 1
     && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10
-    && liveData->params.currentTime - liveData->params.wakeUpTime > 30)
+    && (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
   {
     turnOffScreen();
   }

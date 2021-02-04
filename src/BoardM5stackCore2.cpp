@@ -45,8 +45,7 @@ void BoardM5stackCore2::initBoard() {
 }
 
 void BoardM5stackCore2::wakeupBoard() {
-  M5.Axp.SetLcdVoltage(2800);
-  M5.Axp.SetDCDC3(true);
+  M5.Axp.SetLcdVoltage(2500);
   M5.Axp.SetLCDRSet(0);
   delay(100);
   M5.Axp.SetLCDRSet(1);
