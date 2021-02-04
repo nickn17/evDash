@@ -57,7 +57,7 @@ void Board320_240::initBoard()
   struct timezone tz;
   tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
   tz.tz_dsttime = 0;
-  settimeofday(&tv, &tz);
+  settimeofday(&tv, NULL);
   struct tm tm;
   getLocalTime(&tm);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&tm);
@@ -2704,7 +2704,7 @@ void Board320_240::syncGPS()
     struct timezone tz;
     tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
     tz.tz_dsttime = 0;
-    settimeofday(&now, &tz);
+    settimeofday(&now, NULL);
 
     syncTimes(t);
 
