@@ -1455,7 +1455,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_CURRENT_TIME:
     struct tm now;
     getLocalTime(&now);
-    sprintf(tmpStr1, "%d-%d-%d %d:%d:%d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+    sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
     suffix = tmpStr1;
     break;
   case MENU_TIMEZONE:
@@ -1578,8 +1578,8 @@ void Board320_240::showMenu()
       if (tmpCurrMenuItem >= liveData->menuItemOffset)
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
-        spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE);
+        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_GREEN : TFT_BLACK);
+        spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
         posY += spr.fontHeight();
       }
@@ -2682,8 +2682,8 @@ void Board320_240::syncGPS()
       double sunDeg = getSZA(liveData->params.currentTime);
       syslog->print("SUN from zenith, degrees: ");
       syslog->println(sunDeg);
-      int32_t newBrightness = (100 - sunDeg) * 3;
-      newBrightness = (newBrightness < 10 ? 10 : (newBrightness > 100) ? 100
+      int32_t newBrightness = (105 - sunDeg) * 3.5;
+      newBrightness = (newBrightness < 20 ? 20 : (newBrightness > 100) ? 100
                                                                        : newBrightness);
       if (liveData->params.lcdBrightnessCalc != newBrightness)
       {
