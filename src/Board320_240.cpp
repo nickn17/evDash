@@ -59,7 +59,7 @@ void Board320_240::initBoard()
   tz.tz_dsttime = 0;
   settimeofday(&tv, &tz);
   struct tm tm;
-  getLocalTime(&tm, 0);
+  getLocalTime(&tm);
   liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&tm);
 
   // Boot counter
@@ -103,7 +103,6 @@ void Board320_240::afterSetup()
   }
 
   wakeupBoard();
-  liveData->params.wakeUpTime = liveData->params.currentTime;
 
   // Init display
   syslog->println("Init TFT display");
@@ -168,6 +167,7 @@ void Board320_240::afterSetup()
   {
     BoardInterface::afterSetup();
   }
+  liveData->params.wakeUpTime = liveData->params.currentTime;
 }
 
 /**
@@ -2687,7 +2687,7 @@ void Board320_240::syncGPS()
     //syslog->print("GPS satellites: ");
     //syslog->println(liveData->params.gpsSat);
   }
-  if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid() && gps.location.isValid())
+  if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
   {
     liveData->params.currTimeSyncWithGps = true;
 
@@ -2749,10 +2749,10 @@ bool Board320_240::sim800lSetup()
   //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
 
   bool sim800l_ready = sim800l->isReady();
-  for (uint8_t i = 0; i < 5 && !sim800l_ready; i++)
+  for (uint8_t i = 0; i < 3 && !sim800l_ready; i++)
   {
-    syslog->println("Problem to initialize SIM800L module, retry in 1 sec");
-    delay(1000);
+    syslog->println("Problem to initialize SIM800L module, retry in 0.5 sec");
+    delay(500);
     sim800l_ready = sim800l->isReady();
   }
 
@@ -2869,8 +2869,6 @@ bool Board320_240::sim800lSendData()
     else
     {
       syslog->println("GPRS not connected!");
-      sim800l->reset();
-      sim800lSetup();
       return false;
     }
   }

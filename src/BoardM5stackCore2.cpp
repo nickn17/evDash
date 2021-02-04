@@ -40,6 +40,7 @@ void BoardM5stackCore2::initBoard() {
   M5.Axp.SetLed(false);
 
   M5.Rtc.begin();
+  delay(100);
 
   Board320_240::initBoard();
 }
