@@ -710,7 +710,81 @@ void CarKiaEniro::testHandler(const String &cmd)
   String key = cmd.substring(0, idx);
   String value = cmd.substring(idx + 1);
 
-  if (key.equals("batch"))
+  // AIRCON SCANNER
+  if (key.equals("aircon"))
+  {
+        // SET TESTER PRESENT
+        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "3E");
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+            break;
+          delay(20);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+
+        // CHANGE SESSION
+        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "1003");
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+          {
+            // WAIT FOR POSITIVE ANSWER
+            if (liveData->responseRowMerged.equals("5003"))
+            {
+              syslog->println("POSITIVE ANSWER");
+              break;
+            }
+          }
+          delay(20);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+
+    // test=aircon/1
+    for (uint16_t a = 0; a < 255; a++) { 
+      syslog->print("NEW CYCLE: ");
+      syslog->println(a);
+      for (uint16_t b = 240; b < 241; b++)
+      {
+        String command = "2F";
+        if (b < 16)
+          command += "0";
+        command += String(b, HEX);
+        if (a < 16)
+          command += "0";
+        command += String(a, HEX);
+        command.toUpperCase();
+        command += "00";
+        
+        // EXECUTE COMMAND
+        //syslog->print(".");
+        commInterface->sendPID(liveData->hexToDec("0736", 2, false), command);
+        //      syslog->setDebugLevel(DEBUG_COMM);
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+          {
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/ )
+            {
+              syslog->print("### \t");
+              syslog->print(command);
+              syslog->print(" \t");
+              syslog->println(liveData->prevResponseRowMerged);
+            }
+            break;
+          }
+          delay(10);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+        //      syslog->setDebugLevel(liveData->settings.debugLevel);
+      }
+    }
+  }
+  // BATCH SCAN
+  else if (key.equals("batch"))
   {
     // test=batch/1
     for (uint16_t i = 0; i < 250; i++)
@@ -721,13 +795,14 @@ void CarKiaEniro::testHandler(const String &cmd)
       command += String(i, HEX);
       command.toUpperCase();
       command += "0100";
-      //syslog->println(String(command + "03"));
+
       syslog->print(command);
       syslog->print(" ");
 
       eNiroCarControl(liveData->hexToDec("07B3", 2, false), command);
     }
   }
+  // ONE COMMAND
   else
   {
     // test=07C6/2FB00103

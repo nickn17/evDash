@@ -529,6 +529,7 @@ void CommObd2Can::processMergedResponse() {
   syslog->info(DEBUG_COMM, liveData->responseRowMerged);
   parseRowMerged();
   
+  liveData->prevResponseRowMerged = liveData->responseRowMerged;
   liveData->responseRowMerged = "";
   liveData->vResponseRowMerged.clear();
   bResponseProcessed = true; // to allow delay untill next message

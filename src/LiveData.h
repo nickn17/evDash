@@ -291,6 +291,7 @@ public:
   std::vector<Command_t> commandQueue;
   String responseRow;
   String responseRowMerged;
+  String prevResponseRowMerged;
   std::vector<uint8_t> vResponseRowMerged;
   uint16_t commandQueueIndex;
   bool canSendNextAtCommand = false;
