@@ -2367,7 +2367,7 @@ void Board320_240::mainLoop()
   // currentTime
   struct tm now;
   getLocalTime(&now);
-  syncTimes(mktime(&now));
+  liveData->params.currentTime = mktime(&now);
 
   // SIM800L
   if (liveData->params.sim800l_enabled)
@@ -2506,40 +2506,35 @@ void Board320_240::mainLoop()
 
 void Board320_240::syncTimes(time_t newTime)
 {
-  if (newTime - liveData->params.currentTime > 15)
-  {
-    if (liveData->params.chargingStartTime != 0)
-      liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
+  if (liveData->params.chargingStartTime != 0)
+    liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
 
-    if (liveData->params.lastDataSent != 0)
-      liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
+  if (liveData->params.lastDataSent != 0)
+    liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
 
-    if (liveData->params.sim800l_lastOkReceiveTime != 0)
-      liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
+  if (liveData->params.sim800l_lastOkReceiveTime != 0)
+    liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
 
-    if (liveData->params.sim800l_lastOkSendTime != 0)
-      liveData->params.sim800l_lastOkSendTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkSendTime);
+  if (liveData->params.sim800l_lastOkSendTime != 0)
+    liveData->params.sim800l_lastOkSendTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkSendTime);
 
-    if (liveData->params.lastButtonPushedTime != 0)
-      liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
+  if (liveData->params.lastButtonPushedTime != 0)
+    liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
 
-    if (liveData->params.wakeUpTime != 0)
-      liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
+  if (liveData->params.wakeUpTime != 0)
+    liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
 
-    if (liveData->params.lastIgnitionOnTime != 0)
-      liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
+  if (liveData->params.lastIgnitionOnTime != 0)
+    liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
 
-    if (liveData->params.lastChargingOnTime != 0)
-      liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
+  if (liveData->params.lastChargingOnTime != 0)
+    liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
 
-    if (liveData->params.lastVoltageReadTime != 0)
-      liveData->params.lastVoltageReadTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageReadTime);
+  if (liveData->params.lastVoltageReadTime != 0)
+    liveData->params.lastVoltageReadTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageReadTime);
 
-    if (liveData->params.lastVoltageOkTime != 0)
-      liveData->params.lastVoltageOkTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageOkTime);
-  }
-
-  liveData->params.currentTime = newTime;
+  if (liveData->params.lastVoltageOkTime != 0)
+    liveData->params.lastVoltageOkTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageOkTime);
 }
 
 /**
@@ -2692,7 +2687,7 @@ void Board320_240::syncGPS()
     //syslog->print("GPS satellites: ");
     //syslog->println(liveData->params.gpsSat);
   }
-  if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
+  if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid() && gps.location.isValid())
   {
     liveData->params.currTimeSyncWithGps = true;
 
@@ -2710,6 +2705,8 @@ void Board320_240::syncGPS()
     tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
     tz.tz_dsttime = 0;
     settimeofday(&now, &tz);
+
+    syncTimes(t);
 
     #ifdef BOARD_M5STACK_CORE2
       RTC_TimeTypeDef RTCtime;
