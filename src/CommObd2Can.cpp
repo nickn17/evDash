@@ -48,7 +48,8 @@ void CommObd2Can::connectDevice() {
   pinMode(pinCanInt, INPUT);                    // Configuring pin for /INT input
 
   // Serve first command (ATZ)
-  liveData->commConnected = true;  
+  liveData->commConnected = true;
+  liveData->commandQueueIndex = 0;
   doNextQueueCommand();
 
   syslog->println("init_can() done");

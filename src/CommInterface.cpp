@@ -134,6 +134,8 @@ void CommInterface::parseRowMerged() {
     }
   }
 
+  liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+
   // Parse response
   board->parseRowMerged();
 }

@@ -57,6 +57,7 @@ typedef struct
   time_t currentTime;
   time_t chargingStartTime;
   uint32_t queueLoopCounter;
+  time_t lastCanbusResponseTime;
   // SIM
   time_t lastDataSent;
   bool sim800l_enabled;

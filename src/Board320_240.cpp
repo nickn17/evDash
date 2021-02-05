@@ -60,7 +60,8 @@ void Board320_240::initBoard()
   settimeofday(&tv, NULL);
   struct tm tm;
   getLocalTime(&tm);
-  liveData->params.chargingStartTime = liveData->params.currentTime = mktime(&tm);
+  liveData->params.currentTime = mktime(&tm);
+  liveData->params.chargingStartTime = liveData->params.currentTime;
 
   // Boot counter
   ++bootCount;
@@ -167,7 +168,9 @@ void Board320_240::afterSetup()
   {
     BoardInterface::afterSetup();
   }
+
   liveData->params.wakeUpTime = liveData->params.currentTime;
+  liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
 }
 
 /**
@@ -2498,6 +2501,15 @@ void Board320_240::mainLoop()
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
+
+  // Reconnect CAN bus if no response for 5s
+  if(liveData->settings.commType == 1
+    && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5)
+  {
+    syslog->println("No response from CANbus for 5 seconds, reconnecting");
+    commInterface->connectDevice();
+    liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+  }
 }
 
 /**
@@ -2535,6 +2547,9 @@ void Board320_240::syncTimes(time_t newTime)
 
   if (liveData->params.lastVoltageOkTime != 0)
     liveData->params.lastVoltageOkTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageOkTime);
+
+  if (liveData->params.lastCanbusResponseTime != 0)
+    liveData->params.lastCanbusResponseTime = newTime - (liveData->params.currentTime - liveData->params.lastCanbusResponseTime);
 }
 
 /**
