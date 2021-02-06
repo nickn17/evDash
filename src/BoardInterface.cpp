@@ -396,11 +396,13 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   jsonData["lat"] = liveData->params.gpsLat;
   jsonData["lon"] = liveData->params.gpsLon;
   jsonData["alt"] = liveData->params.gpsAlt;
+  jsonData["speedKmhGPS"] = liveData->params.speedKmhGPS;
 
   jsonData["ignitionOn"] = liveData->params.ignitionOn;
   jsonData["chargingOn"] = liveData->params.chargingOn;
 
   jsonData["socPerc"] = liveData->params.socPerc;
+  jsonData["socPercBms"] = liveData->params.socPercBms;
   jsonData["sohPerc"] = liveData->params.sohPerc;
   jsonData["powKwh100"] = liveData->params.batPowerKwh100;
   jsonData["speedKmh"] = liveData->params.speedKmh;
