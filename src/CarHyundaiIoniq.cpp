@@ -194,6 +194,7 @@ void CarHyundaiIoniq::parseRowMerged()
   {
     if (liveData->commandRequest.equals("2101"))
     {
+      liveData->params.socPercBms = liveData->hexToDecFromResponse(12, 14, 1, false) / 2.0;
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(80, 88) / 10.0;
       if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
         liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;

@@ -704,8 +704,7 @@ void Board320_240::drawSceneSpeed()
   spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 91) ? TFT_YELLOW
-                                                                                                : TFT_GREEN);
+  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPercBms > 80 || (liveData->params.socPercBms == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
@@ -2900,6 +2899,8 @@ bool Board320_240::sim800lSendData()
     jsonData["ignitionOn"] = liveData->params.ignitionOn;
     jsonData["chargingOn"] = liveData->params.chargingOn;
     jsonData["socPerc"] = liveData->params.socPerc;
+    if (liveData->params.socPercBms != -1)
+      jsonData["socPercBms"] = liveData->params.socPercBms;
     jsonData["sohPerc"] = liveData->params.sohPerc;
     jsonData["batPowerKw"] = liveData->params.batPowerKw;
     jsonData["batPowerAmp"] = liveData->params.batPowerAmp;

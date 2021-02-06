@@ -70,6 +70,7 @@ void LiveData::initParams() {
   params.inverterTempC = -100;
   params.motorTempC = -100;
   params.odoKm = -1;
+  params.socPercBms = -1;
   params.socPerc = -1;
   params.socPercPrevious = -1;
   params.sohPerc = -1;
