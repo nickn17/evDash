@@ -613,8 +613,14 @@ void Board320_240::drawSceneSpeed()
   spr.setTextColor(TFT_WHITE);
   spr.setTextSize(2); // Size for small 5cix7 font
   sprintf(tmpStr3, "0");
-  if (liveData->params.speedKmh > 10)
+  if (liveData->params.speedKmhGPS > 10)
+  {
+    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
+  }
+  else if (liveData->params.speedKmh > 10)
+  {
     sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+  }
   spr.drawString(tmpStr3, 200, posy, 7);
 
   posy = 145;
@@ -756,7 +762,13 @@ void Board320_240::drawSceneHud()
   // Draw speed
   tft.setTextSize(3);
   sprintf(tmpStr3, "0");
-  if (liveData->params.speedKmh > 10)
+  if (liveData->params.speedKmhGPS > 10)
+  {
+    tft.fillRect(0, 210, 320, 30, TFT_BLACK);
+    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
+    lastSpeedKmh = liveData->params.speedKmhGPS;
+  }
+  else if (liveData->params.speedKmh > 10)
   {
     if (liveData->params.speedKmh != lastSpeedKmh)
     {
@@ -2696,6 +2708,12 @@ void Board320_240::syncGPS()
       }
     }
   }
+  if (gps.speed.isValid())
+  {
+    liveData->params.speedKmhGPS = gps.speed.kmph();
+  } else {
+    liveData->params.speedKmhGPS = -1;
+  }
   if (gps.satellites.isValid())
   {
     liveData->params.gpsSat = gps.satellites.value();
@@ -2911,6 +2929,7 @@ bool Board320_240::sim800lSendData()
     jsonData["batInletC"] = liveData->params.batInletC;
     jsonData["batFanStatus"] = liveData->params.batFanStatus;
     jsonData["speedKmh"] = liveData->params.speedKmh;
+
     jsonData["odoKm"] = liveData->params.odoKm;
     jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
@@ -2921,6 +2940,7 @@ bool Board320_240::sim800lSendData()
       jsonData["gpsLat"] = liveData->params.gpsLat;
       jsonData["gpsLon"] = liveData->params.gpsLon;
       jsonData["gpsAlt"] = liveData->params.gpsAlt;
+      jsonData["gpsSpeed"] = liveData->params.speedKmhGPS;
     }
 
     char payload[768];
@@ -2985,7 +3005,12 @@ bool Board320_240::sim800lSendData()
     jsonData["utc"] = liveData->params.currentTime;
     jsonData["soc"] = liveData->params.socPerc;
     jsonData["power"] = liveData->params.batPowerKw * -1;
-    jsonData["speed"] = liveData->params.speedKmh;
+    if (liveData->params.speedKmhGPS > 0)
+    {
+      jsonData["speed"] = liveData->params.speedKmhGPS;
+    } else {
+      jsonData["speed"] = liveData->params.speedKmh;
+    }
     jsonData["is_charging"] = (liveData->params.chargingOn) ? 1 : 0;
     if (liveData->params.chargingOn)
       jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
