@@ -108,6 +108,7 @@ typedef struct
   bool hoodDoorOpen;
   float batteryTotalAvailableKWh;
   float speedKmh;
+  float speedKmhGPS;
   float motorRpm;
   float odoKm;
   float socPerc;
