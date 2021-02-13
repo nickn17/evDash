@@ -10,33 +10,30 @@
    gprsApn=xxx
    remoteApiUrl=xxx
    remoteApiKey=xxx
+   abrpApiToken=xxx
 
   Required libraries, see INSTALLATION.rd
   SIM800L m5stack support by (https://github.com/kolaCZek)
 */
 
-////////////////////////////////////////////////////////////
-// SELECT HARDWARE
-////////////////////////////////////////////////////////////
+#include "Arduino.h"
 
-// Boards
-//#define BOARD_TTGO_T4
-#define BOARD_M5STACK_CORE
-
-////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////
-
+#include "config.h"
 #include <SPI.h>
 #include "BoardInterface.h"
 
 #ifdef BOARD_TTGO_T4
 #include "BoardTtgoT4v13.h"
 #endif // BOARD_TTGO_T4
+
 #ifdef BOARD_M5STACK_CORE
 #include "BoardM5stackCore.h"
 #endif // BOARD_M5STACK_CORE
 
-#include "config.h"
+#ifdef BOARD_M5STACK_CORE2
+#include "BoardM5stackCore2.h"
+#endif // BOARD_M5STACK_CORE2
+
 #include "LiveData.h"
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
@@ -55,7 +52,6 @@ LiveData* liveData;
   Setup device
 */
 void setup(void) {
-
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
@@ -67,9 +63,15 @@ void setup(void) {
 #ifdef BOARD_TTGO_T4
   board = new BoardTtgoT4v13();
 #endif // BOARD_TTGO_T4
+
 #ifdef BOARD_M5STACK_CORE
   board = new BoardM5stackCore();
 #endif // BOARD_M5STACK_CORE
+
+#ifdef BOARD_M5STACK_CORE2
+  board = new BoardM5stackCore2();
+#endif // BOARD_M5STACK_CORE2
+
   board->setLiveData(liveData);
   board->loadSettings();
   board->initBoard();
@@ -89,6 +91,7 @@ void setup(void) {
     case CAR_KIA_ENIRO_2020_64:
     case CAR_HYUNDAI_KONA_2020_39:
     case CAR_HYUNDAI_KONA_2020_64:
+    case CAR_KIA_ESOUL_2020_64:
       car = new CarKiaEniro();
       break;
     case CAR_HYUNDAI_IONIQ_2018:

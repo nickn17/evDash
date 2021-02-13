@@ -48,7 +48,8 @@ void CommObd2Can::connectDevice() {
   pinMode(pinCanInt, INPUT);                    // Configuring pin for /INT input
 
   // Serve first command (ATZ)
-  liveData->commConnected = true;  
+  liveData->commConnected = true;
+  liveData->commandQueueIndex = 0;
   doNextQueueCommand();
 
   syslog->println("init_can() done");
@@ -293,7 +294,7 @@ uint8_t CommObd2Can::receivePID() {
   return rxBuf[0 + rxBuffOffset]; // return byte containing frame type, which requires removing offset byte
 }
 
-static void printHexBuffer(uint8_t* pData, const uint16_t length, const bool bAddNewLine)
+void printHexBuffer(uint8_t* pData, const uint16_t length, const bool bAddNewLine)
 {
   char str[8] = { 0 };
   
@@ -408,7 +409,7 @@ bool CommObd2Can::processFrameBytes() {
         uint8_t pData[];
       };
       
-      const uint8_t structSize = sizeof(ConsecutiveFrame_t);
+      //const uint8_t structSize = sizeof(ConsecutiveFrame_t);
       //syslog->print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); syslog->println(structSize);
       
       ConsecutiveFrame_t* pConseqFrame = (ConsecutiveFrame_t*)pDataStart;
@@ -529,6 +530,7 @@ void CommObd2Can::processMergedResponse() {
   syslog->info(DEBUG_COMM, liveData->responseRowMerged);
   parseRowMerged();
   
+  liveData->prevResponseRowMerged = liveData->responseRowMerged;
   liveData->responseRowMerged = "";
   liveData->vResponseRowMerged.clear();
   bResponseProcessed = true; // to allow delay untill next message

@@ -1,0 +1,98 @@
+; M5Core2 configuration
+
+[env:m5stack-core2]
+platform = espressif32
+board = m5stack-core-esp32
+board_build.partitions = no_ota.csv
+framework = arduino
+build_flags = 
+	-D BOARD_M5STACK_CORE2
+	-D COMMU_CS_PIN=27
+	-D COMMU_INT_PIN=2
+	-D SERIAL2_RX=13
+	-D SERIAL2_TX=14
+lib_deps = 
+	https://github.com/m5stack/M5Core2
+	mikalhart/TinyGPSPlus@^1.0.2
+	erropix/ESP32 AnalogWrite@^0.2.0
+	bblanchon/ArduinoJson@^6.17.2
+	https://github.com/switchdoclabs/SDL_Arduino_INA3221
+	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
+
+;targets = upload
+upload_protocol = esptool
+upload_port = COM12
+upload_speed = 921600
+monitor_port = COM12
+monitor_speed = 115200
+
+; M5Stack configuration
+[env:m5stack-core]
+platform = espressif32
+board = m5stack-core-esp32
+board_build.partitions = no_ota.csv
+framework = arduino
+build_flags = 
+	-D BOARD_M5STACK_CORE
+	-D COMMU_CS_PIN=12
+	-D COMMU_INT_PIN=15
+	-D SERIAL2_RX=16
+	-D SERIAL2_TX=17
+lib_deps = 
+	https://github.com/m5stack/M5Stack
+	mikalhart/TinyGPSPlus@^1.0.2
+	erropix/ESP32 AnalogWrite@^0.2.0
+	bblanchon/ArduinoJson@^6.17.2
+	https://github.com/switchdoclabs/SDL_Arduino_INA3221
+	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
+
+; TTGO-T4 v1.3 configuration
+[env:ttgo-t4-v13]
+platform = espressif32
+board = m5stack-core-esp32
+board_build.partitions = no_ota.csv
+framework = arduino
+build_flags = 
+	-D BOARD_TTGO_T4
+	-D USE_HSPI_PORT
+	-D ILI9341_DRIVER
+	-D USER_SETUP_LOADED=1
+	-D SPI_FREQUENCY=27000000
+	-D SPI_TOUCH_FREQUENCY=2500000
+	-D SPI_READ_FREQUENCY=6000000
+	-D TFT_MISO=12
+	-D TFT_MOSI=23
+	-D TFT_SCLK=18
+	-D TFT_CS=27
+	-D TFT_DC=32
+	-D TFT_RST=5
+	-D TFT_BACKLIGHT_ON=HIGH
+	-D TFT_BL=4
+	-D LOAD_GLCD
+	-D LOAD_FONT2
+	-D LOAD_FONT4
+	-D LOAD_FONT6
+	-D LOAD_FONT7
+	-D LOAD_FONT8
+	-D LOAD_GFXFF
+	-D SMOOTH_FONT
+	-D TFCARD_CS_PIN=13
+	-D SERIAL2_RX=16
+ 	-D SERIAL2_TX=17
+ lib_deps = 
+	https://github.com/Bodmer/TFT_eSPI
+	mikalhart/TinyGPSPlus@^1.0.2
+	erropix/ESP32 AnalogWrite@^0.2.0
+	bblanchon/ArduinoJson@^6.17.2
+	https://github.com/switchdoclabs/SDL_Arduino_INA3221
+	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
+
+;targets = upload
+upload_protocol = esptool
+upload_port = COM6
+upload_speed = 921600
+monitor_port = COM6
+monitor_speed = 115200

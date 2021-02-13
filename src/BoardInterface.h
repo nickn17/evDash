@@ -24,13 +24,17 @@ class BoardInterface {
     void setLiveData(LiveData* pLiveData);
     void attachCar(CarInterface* pCarInterface);
     virtual void initBoard()=0;
+    virtual void wakeupBoard()=0;
     virtual void afterSetup()=0;
     virtual void mainLoop()=0;
+    virtual bool isButtonPressed(int button) {return false;};
+    virtual void enterSleepMode(int secs)=0;
     virtual bool skipAdapterScan() {return false;};
     bool carCommandAllowed() { return carInterface->commandAllowed(); }
     // Graphics & GUI
     virtual void displayMessage(const char* row1, const char* row2)=0;
-    virtual void setBrightness(byte lcdBrightnessPerc)=0;
+    virtual void turnOffScreen()=0;
+    virtual void setBrightness()=0;
     virtual void redrawScreen()=0;
     void parseRowMerged();
     // Menu
