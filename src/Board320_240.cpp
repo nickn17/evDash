@@ -261,6 +261,42 @@ void Board320_240::afterSleep()
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
+    #ifdef BOARD_M5STACK_CORE2
+      if (liveData->settings.sdcardEnabled == 1 && bootCount % (unsigned int)(300 / liveData->settings.sleepModeIntervalSec) == 0)
+      {
+        tft.begin();
+        sdcardMount();
+
+        if (liveData->params.sdcardInit)
+        {
+          struct tm now;
+          getLocalTime(&now);
+          char filename[32];
+          strftime(filename, sizeof(filename), "/sleep_%y-%m-%d.json", &now);
+
+          File file = SD.open(filename, FILE_APPEND);
+          if (!file)
+          {
+            syslog->println("Failed to open file for appending");
+            File file = SD.open(filename, FILE_WRITE);
+          }
+          if (file)
+          {
+            StaticJsonDocument<128> jsonData;
+            jsonData["carType"] = liveData->settings.carType;
+            jsonData["currTime"] = liveData->params.currentTime;
+            jsonData["auxV"] = liveData->params.auxVoltage;
+            jsonData["bootCount"] = bootCount;
+            jsonData["sleepCount"] = sleepCount;
+            serializeJson(jsonData, file);
+
+            file.print(",\n");
+            file.close();
+          }
+        }
+      }
+    #endif
+
     if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff)
     {
       syslog->print("AUX voltage under cut-off voltage: ");
