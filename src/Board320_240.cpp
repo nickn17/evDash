@@ -1621,7 +1621,7 @@ void Board320_240::showMenu()
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
         spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
-        spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
+        spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
         posY += spr.fontHeight();
       }
