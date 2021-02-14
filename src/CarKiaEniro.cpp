@@ -713,61 +713,66 @@ void CarKiaEniro::testHandler(const String &cmd)
   // AIRCON SCANNER
   if (key.equals("aircon"))
   {
-        // SET TESTER PRESENT
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "3E");
-        delay(10);
-        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
-        {
-          if (commInterface->receivePID() != 0xff)
-            break;
-          delay(20);
-        }
-        delay(liveData->delayBetweenCommandsMs);
+    // SET TESTER PRESENT
+    commInterface->sendPID(liveData->hexToDec("07E4", 2, false), "3E");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+        break;
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
 
-        // CHANGE SESSION
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "1003");
-        delay(10);
-        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    // CHANGE SESSION
+    commInterface->sendPID(liveData->hexToDec("07E4", 2, false), "1003");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+      {
+        // WAIT FOR POSITIVE ANSWER
+        if (liveData->responseRowMerged.equals("5003"))
         {
-          if (commInterface->receivePID() != 0xff)
-          {
-            // WAIT FOR POSITIVE ANSWER
-            if (liveData->responseRowMerged.equals("5003"))
-            {
-              syslog->println("POSITIVE ANSWER");
-              break;
-            }
-          }
-          delay(20);
+          syslog->println("POSITIVE ANSWER");
+          break;
         }
-        delay(liveData->delayBetweenCommandsMs);
+      }
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
 
     // test=aircon/1
-    for (uint16_t a = 0; a < 255; a++) { 
+    for (uint16_t a = 0; a < 255; a++)
+    {
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
-      for (uint16_t b = 240; b < 241; b++)
+      for (uint16_t b = 0; b < 255; b++)
+      for (uint16_t c = 0; c < 255; c++)
       {
-        String command = "2F";
-        if (b < 16)
-          command += "0";
-        command += String(b, HEX);
+        String command = "2FF0";
         if (a < 16)
           command += "0";
         command += String(a, HEX);
+        if (b < 16)
+          command += "0";
+        command += String(b, HEX);
+        if (c < 16)
+            command += "0";
+          command += String(c, HEX);
         command.toUpperCase();
-        command += "00";
-        
+        //command += "00";
+
         // EXECUTE COMMAND
         //syslog->print(".");
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), command);
+        commInterface->sendPID(liveData->hexToDec("07E4", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
         for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
         {
           if (commInterface->receivePID() != 0xff)
           {
-            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/ )
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") && !liveData->prevResponseRowMerged.equals("7F2F22")  && !liveData->prevResponseRowMerged.equals("7F2F13") /*&& !liveData->prevResponseRowMerged.equals("")*/)
             {
               syslog->print("### \t");
               syslog->print(command);
@@ -817,6 +822,7 @@ std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
 {
   if (menuId == MENU_CAR_COMMANDS)
     return {
+        "vessOn=VESS 5sec.",
         "doorsUnlock=Unlock doors",
         "doorsLock=Lock doors",
         "chargeCableLockOff=Charge cable lock off",
@@ -861,6 +867,10 @@ std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
  */
 void CarKiaEniro::carCommand(const String &cmd)
 {
+  if (cmd.equals("vessOn"))
+  {
+    eNiroCarControl(0x736, "2FF01103");
+  }
   if (cmd.equals("doorsUnlock"))
   {
     eNiroCarControl(0x770, "2FBC1103");

@@ -712,7 +712,7 @@ void Board320_240::drawSceneSpeed()
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
   spr.fillRect(210, 55, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
-  spr.fillRect(210, 120, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 120, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
   spr.setTextColor(TFT_WHITE);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(TR_DATUM);
@@ -1620,7 +1620,7 @@ void Board320_240::showMenu()
       if (tmpCurrMenuItem >= liveData->menuItemOffset)
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_GREEN : TFT_BLACK);
+        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
         spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
         posY += spr.fontHeight();

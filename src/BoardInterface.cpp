@@ -300,7 +300,6 @@ void BoardInterface::afterSetup()
 
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4)
   {
-    ;
     commInterface = new CommObd2Ble4();
   }
   else if (liveData->settings.commType == COMM_TYPE_OBD2CAN)
