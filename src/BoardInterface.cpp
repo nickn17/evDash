@@ -325,6 +325,8 @@ void BoardInterface::customConsoleCommand(String cmd)
 
   if (cmd.equals("reboot"))
     ESP.restart();
+  if (cmd.equals("saveSettings"))
+    saveSettings();
   // CAN comparer
   if (cmd.equals("compare"))
     commInterface->compareCanRecords();

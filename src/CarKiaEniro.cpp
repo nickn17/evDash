@@ -711,7 +711,7 @@ void CarKiaEniro::testHandler(const String &cmd)
   String value = cmd.substring(idx + 1);
 
   // AIRCON SCANNER
-  if (key.equals("aircon"))
+  if (key.equals("bms"))
   {
     // SET TESTER PRESENT
     commInterface->sendPID(liveData->hexToDec("07E4", 2, false), "3E");
@@ -748,19 +748,19 @@ void CarKiaEniro::testHandler(const String &cmd)
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
       for (uint16_t b = 0; b < 255; b++)
-      for (uint16_t c = 0; c < 255; c++)
+      //for (uint16_t c = 0; c < 255; c++)
       {
-        String command = "2FF0";
+        String command = "2FF001";
         if (a < 16)
           command += "0";
         command += String(a, HEX);
         if (b < 16)
           command += "0";
         command += String(b, HEX);
-        if (c < 16)
+        /*if (c < 16)
             command += "0";
           command += String(c, HEX);
-        command.toUpperCase();
+        */ command.toUpperCase();
         //command += "00";
 
         // EXECUTE COMMAND

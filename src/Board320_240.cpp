@@ -1796,18 +1796,18 @@ void Board320_240::menuItemClick()
     // Comm type
     case MENU_ADAPTER_BLE4:
       liveData->settings.commType = COMM_TYPE_OBD2BLE4;
-      showMenu();
-      return;
+      saveSettings();
+      ESP.restart();
       break;
     case MENU_ADAPTER_CAN:
       liveData->settings.commType = COMM_TYPE_OBD2CAN;
-      showMenu();
-      return;
+      saveSettings();
+      ESP.restart();
       break;
     case MENU_ADAPTER_BT3:
       liveData->settings.commType = COMM_TYPE_OBD2BT3;
-      showMenu();
-      return;
+      saveSettings();
+      ESP.restart();
       break;
     // Screen orientation
     case MENU_SCREEN_ROTATION:

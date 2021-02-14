@@ -258,6 +258,9 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 
   // Remote service
   board->displayMessage(" > Connecting device", "Connecting service...");
+  syslog->print("serviceUUID -");
+  syslog->print(liveData->settings.serviceUUID);
+  syslog->println("-");
   BLERemoteService* pRemoteService = liveData->pClient->getService(BLEUUID(liveData->settings.serviceUUID));
   if (pRemoteService == nullptr)
   {
@@ -270,6 +273,9 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting TxUUID...");
+  syslog->print("charTxUUID -");
+  syslog->print(liveData->settings.charTxUUID);
+  syslog->println("-");
   liveData->pRemoteCharacteristic = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charTxUUID));
   if (liveData->pRemoteCharacteristic == nullptr) {
     syslog->print("Failed to find our characteristic UUID: ");
@@ -281,6 +287,9 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting RxUUID...");
+  syslog->print("charRxUUID -");
+  syslog->print(liveData->settings.charRxUUID);
+  syslog->println("-");
   liveData->pRemoteCharacteristicWrite = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charRxUUID));
   if (liveData->pRemoteCharacteristicWrite == nullptr) {
     syslog->print("Failed to find our characteristic UUID: ");
