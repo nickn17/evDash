@@ -298,7 +298,9 @@ void CarKiaEniro::parseRowMerged()
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
       }
       liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
+      liveData->params.batCellMaxVNo = liveData->hexToDecFromResponse(54, 56, 1, false);
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
+      liveData->params.batCellMinVNo = liveData->hexToDecFromResponse(58, 60, 1, false);
       liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
       liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true);
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
@@ -411,6 +413,9 @@ void CarKiaEniro::parseRowMerged()
       tempByte = liveData->hexToDecFromResponse(34, 36, 1, false);
       switch (tempByte & 0xf)
       {
+      case 1:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING;
+        break;
       case 3:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
         break;
