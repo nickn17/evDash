@@ -1279,7 +1279,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "[%s]", APP_VERSION);
     suffix = tmpStr1;
     break;
-  //
+  //TODO: Why is do these cases not match the vehicle type id?
   case 101:
     prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
     break;
@@ -1695,7 +1695,7 @@ void Board320_240::menuItemClick()
   {
     syslog->println(tmpMenuItem->id);
     // Device list
-    if (tmpMenuItem->id > 10000 && tmpMenuItem->id < 10100)
+    if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
       strlcpy((char *)liveData->settings.obdMacAddress, (char *)tmpMenuItem->obdMacAddress, 20);
       syslog->print("Selected adapter MAC address ");
@@ -1707,52 +1707,52 @@ void Board320_240::menuItemClick()
     switch (tmpMenuItem->id)
     {
     // Set vehicle type
-    case 101:
+    case VEHICLE_TYPE_ENIRO_2020_64:
       liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
       showMenu();
       return;
       break;
-    case 102:
+    case VEHICLE_TYPE_KONA_2020_64:
       liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64;
       showMenu();
       return;
       break;
-    case 103:
+    case VEHICLE_TYPE_IONIQ_2018_28:
       liveData->settings.carType = CAR_HYUNDAI_IONIQ_2018;
       showMenu();
       return;
       break;
-    case 104:
+    case VEHICLE_TYPE_ENIRO_2020_39:
       liveData->settings.carType = CAR_KIA_ENIRO_2020_39;
       showMenu();
       return;
       break;
-    case 105:
+    case VEHICLE_TYPE_KONA_2020_39:
       liveData->settings.carType = CAR_HYUNDAI_KONA_2020_39;
       showMenu();
       return;
       break;
-    case 106:
+    case VEHICLE_TYPE_ZOE_22_DEV:
       liveData->settings.carType = CAR_RENAULT_ZOE;
       showMenu();
       return;
       break;
-    case 107:
+    case VEHICLE_TYPE_NIROPHEV_8_9:
       liveData->settings.carType = CAR_KIA_NIRO_PHEV;
       showMenu();
       return;
       break;
-    case 108:
+    case VEHICLE_TYPE_BMWI3_2014_22:
       liveData->settings.carType = CAR_BMW_I3_2014;
       showMenu();
       return;
       break;
-    case 109:
+    case VEHICLE_TYPE_ESOUL_2020_64:
       liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
       showMenu();
       return;
       break;
-    case 120:
+    case VEHICLE_TYPE_DEBUG_OBD_KIA:
       liveData->settings.carType = CAR_DEBUG_OBD2_KIA;
       showMenu();
       return;
@@ -1781,27 +1781,27 @@ void Board320_240::menuItemClick()
       return;
       break;
     // Default screen
-    case 3061:
+    case DEFAULT_SCREEN_AUTOMODE:
       liveData->settings.defaultScreen = 1;
       showParentMenu = true;
       break;
-    case 3062:
+    case DEFAULT_SCREEN_BASIC_INFO:
       liveData->settings.defaultScreen = 2;
       showParentMenu = true;
       break;
-    case 3063:
+    case DEFAULT_SCREEN_SPEED:
       liveData->settings.defaultScreen = 3;
       showParentMenu = true;
       break;
-    case 3064:
+    case DEFAULT_SCREEN_BATT_CELL:
       liveData->settings.defaultScreen = 4;
       showParentMenu = true;
       break;
-    case 3065:
+    case DEFAULT_SCREEN_CHG_GRAPH:
       liveData->settings.defaultScreen = 5;
       showParentMenu = true;
       break;
-    case 3066:
+    case DEFAULT_SCREEN_HUD:
       liveData->settings.defaultScreen = 7;
       showParentMenu = true;
       break;
@@ -1955,34 +1955,34 @@ void Board320_240::menuItemClick()
       return;
       break;
     // Distance
-    case 4011:
+    case DISTANCE_UNIT_KM:
       liveData->settings.distanceUnit = 'k';
       showParentMenu = true;
       break;
-    case 4012:
+    case DISTANCE_UNIT_MI:
       liveData->settings.distanceUnit = 'm';
       showParentMenu = true;
       break;
     // Temperature
-    case 4021:
+    case TEMPERATURE_UNIT_CEL:
       liveData->settings.temperatureUnit = 'c';
       showParentMenu = true;
       break;
-    case 4022:
+    case TEMPERATURE_UNIT_FAR:
       liveData->settings.temperatureUnit = 'f';
       showParentMenu = true;
       break;
     // Pressure
-    case 4031:
+    case PRESURE_UNIT_BAR:
       liveData->settings.pressureUnit = 'b';
       showParentMenu = true;
       break;
-    case 4032:
+    case PRESURE_UNIT_PSI:
       liveData->settings.pressureUnit = 'p';
       showParentMenu = true;
       break;
     // Pair ble device
-    case 2:
+    case MENU_ADAPTER_BLE_SELECT:
       if (liveData->settings.commType == COMM_TYPE_OBD2CAN)
       {
         displayMessage("Not supported", "in CAN mode");
@@ -1995,16 +1995,16 @@ void Board320_240::menuItemClick()
       commInterface->scanDevices();
       return;
     // Reset settings
-    case 8:
+    case MENU_FACTORY_RESET:
       resetSettings();
       hideMenu();
       return;
     // Save settings
-    case 9:
+    case MENU_SAVE_SETTINGS:
       saveSettings();
       break;
     // Version
-    case 10:
+    case MENU_APP_VERSION:
       /*  commInterface->executeCommand("ATSH770");
           delay(50);
           commInterface->executeCommand("3E");
@@ -2024,7 +2024,7 @@ void Board320_240::menuItemClick()
       hideMenu();
       return;
     // Shutdown
-    case 11:
+    case MENU_SHUTDOWN:
       enterSleepMode(0);
       return;
     default:
