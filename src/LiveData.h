@@ -44,6 +44,7 @@
 #define BAT_MAN_MODE_LOW_TEMPERATURE_RANGE 2
 #define BAT_MAN_MODE_COOLING 3
 #define BAT_MAN_MODE_OFF 4
+#define BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING 5
 
 //
 #define MONTH_SEC 2678400
@@ -128,6 +129,8 @@ typedef struct
   float batVoltage;
   float batCellMinV;
   float batCellMaxV;
+  uint8_t batCellMinVNo;
+  uint8_t batCellMaxVNo;
   float batTempC;
   float batHeaterC;
   float batInletC;

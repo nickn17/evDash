@@ -88,6 +88,8 @@ void LiveData::initParams() {
   params.batVoltage = -1;
   params.batCellMinV = -1;
   params.batCellMaxV = -1;
+  params.batCellMinVNo = 255;
+  params.batCellMaxVNo = 255;
   params.batTempC = -100;
   params.batHeaterC = -100;
   params.batInletC = -100;
@@ -222,10 +224,11 @@ float LiveData::bar2pressure(float inBar) {
 */
 String LiveData::getBatteryManagementModeStr(int8_t mode) {
   switch (mode) {
-    case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE: return "LTR";
-    case BAT_MAN_MODE_COOLING: return "COOL";
-    case BAT_MAN_MODE_OFF: return "OFF";
-    case BAT_MAN_MODE_PTC_HEATER: return "PTC";
+    case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING: return "LTRCOOL";  // via motor (charging 75kW / bat.25°C in the winter)
+    case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE: return "LTR"; // via motor (drive)
+    case BAT_MAN_MODE_COOLING: return "COOL"; // chiller via A/C
+    case BAT_MAN_MODE_OFF: return "OFF"; // water pump off
+    case BAT_MAN_MODE_PTC_HEATER: return "PTC"; // PTC heater
     case BAT_MAN_MODE_UNKNOWN: return "UNK";
     default: return "";
   }

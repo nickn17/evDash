@@ -261,6 +261,42 @@ void Board320_240::afterSleep()
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
+    #ifdef BOARD_M5STACK_CORE2
+      if (liveData->settings.sdcardEnabled == 1 && bootCount % (unsigned int)(300 / liveData->settings.sleepModeIntervalSec) == 0)
+      {
+        tft.begin();
+        sdcardMount();
+
+        if (liveData->params.sdcardInit)
+        {
+          struct tm now;
+          getLocalTime(&now);
+          char filename[32];
+          strftime(filename, sizeof(filename), "/sleep_%y-%m-%d.json", &now);
+
+          File file = SD.open(filename, FILE_APPEND);
+          if (!file)
+          {
+            syslog->println("Failed to open file for appending");
+            File file = SD.open(filename, FILE_WRITE);
+          }
+          if (file)
+          {
+            StaticJsonDocument<128> jsonData;
+            jsonData["carType"] = liveData->settings.carType;
+            jsonData["currTime"] = liveData->params.currentTime;
+            jsonData["auxV"] = liveData->params.auxVoltage;
+            jsonData["bootCount"] = bootCount;
+            jsonData["sleepCount"] = sleepCount;
+            serializeJson(jsonData, file);
+
+            file.print(",\n");
+            file.close();
+          }
+        }
+      }
+    #endif
+
     if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff)
     {
       syslog->print("AUX voltage under cut-off voltage: ");
@@ -676,7 +712,7 @@ void Board320_240::drawSceneSpeed()
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
   spr.fillRect(210, 55, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
-  spr.fillRect(210, 120, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  spr.fillRect(210, 120, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
   spr.setTextColor(TFT_WHITE);
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(TR_DATUM);
@@ -1584,8 +1620,8 @@ void Board320_240::showMenu()
       if (tmpCurrMenuItem >= liveData->menuItemOffset)
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_GREEN : TFT_BLACK);
-        spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
+        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_DARKGREEN2 : TFT_BLACK);
+        spr.setTextColor(isMenuItemSelected ? TFT_WHITE : TFT_WHITE);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
         posY += spr.fontHeight();
       }
@@ -1760,18 +1796,18 @@ void Board320_240::menuItemClick()
     // Comm type
     case MENU_ADAPTER_BLE4:
       liveData->settings.commType = COMM_TYPE_OBD2BLE4;
-      showMenu();
-      return;
+      saveSettings();
+      ESP.restart();
       break;
     case MENU_ADAPTER_CAN:
       liveData->settings.commType = COMM_TYPE_OBD2CAN;
-      showMenu();
-      return;
+      saveSettings();
+      ESP.restart();
       break;
     case MENU_ADAPTER_BT3:
       liveData->settings.commType = COMM_TYPE_OBD2BT3;
-      showMenu();
-      return;
+      saveSettings();
+      ESP.restart();
       break;
     // Screen orientation
     case MENU_SCREEN_ROTATION:
