@@ -2477,27 +2477,23 @@ void Board320_240::mainLoop()
 
     liveData->params.lastVoltageReadTime = liveData->params.currentTime;
 
-    float tmpAuxPerc;
-    if (liveData->params.ignitionOn)
+    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
     {
-      tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V
-    }
-    else
-    {
+      float tmpAuxPerc;
       tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
-    }
 
-    if (tmpAuxPerc > 100)
-    {
-      liveData->params.auxPerc = 100;
-    }
-    else if (tmpAuxPerc < 0)
-    {
-      liveData->params.auxPerc = 0;
-    }
-    else
-    {
-      liveData->params.auxPerc = tmpAuxPerc;
+      if (tmpAuxPerc > 100)
+      {
+        liveData->params.auxPerc = 100;
+      }
+      else if (tmpAuxPerc < 0)
+      {
+        liveData->params.auxPerc = 0;
+      }
+      else
+      {
+        liveData->params.auxPerc = tmpAuxPerc;
+      }
     }
 
     if (liveData->params.auxVoltage > liveData->settings.voltmeterSleep)
