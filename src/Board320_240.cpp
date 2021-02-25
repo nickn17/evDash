@@ -2807,9 +2807,9 @@ bool Board320_240::sim800lSetup()
     gprsHwUart->begin(9600);
   }
 
-  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
+  sim800l = new SIM800L((Stream *)gprsHwUart, RESET_PIN_NOT_USED, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
+  //sim800l = new SIM800L((Stream *)gprsHwUart, RESET_PIN_NOT_USED, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 3 && !sim800l_ready; i++)
