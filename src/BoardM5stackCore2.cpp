@@ -4,6 +4,12 @@
 #include "Board320_240.h"
 #include "BoardM5stackCore2.h"
 
+// Defines gestures
+Gesture swipeRight("swipe right", 160, DIR_RIGHT, 30, true);
+Gesture swipeDown("swipe down", 120, DIR_DOWN, 30, true);
+Gesture swipeLeft("swipe left", 160, DIR_LEFT, 30, true);
+Gesture swipeUp("swipe up", 120, DIR_UP, 30, true);
+
 /**
   Init board
 */
@@ -45,6 +51,16 @@ void BoardM5stackCore2::initBoard() {
   Board320_240::initBoard();
 }
 
+void  BoardM5stackCore2::afterSetup() {
+
+  Board320_240::afterSetup();
+
+  M5.background.addHandler(eventDisplay, E_ALL/* - E_MOVE*/);  
+  M5.BtnA.addHandler(eventDisplay, E_ALL/* - E_MOVE*/);  
+  M5.BtnB.addHandler(eventDisplay, E_ALL/* - E_MOVE*/);  
+  M5.BtnC.addHandler(eventDisplay, E_ALL/* - E_MOVE*/);  
+}
+    
 void BoardM5stackCore2::wakeupBoard() {
   M5.Axp.SetLcdVoltage(2500);
   M5.Axp.SetLCDRSet(0);
@@ -84,6 +100,14 @@ bool BoardM5stackCore2::isButtonPressed(int button) {
     return false;
     break;
   }
+}
+
+void BoardM5stackCore2::eventDisplay(Event& e) {
+  syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
+                e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
+                e.to.x, e.to.y);
+  syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
+                e.distance(), e.duration);
 }
 
 void BoardM5stackCore2::enterSleepMode(int secs) {

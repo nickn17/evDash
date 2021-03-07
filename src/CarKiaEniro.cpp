@@ -719,7 +719,7 @@ void CarKiaEniro::testHandler(const String &cmd)
   if (key.equals("bms"))
   {
     // SET TESTER PRESENT
-    commInterface->sendPID(liveData->hexToDec("07E4", 2, false), "3E");
+    commInterface->sendPID(liveData->hexToDec("07A5", 2, false), "3E");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -730,7 +730,7 @@ void CarKiaEniro::testHandler(const String &cmd)
     delay(liveData->delayBetweenCommandsMs);
 
     // CHANGE SESSION
-    commInterface->sendPID(liveData->hexToDec("07E4", 2, false), "1003");
+    commInterface->sendPID(liveData->hexToDec("07A5", 2, false), "1003");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -747,15 +747,15 @@ void CarKiaEniro::testHandler(const String &cmd)
     }
     delay(liveData->delayBetweenCommandsMs);
 
-    // test=aircon/1
-    for (uint16_t a = 0; a < 255; a++)
+    // test=bms/1
+    for (uint16_t a = 176; a < 255; a++)
     {
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
       for (uint16_t b = 0; b < 255; b++)
       //for (uint16_t c = 0; c < 255; c++)
       {
-        String command = "2FF001";
+        String command = "2F";
         if (a < 16)
           command += "0";
         command += String(a, HEX);
@@ -766,18 +766,18 @@ void CarKiaEniro::testHandler(const String &cmd)
             command += "0";
           command += String(c, HEX);
         */ command.toUpperCase();
-        //command += "00";
+        command += "00";
 
         // EXECUTE COMMAND
         //syslog->print(".");
-        commInterface->sendPID(liveData->hexToDec("07E4", 2, false), command);
+        commInterface->sendPID(liveData->hexToDec("07A5", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
         for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
         {
           if (commInterface->receivePID() != 0xff)
           {
-            if (!liveData->prevResponseRowMerged.equals("7F2F31") && !liveData->prevResponseRowMerged.equals("7F2F22")  && !liveData->prevResponseRowMerged.equals("7F2F13") /*&& !liveData->prevResponseRowMerged.equals("")*/)
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/)
             {
               syslog->print("### \t");
               syslog->print(command);
