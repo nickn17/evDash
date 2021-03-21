@@ -68,15 +68,15 @@ typedef struct
   bool currTimeSyncWithGps;
   float gpsLat;
   float gpsLon;
-  byte gpsSat; // satellites count
+  uint8_t gpsSat; // satellites count
   int16_t gpsAlt;
   // SD card
   bool sdcardInit;
   bool sdcardRecording;
   char sdcardFilename[32];
   // Display
-  byte displayScreen;
-  byte displayScreenAutoMode;
+  uint8_t displayScreen;
+  uint8_t displayScreenAutoMode;
   time_t lastButtonPushedTime;
   int8_t lcdBrightnessCalc;
   //voltagemeter INA3221
@@ -201,8 +201,8 @@ typedef struct
 // Setting stored to flash
 typedef struct
 {
-  byte initFlag;        // 183 value
-  byte settingsVersion; // see bellow for latest version
+  uint8_t initFlag;        // 183 value
+  uint8_t settingsVersion; // see bellow for latest version
   // === settings version 1
   // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018
@@ -210,46 +210,46 @@ typedef struct
   char serviceUUID[40];
   char charTxUUID[40];
   char charRxUUID[40];
-  byte displayRotation; // 0 portrait, 1 landscape, 2.., 3..
+  uint8_t displayRotation; // 0 portrait, 1 landscape, 2.., 3..
   char distanceUnit;    // k - kilometers
   char temperatureUnit; // c - celsius
   char pressureUnit;    // b - bar
   // === settings version 3
   // =================================
-  byte defaultScreen;          // 1 .. 6
-  byte lcdBrightness;          // 0 - auto, 1 .. 100%
-  byte voltmeterEnabled;       // I2C Voltmeter INA3221; 0 - off, 1 - on
-  byte predrawnChargingGraphs; // 0 - off, 1 - on
+  uint8_t defaultScreen;          // 1 .. 6
+  uint8_t lcdBrightness;          // 0 - auto, 1 .. 100%
+  uint8_t voltmeterEnabled;       // I2C Voltmeter INA3221; 0 - off, 1 - on
+  uint8_t predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
-  byte commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - BT3
+  uint8_t commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - BT3
   // Wifi
-  byte wifiEnabled; // 0/1
+  uint8_t wifiEnabled; // 0/1
   char wifiSsid[32];
   char wifiPassword[32];
   // NTP
-  byte ntpEnabled; // 0/1
-  byte ntpTimezone;
-  byte ntpDaySaveTime; // 0/1
+  uint8_t ntpEnabled; // 0/1
+  uint8_t ntpTimezone;
+  uint8_t ntpDaySaveTime; // 0/1
   // SDcard logging
-  byte sdcardEnabled;     // 0/1
-  byte sdcardAutstartLog; // 0/1
+  uint8_t sdcardEnabled;     // 0/1
+  uint8_t sdcardAutstartLog; // 0/1
   // GPRS SIM800L
-  byte gprsEnabled_deprecated; // Deprecated - Variable is free to use
+  uint8_t gprsEnabled_deprecated; // Deprecated - Variable is free to use
   char gprsApn[64];            // Will be used as mqtt server url in future builds
   // Remote upload
-  byte remoteUploadEnabled_deprecated; // Deprecated - Variable is free to use
+  uint8_t remoteUploadEnabled_deprecated; // Deprecated - Variable is free to use
   char remoteApiUrl[64];               // Will be used as mqtt password in future builds
   char remoteApiKey[32];               // Will be used as mqtt username in future builds
   //
-  byte headlightsReminder;
+  uint8_t headlightsReminder;
   // === settings version 5
   // =================================
-  byte gpsHwSerialPort;  // 255-off, 0,1,2 - hw serial
-  byte gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
+  uint8_t gpsHwSerialPort;  // 255-off, 0,1,2 - hw serial
+  uint8_t gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
   // === settings version 6
   // =================================
-  byte serialConsolePort;        // 255-off, 0 - hw serial (std)
+  uint8_t serialConsolePort;        // 255-off, 0 - hw serial (std)
   uint8_t debugLevel;            // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard, 4 - GPS
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec;   // every x seconds
@@ -261,7 +261,7 @@ typedef struct
   float voltmeterCutOff;
   float voltmeterSleep;
   float voltmeterWakeUp;
-  byte voltmeterBasedSleep; // 0 - off, 1 - on
+  uint8_t voltmeterBasedSleep; // 0 - off, 1 - on
   // === settings version 9
   // =================================
   uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds (0 = disabled) // will be used as mqtt upload interval in future builds
@@ -275,8 +275,8 @@ typedef struct
   // == settings version 11
   // =================================
   int8_t timezone;                  // 0 - default, -11 .. +14 hrs
-  byte daylightSaving;              // 0/1
-  byte rightHandDrive;              // 0 - default is LHD, 1 RHD (UK)
+  uint8_t daylightSaving;              // 0/1
+  uint8_t rightHandDrive;              // 0 - default is LHD, 1 RHD (UK)
   //
 } SETTINGS_STRUC;
 
@@ -337,9 +337,9 @@ public:
 
   //
   void initParams();
-  float hexToDec(String hexString, byte bytes = 2, bool signedNum = true);
-  float hexToDecFromResponse(byte from, byte to, byte bytes = 2, bool signedNum = true);
-  float decFromResponse(byte from, byte to, char **str_end = 0, int base = 16);
+  float hexToDec(String hexString, uint8_t bytes = 2, bool signedNum = true);
+  float hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes = 2, bool signedNum = true);
+  float decFromResponse(uint8_t from, uint8_t to, char **str_end = 0, int base = 16);
   float km2distance(float inKm);
   float celsius2temperature(float inCelsius);
   float bar2pressure(float inBar);

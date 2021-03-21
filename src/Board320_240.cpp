@@ -118,8 +118,11 @@ void Board320_240::afterSetup()
   if (psramFound())
     psramUsed = true;
 #endif
+  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+  syslog->println((psramUsed) ? "Sprite 16" : "Sprite 8");
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
+  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;

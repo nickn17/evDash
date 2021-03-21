@@ -200,6 +200,8 @@ void CommObd2Ble4::startBleScan() {
   liveData->scanningDeviceIndex = 0;
   board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
+  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+
   // Start scanning
   syslog->println("Scanning BLE devices...");
   syslog->print("Looking for ");

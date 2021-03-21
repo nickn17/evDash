@@ -156,7 +156,7 @@ void LiveData::initParams() {
   Hex to dec (1-2 byte values, signed/unsigned)
   For 4 byte change int to long and add part for signed numbers
 */
-float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
+float LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum) {
 
   unsigned int decValue = 0;
   unsigned int nextInt;
@@ -187,14 +187,14 @@ float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
   For 4 byte change int to long and add part for signed numbers
 */
 
-float LiveData::hexToDecFromResponse(byte from, byte to, byte bytes, bool signedNum) {
+float LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum) {
   return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
 }
 
 /**
   Combination of responseRowMerged.substring -> strtol -> float
 */
-float LiveData::decFromResponse(byte from, byte to, char **str_end, int base) {
+float LiveData::decFromResponse(uint8_t from, uint8_t to, char **str_end, int base) {
   return float(strtol(responseRowMerged.substring(from, to).c_str(), str_end, base));
 }
 

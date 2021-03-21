@@ -19,7 +19,6 @@
 #include "Arduino.h"
 
 #include "config.h"
-#include <SPI.h>
 #include "BoardInterface.h"
 
 #ifdef BOARD_TTGO_T4

@@ -88,13 +88,13 @@ bool BoardM5stackCore2::isButtonPressed(int button) {
   switch (button)
   {
   case BUTTON_LEFT:
-    return M5.BtnA.isPressed();
+    return M5.BtnA.pressedFor(200, 500);
     break;
   case BUTTON_MIDDLE:
-    return M5.BtnB.isPressed();
+    return M5.BtnB.pressedFor(200, 500);
     break;
   case BUTTON_RIGHT:
-    return M5.BtnC.isPressed();
+    return M5.BtnC.pressedFor(200, 500);
     break;
   default:
     return false;
