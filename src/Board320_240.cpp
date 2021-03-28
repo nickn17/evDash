@@ -1608,10 +1608,11 @@ void Board320_240::showMenu()
   customMenu = carInterface->customMenu(liveData->menuCurrent);
 
   // Page scroll
-  uint8_t visibleCount = (int)(tft.height() / spr.fontHeight());
+  menuItemHeight = spr.fontHeight();
+  menuVisibleCount = (int)(tft.height() / menuItemHeight);
 
-  if (liveData->menuItemSelected >= liveData->menuItemOffset + visibleCount)
-    liveData->menuItemOffset = liveData->menuItemSelected - visibleCount + 1;
+  if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCount)
+    liveData->menuItemOffset = liveData->menuItemSelected - menuVisibleCount + 1;
   if (liveData->menuItemSelected < liveData->menuItemOffset)
     liveData->menuItemOffset = liveData->menuItemSelected;
 
@@ -1663,7 +1664,7 @@ void Board320_240::hideMenu()
 /**
   Move in menu with left/right button
 */
-void Board320_240::menuMove(bool forward)
+void Board320_240::menuMove(bool forward, bool rotate)
 {
   uint16_t tmpCount = 0 + carInterface->customMenu(liveData->menuCurrent).size();
 
@@ -1674,11 +1675,15 @@ void Board320_240::menuMove(bool forward)
   }
   if (forward)
   {
-    liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1) ? 0 : liveData->menuItemSelected + 1;
+    liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1) ? 
+          (rotate ? 0  : tmpCount - 1)
+        : liveData->menuItemSelected + 1;
   }
   else
   {
-    liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? tmpCount - 1 : liveData->menuItemSelected - 1;
+    liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? 
+        (rotate ? tmpCount - 1 : 0)
+        : liveData->menuItemSelected - 1;
   }
   showMenu();
 }
