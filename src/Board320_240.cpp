@@ -1307,6 +1307,15 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case 109:
     prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
     break;
+  case 110:
+    prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
+    break;
+  case 111:
+    prefix = (liveData->settings.carType == CAR_VW_ID3_2021_58) ? ">" : "";
+    break;
+  case 112:
+    prefix = (liveData->settings.carType == CAR_VW_ID3_2021_77) ? ">" : "";
+    break;
   case 120:
     prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
     break;
@@ -1749,6 +1758,21 @@ void Board320_240::menuItemClick()
       break;
     case 109:
       liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
+      showMenu();
+      return;
+      break;
+    case 110:
+      liveData->settings.carType = CAR_VW_ID3_2021_45;
+      showMenu();
+      return;
+      break;
+    case 111:
+      liveData->settings.carType = CAR_VW_ID3_2021_58;
+      showMenu();
+      return;
+      break;
+    case 112:
+      liveData->settings.carType = CAR_VW_ID3_2021_77;
       showMenu();
       return;
       break;
@@ -2996,6 +3020,15 @@ bool Board320_240::sim800lSendData()
       break;
     case CAR_KIA_ESOUL_2020_64:
       jsonData["car_model"] = "kia:soul:19:64:other";
+      break;
+    case CAR_VW_ID3_2021_45:
+      jsonData["car_model"] = "volkswagen:id3:20:45:sr";
+      break;
+    case CAR_VW_ID3_2021_58:
+      jsonData["car_model"] = "volkswagen:id3:20:58:mr";
+      break;
+    case CAR_VW_ID3_2021_77:
+      jsonData["car_model"] = "volkswagen:id3:20:77:lr";
       break;
     default:
       syslog->println("Car not supported by ABRP Uploader");

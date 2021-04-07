@@ -1,0 +1,1898 @@
+/*
+      eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
+  >= 35°C BMS allows max 180A
+  >= 25°C without limit (200A)
+  >= 15°C BMS allows max 120A
+  >= 5°C BMS allows max 90A
+  >= 1°C BMS allows max 60A
+  <= 0°C BMS allows max 40A
+*/
+
+/* 
+
+First start at implementing the VW ID.3 EV into evDash
+Conny Nikolaisen 2021-02-14
+
+*/
+
+#include <Arduino.h>
+#include <stdint.h>
+#include <WString.h>
+#include <string.h>
+#include <sys/time.h>
+#include "LiveData.h"
+#include "CarVWID3.h"
+#include "CommInterface.h"
+#include <vector>
+
+#define commandQueueLoopFromVWID3 9 //number of commands that are only used for init, ie loop from the one after this
+
+/**
+   activateCommandQueue
+   Need to revise all the commands
+*/
+void CarVWID3::activateCommandQueue()
+{
+
+  // Optimizer
+  lastAllowTpms = 0;
+
+  // Command queue of all
+  std::vector<String> commandQueueVWID3 = {
+      "AT Z",    // reset to default settings to be sure what the base setting are
+      "AT I",    // Print the version ID
+      "AT SP7",  // Set protokoll to 7 - ISO 15765-4 CAN (29 bit ID, 500 kbaud)
+      "AT BI",   // Bypass the initialization sequence to make sure it stays at protokoll 7
+      "AT CAF0", // Turns off CAN automatic formating so that PCI bytes are not inserted in the messages, or expected in the response
+      "AT L0",   // Linefeeds off
+      "AT DP",   // xxxxxxxxx
+      "AT ST16", // reduced timeout to 1, orig.16
+
+      // Loop from (VW ID.3)
+
+      // UDS values sorted after header (ECU)
+
+      // XXX
+      "ATSH17FC00B9", // Sets header to 17 FC 00 B9 -> 0x17FC00B9
+      //"0322465B55555555", // DC-DC current
+      "22465B", // DC-DC current
+      "0322465D55555555", // DC-DC voltage
+
+      // BMS
+      "ATSH17FC007B", // Sets header to 17 FC 00 7B  -> 0x17FC007B
+      "0322028C55555555", // SoC (BMS), %
+      "0322F40D55555555", // Speed, km/h
+      "0322744855555555", // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
+      "0322743B55555555", // cirkulation pump HV battery - flow in %
+      "03221E3355555555", // HV Battery cell # with highest voltage, V
+      "03221E3455555555", // HV Battery cell # with lowest  voltage, V
+      "03221E3B55555555", // HV Battery voltage, V
+      "03221E3D55555555", // HV Battery current, A
+      "03221E0E55555555", // HV Battery max temp and temp point, °C and #
+      "03221E0F55555555", // HV Battery min temp and temp point, °C and #
+      "0322162055555555", // PTC heater battery current, A
+      "0322189D55555555", // HV Battery cooling liquid outlet, °C
+      "0322189D55555555", // HV battery cooling liquid inlet, °C
+      "03222A0B55555555", // HV Battery temp (main value), °C
+      "03221EAE55555555", // HV Battery temp point 1, °C
+      "03221EAF55555555", // HV Battery temp point 2, °C
+      "03221EB055555555", // HV Battery temp point 3, °C
+      "03221EB155555555", // HV Battery temp point 4, °C
+      "03221EB255555555", // HV Battery temp point 5, °C
+      "03221EB355555555", // HV Battery temp point 6, °C
+      "03221EB455555555", // HV Battery temp point 7, °C
+      "03221EB555555555", // HV Battery temp point 8, °C
+      "03221EB655555555", // HV Battery temp point 9, °C
+      "03221EB755555555", // HV Battery temp point 10, °C
+      "03221EB855555555", // HV Battery temp point 11, °C
+      "03221EB955555555", // HV Battery temp point 12, °C
+      "03221EBA55555555", // HV Battery temp point 13, °C
+      "03221EBB55555555", // HV Battery temp point 14, °C
+      "03221EBC55555555", // HV Battery temp point 15, °C
+      "03221EBD55555555", // HV Battery temp point 16, °C
+      "0322742555555555", // HV Battery temp point 17, °C
+      "0322742655555555", // HV Battery temp point 18, °C
+      "03221E4055555555", // HV Battery cell voltage - cell 1, V
+      "03221E4155555555", // HV Battery cell voltage - cell 2, V
+      "03221E4255555555", // HV Battery cell voltage - cell 3, V
+      "03221E4355555555", // HV Battery cell voltage - cell 4, V
+      "03221E4455555555", // HV Battery cell voltage - cell 5, V
+      "03221E4555555555", // HV Battery cell voltage - cell 6, V
+      "03221E4655555555", // HV Battery cell voltage - cell 7, V
+      "03221E4755555555", // HV Battery cell voltage - cell 8, V
+      "03221E4855555555", // HV Battery cell voltage - cell 9, V
+      "03221E4955555555", // HV Battery cell voltage - cell 10, V
+      "03221E4A55555555", // HV Battery cell voltage - cell 11, V
+      "03221E4B55555555", // HV Battery cell voltage - cell 12, V
+      "03221E4C55555555", // HV Battery cell voltage - cell 13, V
+      "03221E4D55555555", // HV Battery cell voltage - cell 14, V
+      "03221E4E55555555", // HV Battery cell voltage - cell 15, V
+      "03221E4F55555555", // HV Battery cell voltage - cell 16, V
+      "03221E5055555555", // HV Battery cell voltage - cell 17, V
+      "03221E5155555555", // HV Battery cell voltage - cell 18, V
+      "03221E5255555555", // HV Battery cell voltage - cell 19, V
+      "03221E5355555555", // HV Battery cell voltage - cell 20, V
+      "03221E5455555555", // HV Battery cell voltage - cell 21, V
+      "03221E5555555555", // HV Battery cell voltage - cell 22, V
+      "03221E5655555555", // HV Battery cell voltage - cell 23, V
+      "03221E5755555555", // HV Battery cell voltage - cell 24, V
+      "03221E5855555555", // HV Battery cell voltage - cell 25, V
+      "03221E5955555555", // HV Battery cell voltage - cell 26, V
+      "03221E5A55555555", // HV Battery cell voltage - cell 27, V
+      "03221E5B55555555", // HV Battery cell voltage - cell 28, V
+      "03221E5C55555555", // HV Battery cell voltage - cell 29, V
+      "03221E5D55555555", // HV Battery cell voltage - cell 30, V
+      "03221E5E55555555", // HV Battery cell voltage - cell 31, V
+      "03221E5F55555555", // HV Battery cell voltage - cell 32, V
+      "03221E6055555555", // HV Battery cell voltage - cell 33, V
+      "03221E6155555555", // HV Battery cell voltage - cell 34, V
+      "03221E6255555555", // HV Battery cell voltage - cell 35, V
+      "03221E6355555555", // HV Battery cell voltage - cell 36, V
+      "03221E6455555555", // HV Battery cell voltage - cell 37, V
+      "03221E6555555555", // HV Battery cell voltage - cell 38, V
+      "03221E6655555555", // HV Battery cell voltage - cell 39, V
+      "03221E6755555555", // HV Battery cell voltage - cell 40, V
+      "03221E6755555555", // HV Battery cell voltage - cell 41, V
+      "03221E6855555555", // HV Battery cell voltage - cell 42, V
+      "03221E6A55555555", // HV Battery cell voltage - cell 43, V
+      "03221E6B55555555", // HV Battery cell voltage - cell 44, V
+      "03221E6C55555555", // HV Battery cell voltage - cell 45, V
+      "03221E6D55555555", // HV Battery cell voltage - cell 46, V
+      "03221E6E55555555", // HV Battery cell voltage - cell 47, V
+      "03221E6F55555555", // HV Battery cell voltage - cell 48, V
+      "03221E7055555555", // HV Battery cell voltage - cell 49, V
+      "03221E7155555555", // HV Battery cell voltage - cell 50, V
+      "03221E7255555555", // HV Battery cell voltage - cell 51, V
+      "03221E7355555555", // HV Battery cell voltage - cell 52, V
+      "03221E7455555555", // HV Battery cell voltage - cell 53, V
+      "03221E7555555555", // HV Battery cell voltage - cell 54, V
+      "03221E7655555555", // HV Battery cell voltage - cell 55, V
+      "03221E7755555555", // HV Battery cell voltage - cell 56, V
+      "03221E7855555555", // HV Battery cell voltage - cell 57, V
+      "03221E7955555555", // HV Battery cell voltage - cell 58, V
+      "03221E7A55555555", // HV Battery cell voltage - cell 59, V
+      "03221E7B55555555", // HV Battery cell voltage - cell 60, V
+      "03221E7C55555555", // HV Battery cell voltage - cell 61, V
+      "03221E7D55555555", // HV Battery cell voltage - cell 62, V
+      "03221E7E55555555", // HV Battery cell voltage - cell 63, V
+      "03221E7F55555555", // HV Battery cell voltage - cell 64, V
+      "03221E8055555555", // HV Battery cell voltage - cell 65, V
+      "03221E8155555555", // HV Battery cell voltage - cell 66, V
+      "03221E8255555555", // HV Battery cell voltage - cell 67, V
+      "03221E8355555555", // HV Battery cell voltage - cell 68, V
+      "03221E8455555555", // HV Battery cell voltage - cell 69, V
+      "03221E8555555555", // HV Battery cell voltage - cell 70, V
+      "03221E8655555555", // HV Battery cell voltage - cell 71, V
+      "03221E8755555555", // HV Battery cell voltage - cell 72, V
+      "03221E8855555555", // HV Battery cell voltage - cell 73, V
+      "03221E8955555555", // HV Battery cell voltage - cell 74, V
+      "03221E8A55555555", // HV Battery cell voltage - cell 75, V
+      "03221E8B55555555", // HV Battery cell voltage - cell 76, V
+      "03221E8C55555555", // HV Battery cell voltage - cell 77, V
+      "03221E8D55555555", // HV Battery cell voltage - cell 78, V
+      "03221E8E55555555", // HV Battery cell voltage - cell 79, V
+      "03221E8F55555555", // HV Battery cell voltage - cell 80, V
+      "03221E9055555555", // HV Battery cell voltage - cell 81, V
+      "03221E9155555555", // HV Battery cell voltage - cell 82, V
+      "03221E9255555555", // HV Battery cell voltage - cell 83, V
+      "03221E9355555555", // HV Battery cell voltage - cell 84, V
+      "03221E9455555555", // HV Battery cell voltage - cell 85, V
+      "03221E9555555555", // HV Battery cell voltage - cell 86, V
+      "03221E9655555555", // HV Battery cell voltage - cell 87, V
+      "03221E9755555555", // HV Battery cell voltage - cell 88, V
+      "03221E9855555555", // HV Battery cell voltage - cell 89, V
+      "03221E9955555555", // HV Battery cell voltage - cell 90, V
+      "03221E9A55555555", // HV Battery cell voltage - cell 91, V
+      "03221E9B55555555", // HV Battery cell voltage - cell 92, V
+      "03221E9C55555555", // HV Battery cell voltage - cell 93, V
+      "03221E9D55555555", // HV Battery cell voltage - cell 94, V
+      "03221E9E55555555", // HV Battery cell voltage - cell 95, V
+      "03221E9F55555555", // HV Battery cell voltage - cell 96, V
+      "03221EA055555555", // HV Battery cell voltage - cell 97, V
+      "03221EA155555555", // HV Battery cell voltage - cell 98, V
+      "03221EA255555555", // HV Battery cell voltage - cell 99, V
+      "03221EA355555555", // HV Battery cell voltage - cell 100, V
+      "03221EA455555555", // HV Battery cell voltage - cell 101, V
+      "03221EA555555555", // HV Battery cell voltage - cell 102, V
+      "03221EA655555555", // HV Battery cell voltage - cell 103, V
+      "03221EA755555555", // HV Battery cell voltage - cell 104, V
+      "03221EA855555555", // HV Battery cell voltage - cell 105, V
+      "03221EA955555555", // HV Battery cell voltage - cell 106, V
+      "03221EAA55555555", // HV Battery cell voltage - cell 107, V
+      "03221EAB55555555", // HV Battery cell voltage - cell 108, V
+      
+
+
+      // ECU XXXX
+      "ATSH17FC0076", // Sets header to 17 FC 00 76  -> 0x17FC0076
+      "0322036455555555", // HV auxilary consumer power, kW
+      "0322295A55555555", // ODOMETER, km
+      "0322210E55555555", // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
+
+      // ECU XXXX
+      "ATSH00000767", // Sets header to 00 00 07 67 -> 0x00000767
+      "0322243155555555", // GPS number of tracked satellites
+      "0322243155555555", // GPS number of vissible satelites
+
+      // ECU XXXX
+      "ATSH00000746", // Sets header to 00 00 07 46 -> 0x00000746
+      "0322261355555555", // Inside temperature, °C
+      "0322263B55555555", // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
+      "032242DB55555555", // CO2 content interior, ppm
+      "0322F44955555555", // Accelerator pedal position, %
+
+
+      // ECU XXXX
+      "ATSH0000070E", // Sets header to 00 00 07 0E -> 0x0000070E
+      "0322260955555555", // Outdoor temperature, °C
+
+
+
+
+  };
+
+  /* 
+  Battery	capacity
+
+  Name    Net (kWh)    Gross (kWh)   defined name
+  Pure    45           48            CAR_VW_ID3_2021_45
+  Pro     58           62            CAR_VW_ID3_2021_58
+  Pro S   77           82            CAR_VW_ID3_2021_77
+
+  Find a way to identify the capacity and by that the number of cells to look after.
+
+*/
+
+  liveData->params.batModuleTempCount = 12;  // Maximum temperture points in battery, 18 for the VW ID.3 but maximum limit to show is 12 in evDash
+  liveData->params.batteryTotalAvailableKWh = 58; //defines that Pro trim is the standard guess
+  if (liveData->settings.carType == CAR_VW_ID3_2021_45)
+  {
+    liveData->params.batteryTotalAvailableKWh = 45;
+  }
+
+  if (liveData->settings.carType == CAR_VW_ID3_2021_77)
+  {
+    liveData->params.batteryTotalAvailableKWh = 77;
+  }
+
+  //  Empty and fill command queue
+  liveData->commandQueue.clear();
+  
+  for (auto cmd : commandQueueVWID3)
+  {
+    liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
+  }
+
+  //
+  liveData->commandQueueLoopFrom = commandQueueLoopFromVWID3;
+  liveData->commandQueueCount = commandQueueVWID3.size();
+  if (liveData->settings.carType == CAR_VW_ID3_2021_58)
+  {
+    liveData->rxTimeoutMs = 500;            // timeout for receiving of CAN response
+    liveData->delayBetweenCommandsMs = 50; // delay between commands, set to 0 if no delay is needed
+  }
+}
+
+/**
+   parseRowMerged
+*/
+void CarVWID3::parseRowMerged()
+{
+
+  uint8_t tempByte;
+  //  float tempFloat;
+  String tmpStr;
+
+// New parser for VW ID.3
+
+// ATSHFC00B9  
+  if (liveData->currentAtshRequest.equals("ATSHFC00B9")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("0322465B55555555")) // HV battery current
+    {
+      // Put code here to parse the data      
+    }
+    if (liveData->commandRequest.equals("0322465D55555555")) // HV battery Voltage
+    {
+      // Put code here to parse the data
+    }
+  }
+
+
+// ATSHFC007B  
+  if (liveData->currentAtshRequest.equals("ATSHFC007B")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("0322028C55555555")) // SOC BMS %
+    {
+      // Put code here to parse the data
+      liveData->params.socPerc = liveData->hexToDecFromResponse(8, 10, 1, false) / 2.5;      
+    }
+    if (liveData->commandRequest.equals("0322F40D55555555")) // speed km/h
+    {
+      // Put code here to parse the data
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+    }
+  
+
+    if (liveData->commandRequest.equals("0322744855555555")) // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
+    {
+      // kod här 
+    }
+     if (liveData->commandRequest.equals("0322743B55555555")) // cirkulation pump HV battery - flow in %
+    {
+     // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03221E3355555555")) // HV Battery cell # with highest voltage, V
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03221E3455555555")) // HV Battery cell # with lowest  voltage, V
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03221E3B55555555")) // HV Battery voltage, V
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03221E3D55555555")) // HV Battery current, A
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03221E0E55555555")) // HV Battery max temp and temp point, °C and #
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03221E0F55555555")) // HV Battery min temp and temp point, °C and #
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("0322162055555555")) // PTC heater battery current, A
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("0322189D55555555")) // HV Battery cooling liquid outlet, °C
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("0322189D55555555")) // HV battery cooling liquid inlet, °C
+    {
+    // kod här 
+    }
+
+     if (liveData->commandRequest.equals("03222A0B55555555")) // HV Battery temp (main value), °C
+    {
+    // kod här 
+    } 
+
+     if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 1, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 1, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 2, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 3, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 4, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 5, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 6, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 7, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 8, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 9, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 10, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 11, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 12, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 13, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 14, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 15, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 16, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 17, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221EAE55555555")) // HV Battery temp point 18, °C
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221E4055555555")) // HV Battery cell voltage - cell 1, V
+    {
+    // kod här 
+    } 
+
+if (liveData->commandRequest.equals("03221E4055555555"))  // HV Battery cell voltage - cell 1
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4155555555"))  // HV Battery cell voltage - cell 2
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4255555555"))  // HV Battery cell voltage - cell 3
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4355555555"))  // HV Battery cell voltage - cell 4
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4455555555"))  // HV Battery cell voltage - cell 5
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4555555555"))  // HV Battery cell voltage - cell 6
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4655555555"))  // HV Battery cell voltage - cell 7
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4755555555"))  // HV Battery cell voltage - cell 8
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4855555555"))  // HV Battery cell voltage - cell 9
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4955555555"))  // HV Battery cell voltage - cell 10
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4A55555555"))  // HV Battery cell voltage - cell 11
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4B55555555"))  // HV Battery cell voltage - cell 12
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4C55555555"))  // HV Battery cell voltage - cell 13
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4D55555555"))  // HV Battery cell voltage - cell 14
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4E55555555"))  // HV Battery cell voltage - cell 15
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E4F55555555"))  // HV Battery cell voltage - cell 16
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5055555555"))  // HV Battery cell voltage - cell 17
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5155555555"))  // HV Battery cell voltage - cell 18
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5255555555"))  // HV Battery cell voltage - cell 19
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5355555555"))  // HV Battery cell voltage - cell 20
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5455555555"))  // HV Battery cell voltage - cell 21
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5555555555"))  // HV Battery cell voltage - cell 22
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5655555555"))  // HV Battery cell voltage - cell 23
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5755555555"))  // HV Battery cell voltage - cell 24
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5855555555"))  // HV Battery cell voltage - cell 25
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5955555555"))  // HV Battery cell voltage - cell 26
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5A55555555"))  // HV Battery cell voltage - cell 27
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5B55555555"))  // HV Battery cell voltage - cell 28
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5C55555555"))  // HV Battery cell voltage - cell 29
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5D55555555"))  // HV Battery cell voltage - cell 30
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5E55555555"))  // HV Battery cell voltage - cell 31
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E5F55555555"))  // HV Battery cell voltage - cell 32
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6055555555"))  // HV Battery cell voltage - cell 33
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6155555555"))  // HV Battery cell voltage - cell 34
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6255555555"))  // HV Battery cell voltage - cell 35
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6355555555"))  // HV Battery cell voltage - cell 36
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6455555555"))  // HV Battery cell voltage - cell 37
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6555555555"))  // HV Battery cell voltage - cell 38
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6655555555"))  // HV Battery cell voltage - cell 39
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6755555555"))  // HV Battery cell voltage - cell 40
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6755555555"))  // HV Battery cell voltage - cell 41
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6855555555"))  // HV Battery cell voltage - cell 42
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6A55555555"))  // HV Battery cell voltage - cell 43
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6B55555555"))  // HV Battery cell voltage - cell 44
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6C55555555"))  // HV Battery cell voltage - cell 45
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6D55555555"))  // HV Battery cell voltage - cell 46
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6E55555555"))  // HV Battery cell voltage - cell 47
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E6F55555555"))  // HV Battery cell voltage - cell 48
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7055555555"))  // HV Battery cell voltage - cell 49
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7155555555"))  // HV Battery cell voltage - cell 50
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7255555555"))  // HV Battery cell voltage - cell 51
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7355555555"))  // HV Battery cell voltage - cell 52
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7455555555"))  // HV Battery cell voltage - cell 53
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7555555555"))  // HV Battery cell voltage - cell 54
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7655555555"))  // HV Battery cell voltage - cell 55
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7755555555"))  // HV Battery cell voltage - cell 56
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7855555555"))  // HV Battery cell voltage - cell 57
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7955555555"))  // HV Battery cell voltage - cell 58
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7A55555555"))  // HV Battery cell voltage - cell 59
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7B55555555"))  // HV Battery cell voltage - cell 60
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7C55555555"))  // HV Battery cell voltage - cell 61
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7D55555555"))  // HV Battery cell voltage - cell 62
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7E55555555"))  // HV Battery cell voltage - cell 63
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E7F55555555"))  // HV Battery cell voltage - cell 64
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8055555555"))  // HV Battery cell voltage - cell 65
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8155555555"))  // HV Battery cell voltage - cell 66
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8255555555"))  // HV Battery cell voltage - cell 67
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8355555555"))  // HV Battery cell voltage - cell 68
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8455555555"))  // HV Battery cell voltage - cell 69
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8555555555"))  // HV Battery cell voltage - cell 70
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8655555555"))  // HV Battery cell voltage - cell 71
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8755555555"))  // HV Battery cell voltage - cell 72
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8855555555"))  // HV Battery cell voltage - cell 73
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8955555555"))  // HV Battery cell voltage - cell 74
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8A55555555"))  // HV Battery cell voltage - cell 75
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8B55555555"))  // HV Battery cell voltage - cell 76
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8C55555555"))  // HV Battery cell voltage - cell 77
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8D55555555"))  // HV Battery cell voltage - cell 78
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8E55555555"))  // HV Battery cell voltage - cell 79
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E8F55555555"))  // HV Battery cell voltage - cell 80
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9055555555"))  // HV Battery cell voltage - cell 81
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9155555555"))  // HV Battery cell voltage - cell 82
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9255555555"))  // HV Battery cell voltage - cell 83
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9355555555"))  // HV Battery cell voltage - cell 84
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9455555555"))  // HV Battery cell voltage - cell 85
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9555555555"))  // HV Battery cell voltage - cell 86
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9655555555"))  // HV Battery cell voltage - cell 87
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9755555555"))  // HV Battery cell voltage - cell 88
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9855555555"))  // HV Battery cell voltage - cell 89
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9955555555"))  // HV Battery cell voltage - cell 90
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9A55555555"))  // HV Battery cell voltage - cell 91
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9B55555555"))  // HV Battery cell voltage - cell 92
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9C55555555"))  // HV Battery cell voltage - cell 93
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9D55555555"))  // HV Battery cell voltage - cell 94
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9E55555555"))  // HV Battery cell voltage - cell 95
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221E9F55555555"))  // HV Battery cell voltage - cell 96
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA055555555"))  // HV Battery cell voltage - cell 97
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA155555555"))  // HV Battery cell voltage - cell 98
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA255555555"))  // HV Battery cell voltage - cell 99
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA355555555"))  // HV Battery cell voltage - cell 100
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA455555555"))  // HV Battery cell voltage - cell 101
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA555555555"))  // HV Battery cell voltage - cell 102
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA655555555"))  // HV Battery cell voltage - cell 103
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA755555555"))  // HV Battery cell voltage - cell 104
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA855555555"))  // HV Battery cell voltage - cell 105
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EA955555555"))  // HV Battery cell voltage - cell 106
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EAA55555555"))  // HV Battery cell voltage - cell 107
+    {
+    // kod här 
+    } 
+if (liveData->commandRequest.equals("03221EAB55555555"))  // HV Battery cell voltage - cell 108
+    {
+    // kod här 
+    } 
+
+
+
+
+
+  }  
+
+// ATSHFC0076  
+  if (liveData->currentAtshRequest.equals("ATSHFC0076")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("0322036455555555")) // HV auxilary consumer power, kW
+    {
+      // Put code here to parse the data      
+    }
+    if (liveData->commandRequest.equals("0322295A55555555")) // ODOMETER, km
+    {
+      // Put code here to parse the data
+    }
+    if (liveData->commandRequest.equals("0322210E55555555")) // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
+    {
+      // Put code here to parse the data
+    }
+  }
+
+
+// ATSH000767  
+  if (liveData->currentAtshRequest.equals("ATSH000767")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("0322243155555555")) // GPS number of tracked satellites
+    {
+      // Put code here to parse the data      
+    }
+    if (liveData->commandRequest.equals("0322243155555555")) // GPS number of vissible satelites
+    {
+      // Put code here to parse the data
+    }
+  }
+
+
+// ATSH000746  
+  if (liveData->currentAtshRequest.equals("ATSH000746")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("0322261355555555")) // Inside temperature, °C
+    {
+      // Put code here to parse the data      
+    }
+    if (liveData->commandRequest.equals("0322263B55555555")) // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
+    {
+      // Put code here to parse the data
+    }
+    if (liveData->commandRequest.equals("032242DB55555555")) // CO2 content interior, ppm
+    {
+      // Put code here to parse the data      
+    }
+    if (liveData->commandRequest.equals("0322F44955555555")) // Accelerator pedal position, %
+    {
+      // Put code here to parse the data      
+    }
+  }
+
+
+// ATSH00070E  
+  if (liveData->currentAtshRequest.equals("ATSH00070E")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("0322260955555555")) // Outdoor temperature, °C
+    {
+      // Put code here to parse the data      
+    }
+  }
+
+
+
+
+/* Old parser from e-Niro
+
+  // IGPM
+  // RESPONDING WHEN CAR IS OFF
+  if (liveData->currentAtshRequest.equals("ATSH770"))
+  {
+    if (liveData->commandRequest.equals("22BC03"))
+    {
+      //
+      tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
+      if (liveData->settings.rightHandDrive)
+      {
+        liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+        liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+        liveData->params.leftRearDoorOpen = (bitRead(tempByte, 2) == 1);
+        liveData->params.rightRearDoorOpen = (bitRead(tempByte, 4) == 1);
+      }
+      else
+      {
+        liveData->params.leftFrontDoorOpen = (bitRead(tempByte, 5) == 1);
+        liveData->params.rightFrontDoorOpen = (bitRead(tempByte, 0) == 1);
+        liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
+        liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
+      }
+      //
+      tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
+      liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
+      liveData->params.trunkDoorOpen = (bitRead(tempByte, 0) == 1);
+      if (liveData->params.ignitionOn)
+      {
+        liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+      }
+
+      tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
+      liveData->params.headLights = (bitRead(tempByte, 5) == 1);
+      liveData->params.autoLights = (bitRead(tempByte, 4) == 1);
+      liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
+    }
+    if (liveData->commandRequest.equals("22BC06"))
+    {
+      tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
+      liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
+    }
+  }
+
+  // ABS / ESP + AHB 7D1
+  // RESPONDING WHEN CAR IS OFF
+  if (liveData->currentAtshRequest.equals("ATSH7D1"))
+  {
+    if (liveData->commandRequest.equals("22C101"))
+    {
+      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
+      liveData->params.forwardDriveMode = (driveMode == 4);
+      liveData->params.reverseDriveMode = (driveMode == 2);
+      liveData->params.parkModeOrNeutral = (driveMode == 1);
+      // Speed for eniro
+      if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
+      {
+        liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+      }
+    }
+  }
+
+  // TPMS 7A0
+  if (liveData->currentAtshRequest.equals("ATSH7A0"))
+  {
+    if (liveData->commandRequest.equals("22C00B"))
+    {
+      liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false) - 50;                    // === OK Valid
+      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;                   // === OK Valid
+      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;                    // === OK Valid
+      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;                     // === OK Valid
+    }
+  }
+
+  // Aircon 7B3
+  if (liveData->currentAtshRequest.equals("ATSH7B3"))
+  {
+    if (liveData->commandRequest.equals("220100"))
+    {
+      liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+      liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
+      liveData->params.evaporatorTempC = (liveData->hexToDecFromResponse(20, 22, 1, false) / 2) - 40;
+    }
+    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00")
+    {
+      liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
+      liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+    }
+  }
+
+  // Cluster module 7C6
+  if (liveData->currentAtshRequest.equals("ATSH7C6"))
+  {
+    if (liveData->commandRequest.equals("22B002"))
+    {
+      //tempFloat = liveData->params.odoKm;
+      liveData->params.odoKm = liveData->decFromResponse(18, 24);
+      //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
+    }
+  }
+
+  // VMCU 7E2
+  if (liveData->currentAtshRequest.equals("ATSH7E2"))
+  {
+    if (liveData->commandRequest.equals("2101"))
+    {
+      if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
+      {
+        liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+        if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+          liveData->params.speedKmh = 0;
+      }
+    }
+    if (liveData->commandRequest.equals("2102"))
+    {
+      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+      liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
+    }
+  }
+
+  // MCU 7E3
+  if (liveData->currentAtshRequest.equals("ATSH7E3"))
+  {
+    if (liveData->commandRequest.equals("2102"))
+    {
+      liveData->params.inverterTempC = liveData->hexToDecFromResponse(32, 34, 1, true);
+      liveData->params.motorTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
+    }
+  }
+
+  // BMS 7e4
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("220101"))
+    {
+      liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
+      liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
+      if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
+        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
+      liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
+      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
+        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
+      liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
+      liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
+      //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
+      liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
+      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 1, false);
+      liveData->params.batPowerAmp = -liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
+      liveData->params.batVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
+      liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
+      if (liveData->params.batPowerKw < 0) // Reset charging start time
+        liveData->params.chargingStartTime = liveData->params.currentTime;
+      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      if (liveData->settings.voltmeterEnabled == 0)
+      {
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+      }
+      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
+      liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
+      liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
+      liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true);
+      liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
+      liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true);
+      liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+      //liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      //liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
+      //liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
+
+      // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
+      liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
+      for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++)
+      {
+        if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
+          liveData->params.batMinC = liveData->params.batModuleTempC[i];
+        if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
+          liveData->params.batMaxC = liveData->params.batModuleTempC[i];
+      }
+      liveData->params.batTempC = liveData->params.batMinC;
+
+      liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
+      if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
+      {
+        if (liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
+          liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
+        if (liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
+          liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
+        liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
+        liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
+        liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
+        liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
+      }
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
+    {
+      for (int i = 0; i < 32; i++)
+      {
+        liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220103"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
+        liveData->params.cellVoltage[32 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220104"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
+        liveData->params.cellVoltage[64 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220105"))
+    {
+      liveData->params.socPercPrevious = liveData->params.socPerc;
+      liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
+      liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
+      // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
+
+      // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
+      if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
+      {
+        byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
+        if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1)
+        {
+          liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
+          liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
+          liveData->params.soc10odo[index] = liveData->params.odoKm;
+          liveData->params.soc10time[index] = liveData->params.currentTime;
+        }
+      }
+      liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
+      liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
+      liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
+      //
+      for (int i = 30; i < 32; i++)
+      { // ai/aj position
+        liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+
+      // Charging ON, AC/DC
+      liveData->params.getValidResponse = true;
+      tempByte = liveData->hexToDecFromResponse(48, 50, 1, false); // bit 5 = DC; bit 6 = AC;
+      liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
+      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && ((tempByte & 0xf) >= 5) && ((tempByte & 0xf) <= 9);
+      if (liveData->params.chargingOn)
+      {
+        liveData->params.lastChargingOnTime = liveData->params.currentTime;
+      }
+
+      // log 220105 to sdcard
+      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
+      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220106"))
+    {
+      //
+      liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
+      liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
+      liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
+      // Battery management mode
+      tempByte = liveData->hexToDecFromResponse(34, 36, 1, false);
+      switch (tempByte & 0xf)
+      {
+      case 3:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
+        break;
+      case 4:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING;
+        break;
+      case 6:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF;
+        break;
+      case 0xE:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_PTC_HEATER;
+        break;
+      default:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
+      }
+
+      // log 220106 to sdcard
+      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
+      tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
+      //syslog->println(liveData->params.debugData2);
+    }
+  }
+
+*/
+
+
+}
+
+/**
+   Is command from queue allowed for execute, or continue with next
+*/
+bool CarVWID3::commandAllowed()
+{
+
+  /* syslog->print("Command allowed: ");
+    syslog->print(liveData->currentAtshRequest);
+    syslog->print(" ");
+    syslog->println(liveData->commandRequest);*/
+
+  //SleepMode Queue Filter
+  if (liveData->params.sleepModeQueue)
+  {
+    if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
+    {
+      return true;
+    }
+    if (liveData->commandRequest.equals("ATSH7E4"))
+    {
+      return true;
+    }
+    if (liveData->currentAtshRequest.equals("ATSH7E4") && liveData->commandRequest.equals("220105"))
+    {
+      return true;
+    }
+
+    return false;
+  }
+
+  // TPMS (once per 30 secs.)
+  if (liveData->commandRequest.equals("ATSH7A0"))
+  {
+    return lastAllowTpms + 30 < liveData->params.currentTime;
+  }
+  if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22C00B"))
+  {
+    if (lastAllowTpms + 30 < liveData->params.currentTime)
+    {
+      lastAllowTpms = liveData->params.currentTime;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  // BMS (only for SCREEN_CELLS)
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104"))
+    {
+      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+        return false;
+    }
+  }
+
+  // HUD speedup
+  if (liveData->params.displayScreen == SCREEN_HUD)
+  {
+    // no cooling water temp
+    if (liveData->currentAtshRequest.equals("ATSH7E4"))
+    {
+      if (liveData->commandRequest.equals("220106"))
+      {
+        return false;
+      }
+    }
+
+    // no aircondition
+    if (liveData->currentAtshRequest.equals("ATSH7B3"))
+    {
+      return false;
+    }
+
+    // no ODO
+    if (liveData->currentAtshRequest.equals("ATSH7C6"))
+    {
+      return false;
+    }
+
+    // no BCM / TPMS
+    if (liveData->currentAtshRequest.equals("ATSH7A0"))
+    {
+      return false;
+    }
+
+    // no AUX
+    if (liveData->currentAtshRequest.equals("ATSH7E2") && liveData->commandRequest.equals("2102"))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+   loadTestData
+*/
+void CarVWID3::loadTestData()
+{
+
+  // IGPM
+  liveData->currentAtshRequest = "ATSH770";
+  // 22BC03
+  liveData->commandRequest = "22BC03";
+  liveData->responseRowMerged = "62BC03FDEE7C730A600000AAAA";
+  parseRowMerged();
+
+  // ABS / ESP + AHB ATSH7D1
+  liveData->currentAtshRequest = "ATSH7D1";
+  // 2101
+  liveData->commandRequest = "22C101";
+  liveData->responseRowMerged = "62C1015FD7E7D0FFFF00FF04D0D400000000FF7EFF0030F5010000FFFF7F6307F207FE05FF00FF3FFFFFAAAAAAAAAAAA";
+  parseRowMerged();
+
+  // VMCU ATSH7E2
+  liveData->currentAtshRequest = "ATSH7E2";
+  // 2101
+  liveData->commandRequest = "2101";
+  liveData->responseRowMerged = "6101FFF8000009285A3B0648030000B4179D763404080805000000";
+  parseRowMerged();
+  // 2102
+  liveData->commandRequest = "2102";
+  liveData->responseRowMerged = "6102F8FFFC000101000000840FBF83BD33270680953033757F59291C76000001010100000007000000";
+  liveData->responseRowMerged = "6102F8FFFC000101000000931CC77F4C39040BE09BA7385D8158832175000001010100000007000000";
+  parseRowMerged();
+
+  // "ATSH7DF",
+  liveData->currentAtshRequest = "ATSH7DF";
+  // 2106
+  liveData->commandRequest = "2106";
+  liveData->responseRowMerged = "6106FFFF800000000000000200001B001C001C000600060006000E000000010000000000000000013D013D013E013E00";
+  parseRowMerged();
+
+  // AIRCON / ACU ATSH7B3
+  liveData->currentAtshRequest = "ATSH7B3";
+  // 220100
+  liveData->commandRequest = "220100";
+  liveData->responseRowMerged = "6201007E5027C8FF7F765D05B95AFFFF5AFF11FFFFFFFFFFFF6AFFFF2DF0757630FFFF00FFFF000000";
+  liveData->responseRowMerged = "6201007E5027C8FF867C58121010FFFF10FF8EFFFFFFFFFFFF10FFFF0DF0617900FFFF01FFFF000000";
+  parseRowMerged();
+
+  // BMS ATSH7E4
+  liveData->currentAtshRequest = "ATSH7E4";
+  // 220101
+  liveData->commandRequest = "220101";
+  liveData->responseRowMerged = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
+  liveData->responseRowMerged = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
+  parseRowMerged();
+  // 220102
+  liveData->commandRequest = "220102";
+  liveData->responseRowMerged = "620102FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  parseRowMerged();
+  // 220103
+  liveData->commandRequest = "220103";
+  liveData->responseRowMerged = "620103FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCACBCACACFCCCBCBCBCBCBCBCBCBAAAA";
+  parseRowMerged();
+  // 220104
+  liveData->commandRequest = "220104";
+  liveData->responseRowMerged = "620104FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  parseRowMerged();
+  // 220105
+  liveData->commandRequest = "220105";
+  liveData->responseRowMerged = "620105003fff9000000000000000000F8A86012B4946500101500DAC03E800000000AC0000C7C701000F00000000AAAA";
+  liveData->responseRowMerged = "620105003FFF90000000000000000014918E012927465000015013BB03E800000000BB0000CBCB01001300000000AAAA";
+  parseRowMerged();
+  // 220106
+  liveData->commandRequest = "220106";
+  liveData->responseRowMerged = "620106FFFFFFFF14001A00240000003A7C86B4B30000000928EA00";
+  parseRowMerged();
+
+  // BCM / TPMS ATSH7A0
+  liveData->currentAtshRequest = "ATSH7A0";
+  // 22C00B
+  liveData->commandRequest = "22C00B";
+  liveData->responseRowMerged = "62C00BFFFF0000B93D0100B43E0100B43D0100BB3C0100AAAAAAAA";
+  parseRowMerged();
+
+  // ATSH7C6
+  liveData->currentAtshRequest = "ATSH7C6";
+  // 22b002
+  liveData->commandRequest = "22B002";
+  liveData->responseRowMerged = "62B002E0000000FFB400330B0000000000000000";
+  parseRowMerged();
+
+  liveData->params.batModuleTempC[0] = 28;
+  liveData->params.batModuleTempC[1] = 29;
+  liveData->params.batModuleTempC[2] = 28;
+  liveData->params.batModuleTempC[3] = 30;
+
+  // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
+  liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
+  for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++)
+  {
+    if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
+      liveData->params.batMinC = liveData->params.batModuleTempC[i];
+    if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
+      liveData->params.batMaxC = liveData->params.batModuleTempC[i];
+  }
+  liveData->params.batTempC = liveData->params.batMinC;
+
+  //
+  liveData->params.soc10ced[10] = 2200;
+  liveData->params.soc10cec[10] = 2500;
+  liveData->params.soc10odo[10] = 13000;
+  liveData->params.soc10time[10] = 13000;
+  liveData->params.soc10ced[9] = liveData->params.soc10ced[10] + 6.4;
+  liveData->params.soc10cec[9] = liveData->params.soc10cec[10] + 0;
+  liveData->params.soc10odo[9] = liveData->params.soc10odo[10] + 30;
+  liveData->params.soc10time[9] = liveData->params.soc10time[10] + 900;
+  liveData->params.soc10ced[8] = liveData->params.soc10ced[9] + 6.8;
+  liveData->params.soc10cec[8] = liveData->params.soc10cec[9] + 0;
+  liveData->params.soc10odo[8] = liveData->params.soc10odo[9] + 30;
+  liveData->params.soc10time[8] = liveData->params.soc10time[9] + 900;
+  liveData->params.soc10ced[7] = liveData->params.soc10ced[8] + 7.2;
+  liveData->params.soc10cec[7] = liveData->params.soc10cec[8] + 0.6;
+  liveData->params.soc10odo[7] = liveData->params.soc10odo[8] + 30;
+  liveData->params.soc10time[7] = liveData->params.soc10time[8] + 900;
+  liveData->params.soc10ced[6] = liveData->params.soc10ced[7] + 6.7;
+  liveData->params.soc10cec[6] = liveData->params.soc10cec[7] + 0;
+  liveData->params.soc10odo[6] = liveData->params.soc10odo[7] + 30;
+  liveData->params.soc10time[6] = liveData->params.soc10time[7] + 900;
+  liveData->params.soc10ced[5] = liveData->params.soc10ced[6] + 6.7;
+  liveData->params.soc10cec[5] = liveData->params.soc10cec[6] + 0;
+  liveData->params.soc10odo[5] = liveData->params.soc10odo[6] + 30;
+  liveData->params.soc10time[5] = liveData->params.soc10time[6] + 900;
+  liveData->params.soc10ced[4] = liveData->params.soc10ced[5] + 6.4;
+  liveData->params.soc10cec[4] = liveData->params.soc10cec[5] + 0.3;
+  liveData->params.soc10odo[4] = liveData->params.soc10odo[5] + 30;
+  liveData->params.soc10time[4] = liveData->params.soc10time[5] + 900;
+  liveData->params.soc10ced[3] = liveData->params.soc10ced[4] + 6.4;
+  liveData->params.soc10cec[3] = liveData->params.soc10cec[4] + 0;
+  liveData->params.soc10odo[3] = liveData->params.soc10odo[4] + 30;
+  liveData->params.soc10time[3] = liveData->params.soc10time[4] + 900;
+  liveData->params.soc10ced[2] = liveData->params.soc10ced[3] + 5.4;
+  liveData->params.soc10cec[2] = liveData->params.soc10cec[3] + 0.1;
+  liveData->params.soc10odo[2] = liveData->params.soc10odo[3] + 30;
+  liveData->params.soc10time[2] = liveData->params.soc10time[3] + 900;
+  liveData->params.soc10ced[1] = liveData->params.soc10ced[2] + 6.2;
+  liveData->params.soc10cec[1] = liveData->params.soc10cec[2] + 0.1;
+  liveData->params.soc10odo[1] = liveData->params.soc10odo[2] + 30;
+  liveData->params.soc10time[1] = liveData->params.soc10time[2] + 900;
+  liveData->params.soc10ced[0] = liveData->params.soc10ced[1] + 2.9;
+  liveData->params.soc10cec[0] = liveData->params.soc10cec[1] + 0.5;
+  liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
+  liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
+
+  // DEMO DATA
+  liveData->params.brakeLights = true;
+  liveData->params.headLights = true;
+  liveData->settings.sdcardEnabled = 1;
+  liveData->params.queueLoopCounter = 1;
+  liveData->params.motorTempC = 4;
+  liveData->params.inverterTempC = 3;
+  liveData->params.trunkDoorOpen = true;
+  liveData->params.leftFrontDoorOpen = true;
+  liveData->params.rightFrontDoorOpen = true;
+  liveData->params.leftRearDoorOpen = true;
+  liveData->params.rightRearDoorOpen = true;
+  liveData->params.hoodDoorOpen = true;
+}
+
+/**
+   Test handler
+*/
+void CarVWID3::testHandler(const String &cmd)
+{
+  int8_t idx = cmd.indexOf("/");
+  if (idx == -1)
+    return;
+  String key = cmd.substring(0, idx);
+  String value = cmd.substring(idx + 1);
+
+  // AIRCON SCANNER
+  if (key.equals("aircon"))
+  {
+        // SET TESTER PRESENT
+        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "3E");
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+            break;
+          delay(20);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+
+        // CHANGE SESSION
+        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "1003");
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+          {
+            // WAIT FOR POSITIVE ANSWER
+            if (liveData->responseRowMerged.equals("5003"))
+            {
+              syslog->println("POSITIVE ANSWER");
+              break;
+            }
+          }
+          delay(20);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+
+    // test=aircon/1
+    for (uint16_t a = 0; a < 255; a++) { 
+      syslog->print("NEW CYCLE: ");
+      syslog->println(a);
+      for (uint16_t b = 240; b < 241; b++)
+      {
+        String command = "2F";
+        if (b < 16)
+          command += "0";
+        command += String(b, HEX);
+        if (a < 16)
+          command += "0";
+        command += String(a, HEX);
+        command.toUpperCase();
+        command += "00";
+        
+        // EXECUTE COMMAND
+        //syslog->print(".");
+        commInterface->sendPID(liveData->hexToDec("0736", 2, false), command);
+        //      syslog->setDebugLevel(DEBUG_COMM);
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+          {
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/ )
+            {
+              syslog->print("### \t");
+              syslog->print(command);
+              syslog->print(" \t");
+              syslog->println(liveData->prevResponseRowMerged);
+            }
+            break;
+          }
+          delay(10);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+        //      syslog->setDebugLevel(liveData->settings.debugLevel);
+      }
+    }
+  }
+  // BATCH SCAN
+  else if (key.equals("batch"))
+  {
+    // test=batch/1
+    for (uint16_t i = 0; i < 250; i++)
+    {
+      String command = "2F";
+      if (i < 16)
+        command += "0";
+      command += String(i, HEX);
+      command.toUpperCase();
+      command += "0100";
+
+      syslog->print(command);
+      syslog->print(" ");
+
+      VWID3CarControl(liveData->hexToDec("07B3", 2, false), command);
+    }
+  }
+  // ONE COMMAND
+  else
+  {
+    // test=07C6/2FB00103
+    VWID3CarControl(liveData->hexToDec(key, 2, false), value);
+  }
+}
+
+/**
+ * Custom menu
+ */
+std::vector<String> CarVWID3::customMenu(int16_t menuId)
+{
+  if (menuId == MENU_CAR_COMMANDS)
+    return {
+        "doorsUnlock=Unlock doors",
+        "doorsLock=Lock doors",
+        "chargeCableLockOff=Charge cable lock off",
+        "chargeCableLockOn=Charge cable lock on",
+        "roomLampOff=Room lamp off",
+        "roomLampOn=Room lamp on",
+        "luggageLampOff=Luggage lamp off",
+        "luggageLampOn=Luggage lamp on",
+        "mirrorsUnfold=Unfold mirrors",
+        "mirrorsFold=Fold mirrors",
+        "heatSteeringWheelOff=Heat steering wheel off",
+        "heatSteeringWheelOn=Heat steering wheel on",
+        "clusterIndicatorsOff=Cluster indicators off",
+        "clusterIndicatorsOn=Cluster indicators on",
+        "turnSignalLeftOff=Turn signal left off",
+        "turnSignalLeftOn=Turn signal left on",
+        "turnSignalRightOff=Turn signal right off",
+        "turnSignalRightOn=Turn signal right on",
+        "headLightLowOff=Head light low off",
+        "headLightLowOn=Head light low on",
+        "headLightHighOff=Head light high off",
+        "headLightHighOn=Head light high on",
+        "frontFogLightOff=Front fog light off",
+        "frontFogLightOn=Front fog light on",
+        "rearLightOff=Rear light off",
+        "rearLightOn=Rear light on",
+        "rearFogLightOff=Rear fog light off",
+        "rearFogLightOn=Rear fog light on",
+        "rearDefoggerOff=Rear deffoger off",
+        "rearDefoggerOn=Rear deffoger on",
+        "rearLeftBrakeLightOff=Left brake light off",
+        "rearLeftBrakeLightOn=Left brake light on",
+        "rearRightBrakeLightOff=Right brake light off",
+        "rearRightBrakeLightOn=Right brake light on",
+    };
+
+  return {};
+}
+
+/**
+ * Execute custom command
+ */
+void CarVWID3::carCommand(const String &cmd)
+{
+  if (cmd.equals("doorsUnlock"))
+  {
+    VWID3CarControl(0x770, "2FBC1103");
+  }
+  if (cmd.equals("doorsLock"))
+  {
+    VWID3CarControl(0x770, "2FBC1003");
+  }
+  if (cmd.equals("chargeCableLockOff"))
+  {
+    VWID3CarControl(0x770, "2FBC4103");
+  }
+  if (cmd.equals("chargeCableLockOn"))
+  {
+    VWID3CarControl(0x770, "2FBC3F03");
+  }
+  if (cmd.equals("roomLampOff"))
+  {
+    VWID3CarControl(0x7A0, "2FB01900");
+  }
+  if (cmd.equals("roomLampOn"))
+  {
+    VWID3CarControl(0x7A0, "2FB01903");
+  }
+  if (cmd.equals("luggageLampOff"))
+  {
+    VWID3CarControl(0x770, "2FBC1C00");
+  }
+  if (cmd.equals("luggageLampOn"))
+  {
+    VWID3CarControl(0x770, "2FBC1C03");
+  }
+  if (cmd.equals("mirrorsUnfold"))
+  {
+    VWID3CarControl(0x7A0, "2FB05C03");
+  }
+  if (cmd.equals("mirrorsFold"))
+  {
+    VWID3CarControl(0x7A0, "2FB05B03");
+  }
+  if (cmd.equals("heatSteeringWheelOff"))
+  {
+    VWID3CarControl(0x7A0, "2FB05900"); // heat power
+    VWID3CarControl(0x7A0, "2FB05A00"); // LED indicator
+  }
+  if (cmd.equals("heatSteeringWheelOn"))
+  {
+    VWID3CarControl(0x7A0, "2FB05903"); // heat power
+    VWID3CarControl(0x7A0, "2FB05A03"); // LED indicator
+  }
+  if (cmd.equals("clusterIndicatorsOff"))
+  {
+    VWID3CarControl(0x7C6, "2FB00100");
+  }
+  if (cmd.equals("clusterIndicatorsOn"))
+  {
+    VWID3CarControl(0x7C6, "2FB00103");
+  }
+  if (cmd.equals("turnSignalLeftOff"))
+  {
+    VWID3CarControl(0x770, "2FBC1500");
+  }
+  if (cmd.equals("turnSignalLeftOn"))
+  {
+    VWID3CarControl(0x770, "2FBC1503");
+  }
+  if (cmd.equals("turnSignalRightOff"))
+  {
+    VWID3CarControl(0x770, "2FBC1600");
+  }
+  if (cmd.equals("turnSignalRightOn"))
+  {
+    VWID3CarControl(0x770, "2FBC1603");
+  }
+  if (cmd.equals("headLightLowOff"))
+  {
+    VWID3CarControl(0x770, "2FBC0100");
+  }
+  if (cmd.equals("headLightLowOn"))
+  {
+    VWID3CarControl(0x770, "2FBC0103");
+  }
+  if (cmd.equals("headLightHighOff"))
+  {
+    VWID3CarControl(0x770, "2FBC0200");
+  }
+  if (cmd.equals("headLightHighOn"))
+  {
+    VWID3CarControl(0x770, "2FBC0203");
+  }
+  if (cmd.equals("frontFogLightOff"))
+  {
+    VWID3CarControl(0x770, "2FBC0300");
+  }
+  if (cmd.equals("frontFogLightOn"))
+  {
+    VWID3CarControl(0x770, "2FBC0303");
+  }
+  if (cmd.equals("rearLightOff"))
+  {
+    VWID3CarControl(0x770, "2FBC0400");
+  }
+  if (cmd.equals("rearLightOn"))
+  {
+    VWID3CarControl(0x770, "2FBC0403");
+  }
+  if (cmd.equals("rearFogLightOff"))
+  {
+    VWID3CarControl(0x770, "2FBC0800");
+  }
+  if (cmd.equals("rearFogLightOn"))
+  {
+    VWID3CarControl(0x770, "2FBC0803");
+  }
+  if (cmd.equals("rearDefoggerOff"))
+  {
+    VWID3CarControl(0x770, "2FBC0C00");
+  }
+  if (cmd.equals("rearDefoggerOn"))
+  {
+    VWID3CarControl(0x770, "2FBC0C03");
+  }
+  if (cmd.equals("rearLeftBrakeLightOff"))
+  {
+    VWID3CarControl(0x770, "2FBC2B00");
+  }
+  if (cmd.equals("rearLeftBrakeLightOn"))
+  {
+    VWID3CarControl(0x770, "2FBC2B03");
+  }
+  if (cmd.equals("rearRightBrakeLightOff"))
+  {
+    VWID3CarControl(0x770, "2FBC2C00");
+  }
+  if (cmd.equals("rearRightBrakeLightOn"))
+  {
+    VWID3CarControl(0x770, "2FBC2C03");
+  }
+}
+
+/**
+ * VW ID.3 cmds
+ */
+void CarVWID3::VWID3CarControl(const uint16_t pid, const String &cmd)
+{
+  //syslog->println("EXECUTING COMMAND");
+  //syslog->println(cmd);
+  commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
+  delay(10);
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  delay(liveData->delayBetweenCommandsMs);
+
+  commInterface->sendPID(pid, "1003"); // CHANGE SESSION
+  delay(10);
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+    {
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("5003"))
+      {
+        break;
+      }
+    }
+    delay(20);
+  }
+  delay(liveData->delayBetweenCommandsMs);
+
+  // EXECUTE COMMAND
+  commInterface->sendPID(pid, cmd);
+  syslog->setDebugLevel(DEBUG_COMM);
+  delay(10);
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  delay(liveData->delayBetweenCommandsMs);
+
+  syslog->setDebugLevel(liveData->settings.debugLevel);
+}

@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-MENU_ITEM menuItemsSource[100] = {
+MENU_ITEM menuItemsSource[110] = {
 
     {0, 0, 0, "<- exit menu"},
     {MENU_VEHICLE_TYPE, 0, -1, "Vehicle type"},
@@ -26,6 +26,9 @@ MENU_ITEM menuItemsSource[100] = {
     {106, 1, -1, "Renault Zoe 22kWh (DEV)"},
     {107, 1, -1, "Kia Niro PHEV 8.9kWh (DEV)"},
     {108, 1, -1, "BMW i3 2014 22kWh (DEV)"},
+    {110, 1, -1, "VW ID.3 2021 45 kWh (DEV)"},
+    {111, 1, -1, "VW ID.3 2021 58 kWh (DEV)"},
+    {112, 1, -1, "VW ID.3 2021 77 kWh (DEV)"},
     {120, 1, -1, "Debug OBD2 Kia"},
 
     {MENU_ADAPTER_BLE4 - 1, MENU_ADAPTER_TYPE, 0, "<- parent menu"},

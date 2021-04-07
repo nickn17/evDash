@@ -298,6 +298,11 @@ void BoardInterface::afterSetup()
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
 
+// Temporary to force it to COMMU CAN
+//liveData->settings.commType = COMM_TYPE_OBD2CAN; 
+//saveSettings();
+
+
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4)
   {
     ;

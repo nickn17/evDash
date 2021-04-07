@@ -23,7 +23,7 @@ void CommObd2Can::connectDevice() {
   // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
   if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK) {
     syslog->println("MCP2515 Initialized Successfully!");
-    board->displayMessage(" > CAN init OK", "");
+    // board->displayMessage(" > CAN init OK", "");
   } else {
     syslog->println("Error Initializing MCP2515...");
     board->displayMessage(" > CAN init failed", "");
@@ -135,9 +135,16 @@ void CommObd2Can::executeCommand(String cmd) {
   // Send command
   liveData->responseRowMerged = "";
   liveData->currentAtshRequest.replace(" ", ""); // remove possible spaces
-  String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
+  //String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
+  String atsh = liveData->currentAtshRequest.substring(4); // remove ATSH
+  syslog->infoNolf(DEBUG_COMM, "atsh command ");
+  syslog->info(DEBUG_COMM, atsh);
+  syslog->infoNolf(DEBUG_COMM, "cmd command ");
+  syslog->info(DEBUG_COMM, cmd);
+  syslog->infoNolf(DEBUG_COMM, "hex2dec result ");
+  syslog->info(DEBUG_COMM, liveData->hexToDec(atsh, 4, false));
   cmd.replace(" ", ""); // remove possible spaces
-  sendPID(liveData->hexToDec(atsh, 2, false), cmd);
+  sendPID(liveData->hexToDec(atsh, 4, false), cmd); // changed from 2 to 4 Conny
   delay(40);
 }
 
@@ -193,7 +200,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
 
   lastPid = pid;
   bResponseProcessed = false;
-  const uint8_t sndStat = CAN->sendMsgBuf(pid, 0, 8, txBuf); // 11 bit
+  const uint8_t sndStat = CAN->sendMsgBuf(pid, 1, 8, txBuf); // 11 bit, changed from 0 to 1 Conny
   //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
   if (sndStat == CAN_OK)  {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
