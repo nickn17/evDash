@@ -156,13 +156,13 @@ void LiveData::initParams() {
   Hex to dec (1-2 byte values, signed/unsigned)
   For 4 byte change int to long and add part for signed numbers
 */
-float LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum) {
+double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum) {
 
-  unsigned int decValue = 0;
-  unsigned int nextInt;
+  uint32_t decValue = 0;
+  uint32_t nextInt;
 
   for (int i = 0; i < hexString.length(); i++) {
-    nextInt = int(hexString.charAt(i));
+    nextInt = int(hexString.charAt(i)); 
     if (nextInt >= 48 && nextInt <= 57) nextInt = map(nextInt, 48, 57, 0, 9);
     if (nextInt >= 65 && nextInt <= 70) nextInt = map(nextInt, 65, 70, 10, 15);
     if (nextInt >= 97 && nextInt <= 102) nextInt = map(nextInt, 97, 102, 10, 15);
@@ -187,7 +187,7 @@ float LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum) {
   For 4 byte change int to long and add part for signed numbers
 */
 
-float LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum) {
+double LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum) {
   return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
 }
 

@@ -337,8 +337,8 @@ public:
 
   //
   void initParams();
-  float hexToDec(String hexString, uint8_t bytes = 2, bool signedNum = true);
-  float hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes = 2, bool signedNum = true);
+  double hexToDec(String hexString, uint8_t bytes = 2, bool signedNum = true);
+  double hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes = 2, bool signedNum = true);
   float decFromResponse(uint8_t from, uint8_t to, char **str_end = 0, int base = 16);
   float km2distance(float inKm);
   float celsius2temperature(float inCelsius);
