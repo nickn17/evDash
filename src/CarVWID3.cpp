@@ -75,7 +75,7 @@ void CarVWID3::activateCommandQueue()
       "22189D", // HV Battery cooling liquid outlet, °C
       "22189D", // HV battery cooling liquid inlet, °C
       "222A0B", // HV Battery temp (main value), °C
-  /*
+  
       "221EAE", // HV Battery temp point 1, °C
       "221EAF", // HV Battery temp point 2, °C
       "221EB0", // HV Battery temp point 3, °C
@@ -202,7 +202,7 @@ void CarVWID3::activateCommandQueue()
       "221EA9", // HV Battery cell voltage - cell 106, V
       "221EAA", // HV Battery cell voltage - cell 107, V
       "221EAB", // HV Battery cell voltage - cell 108, V
-*/
+
       "221E32", // Total accumulated charged
 
 
@@ -289,7 +289,7 @@ void CarVWID3::parseRowMerged()
 // New parser for VW ID.3
 
 // ATSHFC00B9  
-  if (liveData->currentAtshRequest.equals("ATSHFC00B9")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH17FC00B9")) // For data after this header
   {
     if (liveData->commandRequest.equals("22465B")) // HV - 12V current
     {
@@ -304,14 +304,28 @@ void CarVWID3::parseRowMerged()
   }
 
 
-// ATSHFC007B  
+// ATSH17FC007B  
   if (liveData->currentAtshRequest.equals("ATSH17FC007B")) // For data after this header
   {
     if (liveData->commandRequest.equals("22028C")) // SOC BMS %
     {
       // Put code here to parse the data
+      liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5; // SOC BMS
       liveData->params.socPerc = (liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5)*51/46-6.4;   // SOC HMI
+
+      // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
+      if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
+      {
+        byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
+        if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1)
+        {
+          liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
+          liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
+          liveData->params.soc10odo[index] = liveData->params.odoKm;
+          liveData->params.soc10time[index] = liveData->params.currentTime;
+        }
+      }
       
     }
     if (liveData->commandRequest.equals("22F40D")) // speed km/h
@@ -332,7 +346,9 @@ void CarVWID3::parseRowMerged()
     }
      if (liveData->commandRequest.equals("22743B")) // cirkulation pump HV battery - flow in %
     {
-     // kräver en ny variabel 
+     // kräver en ny variabel
+     if (liveData->hexToDecFromResponse(6, 8, 1, false) > 0 ) liveData->params.batFanStatus;
+     liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(6, 8, 1, false);
     }
 
      if (liveData->commandRequest.equals("221E33")) // HV Battery cell # with highest voltage, V
@@ -354,16 +370,17 @@ void CarVWID3::parseRowMerged()
     {
     liveData->params.batPowerAmp = (liveData->hexToDecFromResponse(6, 14, 4, false)-150000) / 100; // kod här
     liveData->params.batPowerKw =liveData->params.batPowerAmp*liveData->params.batVoltage/1000; // total power in kW from HV battery
+    liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
     }
 
      if (liveData->commandRequest.equals("221E0E")) // HV Battery max temp and temp point, °C and #
     {
-    // kod här 
+    liveData->params.batMaxC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här // kod här 
     }
 
      if (liveData->commandRequest.equals("221E0F")) // HV Battery min temp and temp point, °C and #
     {
-    // kod här 
+    liveData->params.batMinC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här 
     }
 
      if (liveData->commandRequest.equals("221620")) // PTC heater battery current, A
@@ -371,14 +388,10 @@ void CarVWID3::parseRowMerged()
     // kod här 
     }
 
-     if (liveData->commandRequest.equals("22189D")) // HV Battery cooling liquid outlet, °C
+     if (liveData->commandRequest.equals("22189D")) // HV battery cooling liquid inlet and outlet, °C
     {
-    // kod här 
-    }
-
-     if (liveData->commandRequest.equals("22189D")) // HV battery cooling liquid inlet, °C
-    {
-    // kod här 
+    liveData->params.batInletC = liveData->hexToDecFromResponse(10, 14, 2, false) / 64; // kod här
+    //liveData->params.batOutletC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här    
     }
 
      if (liveData->commandRequest.equals("222A0B")) // HV Battery temp (main value), °C
@@ -913,12 +926,26 @@ if (liveData->commandRequest.equals("221EAB"))  // HV Battery cell voltage - cel
     liveData->params.cellVoltage[107] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
     } 
 
+float maxCellVolt=0;
+float minCellVolt=6;
+
+for (int i = 0; i < 108; i++) {
+    if(liveData->params.cellVoltage[i] > maxCellVolt) maxCellVolt = liveData->params.cellVoltage[i];
+    if(liveData->params.cellVoltage[i] < minCellVolt) minCellVolt = liveData->params.cellVoltage[i];
+  }
+liveData->params.batCellMinV=minCellVolt;
+liveData->params.batCellMaxV=maxCellVolt;
+
 
 
 if (liveData->commandRequest.equals("221E32"))  // HV Battery total accumulated charge and total accumulated discharge, MF answer
     {
     liveData->params.cumulativeEnergyChargedKWh = liveData->hexToDecFromResponse(22, 30, 4, false) / 8583.07123641215; // beräkning av totalt accumulerat laddat 
     liveData->params.cumulativeEnergyDischargedKWh = liveData->hexToDecFromResponse(30, 38, 4, true) /8583.07123641215; // beräkning av totalt accumulerat urladdat 
+     if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
+        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
+      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
+        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
     } 
 
 
@@ -927,7 +954,7 @@ if (liveData->commandRequest.equals("221E32"))  // HV Battery total accumulated 
   }  
 
 // ATSHFC0076  
-  if (liveData->currentAtshRequest.equals("ATSHFC0076")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH17FC0076")) // For data after this header
   {
     if (liveData->commandRequest.equals("220364")) // HV auxilary consumer power, kW
     {
@@ -951,7 +978,7 @@ if (liveData->commandRequest.equals("221E32"))  // HV Battery total accumulated 
 
 
 // ATSH000767  
-  if (liveData->currentAtshRequest.equals("ATSH000767")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH00000767")) // For data after this header
   {
     if (liveData->commandRequest.equals("222431")) // GPS number of tracked satellites
     {
@@ -965,7 +992,7 @@ if (liveData->commandRequest.equals("221E32"))  // HV Battery total accumulated 
 
 
 // ATSH000746  
-  if (liveData->currentAtshRequest.equals("ATSH000746")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH00000746")) // For data after this header
   {
     if (liveData->commandRequest.equals("222613")) // Inside temperature, °C
     {
@@ -987,7 +1014,7 @@ if (liveData->commandRequest.equals("221E32"))  // HV Battery total accumulated 
 
 
 // ATSH00070E  
-  if (liveData->currentAtshRequest.equals("ATSH00070E")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH0000070E")) // For data after this header
   {
     if (liveData->commandRequest.equals("222609")) // Outdoor temperature, °C
     {

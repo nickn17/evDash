@@ -184,11 +184,24 @@ for (int i=0; i<hexString.length(); i++) {
   if (!signedNum) {
     return decValue;
   }
-  // Signed for 1, 2 bytes
+  /* Signed for 1, 2 bytes
   if (bytes == 1) {
     return (decValue > 127 ? (float)decValue - 256.0 : decValue);
   }
   return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
+*/
+
+//signed 1-4 bytes
+switch (bytes) {
+    case 1: return (decValue > 127 ? (float)decValue - 256.0 : decValue);
+    case 2: return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
+    case 3: return (decValue > 8388607 ? (float)decValue - 16777216.0 : decValue);
+    case 4: return (decValue > 3147483647 ? (float)decValue - 4294967296.0 : decValue);
+    default: return -1;
+}
+
+
+
 }
 
 /**
