@@ -178,7 +178,7 @@ void CommInterface::compareCanRecords() {
 /**
  * 
  */
-void CommInterface::sendPID(const uint16_t pid, const String& cmd) {
+void CommInterface::sendPID(const uint32_t pid, const String& cmd) {
   
 }
 

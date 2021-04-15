@@ -128,7 +128,7 @@ void LiveData::initParams() {
     params.soc10ced[i] = params.soc10cec[i] = params.soc10odo[i] = -1;
     params.soc10time[i] = 0;
   }
-  for (int i = 0; i < 98; i++) {
+  for (int i = 0; i < 108; i++) {
     params.cellVoltage[i] = 0;
   }
   params.cellCount = 0;
@@ -154,19 +154,31 @@ void LiveData::initParams() {
   Hex to dec (1-2 byte values, signed/unsigned)
   For 4 byte change int to long and add part for signed numbers
 */
-float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
-
-  unsigned int decValue = 0;
-  unsigned int nextInt;
-
-  for (int i = 0; i < hexString.length(); i++) {
+double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum) {
+  double decValue = 0;
+  double nextInt;
+  
+  /*for (int i = 0; i < hexString.length(); i++) { //changed reference for i
     nextInt = int(hexString.charAt(i));
     if (nextInt >= 48 && nextInt <= 57) nextInt = map(nextInt, 48, 57, 0, 9);
     if (nextInt >= 65 && nextInt <= 70) nextInt = map(nextInt, 65, 70, 10, 15);
     if (nextInt >= 97 && nextInt <= 102) nextInt = map(nextInt, 97, 102, 10, 15);
     nextInt = constrain(nextInt, 0, 15);
-    decValue = (decValue * 16) + nextInt;
-  }
+    decValue = (decValue * 16) + nextInt; */
+
+for (int i=0; i<hexString.length(); i++) {
+        if (hexString[i]>=48 && hexString[i]<=57)
+        {
+            decValue += (hexString[i]-48)*pow(16,hexString.length()-i-1);
+        } else if (hexString[i]>=65 && hexString[i]<=70) {
+            decValue += (hexString[i]-55)*pow(16,hexString.length( )-i-1);
+        } else if (hexString[i]>=97 && hexString[i]<=102) {
+            decValue += (hexString[i]-87)*pow(16,hexString.length()-i-1);
+        }
+    }
+    //return decValue;
+
+  
 
   // Unsigned - do nothing
   if (!signedNum) {
@@ -185,7 +197,7 @@ float LiveData::hexToDec(String hexString, byte bytes, bool signedNum) {
   For 4 byte change int to long and add part for signed numbers
 */
 
-float LiveData::hexToDecFromResponse(byte from, byte to, byte bytes, bool signedNum) {
+double LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum) {
   return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
 }
 

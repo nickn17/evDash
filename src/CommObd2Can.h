@@ -25,7 +25,7 @@ class CommObd2Can : public CommInterface {
     int16_t rxRemaining; // Remaining bytes to complete message, signed is ok
     uint8_t requestFramesCount;
     char msgString[128];                        // Array to store serial string
-    uint16_t lastPid;
+    uint32_t lastPid;
     unsigned long lastDataSent = 0;
     
     std::vector<uint8_t> mergedData;
@@ -48,7 +48,7 @@ class CommObd2Can : public CommInterface {
     void executeCommand(String cmd) override;
   
   private:
-    void sendPID(const uint16_t pid, const String& cmd) override;
+    void sendPID(const uint32_t pid, const String& cmd) override;
     void sendFlowControlFrame();
     uint8_t receivePID() override;
     enFrame_t getFrameType(const uint8_t firstByte);

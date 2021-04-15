@@ -34,6 +34,6 @@ class CommInterface {
     void compareCanRecords();
     // CAN car control
     // Please don't use for BLE adapters due to security
-    virtual void sendPID(const uint16_t pid, const String& cmd);
+    virtual void sendPID(const uint32_t pid, const String& cmd);
     virtual uint8_t receivePID();
 };

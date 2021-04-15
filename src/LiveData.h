@@ -139,7 +139,7 @@ typedef struct
   float batMinC;
   float batMaxC;
   uint16_t batModuleTempCount;
-  float batModuleTempC[25];
+  float batModuleTempC[25]; // 1..25 has index 0..107
   float coolingWaterTempC;
   float coolantTemp1C;
   float coolantTemp2C;
@@ -170,7 +170,7 @@ typedef struct
   float tireRearRightTempC;
   float tireRearRightPressureBar;
   uint16_t cellCount;
-  float cellVoltage[98]; // 1..98 has index 0..97
+  float cellVoltage[108]; // 1..108 has index 0..107
 
   // Screen - charging graph
   float chargingGraphMinKw[101];             // 0..100% .. Min power Kw
@@ -337,8 +337,8 @@ public:
 
   //
   void initParams();
-  float hexToDec(String hexString, byte bytes = 2, bool signedNum = true);
-  float hexToDecFromResponse(byte from, byte to, byte bytes = 2, bool signedNum = true);
+  double hexToDec(String hexString, uint8_t bytes = 2, bool signedNum = true);
+  double hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes = 2, bool signedNum = true);
   float decFromResponse(byte from, byte to, char **str_end = 0, int base = 16);
   float km2distance(float inKm);
   float celsius2temperature(float inCelsius);

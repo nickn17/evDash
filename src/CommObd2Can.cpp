@@ -135,10 +135,12 @@ void CommObd2Can::executeCommand(String cmd) {
   // Send command
   liveData->responseRowMerged = "";
   liveData->currentAtshRequest.replace(" ", ""); // remove possible spaces
-  //String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
-  String atsh = liveData->currentAtshRequest.substring(4); // remove ATSH
+  String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
+  //String atsh = liveData->currentAtshRequest.substring(4); // remove ATSH
   syslog->infoNolf(DEBUG_COMM, "atsh command ");
   syslog->info(DEBUG_COMM, atsh);
+  syslog->infoNolf(DEBUG_COMM, "atsh  lenght ");
+  syslog->info(DEBUG_COMM, atsh.length()); ;
   syslog->infoNolf(DEBUG_COMM, "cmd command ");
   syslog->info(DEBUG_COMM, cmd);
   syslog->infoNolf(DEBUG_COMM, "hex2dec result ");
@@ -152,7 +154,7 @@ void CommObd2Can::executeCommand(String cmd) {
    Send PID
    remark: parameter cmd as const reference to aviod copying
 */
-void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
+void CommObd2Can::sendPID(const uint32_t pid, const String& cmd) {  //change from uint16_t to uint32_t 2021-04-10
 
   uint8_t txBuf[8] = { 0 }; // init with zeroes
   String tmpStr;
@@ -201,7 +203,7 @@ void CommObd2Can::sendPID(const uint16_t pid, const String& cmd) {
   lastPid = pid;
   bResponseProcessed = false;
   const uint8_t sndStat = CAN->sendMsgBuf(pid, 1, 8, txBuf); // 11 bit, changed from 0 to 1 Conny
-  //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
+  //const uint8_t sndStat = CAN->sendMsgBuf(0x17FC00B9, 1, 8, txBuf); // 29 bit extended frame, test with 29 bit CAN iD manual
   if (sndStat == CAN_OK)  {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
     lastDataSent = millis();
@@ -230,7 +232,7 @@ void CommObd2Can::sendFlowControlFrame() {
     txBuf[0] = liveData->commandStartChar;
   }
     
-  const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 0, 8, txBuf); // 11 bit
+  const uint8_t sndStat = CAN->sendMsgBuf(lastPid, 1, 8, txBuf); // 29 bit
   if (sndStat == CAN_OK)  {
     syslog->infoNolf(DEBUG_COMM, "Flow control frame sent ");
   }   else {
