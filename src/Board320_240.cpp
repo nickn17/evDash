@@ -985,7 +985,7 @@ void Board320_240::drawSceneChargingGraph()
   int zeroY = 238;
   int mulX = 3; // 100% = 300px;
   int mulY = 2; // 100kW = 200px
-  int maxKw = 80;
+  int maxKw = 110;
   int posy = 0;
   uint16_t color;
 

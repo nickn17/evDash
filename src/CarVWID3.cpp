@@ -215,7 +215,7 @@ void CarVWID3::activateCommandQueue()
       "22295A", // ODOMETER, km
       "22210E", // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
       "22F802", // VIN number
-
+/*
       // ECU XXXX
       "ATSH00000767", // Sets header to 00 00 07 67
       "222430", // GPS multiframe data lat, long, init, height, quality
@@ -242,7 +242,7 @@ void CarVWID3::activateCommandQueue()
       "222AF7", // 12V multiframe
       "222AB8", // HV battery energy content
 
-
+*/
 
   };
 
