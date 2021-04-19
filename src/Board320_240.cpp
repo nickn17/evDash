@@ -2979,6 +2979,7 @@ bool Board320_240::sim800lSendData()
     jsonData["carType"] = liveData->settings.carType;
     jsonData["ignitionOn"] = liveData->params.ignitionOn;
     jsonData["chargingOn"] = liveData->params.chargingOn;
+    jsonData["chargingDc"] = liveData->params.chargerDCconnected;
     jsonData["socPerc"] = liveData->params.socPerc;
     if (liveData->params.socPercBms != -1)
       jsonData["socPercBms"] = liveData->params.socPercBms;
@@ -2991,6 +2992,7 @@ bool Board320_240::sim800lSendData()
     jsonData["batMinC"] = liveData->params.batMinC;
     jsonData["batMaxC"] = liveData->params.batMaxC;
     jsonData["batInletC"] = liveData->params.batInletC;
+    jsonData["extTemp"] = liveData->params.outdoorTemperature;
     jsonData["batFanStatus"] = liveData->params.batFanStatus;
     jsonData["speedKmh"] = liveData->params.speedKmh;
 
@@ -3078,6 +3080,7 @@ bool Board320_240::sim800lSendData()
     jsonData["utc"] = liveData->params.currentTime;
     jsonData["soc"] = liveData->params.socPerc;
     jsonData["power"] = liveData->params.batPowerKw * -1;
+    jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
     if (liveData->params.speedKmhGPS > 0)
     {
       jsonData["speed"] = liveData->params.speedKmhGPS;
@@ -3102,7 +3105,8 @@ bool Board320_240::sim800lSendData()
     jsonData["batt_temp"] = liveData->params.batMinC;
     jsonData["voltage"] = liveData->params.batVoltage;
     jsonData["current"] = liveData->params.batPowerAmp * -1;
-    jsonData["odometer"] = liveData->params.odoKm;
+    if (liveData->params.odoKm > 0)
+      jsonData["odometer"] = liveData->params.odoKm;
 
     String payload;
     serializeJson(jsonData, payload);
