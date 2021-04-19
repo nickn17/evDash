@@ -2,6 +2,12 @@
 
 ### Next version
 
+### v2.5.0 2020-04-19
+- Volkswagen ID3 45/58/77 support by spot2000 (CAN only 29bit)
+- menu refactoring
+- touch screen support for m5stack core2
+- aux voltage sdcard logging (by kolaCZek)
+
 ### v2.2.0 2020-12-29
 - Direct CAN support with m5 COMMU module (instead obd2 BLE4 adapter). RECOMMENDED
 - EvDash deep sleep & wake up for Hyundai Ioniq/Kona & Kia e-Niro (kolaCZek).
