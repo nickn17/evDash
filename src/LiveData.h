@@ -20,6 +20,9 @@
 #define CAR_KIA_NIRO_PHEV 6
 #define CAR_BMW_I3_2014 7
 #define CAR_KIA_ESOUL_2020_64 8
+#define CAR_VW_ID3_2021_45 9
+#define CAR_VW_ID3_2021_58 10
+#define CAR_VW_ID3_2021_77 11
 #define CAR_DEBUG_OBD2_KIA 999
 
 // COMM TYPE
@@ -170,7 +173,7 @@ typedef struct
   float tireRearRightTempC;
   float tireRearRightPressureBar;
   uint16_t cellCount;
-  float cellVoltage[98]; // 1..98 has index 0..97
+  float cellVoltage[108]; // 1..108 has index 0..107
 
   // Screen - charging graph
   float chargingGraphMinKw[101];             // 0..100% .. Min power Kw

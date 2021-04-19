@@ -41,16 +41,18 @@
 #include "CarKiaNiroPhev.h"
 #include "CarKiaDebugObd2.h"
 #include "CarBmwI3.h"
+#include "CarVWID3.h"
 
 // Board, Car, Livedata (params, settings)
-BoardInterface* board;
-CarInterface* car;
-LiveData* liveData;
+BoardInterface *board;
+CarInterface *car;
+LiveData *liveData;
 
 /**
   Setup device
 */
-void setup(void) {
+void setup(void)
+{
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
@@ -76,37 +78,42 @@ void setup(void) {
   board->initBoard();
 
   // Turn on serial console
-  if (liveData->settings.serialConsolePort != 255
-    && liveData->settings.gpsHwSerialPort != liveData->settings.serialConsolePort
-    && liveData->settings.gprsHwSerialPort != liveData->settings.serialConsolePort) {
+  if (liveData->settings.serialConsolePort != 255 && liveData->settings.gpsHwSerialPort != liveData->settings.serialConsolePort && liveData->settings.gprsHwSerialPort != liveData->settings.serialConsolePort)
+  {
     syslog->begin(115200);
   }
 
   syslog->println("\nBooting device...");
 
   // Init selected car interface
-  switch (liveData->settings.carType) {
-    case CAR_KIA_ENIRO_2020_39:
-    case CAR_KIA_ENIRO_2020_64:
-    case CAR_HYUNDAI_KONA_2020_39:
-    case CAR_HYUNDAI_KONA_2020_64:
-    case CAR_KIA_ESOUL_2020_64:
-      car = new CarKiaEniro();
-      break;
-    case CAR_HYUNDAI_IONIQ_2018:
-      car = new CarHyundaiIoniq();
-      break;
-    case CAR_KIA_NIRO_PHEV:
-      car = new CarKiaNiroPhev();
-      break;
-    case CAR_RENAULT_ZOE:
-      car = new CarRenaultZoe();
-      break;
-    case CAR_BMW_I3_2014:
-      car = new CarBmwI3();
-      break;
-    default:
-      car = new CarKiaDebugObd2();
+  switch (liveData->settings.carType)
+  {
+  case CAR_KIA_ENIRO_2020_39:
+  case CAR_KIA_ENIRO_2020_64:
+  case CAR_HYUNDAI_KONA_2020_39:
+  case CAR_HYUNDAI_KONA_2020_64:
+  case CAR_KIA_ESOUL_2020_64:
+    car = new CarKiaEniro();
+    break;
+  case CAR_HYUNDAI_IONIQ_2018:
+    car = new CarHyundaiIoniq();
+    break;
+  case CAR_KIA_NIRO_PHEV:
+    car = new CarKiaNiroPhev();
+    break;
+  case CAR_RENAULT_ZOE:
+    car = new CarRenaultZoe();
+    break;
+  case CAR_BMW_I3_2014:
+    car = new CarBmwI3();
+    break;
+  case CAR_VW_ID3_2021_45:
+  case CAR_VW_ID3_2021_58:
+  case CAR_VW_ID3_2021_77:
+    car = new CarVWID3();
+    break;
+  default:
+    car = new CarKiaDebugObd2();
   }
 
   car->setLiveData(liveData);
@@ -126,6 +133,7 @@ void setup(void) {
 /**
   Main loop
 */
-void loop() {
+void loop()
+{
   board->mainLoop();
 }

@@ -1024,7 +1024,7 @@ void Board320_240::drawSceneChargingGraph()
   int zeroY = 238;
   int mulX = 3; // 100% = 300px;
   int mulY = 2; // 100kW = 200px
-  int maxKw = 80;
+  int maxKw = 110;
   int posy = 0;
   uint16_t color;
 
@@ -1345,6 +1345,15 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case 109:
     prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
+    break;
+  case 110:
+    prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
+    break;
+  case 111:
+    prefix = (liveData->settings.carType == CAR_VW_ID3_2021_58) ? ">" : "";
+    break;
+  case 112:
+    prefix = (liveData->settings.carType == CAR_VW_ID3_2021_77) ? ">" : "";
     break;
   case 120:
     prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
@@ -1796,6 +1805,21 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_VW_ID3_2021_45:
+      liveData->settings.carType = CAR_VW_ID3_2021_45;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_VW_ID3_2021_58:
+      liveData->settings.carType = CAR_VW_ID3_2021_58;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_VW_ID3_2021_77:
+      liveData->settings.carType = CAR_VW_ID3_2021_77;
+      showMenu();
+      return;
+      break;      
     case VEHICLE_TYPE_DEBUG_OBD_KIA:
       liveData->settings.carType = CAR_DEBUG_OBD2_KIA;
       showMenu();
@@ -2470,7 +2494,7 @@ void Board320_240::mainLoop()
       }
       if (file)
       {
-        syslog->println("Save buffer to SD card");
+        syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
         serializeParamsToJson(file);
         file.print(",\n");
         file.close();
@@ -3036,6 +3060,15 @@ bool Board320_240::sim800lSendData()
     case CAR_KIA_ESOUL_2020_64:
       jsonData["car_model"] = "kia:soul:19:64:other";
       break;
+    case CAR_VW_ID3_2021_45:
+      jsonData["car_model"] = "volkswagen:id3:20:45:sr";
+      break;
+    case CAR_VW_ID3_2021_58:
+      jsonData["car_model"] = "volkswagen:id3:20:58:mr";
+      break;
+    case CAR_VW_ID3_2021_77:
+      jsonData["car_model"] = "volkswagen:id3:20:77:lr";
+      break;      
     default:
       syslog->println("Car not supported by ABRP Uploader");
       return false;

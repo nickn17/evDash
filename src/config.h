@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v2.3.0-dev"
-#define APP_RELEASE_DATE "2020-01-22"
+#define APP_VERSION "v2.5.0-dev"
+#define APP_RELEASE_DATE "2021-04-19"
 
 // TFT COLORS FOR TTGO
 
@@ -16,8 +16,8 @@
 #define TFT_OLIVE 0x7BE0     /* 128, 128,   0 */
 
 #ifdef BOARD_TTGO_T4
-#define TFT_LIGHTGREY 0xD69A                /* 211, 211, 211 */
-#endif // BOARD_TTGO_T4
+#define TFT_LIGHTGREY 0xD69A /* 211, 211, 211 */
+#endif                       // BOARD_TTGO_T4
 
 #define TFT_DARKGREY 0x7BEF                 /* 128, 128, 128 */
 #define TFT_BLUE 0x001F                     /*   0,   0, 255 */
@@ -60,12 +60,12 @@
 
 typedef enum
 {
-//Top level menu
+  //Top level menu
   MENU_NO_MENU = -1,
   MENU_TOP_LEVEL = 0,
   MENU_VEHICLE_TYPE = 1,
-  MENU_ADAPTER_BLE_SELECT = 2, 
-  MENU_OTHERS ,
+  MENU_ADAPTER_BLE_SELECT = 2,
+  MENU_OTHERS,
   MENU_UNITS,
   MENU_ADAPTER_TYPE,
   MENU_FACTORY_RESET = 8,
@@ -73,7 +73,7 @@ typedef enum
   MENU_APP_VERSION,
   MENU_SHUTDOWN,
   MENU_CAR_COMMANDS,
-//
+  //
   VEHICLE_TYPE_TOP = 100,
   VEHICLE_TYPE_ENIRO_2020_64,
   VEHICLE_TYPE_ENIRO_2020_39,
@@ -84,9 +84,12 @@ typedef enum
   VEHICLE_TYPE_ZOE_22_DEV,
   VEHICLE_TYPE_NIROPHEV_8_9,
   VEHICLE_TYPE_BMWI3_2014_22,
+  VEHICLE_TYPE_VW_ID3_2021_45,
+  VEHICLE_TYPE_VW_ID3_2021_58,
+  VEHICLE_TYPE_VW_ID3_2021_77,
   VEHICLE_TYPE_DEBUG_OBD_KIA,
 
-// menu others
+  // menu others
   MENU_OTHER_TOP = 300,
   MENU_WIFI,
   MENU_NTP = 303,
@@ -107,25 +110,25 @@ typedef enum
   MENU_RHD,
   MENU_CURRENT_TIME,
 
-//menu unit
+  //menu unit
   MENU_UNIT_TOP = 400,
   MENU_DISTANCE_UNIT,
   MENU_TEMPERATURE_UNIT,
   MENU_PRESSURE_UNIT,
 
-// MENU_ADAPTER_TYPE
+  // MENU_ADAPTER_TYPE
   MENU_ADAPTER_TYPE_TOP = 500,
   MENU_ADAPTER_BLE4,
   MENU_ADAPTER_CAN,
   MENU_ADAPTER_BT3,
 
-//menu wifi
+  //menu wifi
   MENU_WIFI_TOP = 3010,
   MENU_WIFI_ENABLED,
   MENU_WIFI_SSID,
   MENU_WIFI_PASSWORD,
 
-//menu sdcard
+  //menu sdcard
   MENU_SDCARD_TOP = 3040,
   MENU_SDCARD_ENABLED,
   MENU_SDCARD_AUTOSTARTLOG,
@@ -133,7 +136,7 @@ typedef enum
   MENU_SDCARD_REC,
   MENU_SDCARD_INTERVAL,
 
-// menu default screen
+  // menu default screen
   DEFAULT_SCREEN_TOP = 3060,
   DEFAULT_SCREEN_AUTOMODE,
   DEFAULT_SCREEN_BASIC_INFO,
@@ -142,14 +145,14 @@ typedef enum
   DEFAULT_SCREEN_CHG_GRAPH,
   DEFAULT_SCREEN_HUD,
 
-// menu remote upload
+  // menu remote upload
   MENU_REMOTE_UPLOAD_TOP = 3090,
   MENU_REMOTE_UPLOAD_UART,
   MENU_REMOTE_UPLOAD_TYPE,
   MENU_REMOTE_UPLOAD_API_INTERVAL,
   MENU_REMOTE_UPLOAD_ABRP_INTERVAL,
 
-//menu sleep
+  //menu sleep
   MENU_SLEEP_TOP = 3110,
   MENU_SLEEP_MODE_MODE,
   MENU_SLEEP_MODE_WAKEINTERVAL,
@@ -163,22 +166,22 @@ typedef enum
   MENU_VOLTMETER_WAKEUPVOL,
   MENU_VOLTMETER_CUTOFFVOL,
 
-//distance unit menu
+  //distance unit menu
   DISTANCE_UNIT_TOP = 4010,
   DISTANCE_UNIT_KM,
   DISTANCE_UNIT_MI,
 
-//temperature unit menu 
+  //temperature unit menu
   TEMPERATURE_UNIT_TOP = 4020,
   TEMPERATURE_UNIT_CEL,
   TEMPERATURE_UNIT_FAR,
 
-//presure unit menu
+  //presure unit menu
   PRESURE_UNIT_TOP = 4030,
   PRESURE_UNIT_BAR,
   PRESURE_UNIT_PSI,
 
-//BLE unit menu
+  //BLE unit menu
   LIST_OF_BLE_DEV = 9999,
   LIST_OF_BLE_DEV_TOP,
   LIST_OF_BLE_1,
@@ -192,12 +195,12 @@ typedef enum
   LIST_OF_BLE_9,
   LIST_OF_BLE_10,
 
-// car commands menu
+  // car commands menu
   MENU_CAR_COMMANDS_TOP = 12000,
 
-//menu last (no menu)
+  //menu last (no menu)
   MENU_LAST
-}MENU_ID;
+} MENU_ID;
 
 // MENU ITEM
 typedef struct
@@ -209,4 +212,3 @@ typedef struct
   char obdMacAddress[20];
   char serviceUUID[40];
 } MENU_ITEM;
-
