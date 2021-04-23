@@ -676,7 +676,7 @@ void Board320_240::drawSceneSpeed()
   else
   {
     sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a" : "%01.01f", liveData->params.batPowerKw);
-    spr.drawString("kWh", 200, posy + 46, 2);
+    spr.drawString("kWh", 200, posy + 48, 2);
   }
   spr.drawString(tmpStr3, 200, posy, 7);
 
@@ -710,13 +710,18 @@ void Board320_240::drawSceneSpeed()
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   spr.drawString("cons./regen.kWh", 0, 240-28, 2);
   posx = 319;
-  float kwh100 = 0;
+  float kwh100a = 0;
+  float kwh100b = 0;
   if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
-    kwh100 = ((-100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart))) /
+    kwh100a = ((100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart) -
+                        (liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart))) /
               (liveData->params.odoKm - liveData->params.odoKmStart));
-  sprintf(tmpStr3, "%01.01f", kwh100);
+  if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
+    kwh100b = ((100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart))) /
+              (liveData->params.odoKm - liveData->params.odoKmStart));
+  sprintf(tmpStr3, "%01.01f/%01.01f", kwh100a, kwh100b);
   spr.setTextDatum(BR_DATUM);
-  spr.drawString("avg. kWh/100km", posx, 240-28, 2);
+  spr.drawString("avg.kWh/100km", posx, 240-28, 2);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   // Bat.power
   /*posx = 320 / 2;
