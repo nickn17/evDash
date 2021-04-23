@@ -29,30 +29,33 @@ void Board320_240::initBoard()
   // Init time library
   struct timeval tv;
 
-  #ifdef BOARD_M5STACK_CORE2
-    RTC_TimeTypeDef RTCtime;
-    RTC_DateTypeDef RTCdate;
+#ifdef BOARD_M5STACK_CORE2
+  RTC_TimeTypeDef RTCtime;
+  RTC_DateTypeDef RTCdate;
 
-    M5.Rtc.GetTime(&RTCtime);
-    M5.Rtc.GetDate(&RTCdate);
+  M5.Rtc.GetTime(&RTCtime);
+  M5.Rtc.GetDate(&RTCdate);
 
-    if (RTCdate.Year > 2020) {
-      struct tm tm_tmp;
-      tm_tmp.tm_year = RTCdate.Year - 1900;
-      tm_tmp.tm_mon = RTCdate.Month - 1;
-      tm_tmp.tm_mday = RTCdate.Date;
-      tm_tmp.tm_hour = RTCtime.Hours;
-      tm_tmp.tm_min = RTCtime.Minutes;
-      tm_tmp.tm_sec = RTCtime.Seconds;
+  if (RTCdate.Year > 2020)
+  {
+    struct tm tm_tmp;
+    tm_tmp.tm_year = RTCdate.Year - 1900;
+    tm_tmp.tm_mon = RTCdate.Month - 1;
+    tm_tmp.tm_mday = RTCdate.Date;
+    tm_tmp.tm_hour = RTCtime.Hours;
+    tm_tmp.tm_min = RTCtime.Minutes;
+    tm_tmp.tm_sec = RTCtime.Seconds;
 
-      time_t t = mktime(&tm_tmp);
-      tv.tv_sec = t;
-    } else {
-      tv.tv_sec = 1589011873;
-    }
-  #else
+    time_t t = mktime(&tm_tmp);
+    tv.tv_sec = t;
+  }
+  else
+  {
     tv.tv_sec = 1589011873;
-  #endif
+  }
+#else
+  tv.tv_sec = 1589011873;
+#endif
 
   struct timezone tz;
   tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
@@ -264,41 +267,41 @@ void Board320_240::afterSleep()
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
-    #ifdef BOARD_M5STACK_CORE2
-      if (liveData->settings.sdcardEnabled == 1 && bootCount % (unsigned int)(300 / liveData->settings.sleepModeIntervalSec) == 0)
+#ifdef BOARD_M5STACK_CORE2
+    if (liveData->settings.sdcardEnabled == 1 && bootCount % (unsigned int)(300 / liveData->settings.sleepModeIntervalSec) == 0)
+    {
+      tft.begin();
+      sdcardMount();
+
+      if (liveData->params.sdcardInit)
       {
-        tft.begin();
-        sdcardMount();
+        struct tm now;
+        getLocalTime(&now);
+        char filename[32];
+        strftime(filename, sizeof(filename), "/sleep_%y-%m-%d.json", &now);
 
-        if (liveData->params.sdcardInit)
+        File file = SD.open(filename, FILE_APPEND);
+        if (!file)
         {
-          struct tm now;
-          getLocalTime(&now);
-          char filename[32];
-          strftime(filename, sizeof(filename), "/sleep_%y-%m-%d.json", &now);
+          syslog->println("Failed to open file for appending");
+          File file = SD.open(filename, FILE_WRITE);
+        }
+        if (file)
+        {
+          StaticJsonDocument<128> jsonData;
+          jsonData["carType"] = liveData->settings.carType;
+          jsonData["currTime"] = liveData->params.currentTime;
+          jsonData["auxV"] = liveData->params.auxVoltage;
+          jsonData["bootCount"] = bootCount;
+          jsonData["sleepCount"] = sleepCount;
+          serializeJson(jsonData, file);
 
-          File file = SD.open(filename, FILE_APPEND);
-          if (!file)
-          {
-            syslog->println("Failed to open file for appending");
-            File file = SD.open(filename, FILE_WRITE);
-          }
-          if (file)
-          {
-            StaticJsonDocument<128> jsonData;
-            jsonData["carType"] = liveData->settings.carType;
-            jsonData["currTime"] = liveData->params.currentTime;
-            jsonData["auxV"] = liveData->params.auxVoltage;
-            jsonData["bootCount"] = bootCount;
-            jsonData["sleepCount"] = sleepCount;
-            serializeJson(jsonData, file);
-
-            file.print(",\n");
-            file.close();
-          }
+          file.print(",\n");
+          file.close();
         }
       }
-    #endif
+    }
+#endif
 
     if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff)
     {
@@ -391,18 +394,18 @@ void Board320_240::setBrightness()
     lcdBrightnessPerc = 100;
   }
 
-  #ifdef BOARD_TTGO_T4
-    analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
-  #endif // BOARD_TTGO_T4
-  #ifdef BOARD_M5STACK_CORE
-    uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
-    tft.setBrightness(brightnessVal);
-  #endif // BOARD_M5STACK_CORE
-  #ifdef BOARD_M5STACK_CORE2
-    M5.Axp.SetDCDC3(true);
-    uint16_t lcdVolt = map(lcdBrightnessPerc, 0, 100, 2500, 3300);
-    M5.Axp.SetLcdVoltage(lcdVolt);
-  #endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_TTGO_T4
+  analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
+#endif // BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE
+  uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
+  tft.setBrightness(brightnessVal);
+#endif // BOARD_M5STACK_CORE
+#ifdef BOARD_M5STACK_CORE2
+  M5.Axp.SetDCDC3(true);
+  uint16_t lcdVolt = map(lcdBrightnessPerc, 0, 100, 2500, 3300);
+  M5.Axp.SetLcdVoltage(lcdVolt);
+#endif // BOARD_M5STACK_CORE2
 }
 
 /**
@@ -668,10 +671,12 @@ void Board320_240::drawSceneSpeed()
   if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0)
   {
     sprintf(tmpStr3, (liveData->params.batPowerKwh100 == -1000) ? "n/a" : "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
+    spr.drawString("kWh/100km", 200, posy + 46, 2);
   }
   else
   {
     sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a" : "%01.01f", liveData->params.batPowerKw);
+    spr.drawString("kWh", 200, posy + 46, 2);
   }
   spr.drawString(tmpStr3, 200, posy, 7);
 
@@ -688,29 +693,37 @@ void Board320_240::drawSceneSpeed()
   {
     sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
             liveData->celsius2temperature(liveData->params.coolingWaterTempC));
-    spr.drawString(tmpStr1, 320 - posx, posy, GFXFF);
+    spr.drawString(tmpStr1, 319 - posx, posy, GFXFF);
   }
   else if (liveData->params.motorRpm > -1)
   {
     sprintf(tmpStr3, "%01.00frpm", liveData->params.motorRpm);
-    spr.drawString(tmpStr3, 320 - posx, posy, GFXFF);
+    spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
   }
 
   // Bottom info
   // Cummulative regen/power
-  posy = 240 - 5;
-  sprintf(tmpStr3, "-%01.01f", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
+  posy = 240;
+  sprintf(tmpStr3, "-%01.01f +%01.01f", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart,
+          liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
   spr.setTextDatum(BL_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
-  posx = 320 - 5;
-  sprintf(tmpStr3, "+%01.01f", liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
+  spr.drawString("cons./regen.kWh", 0, 240-28, 2);
+  posx = 319;
+  float kwh100 = 0;
+  if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
+    kwh100 = ((-1 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart) -
+                     (liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart))) /
+              (liveData->params.odoKm - liveData->params.odoKmStart));
+  sprintf(tmpStr3, "%01.01f", kwh100);
   spr.setTextDatum(BR_DATUM);
+  spr.drawString("avg. kWh/100km", posx, 240-28, 2);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   // Bat.power
-  posx = 320 / 2;
+  /*posx = 320 / 2;
   sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a kw" : "%01.01fkw", liveData->params.batPowerKw);
   spr.setTextDatum(BC_DATUM);
-  spr.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);*/
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
@@ -720,13 +733,13 @@ void Board320_240::drawSceneSpeed()
   spr.setFreeFont(&Roboto_Thin_24);
   spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, (liveData->params.batMaxC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
-  spr.drawString(tmpStr3, 320, 66, GFXFF);
+  spr.drawString(tmpStr3, 319, 66, GFXFF);
   sprintf(tmpStr3, (liveData->params.batMinC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
-  spr.drawString(tmpStr3, 320, 92, GFXFF);
+  spr.drawString(tmpStr3, 319, 92, GFXFF);
   if (liveData->params.motorTempC != -100)
   {
     sprintf(tmpStr3, "i%01.00f / m%01.00f", liveData->celsius2temperature(liveData->params.inverterTempC), liveData->celsius2temperature(liveData->params.motorTempC));
-    spr.drawString(tmpStr3, 320, 26, GFXFF);
+    spr.drawString(tmpStr3, 319, 26, GFXFF);
   }
   // Min.Cell V
   spr.setTextDatum(TR_DATUM);
@@ -738,8 +751,8 @@ void Board320_240::drawSceneSpeed()
   spr.drawString(tmpStr3, 280, 92, GFXFF);
 
   // Brake lights
-  spr.fillRect(80, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-  spr.fillRect(320 - 80 - 10, 240 - 26, 10, 16, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  spr.fillRect(140, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  spr.fillRect(180 - 18, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
   // Lights
   uint16_t tmpWord;
   tmpWord = (liveData->params.headLights) ? TFT_GREEN : (liveData->params.autoLights) ? TFT_YELLOW
@@ -749,13 +762,14 @@ void Board320_240::drawSceneSpeed()
   spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPercBms > 80 || (liveData->params.socPercBms == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW : TFT_GREEN);
+  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPercBms > 80 || (liveData->params.socPercBms == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
+                                                                                                                                                                           : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
   spr.drawString(tmpStr3, 285, 165, GFXFF);
   spr.setFreeFont(&Orbitron_Light_24);
-  spr.drawString("%", 320, 155, GFXFF);
+  spr.drawString("%", 319, 155, GFXFF);
   if (liveData->params.socPerc > 0)
   {
     float capacity = liveData->params.batteryTotalAvailableKWh * (liveData->params.socPerc / 100);
@@ -770,9 +784,9 @@ void Board320_240::drawSceneSpeed()
     spr.drawString(tmpStr3, 285, 200, GFXFF);
     spr.setFreeFont(&Orbitron_Light_24);
     sprintf(tmpStr3, ".%d", int(10 * (capacity - (int)capacity)));
-    spr.drawString(tmpStr3, 320, 200, GFXFF);
+    spr.drawString(tmpStr3, 319, 200, GFXFF);
     spr.setTextColor(TFT_SILVER);
-    spr.drawString("kWh", 320, 174, 2);
+    spr.drawString("kWh", 319, 174, 2);
   }
 }
 
@@ -819,7 +833,7 @@ void Board320_240::drawSceneHud()
   {
     sprintf(tmpStr3, "0");
   }
-  tft.drawString(tmpStr3, 320, 0, 7);
+  tft.drawString(tmpStr3, 319, 0, 7);
 
   // Draw power kWh/100km (>25kmh) else kW
   tft.setTextSize(1);
@@ -926,7 +940,7 @@ void Board320_240::drawSceneBatteryCells()
    drawPreDrawnChargingGraphs
    P = U.I
 */
-void Board320_240::drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, int mulY)
+void Board320_240::drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY)
 {
 
   // Rapid gate
@@ -1022,11 +1036,18 @@ void Board320_240::drawSceneChargingGraph()
 
   int zeroX = 0;
   int zeroY = 238;
-  int mulX = 3; // 100% = 300px;
-  int mulY = 2; // 100kW = 200px
-  int maxKw = 110;
+  int mulX = 3;   // 100% = 300px;
+  float mulY = 2; // 100kW = 200px
+  int maxKw = 75;
   int posy = 0;
   uint16_t color;
+
+  // Autoscale Y-axis
+  for (int i = 0; i <= 100; i++)
+    if (liveData->params.chargingGraphMaxKw[i] > maxKw)
+      maxKw = liveData->params.chargingGraphMaxKw[i];
+  maxKw = (ceil(maxKw / 10) + 1) * 10;
+  mulY = 160.0 / maxKw;
 
   spr.fillSprite(TFT_BLACK);
 
@@ -1684,15 +1705,13 @@ void Board320_240::menuMove(bool forward, bool rotate)
   }
   if (forward)
   {
-    liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1) ? 
-          (rotate ? 0  : tmpCount - 1)
-        : liveData->menuItemSelected + 1;
+    liveData->menuItemSelected = (liveData->menuItemSelected >= tmpCount - 1) ? (rotate ? 0 : tmpCount - 1)
+                                                                              : liveData->menuItemSelected + 1;
   }
   else
   {
-    liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? 
-        (rotate ? tmpCount - 1 : 0)
-        : liveData->menuItemSelected - 1;
+    liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? (rotate ? tmpCount - 1 : 0)
+                                                                   : liveData->menuItemSelected - 1;
   }
   showMenu();
 }
@@ -1819,7 +1838,7 @@ void Board320_240::menuItemClick()
       liveData->settings.carType = CAR_VW_ID3_2021_77;
       showMenu();
       return;
-      break;      
+      break;
     case VEHICLE_TYPE_DEBUG_OBD_KIA:
       liveData->settings.carType = CAR_DEBUG_OBD2_KIA;
       showMenu();
@@ -2254,7 +2273,7 @@ void Board320_240::redrawScreen()
     {
       spr.fillRect(140, 7, 7, 7,
                    (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ? (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
-      );      
+      );
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
@@ -2532,10 +2551,7 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10
-    && liveData->settings.sleepModeLevel >= 1
-    && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10
-    && (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->settings.sleepModeLevel >= 1 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
   {
     turnOffScreen();
   }
@@ -2545,11 +2561,7 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30
-    && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= 2
-    && liveData->params.currentTime - liveData->params.wakeUpTime > 30
-    && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10
-    && liveData->settings.voltmeterBasedSleep == 0)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && liveData->settings.voltmeterBasedSleep == 0)
   {
     if (liveData->params.sim800l_enabled)
     {
@@ -2559,12 +2571,7 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
-  if (liveData->settings.voltmeterEnabled == 1
-    && liveData->settings.voltmeterBasedSleep == 1
-    && liveData->settings.sleepModeLevel >= 2
-    && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30
-    && liveData->params.currentTime - liveData->params.wakeUpTime > 30
-    && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
     if (liveData->params.sim800l_enabled)
     {
@@ -2577,8 +2584,7 @@ void Board320_240::mainLoop()
   commInterface->mainLoop();
 
   // Reconnect CAN bus if no response for 5s
-  if(liveData->settings.commType == 1
-    && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5)
+  if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5)
   {
     syslog->println("No response from CANbus for 5 seconds, reconnecting");
     commInterface->connectDevice();
@@ -2773,7 +2779,9 @@ void Board320_240::syncGPS()
   if (gps.speed.isValid())
   {
     liveData->params.speedKmhGPS = gps.speed.kmph();
-  } else {
+  }
+  else
+  {
     liveData->params.speedKmhGPS = -1;
   }
   if (gps.satellites.isValid())
@@ -2803,20 +2811,20 @@ void Board320_240::syncGPS()
 
     syncTimes(t);
 
-    #ifdef BOARD_M5STACK_CORE2
-      RTC_TimeTypeDef RTCtime;
-      RTC_DateTypeDef RTCdate;
+#ifdef BOARD_M5STACK_CORE2
+    RTC_TimeTypeDef RTCtime;
+    RTC_DateTypeDef RTCdate;
 
-      RTCdate.Year = gps.date.year();
-      RTCdate.Month = gps.date.month();
-      RTCdate.Date = gps.date.day();
-      RTCtime.Hours = gps.time.hour();
-      RTCtime.Minutes = gps.time.minute();
-      RTCtime.Seconds = gps.time.second();
+    RTCdate.Year = gps.date.year();
+    RTCdate.Month = gps.date.month();
+    RTCdate.Date = gps.date.day();
+    RTCtime.Hours = gps.time.hour();
+    RTCtime.Minutes = gps.time.minute();
+    RTCtime.Seconds = gps.time.second();
 
-      M5.Rtc.SetTime(&RTCtime);
-      M5.Rtc.SetDate(&RTCdate);
-    #endif
+    M5.Rtc.SetTime(&RTCtime);
+    M5.Rtc.SetDate(&RTCdate);
+#endif
   }
 }
 
@@ -3070,7 +3078,7 @@ bool Board320_240::sim800lSendData()
       break;
     case CAR_VW_ID3_2021_77:
       jsonData["car_model"] = "volkswagen:id3:20:77:lr";
-      break;      
+      break;
     default:
       syslog->println("Car not supported by ABRP Uploader");
       return false;
@@ -3084,7 +3092,9 @@ bool Board320_240::sim800lSendData()
     if (liveData->params.speedKmhGPS > 0)
     {
       jsonData["speed"] = liveData->params.speedKmhGPS;
-    } else {
+    }
+    else
+    {
       jsonData["speed"] = liveData->params.speedKmh;
     }
     jsonData["is_charging"] = (liveData->params.chargingOn) ? 1 : 0;

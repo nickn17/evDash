@@ -277,11 +277,7 @@ void CarKiaEniro::parseRowMerged()
     {
       liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
-      if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
-      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
       //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);

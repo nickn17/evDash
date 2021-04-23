@@ -115,6 +115,7 @@ typedef struct
   float speedKmhGPS;
   float motorRpm;
   float odoKm;
+  float odoKmStart;
   float socPercBms;
   float socPerc;
   float socPercPrevious;

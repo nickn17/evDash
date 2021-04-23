@@ -9,21 +9,21 @@
 
 Supported hardware
 
-1. M5STACK CORE1 IOT Development Kit (best option)
-2. M5STACK CORE2 (under construction)
+1. M5STACK CORE2 (best option)
+2. M5STACK CORE1 IOT Development Kit (limited support)
 3. DEPRECATED!!! LILYGO TTGO T4 v1.3 (limited support/no SDcard/GSM/GPS/CAN module)
 
 Working only with electric vehicles
 Fully supported: Kia e-NIRO/e-Soul (EV), Hyundai Kona EV, Hyundai Ioniq EV. 
-Community supported: Niro PHEV, Renault ZOE 28, BMW i3.
+Community supported: Niro PHEV, Renault ZOE 28, BMW i3, VW ID3 45/58/77.
 See Release notes, quick installation via flash tool bellow.
 
 ## Required hardware
 
 Board
 
-- M5STACK CORE1 IOT Development Kit
-  https://m5stack.com/collections/m5-core/products/basic-core-iot-development-kit
+- M5STACK CORE2 IOT Development Kit
+  https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit
 - optional M5 COMMU (CAN) module
 - optional M5 GPS NEO-M8N (with external atenna)
 

@@ -2,6 +2,9 @@
 
 ### Next version
 
+- dynamic scale for charging graph
+- speed screen - added calculated kWh/100km
+
 ### v2.5.0 2020-04-19
 - Volkswagen ID3 45/58/77 support by spot2000 (CAN only 29bit)
 - menu refactoring

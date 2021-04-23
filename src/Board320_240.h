@@ -99,7 +99,7 @@ public:
   void drawSceneSpeed();
   void drawSceneHud();
   void drawSceneBatteryCells();
-  void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, int mulY);
+  void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY);
   void drawSceneChargingGraph();
   void drawSceneSoc10Table();
   void drawSceneDebug();

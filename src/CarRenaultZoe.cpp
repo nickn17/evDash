@@ -269,11 +269,7 @@ liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1
 liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
 liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
 liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
-if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
- liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
 liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
-if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
- liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
 liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
 //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
 liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);

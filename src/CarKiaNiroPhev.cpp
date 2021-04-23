@@ -114,11 +114,7 @@ void CarKiaNiroPhev::parseRowMerged() {
   if (liveData->currentAtshRequest.equals("ATSH7E4")) {
     if (liveData->commandRequest.equals("2101")) {
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(80, 88) / 10.0;
-      if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(88, 96) / 10.0;
-      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
       liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
