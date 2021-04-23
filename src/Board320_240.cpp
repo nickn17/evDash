@@ -712,8 +712,7 @@ void Board320_240::drawSceneSpeed()
   posx = 319;
   float kwh100 = 0;
   if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
-    kwh100 = ((-1 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart) -
-                     (liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart))) /
+    kwh100 = ((-100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart))) /
               (liveData->params.odoKm - liveData->params.odoKmStart));
   sprintf(tmpStr3, "%01.01f", kwh100);
   spr.setTextDatum(BR_DATUM);
