@@ -200,6 +200,8 @@ void CommObd2Ble4::startBleScan() {
   liveData->scanningDeviceIndex = 0;
   board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
+  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+
   // Start scanning
   syslog->println("Scanning BLE devices...");
   syslog->print("Looking for ");
@@ -256,8 +258,13 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
   if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM) ) syslog->println("liveData->bleConnected");
   syslog->println(" - liveData->bleConnected to server");
 
+  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+
   // Remote service
   board->displayMessage(" > Connecting device", "Connecting service...");
+  syslog->print("serviceUUID -");
+  syslog->print(liveData->settings.serviceUUID);
+  syslog->println("-");
   BLERemoteService* pRemoteService = liveData->pClient->getService(BLEUUID(liveData->settings.serviceUUID));
   if (pRemoteService == nullptr)
   {
@@ -267,9 +274,13 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
     return false;
   }
   syslog->println(" - Found our service");
+  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting TxUUID...");
+  syslog->print("charTxUUID -");
+  syslog->print(liveData->settings.charTxUUID);
+  syslog->println("-");
   liveData->pRemoteCharacteristic = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charTxUUID));
   if (liveData->pRemoteCharacteristic == nullptr) {
     syslog->print("Failed to find our characteristic UUID: ");
@@ -281,6 +292,9 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting RxUUID...");
+  syslog->print("charRxUUID -");
+  syslog->print(liveData->settings.charRxUUID);
+  syslog->println("-");
   liveData->pRemoteCharacteristicWrite = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charRxUUID));
   if (liveData->pRemoteCharacteristicWrite == nullptr) {
     syslog->print("Failed to find our characteristic UUID: ");

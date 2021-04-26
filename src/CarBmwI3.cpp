@@ -289,12 +289,7 @@ void CarBmwI3::parseRowMerged()
         
         DD7C_t* ptr = (DD7C_t*)(payloadReversed.data() + 1); // skip one charcter on beginning (TODO: fix when pragma push/pack is done)
         liveData->params.cumulativeEnergyDischargedKWh = ptr->discharged / 100000.0;
-        if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-          liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
-
         liveData->params.cumulativeEnergyChargedKWh = ptr->charged / 100000.0;
-        if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-          liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
       }
       
     }

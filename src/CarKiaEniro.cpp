@@ -277,11 +277,7 @@ void CarKiaEniro::parseRowMerged()
     {
       liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
-      if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
-      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
       //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
@@ -298,7 +294,9 @@ void CarKiaEniro::parseRowMerged()
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
       }
       liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
+      liveData->params.batCellMaxVNo = liveData->hexToDecFromResponse(54, 56, 1, false);
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
+      liveData->params.batCellMinVNo = liveData->hexToDecFromResponse(58, 60, 1, false);
       liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
       liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true);
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
@@ -411,6 +409,9 @@ void CarKiaEniro::parseRowMerged()
       tempByte = liveData->hexToDecFromResponse(34, 36, 1, false);
       switch (tempByte & 0xf)
       {
+      case 1:
+        liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING;
+        break;
       case 3:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
         break;
@@ -711,63 +712,68 @@ void CarKiaEniro::testHandler(const String &cmd)
   String value = cmd.substring(idx + 1);
 
   // AIRCON SCANNER
-  if (key.equals("aircon"))
+  if (key.equals("bms"))
   {
-        // SET TESTER PRESENT
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "3E");
-        delay(10);
-        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
-        {
-          if (commInterface->receivePID() != 0xff)
-            break;
-          delay(20);
-        }
-        delay(liveData->delayBetweenCommandsMs);
+    // SET TESTER PRESENT
+    commInterface->sendPID(liveData->hexToDec("07A5", 2, false), "3E");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+        break;
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
 
-        // CHANGE SESSION
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "1003");
-        delay(10);
-        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    // CHANGE SESSION
+    commInterface->sendPID(liveData->hexToDec("07A5", 2, false), "1003");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+      {
+        // WAIT FOR POSITIVE ANSWER
+        if (liveData->responseRowMerged.equals("5003"))
         {
-          if (commInterface->receivePID() != 0xff)
-          {
-            // WAIT FOR POSITIVE ANSWER
-            if (liveData->responseRowMerged.equals("5003"))
-            {
-              syslog->println("POSITIVE ANSWER");
-              break;
-            }
-          }
-          delay(20);
+          syslog->println("POSITIVE ANSWER");
+          break;
         }
-        delay(liveData->delayBetweenCommandsMs);
+      }
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
 
-    // test=aircon/1
-    for (uint16_t a = 0; a < 255; a++) { 
+    // test=bms/1
+    for (uint16_t a = 176; a < 255; a++)
+    {
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
-      for (uint16_t b = 240; b < 241; b++)
+      for (uint16_t b = 0; b < 255; b++)
+      //for (uint16_t c = 0; c < 255; c++)
       {
         String command = "2F";
-        if (b < 16)
-          command += "0";
-        command += String(b, HEX);
         if (a < 16)
           command += "0";
         command += String(a, HEX);
-        command.toUpperCase();
+        if (b < 16)
+          command += "0";
+        command += String(b, HEX);
+        /*if (c < 16)
+            command += "0";
+          command += String(c, HEX);
+        */ command.toUpperCase();
         command += "00";
-        
+
         // EXECUTE COMMAND
         //syslog->print(".");
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), command);
+        commInterface->sendPID(liveData->hexToDec("07A5", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
         for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
         {
           if (commInterface->receivePID() != 0xff)
           {
-            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/ )
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/)
             {
               syslog->print("### \t");
               syslog->print(command);
@@ -817,6 +823,7 @@ std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
 {
   if (menuId == MENU_CAR_COMMANDS)
     return {
+        "vessOn=VESS 5sec.",
         "doorsUnlock=Unlock doors",
         "doorsLock=Lock doors",
         "chargeCableLockOff=Charge cable lock off",
@@ -861,6 +868,10 @@ std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
  */
 void CarKiaEniro::carCommand(const String &cmd)
 {
+  if (cmd.equals("vessOn"))
+  {
+    eNiroCarControl(0x736, "2FF01103");
+  }
   if (cmd.equals("doorsUnlock"))
   {
     eNiroCarControl(0x770, "2FBC1103");

@@ -55,7 +55,8 @@ protected:
   char tmpStr4[20];
   float lastSpeedKmh = 0;
   int firstReload = 0;
-
+  uint8_t menuVisibleCount = 5;
+  uint8_t menuItemHeight = 20;
 public:
   bool invertDisplay = false;
   byte pinButtonLeft = 0;
@@ -98,7 +99,7 @@ public:
   void drawSceneSpeed();
   void drawSceneHud();
   void drawSceneBatteryCells();
-  void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, int mulY);
+  void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY);
   void drawSceneChargingGraph();
   void drawSceneSoc10Table();
   void drawSceneDebug();
@@ -106,7 +107,7 @@ public:
   String menuItemCaption(int16_t menuItemId, String title);
   void showMenu() override;
   void hideMenu() override;
-  void menuMove(bool forward);
+  void menuMove(bool forward, bool rotate = true);
   void menuItemClick();
   //
   void loadTestData();

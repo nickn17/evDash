@@ -1,13 +1,3 @@
-/*
-      eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
-  >= 35°C BMS allows max 180A
-  >= 25°C without limit (200A)
-  >= 15°C BMS allows max 120A
-  >= 5°C BMS allows max 90A
-  >= 1°C BMS allows max 60A
-  <= 0°C BMS allows max 40A
-*/
-
 /* 
 
 First start at implementing the VW ID.3 EV into evDash
@@ -61,26 +51,24 @@ void CarVWID3::activateCommandQueue()
 
       // BMS
       "ATSH17FC007B", // Sets header to 17 FC 00 7B  -> 0x17FC007B
-      "22028C", // SoC (BMS), %
-      "22F40D", // Speed, km/h
-      "227448", // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
-      "22743B", // cirkulation pump HV battery - flow in %
-      "221E33", // HV Battery cell # with highest voltage, V
-      "221E34", // HV Battery cell # with lowest  voltage, V
-      "221E3B", // HV Battery voltage, V
-      "221E3D", // HV Battery current, A
-      "221E0E", // HV Battery max temp and temp point, °C and #
-      "221E0F", // HV Battery min temp and temp point, °C and #
-      "221620", // PTC heater battery current, A
-      "22189D", // HV Battery cooling liquid outlet, °C
-      "22189D", // HV battery cooling liquid inlet, °C
-      "222A0B", // HV Battery temp (main value), °C
-      "221E32", // Total accumulated charged and discharge
-      "220500", // HV battery serial
-  
-  
-  
-  /*
+      "22028C",       // SoC (BMS), %
+      "22F40D",       // Speed, km/h
+      "227448",       // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
+      "22743B",       // cirkulation pump HV battery - flow in %
+      "221E33",       // HV Battery cell # with highest voltage, V
+      "221E34",       // HV Battery cell # with lowest  voltage, V
+      "221E3B",       // HV Battery voltage, V
+      "221E3D",       // HV Battery current, A
+      "221E0E",       // HV Battery max temp and temp point, °C and #
+      "221E0F",       // HV Battery min temp and temp point, °C and #
+      "221620",       // PTC heater battery current, A
+      "22189D",       // HV Battery cooling liquid outlet, °C
+      "22189D",       // HV battery cooling liquid inlet, °C
+      "222A0B",       // HV Battery temp (main value), °C
+      "221E32",       // Total accumulated charged and discharge
+      "220500",       // HV battery serial
+
+      /*
       "221EAE", // HV Battery temp point 1, °C
       "221EAF", // HV Battery temp point 2, °C
       "221EB0", // HV Battery temp point 3, °C
@@ -208,14 +196,14 @@ void CarVWID3::activateCommandQueue()
       "221EAA", // HV Battery cell voltage - cell 107, V
       "221EAB", // HV Battery cell voltage - cell 108, V
 */
-      
+
       // ECU XXXX
       "ATSH17FC0076", // Sets header to 17 FC 00 76
-      "220364", // HV auxilary consumer power, kW
-      "22295A", // ODOMETER, km
-      "22210E", // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
-      "22F802", // VIN number
-/*
+      "220364",       // HV auxilary consumer power, kW
+      "22295A",       // ODOMETER, km
+      "22210E",       // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
+      "22F802",       // VIN number
+                      /*
       // ECU XXXX
       "ATSH00000767", // Sets header to 00 00 07 67
       "222430", // GPS multiframe data lat, long, init, height, quality
@@ -258,7 +246,7 @@ void CarVWID3::activateCommandQueue()
 
 */
 
-  liveData->params.batModuleTempCount = 12;  // Maximum temperture points in battery, 18 for the VW ID.3 but maximum limit to show is 12 in evDash
+  liveData->params.batModuleTempCount = 18;       // Maximum temperture points in battery, 18 for the VW ID.3 but maximum limit to show is 12 in evDash
   liveData->params.batteryTotalAvailableKWh = 58; //defines that Pro trim is the standard guess
   if (liveData->settings.carType == CAR_VW_ID3_2021_45)
   {
@@ -272,7 +260,7 @@ void CarVWID3::activateCommandQueue()
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
-  
+
   for (auto cmd : commandQueueVWID3)
   {
     liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
@@ -283,7 +271,7 @@ void CarVWID3::activateCommandQueue()
   liveData->commandQueueCount = commandQueueVWID3.size();
   if (liveData->settings.carType == CAR_VW_ID3_2021_58)
   {
-    liveData->rxTimeoutMs = 500;            // timeout for receiving of CAN response
+    liveData->rxTimeoutMs = 500;          // timeout for receiving of CAN response
     liveData->delayBetweenCommandsMs = 0; // delay between commands, set to 0 if no delay is needed
   }
 }
@@ -298,14 +286,14 @@ void CarVWID3::parseRowMerged()
   //  float tempFloat;
   String tmpStr;
 
-// New parser for VW ID.3
+  // New parser for VW ID.3
 
-// ATSHFC00B9  
+  // ATSHFC00B9
   if (liveData->currentAtshRequest.equals("ATSH17FC00B9")) // For data after this header
   {
     if (liveData->commandRequest.equals("22465B")) // HV - 12V current
     {
-      // Put code here to parse the data      
+      // Put code here to parse the data
       //liveData->params.batPowerAmp = liveData->hexToDecFromResponse(6, 10, 2, false) / 16;
     }
     if (liveData->commandRequest.equals("22465D")) // HV -> 12V Voltage
@@ -315,8 +303,7 @@ void CarVWID3::parseRowMerged()
     }
   }
 
-
-// ATSH17FC007B  
+  // ATSH17FC007B
   if (liveData->currentAtshRequest.equals("ATSH17FC007B")) // For data after this header
   {
     if (liveData->commandRequest.equals("22028C")) // SOC BMS %
@@ -324,7 +311,7 @@ void CarVWID3::parseRowMerged()
       // Put code here to parse the data
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5; // SOC BMS
-      liveData->params.socPerc = liveData->params.socPercBms*51/46-6.4;   // SOC HMI
+      liveData->params.socPerc = liveData->params.socPercBms * 51 / 46 - 6.4;             // SOC HMI
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
@@ -338,634 +325,631 @@ void CarVWID3::parseRowMerged()
           liveData->params.soc10time[index] = liveData->params.currentTime;
         }
       }
-      
     }
     if (liveData->commandRequest.equals("22F40D")) // speed km/h
     {
       // Put code here to parse the data
       liveData->params.speedKmh = liveData->hexToDecFromResponse(6, 8, 1, false); // speed from car in km/h (not GPS)
     }
-  
 
     if (liveData->commandRequest.equals("227448")) // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
     {
-      
-      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 1) liveData->params.ignitionOn = true; //ignition on
-      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 4) liveData->params.chargerACconnected = true; // AC charger connected
-      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 6) liveData->params.chargerDCconnected = true; //DC charger connected
-      if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) liveData->params.chargingOn = true; // Carging on
+
+      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 1)
+        liveData->params.ignitionOn = true; //ignition on
+      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 4)
+        liveData->params.chargerACconnected = true; // AC charger connected
+      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 6)
+        liveData->params.chargerDCconnected = true; //DC charger connected
+      if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
+        liveData->params.chargingOn = true; // Carging on
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
     }
-     if (liveData->commandRequest.equals("22743B")) // cirkulation pump HV battery - flow in %
+    if (liveData->commandRequest.equals("22743B")) // cirkulation pump HV battery - flow in %
     {
-     // kräver en ny variabel
-     if (liveData->hexToDecFromResponse(6, 8, 1, false) > 0 ) liveData->params.batFanStatus;
-     liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(6, 8, 1, false);
+      // kräver en ny variabel
+      if (liveData->hexToDecFromResponse(6, 8, 1, false) > 0)
+        liveData->params.batFanStatus;
+      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(6, 8, 1, false);
     }
 
-     if (liveData->commandRequest.equals("221E33")) // HV Battery cell # with highest voltage, V
+    if (liveData->commandRequest.equals("221E33")) // HV Battery cell # with highest voltage, V
     {
-    // kod här 
+      // kod här
     }
 
-     if (liveData->commandRequest.equals("221E34")) // HV Battery cell # with lowest  voltage, V
+    if (liveData->commandRequest.equals("221E34")) // HV Battery cell # with lowest  voltage, V
     {
-    // kod här 
+      // kod här
     }
 
-     if (liveData->commandRequest.equals("221E3B")) // HV Battery voltage, V
+    if (liveData->commandRequest.equals("221E3B")) // HV Battery voltage, V
     {
-    liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 4; // kod här 
+      liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 4; // kod här
     }
 
-     if (liveData->commandRequest.equals("221E3D")) // HV Battery current, A
+    if (liveData->commandRequest.equals("221E3D")) // HV Battery current, A
     {
-    liveData->params.batPowerAmp = (liveData->hexToDecFromResponse(6, 14, 4, false)-150000) / 100; // kod här
-    liveData->params.batPowerKw =liveData->params.batPowerAmp*liveData->params.batVoltage/1000; // total power in kW from HV battery
-    liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
-    if (liveData->params.batPowerKw < 0) // Reset charging start time
+      liveData->params.batPowerAmp = (liveData->hexToDecFromResponse(6, 14, 4, false) - 150000) / 100; // kod här
+      liveData->params.batPowerKw = liveData->params.batPowerAmp * liveData->params.batVoltage / 1000; // total power in kW from HV battery
+      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
-  
     }
 
-     if (liveData->commandRequest.equals("221E0E")) // HV Battery max temp and temp point, °C and #
+    if (liveData->commandRequest.equals("221E0E")) // HV Battery max temp and temp point, °C and #
     {
-    liveData->params.batMaxC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här // kod här 
+      liveData->params.batMaxC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här // kod här
     }
 
-     if (liveData->commandRequest.equals("221E0F")) // HV Battery min temp and temp point, °C and #
+    if (liveData->commandRequest.equals("221E0F")) // HV Battery min temp and temp point, °C and #
     {
-    liveData->params.batMinC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här 
+      liveData->params.batMinC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här
     }
 
-     if (liveData->commandRequest.equals("221620")) // PTC heater battery current, A
+    if (liveData->commandRequest.equals("221620")) // PTC heater battery current, A
     {
-    // kod här 
+      // kod här
     }
 
-     if (liveData->commandRequest.equals("22189D")) // HV battery cooling liquid inlet and outlet, °C
+    if (liveData->commandRequest.equals("22189D")) // HV battery cooling liquid inlet and outlet, °C
     {
-    liveData->params.batInletC = liveData->hexToDecFromResponse(10, 14, 2, false) / 64; // kod här
-    //liveData->params.batOutletC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här    
+      liveData->params.batInletC = liveData->hexToDecFromResponse(10, 14, 2, false) / 64; // kod här
+      //liveData->params.batOutletC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här
     }
 
-     if (liveData->commandRequest.equals("222A0B")) // HV Battery temp (main value), °C
+    if (liveData->commandRequest.equals("222A0B")) // HV Battery temp (main value), °C
     {
-    liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2-40; // kod här  
-    } 
+      liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+    }
 
-  
-  
-  // Here is the 18 temperature points in the HV battery
+    // Here is the 18 temperature points in the HV battery
 
     if (liveData->commandRequest.equals("221EAE")) // HV Battery temp point 1, °C
     {
-    liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EAF")) // HV Battery temp point 2, °C
+    if (liveData->commandRequest.equals("221EAF")) // HV Battery temp point 2, °C
     {
-    liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB0")) // HV Battery temp point 3, °C
+    if (liveData->commandRequest.equals("221EB0")) // HV Battery temp point 3, °C
     {
-    liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB1")) // HV Battery temp point 4, °C
+    if (liveData->commandRequest.equals("221EB1")) // HV Battery temp point 4, °C
     {
-    liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB2")) // HV Battery temp point 5, °C
+    if (liveData->commandRequest.equals("221EB2")) // HV Battery temp point 5, °C
     {
-    liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB3")) // HV Battery temp point 6, °C
+    if (liveData->commandRequest.equals("221EB3")) // HV Battery temp point 6, °C
     {
-    liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB4")) // HV Battery temp point 7, °C
+    if (liveData->commandRequest.equals("221EB4")) // HV Battery temp point 7, °C
     {
-    liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB5")) // HV Battery temp point 8, °C
+    if (liveData->commandRequest.equals("221EB5")) // HV Battery temp point 8, °C
     {
-    liveData->params.batModuleTempC[7] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[7] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB6")) // HV Battery temp point 9, °C
+    if (liveData->commandRequest.equals("221EB6")) // HV Battery temp point 9, °C
     {
-    liveData->params.batModuleTempC[8] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[8] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB7")) // HV Battery temp point 10, °C
+    if (liveData->commandRequest.equals("221EB7")) // HV Battery temp point 10, °C
     {
-    liveData->params.batModuleTempC[9] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[9] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB8")) // HV Battery temp point 11, °C
+    if (liveData->commandRequest.equals("221EB8")) // HV Battery temp point 11, °C
     {
-    liveData->params.batModuleTempC[10] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[10] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EB9")) // HV Battery temp point 12, °C
+    if (liveData->commandRequest.equals("221EB9")) // HV Battery temp point 12, °C
     {
-    liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EBA")) // HV Battery temp point 13, °C
+    if (liveData->commandRequest.equals("221EBA")) // HV Battery temp point 13, °C
     {
-    liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EBB")) // HV Battery temp point 14, °C
+    if (liveData->commandRequest.equals("221EBB")) // HV Battery temp point 14, °C
     {
-    liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EBC")) // HV Battery temp point 15, °C
+    if (liveData->commandRequest.equals("221EBC")) // HV Battery temp point 15, °C
     {
-    liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221EBD")) // HV Battery temp point 16, °C
+    if (liveData->commandRequest.equals("221EBD")) // HV Battery temp point 16, °C
     {
-    liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("227425")) // HV Battery temp point 17, °C
+    if (liveData->commandRequest.equals("227425")) // HV Battery temp point 17, °C
     {
-    liveData->params.batModuleTempC[16] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[16] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("227426")) // HV Battery temp point 18, °C
+    if (liveData->commandRequest.equals("227426")) // HV Battery temp point 18, °C
     {
-    liveData->params.batModuleTempC[17] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8-40; // HV Battery temp point #1 
-    } 
+      liveData->params.batModuleTempC[17] = liveData->hexToDecFromResponse(6, 10, 2, false) / 8 - 40; // HV Battery temp point #1
+    }
 
-if (liveData->commandRequest.equals("221E40"))  // HV Battery cell voltage - cell 1
-    {
-    liveData->params.cellVoltage[0] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E41"))  // HV Battery cell voltage - cell 2
-    {
-    liveData->params.cellVoltage[1] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E42"))  // HV Battery cell voltage - cell 3
-    {
-    liveData->params.cellVoltage[2] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E43"))  // HV Battery cell voltage - cell 4
-    {
-    liveData->params.cellVoltage[3] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E44"))  // HV Battery cell voltage - cell 5
-    {
-    liveData->params.cellVoltage[4] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E45"))  // HV Battery cell voltage - cell 6
-    {
-    liveData->params.cellVoltage[5] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E46"))  // HV Battery cell voltage - cell 7
-    {
-    liveData->params.cellVoltage[6] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E47"))  // HV Battery cell voltage - cell 8
-    {
-    liveData->params.cellVoltage[7] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E48"))  // HV Battery cell voltage - cell 9
-    {
-    liveData->params.cellVoltage[8] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E49"))  // HV Battery cell voltage - cell 10
-    {
-    liveData->params.cellVoltage[9] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E4A"))  // HV Battery cell voltage - cell 11
-    {
-    liveData->params.cellVoltage[10] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E4B"))  // HV Battery cell voltage - cell 12
-    {
-    liveData->params.cellVoltage[11] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E4C"))  // HV Battery cell voltage - cell 13
-    {
-    liveData->params.cellVoltage[12] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E4D"))  // HV Battery cell voltage - cell 14
-    {
-    liveData->params.cellVoltage[13] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E4E"))  // HV Battery cell voltage - cell 15
-    {
-    liveData->params.cellVoltage[14] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E4F"))  // HV Battery cell voltage - cell 16
-    {
-    liveData->params.cellVoltage[15] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E50"))  // HV Battery cell voltage - cell 17
-    {
-    liveData->params.cellVoltage[16] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E51"))  // HV Battery cell voltage - cell 18
-    {
-    liveData->params.cellVoltage[17] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
-    } 
-if (liveData->commandRequest.equals("221E52"))  // HV Battery cell voltage - cell 19
-    {
-    liveData->params.cellVoltage[18] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E53"))  // HV Battery cell voltage - cell 20
-    {
-    liveData->params.cellVoltage[19] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E54"))  // HV Battery cell voltage - cell 21
-    {
-    liveData->params.cellVoltage[20] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E55"))  // HV Battery cell voltage - cell 22
-    {
-    liveData->params.cellVoltage[21] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E56"))  // HV Battery cell voltage - cell 23
-    {
-    liveData->params.cellVoltage[22] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E57"))  // HV Battery cell voltage - cell 24
-    {
-    liveData->params.cellVoltage[23] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E58"))  // HV Battery cell voltage - cell 25
-    {
-    liveData->params.cellVoltage[24] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E59"))  // HV Battery cell voltage - cell 26
-    {
-    liveData->params.cellVoltage[25] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E5A"))  // HV Battery cell voltage - cell 27
-    {
-    liveData->params.cellVoltage[26] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E5B"))  // HV Battery cell voltage - cell 28
-    {
-    liveData->params.cellVoltage[27] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E5C"))  // HV Battery cell voltage - cell 29
-    {
-    liveData->params.cellVoltage[28] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E5D"))  // HV Battery cell voltage - cell 30
-    {
-    liveData->params.cellVoltage[29] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E5E"))  // HV Battery cell voltage - cell 31
-    {
-    liveData->params.cellVoltage[30] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E5F"))  // HV Battery cell voltage - cell 32
-    {
-    liveData->params.cellVoltage[31] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E60"))  // HV Battery cell voltage - cell 33
-    {
-    liveData->params.cellVoltage[32] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E61"))  // HV Battery cell voltage - cell 34
-    {
-    liveData->params.cellVoltage[33] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E62"))  // HV Battery cell voltage - cell 35
-    {
-    liveData->params.cellVoltage[34] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E63"))  // HV Battery cell voltage - cell 36
-    {
-    liveData->params.cellVoltage[35] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E64"))  // HV Battery cell voltage - cell 37
-    {
-    liveData->params.cellVoltage[36] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E65"))  // HV Battery cell voltage - cell 38
-    {
-    liveData->params.cellVoltage[37] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E66"))  // HV Battery cell voltage - cell 39
-    {
-    liveData->params.cellVoltage[38] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E67"))  // HV Battery cell voltage - cell 40
-    {
-    liveData->params.cellVoltage[39] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E68"))  // HV Battery cell voltage - cell 41
-    {
-    liveData->params.cellVoltage[40] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E69"))  // HV Battery cell voltage - cell 42
-    {
-    liveData->params.cellVoltage[41] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E6A"))  // HV Battery cell voltage - cell 43
-    {
-    liveData->params.cellVoltage[42] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E6B"))  // HV Battery cell voltage - cell 44
-    {
-    liveData->params.cellVoltage[43] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E6C"))  // HV Battery cell voltage - cell 45
-    {
-    liveData->params.cellVoltage[44] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E6D"))  // HV Battery cell voltage - cell 46
-    {
-    liveData->params.cellVoltage[45] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E6E"))  // HV Battery cell voltage - cell 47
-    {
-    liveData->params.cellVoltage[46] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E6F"))  // HV Battery cell voltage - cell 48
-    {
-    liveData->params.cellVoltage[47] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E70"))  // HV Battery cell voltage - cell 49
-    {
-    liveData->params.cellVoltage[48] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E71"))  // HV Battery cell voltage - cell 50
-    {
-    liveData->params.cellVoltage[49] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E72"))  // HV Battery cell voltage - cell 51
-    {
-    liveData->params.cellVoltage[50] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E73"))  // HV Battery cell voltage - cell 52
-    {
-    liveData->params.cellVoltage[51] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E74"))  // HV Battery cell voltage - cell 53
-    {
-    liveData->params.cellVoltage[52] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E75"))  // HV Battery cell voltage - cell 54
-    {
-    liveData->params.cellVoltage[53] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E76"))  // HV Battery cell voltage - cell 55
-    {
-    liveData->params.cellVoltage[54] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E77"))  // HV Battery cell voltage - cell 56
-    {
-    liveData->params.cellVoltage[55] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E78"))  // HV Battery cell voltage - cell 57
-    {
-    liveData->params.cellVoltage[56] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E79"))  // HV Battery cell voltage - cell 58
-    {
-    liveData->params.cellVoltage[57] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E7A"))  // HV Battery cell voltage - cell 59
-    {
-    liveData->params.cellVoltage[58] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E7B"))  // HV Battery cell voltage - cell 60
-    {
-    liveData->params.cellVoltage[59] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E7C"))  // HV Battery cell voltage - cell 61
-    {
-    liveData->params.cellVoltage[60] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E7D"))  // HV Battery cell voltage - cell 62
-    {
-    liveData->params.cellVoltage[61] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E7E"))  // HV Battery cell voltage - cell 63
-    {
-    liveData->params.cellVoltage[62] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E7F"))  // HV Battery cell voltage - cell 64
-    {
-    liveData->params.cellVoltage[63] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E80"))  // HV Battery cell voltage - cell 65
-    {
-    liveData->params.cellVoltage[64] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E81"))  // HV Battery cell voltage - cell 66
-    {
-    liveData->params.cellVoltage[65] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E82"))  // HV Battery cell voltage - cell 67
-    {
-    liveData->params.cellVoltage[66] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E83"))  // HV Battery cell voltage - cell 68
-    {
-    liveData->params.cellVoltage[67] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E84"))  // HV Battery cell voltage - cell 69
-    {
-    liveData->params.cellVoltage[68] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E85"))  // HV Battery cell voltage - cell 70
-    {
-    liveData->params.cellVoltage[69] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E86"))  // HV Battery cell voltage - cell 71
-    {
-    liveData->params.cellVoltage[70] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E87"))  // HV Battery cell voltage - cell 72
-    {
-    liveData->params.cellVoltage[71] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E88"))  // HV Battery cell voltage - cell 73
-    {
-    liveData->params.cellVoltage[72] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E89"))  // HV Battery cell voltage - cell 74
-    {
-    liveData->params.cellVoltage[73] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E8A"))  // HV Battery cell voltage - cell 75
-    {
-    liveData->params.cellVoltage[74] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E8B"))  // HV Battery cell voltage - cell 76
-    {
-    liveData->params.cellVoltage[75] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E8C"))  // HV Battery cell voltage - cell 77
-    {
-    liveData->params.cellVoltage[76] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E8D"))  // HV Battery cell voltage - cell 78
-    {
-    liveData->params.cellVoltage[77] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E8E"))  // HV Battery cell voltage - cell 79
-    {
-    liveData->params.cellVoltage[78] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E8F"))  // HV Battery cell voltage - cell 80
-    {
-    liveData->params.cellVoltage[79] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E90"))  // HV Battery cell voltage - cell 81
-    {
-    liveData->params.cellVoltage[80] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E91"))  // HV Battery cell voltage - cell 82
-    {
-    liveData->params.cellVoltage[81] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E92"))  // HV Battery cell voltage - cell 83
-    {
-    liveData->params.cellVoltage[82] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E93"))  // HV Battery cell voltage - cell 84
+    if (liveData->commandRequest.equals("221E40")) // HV Battery cell voltage - cell 1
+    {
+      liveData->params.cellVoltage[0] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E41")) // HV Battery cell voltage - cell 2
+    {
+      liveData->params.cellVoltage[1] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E42")) // HV Battery cell voltage - cell 3
+    {
+      liveData->params.cellVoltage[2] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E43")) // HV Battery cell voltage - cell 4
+    {
+      liveData->params.cellVoltage[3] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E44")) // HV Battery cell voltage - cell 5
+    {
+      liveData->params.cellVoltage[4] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E45")) // HV Battery cell voltage - cell 6
+    {
+      liveData->params.cellVoltage[5] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E46")) // HV Battery cell voltage - cell 7
+    {
+      liveData->params.cellVoltage[6] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E47")) // HV Battery cell voltage - cell 8
+    {
+      liveData->params.cellVoltage[7] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E48")) // HV Battery cell voltage - cell 9
+    {
+      liveData->params.cellVoltage[8] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E49")) // HV Battery cell voltage - cell 10
+    {
+      liveData->params.cellVoltage[9] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E4A")) // HV Battery cell voltage - cell 11
+    {
+      liveData->params.cellVoltage[10] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E4B")) // HV Battery cell voltage - cell 12
+    {
+      liveData->params.cellVoltage[11] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E4C")) // HV Battery cell voltage - cell 13
+    {
+      liveData->params.cellVoltage[12] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E4D")) // HV Battery cell voltage - cell 14
+    {
+      liveData->params.cellVoltage[13] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E4E")) // HV Battery cell voltage - cell 15
+    {
+      liveData->params.cellVoltage[14] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E4F")) // HV Battery cell voltage - cell 16
+    {
+      liveData->params.cellVoltage[15] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E50")) // HV Battery cell voltage - cell 17
+    {
+      liveData->params.cellVoltage[16] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E51")) // HV Battery cell voltage - cell 18
+    {
+      liveData->params.cellVoltage[17] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E52")) // HV Battery cell voltage - cell 19
+    {
+      liveData->params.cellVoltage[18] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E53")) // HV Battery cell voltage - cell 20
+    {
+      liveData->params.cellVoltage[19] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E54")) // HV Battery cell voltage - cell 21
+    {
+      liveData->params.cellVoltage[20] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E55")) // HV Battery cell voltage - cell 22
+    {
+      liveData->params.cellVoltage[21] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E56")) // HV Battery cell voltage - cell 23
+    {
+      liveData->params.cellVoltage[22] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E57")) // HV Battery cell voltage - cell 24
+    {
+      liveData->params.cellVoltage[23] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E58")) // HV Battery cell voltage - cell 25
+    {
+      liveData->params.cellVoltage[24] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E59")) // HV Battery cell voltage - cell 26
+    {
+      liveData->params.cellVoltage[25] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E5A")) // HV Battery cell voltage - cell 27
+    {
+      liveData->params.cellVoltage[26] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E5B")) // HV Battery cell voltage - cell 28
+    {
+      liveData->params.cellVoltage[27] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E5C")) // HV Battery cell voltage - cell 29
+    {
+      liveData->params.cellVoltage[28] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E5D")) // HV Battery cell voltage - cell 30
+    {
+      liveData->params.cellVoltage[29] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E5E")) // HV Battery cell voltage - cell 31
+    {
+      liveData->params.cellVoltage[30] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E5F")) // HV Battery cell voltage - cell 32
+    {
+      liveData->params.cellVoltage[31] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E60")) // HV Battery cell voltage - cell 33
+    {
+      liveData->params.cellVoltage[32] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E61")) // HV Battery cell voltage - cell 34
+    {
+      liveData->params.cellVoltage[33] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E62")) // HV Battery cell voltage - cell 35
+    {
+      liveData->params.cellVoltage[34] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E63")) // HV Battery cell voltage - cell 36
+    {
+      liveData->params.cellVoltage[35] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E64")) // HV Battery cell voltage - cell 37
+    {
+      liveData->params.cellVoltage[36] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E65")) // HV Battery cell voltage - cell 38
+    {
+      liveData->params.cellVoltage[37] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E66")) // HV Battery cell voltage - cell 39
+    {
+      liveData->params.cellVoltage[38] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E67")) // HV Battery cell voltage - cell 40
+    {
+      liveData->params.cellVoltage[39] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E68")) // HV Battery cell voltage - cell 41
+    {
+      liveData->params.cellVoltage[40] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E69")) // HV Battery cell voltage - cell 42
+    {
+      liveData->params.cellVoltage[41] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E6A")) // HV Battery cell voltage - cell 43
+    {
+      liveData->params.cellVoltage[42] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E6B")) // HV Battery cell voltage - cell 44
+    {
+      liveData->params.cellVoltage[43] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E6C")) // HV Battery cell voltage - cell 45
+    {
+      liveData->params.cellVoltage[44] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E6D")) // HV Battery cell voltage - cell 46
+    {
+      liveData->params.cellVoltage[45] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E6E")) // HV Battery cell voltage - cell 47
+    {
+      liveData->params.cellVoltage[46] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E6F")) // HV Battery cell voltage - cell 48
+    {
+      liveData->params.cellVoltage[47] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E70")) // HV Battery cell voltage - cell 49
+    {
+      liveData->params.cellVoltage[48] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E71")) // HV Battery cell voltage - cell 50
+    {
+      liveData->params.cellVoltage[49] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E72")) // HV Battery cell voltage - cell 51
+    {
+      liveData->params.cellVoltage[50] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E73")) // HV Battery cell voltage - cell 52
+    {
+      liveData->params.cellVoltage[51] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E74")) // HV Battery cell voltage - cell 53
+    {
+      liveData->params.cellVoltage[52] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E75")) // HV Battery cell voltage - cell 54
+    {
+      liveData->params.cellVoltage[53] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E76")) // HV Battery cell voltage - cell 55
+    {
+      liveData->params.cellVoltage[54] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E77")) // HV Battery cell voltage - cell 56
+    {
+      liveData->params.cellVoltage[55] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E78")) // HV Battery cell voltage - cell 57
+    {
+      liveData->params.cellVoltage[56] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E79")) // HV Battery cell voltage - cell 58
+    {
+      liveData->params.cellVoltage[57] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E7A")) // HV Battery cell voltage - cell 59
+    {
+      liveData->params.cellVoltage[58] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E7B")) // HV Battery cell voltage - cell 60
+    {
+      liveData->params.cellVoltage[59] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E7C")) // HV Battery cell voltage - cell 61
+    {
+      liveData->params.cellVoltage[60] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E7D")) // HV Battery cell voltage - cell 62
+    {
+      liveData->params.cellVoltage[61] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E7E")) // HV Battery cell voltage - cell 63
+    {
+      liveData->params.cellVoltage[62] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E7F")) // HV Battery cell voltage - cell 64
+    {
+      liveData->params.cellVoltage[63] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E80")) // HV Battery cell voltage - cell 65
+    {
+      liveData->params.cellVoltage[64] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E81")) // HV Battery cell voltage - cell 66
+    {
+      liveData->params.cellVoltage[65] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E82")) // HV Battery cell voltage - cell 67
+    {
+      liveData->params.cellVoltage[66] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E83")) // HV Battery cell voltage - cell 68
+    {
+      liveData->params.cellVoltage[67] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E84")) // HV Battery cell voltage - cell 69
+    {
+      liveData->params.cellVoltage[68] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E85")) // HV Battery cell voltage - cell 70
+    {
+      liveData->params.cellVoltage[69] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E86")) // HV Battery cell voltage - cell 71
+    {
+      liveData->params.cellVoltage[70] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E87")) // HV Battery cell voltage - cell 72
+    {
+      liveData->params.cellVoltage[71] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E88")) // HV Battery cell voltage - cell 73
+    {
+      liveData->params.cellVoltage[72] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E89")) // HV Battery cell voltage - cell 74
+    {
+      liveData->params.cellVoltage[73] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E8A")) // HV Battery cell voltage - cell 75
+    {
+      liveData->params.cellVoltage[74] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E8B")) // HV Battery cell voltage - cell 76
+    {
+      liveData->params.cellVoltage[75] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E8C")) // HV Battery cell voltage - cell 77
+    {
+      liveData->params.cellVoltage[76] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E8D")) // HV Battery cell voltage - cell 78
+    {
+      liveData->params.cellVoltage[77] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E8E")) // HV Battery cell voltage - cell 79
+    {
+      liveData->params.cellVoltage[78] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E8F")) // HV Battery cell voltage - cell 80
+    {
+      liveData->params.cellVoltage[79] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E90")) // HV Battery cell voltage - cell 81
+    {
+      liveData->params.cellVoltage[80] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E91")) // HV Battery cell voltage - cell 82
+    {
+      liveData->params.cellVoltage[81] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E92")) // HV Battery cell voltage - cell 83
+    {
+      liveData->params.cellVoltage[82] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E93")) // HV Battery cell voltage - cell 84
     {
-    liveData->params.cellVoltage[83] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E94"))  // HV Battery cell voltage - cell 85
+      liveData->params.cellVoltage[83] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E94")) // HV Battery cell voltage - cell 85
     {
-    liveData->params.cellVoltage[84] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E95"))  // HV Battery cell voltage - cell 86
+      liveData->params.cellVoltage[84] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E95")) // HV Battery cell voltage - cell 86
     {
-    liveData->params.cellVoltage[85] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E96"))  // HV Battery cell voltage - cell 87
+      liveData->params.cellVoltage[85] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E96")) // HV Battery cell voltage - cell 87
     {
-    liveData->params.cellVoltage[86] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E97"))  // HV Battery cell voltage - cell 88
+      liveData->params.cellVoltage[86] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E97")) // HV Battery cell voltage - cell 88
     {
-    liveData->params.cellVoltage[87] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E98"))  // HV Battery cell voltage - cell 89
+      liveData->params.cellVoltage[87] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E98")) // HV Battery cell voltage - cell 89
     {
-    liveData->params.cellVoltage[88] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E99"))  // HV Battery cell voltage - cell 90
+      liveData->params.cellVoltage[88] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E99")) // HV Battery cell voltage - cell 90
     {
-    liveData->params.cellVoltage[89] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E9A"))  // HV Battery cell voltage - cell 91
+      liveData->params.cellVoltage[89] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E9A")) // HV Battery cell voltage - cell 91
     {
-    liveData->params.cellVoltage[90] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E9B"))  // HV Battery cell voltage - cell 92
+      liveData->params.cellVoltage[90] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E9B")) // HV Battery cell voltage - cell 92
     {
-    liveData->params.cellVoltage[91] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E9C"))  // HV Battery cell voltage - cell 93
+      liveData->params.cellVoltage[91] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E9C")) // HV Battery cell voltage - cell 93
     {
-    liveData->params.cellVoltage[92] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E9D"))  // HV Battery cell voltage - cell 94
+      liveData->params.cellVoltage[92] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E9D")) // HV Battery cell voltage - cell 94
     {
-    liveData->params.cellVoltage[93] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E9E"))  // HV Battery cell voltage - cell 95
+      liveData->params.cellVoltage[93] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E9E")) // HV Battery cell voltage - cell 95
     {
-    liveData->params.cellVoltage[94] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221E9F"))  // HV Battery cell voltage - cell 96
+      liveData->params.cellVoltage[94] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221E9F")) // HV Battery cell voltage - cell 96
     {
-    liveData->params.cellVoltage[95] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA0"))  // HV Battery cell voltage - cell 97
+      liveData->params.cellVoltage[95] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA0")) // HV Battery cell voltage - cell 97
     {
-    liveData->params.cellVoltage[96] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA1"))  // HV Battery cell voltage - cell 98
+      liveData->params.cellVoltage[96] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA1")) // HV Battery cell voltage - cell 98
     {
-    liveData->params.cellVoltage[97] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA2"))  // HV Battery cell voltage - cell 99
+      liveData->params.cellVoltage[97] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA2")) // HV Battery cell voltage - cell 99
     {
-    liveData->params.cellVoltage[98] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA3"))  // HV Battery cell voltage - cell 100
+      liveData->params.cellVoltage[98] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA3")) // HV Battery cell voltage - cell 100
     {
-    liveData->params.cellVoltage[99] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA4"))  // HV Battery cell voltage - cell 101
+      liveData->params.cellVoltage[99] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA4")) // HV Battery cell voltage - cell 101
     {
-    liveData->params.cellVoltage[100] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA5"))  // HV Battery cell voltage - cell 102
+      liveData->params.cellVoltage[100] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA5")) // HV Battery cell voltage - cell 102
     {
-    liveData->params.cellVoltage[101] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA6"))  // HV Battery cell voltage - cell 103
+      liveData->params.cellVoltage[101] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA6")) // HV Battery cell voltage - cell 103
     {
-    liveData->params.cellVoltage[102] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA7"))  // HV Battery cell voltage - cell 104
+      liveData->params.cellVoltage[102] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA7")) // HV Battery cell voltage - cell 104
     {
-    liveData->params.cellVoltage[103] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA8"))  // HV Battery cell voltage - cell 105
+      liveData->params.cellVoltage[103] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA8")) // HV Battery cell voltage - cell 105
     {
-    liveData->params.cellVoltage[104] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EA9"))  // HV Battery cell voltage - cell 106
+      liveData->params.cellVoltage[104] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EA9")) // HV Battery cell voltage - cell 106
     {
-    liveData->params.cellVoltage[105] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EAA"))  // HV Battery cell voltage - cell 107
+      liveData->params.cellVoltage[105] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EAA")) // HV Battery cell voltage - cell 107
     {
-    liveData->params.cellVoltage[106] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
-if (liveData->commandRequest.equals("221EAB"))  // HV Battery cell voltage - cell 108
+      liveData->params.cellVoltage[106] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
+    if (liveData->commandRequest.equals("221EAB")) // HV Battery cell voltage - cell 108
     {
-    liveData->params.cellVoltage[107] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1 
-    } 
+      liveData->params.cellVoltage[107] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+    }
 
-float maxCellVolt=0;
-float minCellVolt=6;
+    float maxCellVolt = 0;
+    float minCellVolt = 6;
 
-for (int i = 0; i < 108; i++) {
-    if(liveData->params.cellVoltage[i] > maxCellVolt) maxCellVolt = liveData->params.cellVoltage[i];
-    if(liveData->params.cellVoltage[i] < minCellVolt) minCellVolt = liveData->params.cellVoltage[i];
-  }
-liveData->params.batCellMinV=minCellVolt;
-liveData->params.batCellMaxV=maxCellVolt;
-
-
-
-if (liveData->commandRequest.equals("221E32"))  // HV Battery total accumulated charge and total accumulated discharge, MF answer
+    for (int i = 0; i < 108; i++)
     {
-    liveData->params.cumulativeEnergyChargedKWh = liveData->hexToDecFromResponse(22, 30, 4, false) / 8583.07123641215; // beräkning av totalt accumulerat laddat 
-    liveData->params.cumulativeEnergyDischargedKWh = abs(liveData->hexToDecFromResponse(30, 38, 4, true) /8583.07123641215); // beräkning av totalt accumulerat urladdat 
-     if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
-      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
+      if (liveData->params.cellVoltage[i] > maxCellVolt)
+        maxCellVolt = liveData->params.cellVoltage[i];
+      if (liveData->params.cellVoltage[i] < minCellVolt)
+        minCellVolt = liveData->params.cellVoltage[i];
+    }
+    liveData->params.batCellMinV = minCellVolt;
+    liveData->params.batCellMaxV = maxCellVolt;
+
+    if (liveData->commandRequest.equals("221E32")) // HV Battery total accumulated charge and total accumulated discharge, MF answer
+    {
+      liveData->params.cumulativeEnergyChargedKWh = liveData->hexToDecFromResponse(22, 30, 4, false) / 8583.07123641215;        // beräkning av totalt accumulerat laddat
+      liveData->params.cumulativeEnergyDischargedKWh = abs(liveData->hexToDecFromResponse(30, 38, 4, true) / 8583.07123641215); // beräkning av totalt accumulerat urladdat
       
-if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
+      if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
       {
         if (liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
           liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
@@ -976,20 +960,15 @@ if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveDa
         liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
         liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
       }
+    }
+  }
 
-    } 
-
-
-
-
-  }  
-
-// ATSH17FC0076  
+  // ATSH17FC0076
   if (liveData->currentAtshRequest.equals("ATSH17FC0076")) // For data after this header
   {
     if (liveData->commandRequest.equals("220364")) // HV auxilary consumer power, kW
     {
-      // Put code here to parse the data      
+      // Put code here to parse the data
     }
     if (liveData->commandRequest.equals("22295A")) // ODOMETER, km
     {
@@ -997,32 +976,30 @@ if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveDa
     }
     if (liveData->commandRequest.equals("22210E")) // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=12->B,YY=07->R,YY=06->N
     {
-      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 5) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 12)) liveData->params.forwardDriveMode = true; // D or B mode
-      if (liveData->hexToDecFromResponse(8, 10, 1, false) == 7) liveData->params.reverseDriveMode = true; // R mode
-      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 6) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 8)) liveData->params.parkModeOrNeutral = true; // N or P mode
-      
-      
+      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 5) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 12))
+        liveData->params.forwardDriveMode = true; // D or B mode
+      if (liveData->hexToDecFromResponse(8, 10, 1, false) == 7)
+        liveData->params.reverseDriveMode = true; // R mode
+      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 6) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 8))
+        liveData->params.parkModeOrNeutral = true; // N or P mode
     }
   }
 
-
-// ATSH00000767  
+  // ATSH00000767
   if (liveData->currentAtshRequest.equals("ATSH00000767")) // For data after this header
   {
     if (liveData->commandRequest.equals("222431")) // GPS number of tracked and vissible satellites
     {
-      // Put code here to parse the data      
+      // Put code here to parse the data
     }
-    
   }
 
-
-// ATSH000746  
+  // ATSH000746
   if (liveData->currentAtshRequest.equals("ATSH00000746")) // For data after this header
   {
     if (liveData->commandRequest.equals("222613")) // Inside temperature, °C
     {
-      liveData->params.indoorTemperature = liveData->hexToDecFromResponse(6, 10, 2, false)/5-40; // Interior temperature       
+      liveData->params.indoorTemperature = liveData->hexToDecFromResponse(6, 10, 2, false) / 5 - 40; // Interior temperature
     }
     if (liveData->commandRequest.equals("22263B")) // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
     {
@@ -1030,25 +1007,22 @@ if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveDa
     }
     if (liveData->commandRequest.equals("2242DB")) // CO2 content interior, ppm
     {
-      // Put code here to parse the data      
+      // Put code here to parse the data
     }
     if (liveData->commandRequest.equals("22F449")) // Accelerator pedal position, %
     {
-      // Put code here to parse the data      
+      // Put code here to parse the data
     }
   }
 
-
-// ATSH00070E  
+  // ATSH00070E
   if (liveData->currentAtshRequest.equals("ATSH0000070E")) // For data after this header
   {
     if (liveData->commandRequest.equals("222609")) // Outdoor temperature, °C
     {
-      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false)/2-50; // Outdoor temperature      
+      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // Outdoor temperature
     }
   }
-
-
 }
 
 /**
@@ -1329,37 +1303,38 @@ void CarVWID3::testHandler(const String &cmd)
   // AIRCON SCANNER
   if (key.equals("aircon"))
   {
-        // SET TESTER PRESENT
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "3E");
-        delay(10);
-        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
-        {
-          if (commInterface->receivePID() != 0xff)
-            break;
-          delay(20);
-        }
-        delay(liveData->delayBetweenCommandsMs);
+    // SET TESTER PRESENT
+    commInterface->sendPID(liveData->hexToDec("0736", 2, false), "3E");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+        break;
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
 
-        // CHANGE SESSION
-        commInterface->sendPID(liveData->hexToDec("0736", 2, false), "1003");
-        delay(10);
-        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    // CHANGE SESSION
+    commInterface->sendPID(liveData->hexToDec("0736", 2, false), "1003");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+      {
+        // WAIT FOR POSITIVE ANSWER
+        if (liveData->responseRowMerged.equals("5003"))
         {
-          if (commInterface->receivePID() != 0xff)
-          {
-            // WAIT FOR POSITIVE ANSWER
-            if (liveData->responseRowMerged.equals("5003"))
-            {
-              syslog->println("POSITIVE ANSWER");
-              break;
-            }
-          }
-          delay(20);
+          syslog->println("POSITIVE ANSWER");
+          break;
         }
-        delay(liveData->delayBetweenCommandsMs);
+      }
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
 
     // test=aircon/1
-    for (uint16_t a = 0; a < 255; a++) { 
+    for (uint16_t a = 0; a < 255; a++)
+    {
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
       for (uint16_t b = 240; b < 241; b++)
@@ -1373,7 +1348,7 @@ void CarVWID3::testHandler(const String &cmd)
         command += String(a, HEX);
         command.toUpperCase();
         command += "00";
-        
+
         // EXECUTE COMMAND
         //syslog->print(".");
         commInterface->sendPID(liveData->hexToDec("0736", 2, false), command);
@@ -1383,7 +1358,7 @@ void CarVWID3::testHandler(const String &cmd)
         {
           if (commInterface->receivePID() != 0xff)
           {
-            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/ )
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/)
             {
               syslog->print("### \t");
               syslog->print(command);

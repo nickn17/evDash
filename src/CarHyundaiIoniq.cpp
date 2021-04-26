@@ -196,11 +196,7 @@ void CarHyundaiIoniq::parseRowMerged()
     {
       liveData->params.socPercBms = liveData->hexToDecFromResponse(12, 14, 1, false) / 2.0;
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(80, 88) / 10.0;
-      if (liveData->params.cumulativeEnergyChargedKWhStart == -1)
-        liveData->params.cumulativeEnergyChargedKWhStart = liveData->params.cumulativeEnergyChargedKWh;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(88, 96) / 10.0;
-      if (liveData->params.cumulativeEnergyDischargedKWhStart == -1)
-        liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
       liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, false);
@@ -211,15 +207,7 @@ void CarHyundaiIoniq::parseRowMerged()
       {
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
 
-        float tmpAuxPerc;
-        if (liveData->params.ignitionOn)
-        {
-          tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); //min: 12.8V; max: 14.8V
-        }
-        else
-        {
-          tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
-        }
+        float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
 
         if (tmpAuxPerc > 100)
         {

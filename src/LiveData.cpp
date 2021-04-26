@@ -1,19 +1,21 @@
 #include "LiveData.h"
 #include "menu.h"
 
-LogSerial* syslog;
+LogSerial *syslog;
 
 /**
    Debug level
 */
-void debug(String msg, uint8_t debugLevel) {
+void debug(String msg, uint8_t debugLevel)
+{
   syslog->println(msg);
 }
 
 /**
    Init params with default values
 */
-void LiveData::initParams() {
+void LiveData::initParams()
+{
 
   params.queueLoopCounter = 0;
   // SIM
@@ -71,6 +73,7 @@ void LiveData::initParams() {
   params.inverterTempC = -100;
   params.motorTempC = -100;
   params.odoKm = -1;
+  params.odoKmStart = -1;
   params.socPercBms = -1;
   params.socPerc = -1;
   params.socPercPrevious = -1;
@@ -88,6 +91,8 @@ void LiveData::initParams() {
   params.batVoltage = -1;
   params.batCellMinV = -1;
   params.batCellMaxV = -1;
+  params.batCellMinVNo = 255;
+  params.batCellMaxVNo = 255;
   params.batTempC = -100;
   params.batHeaterC = -100;
   params.batInletC = -100;
@@ -95,7 +100,8 @@ void LiveData::initParams() {
   params.batFanFeedbackHz = -1;
   params.batMinC = -100;
   params.batMaxC = -100;
-  for (int i = 0; i < 25; i++) {
+  for (int i = 0; i < 25; i++)
+  {
     params.batModuleTempC[i] = -100;
   }
   params.batModuleTempC[0] = -100;
@@ -124,15 +130,18 @@ void LiveData::initParams() {
   params.tireRearLeftPressureBar = -1;
   params.tireRearRightTempC = -100;
   params.tireRearRightPressureBar = -1;
-  for (int i = 0; i <= 10; i++) {
+  for (int i = 0; i <= 10; i++)
+  {
     params.soc10ced[i] = params.soc10cec[i] = params.soc10odo[i] = -1;
     params.soc10time[i] = 0;
   }
-  for (int i = 0; i < 108; i++) {
+  for (int i = 0; i < 108; i++)
+  { // id3 58kWh = 108 cells
     params.cellVoltage[i] = 0;
   }
   params.cellCount = 0;
-  for (int i = 0; i <= 100; i++) {
+  for (int i = 0; i <= 100; i++)
+  {
     params.chargingGraphMinKw[i] = -1;
     params.chargingGraphMaxKw[i] = -1;
     params.chargingGraphBatMinTempC[i] = -100;
@@ -154,54 +163,48 @@ void LiveData::initParams() {
   Hex to dec (1-2 byte values, signed/unsigned)
   For 4 byte change int to long and add part for signed numbers
 */
-double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum) {
+double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
+{
+
   double decValue = 0;
   double nextInt;
-  
-  /*for (int i = 0; i < hexString.length(); i++) { //changed reference for i
-    nextInt = int(hexString.charAt(i));
-    if (nextInt >= 48 && nextInt <= 57) nextInt = map(nextInt, 48, 57, 0, 9);
-    if (nextInt >= 65 && nextInt <= 70) nextInt = map(nextInt, 65, 70, 10, 15);
-    if (nextInt >= 97 && nextInt <= 102) nextInt = map(nextInt, 97, 102, 10, 15);
-    nextInt = constrain(nextInt, 0, 15);
-    decValue = (decValue * 16) + nextInt; */
 
-for (int i=0; i<hexString.length(); i++) {
-        if (hexString[i]>=48 && hexString[i]<=57)
-        {
-            decValue += (hexString[i]-48)*pow(16,hexString.length()-i-1);
-        } else if (hexString[i]>=65 && hexString[i]<=70) {
-            decValue += (hexString[i]-55)*pow(16,hexString.length( )-i-1);
-        } else if (hexString[i]>=97 && hexString[i]<=102) {
-            decValue += (hexString[i]-87)*pow(16,hexString.length()-i-1);
-        }
+  for (int i = 0; i < hexString.length(); i++)
+  {
+    if (hexString[i] >= 48 && hexString[i] <= 57)
+    {
+      decValue += (hexString[i] - 48) * pow(16, hexString.length() - i - 1);
     }
-    //return decValue;
-
-  
+    else if (hexString[i] >= 65 && hexString[i] <= 70)
+    {
+      decValue += (hexString[i] - 55) * pow(16, hexString.length() - i - 1);
+    }
+    else if (hexString[i] >= 97 && hexString[i] <= 102)
+    {
+      decValue += (hexString[i] - 87) * pow(16, hexString.length() - i - 1);
+    }
+  }
 
   // Unsigned - do nothing
-  if (!signedNum) {
+  if (!signedNum)
+  {
     return decValue;
   }
-  /* Signed for 1, 2 bytes
-  if (bytes == 1) {
+
+  // Signed 1-4 bytes
+  switch (bytes)
+  {
+  case 1:
     return (decValue > 127 ? (float)decValue - 256.0 : decValue);
+  case 2:
+    return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
+  case 3:
+    return (decValue > 8388607 ? (float)decValue - 16777216.0 : decValue);
+  case 4:
+    return (decValue > 3147483647 ? (float)decValue - 4294967296.0 : decValue);
+  default:
+    return -1;
   }
-  return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
-*/
-
-//signed 1-4 bytes
-switch (bytes) {
-    case 1: return (decValue > 127 ? (float)decValue - 256.0 : decValue);
-    case 2: return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
-    case 3: return (decValue > 8388607 ? (float)decValue - 16777216.0 : decValue);
-    case 4: return (decValue > 3147483647 ? (float)decValue - 4294967296.0 : decValue);
-    default: return -1;
-}
-
-
-
 }
 
 /**
@@ -209,7 +212,6 @@ switch (bytes) {
   Hex to dec (1-2 byte values, signed/unsigned)
   For 4 byte change int to long and add part for signed numbers
 */
-
 double LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum) {
   return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
 }
@@ -217,41 +219,55 @@ double LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, b
 /**
   Combination of responseRowMerged.substring -> strtol -> float
 */
-float LiveData::decFromResponse(byte from, byte to, char **str_end, int base) {
+float LiveData::decFromResponse(uint8_t from, uint8_t to, char **str_end, int base)
+{
   return float(strtol(responseRowMerged.substring(from, to).c_str(), str_end, base));
 }
 
 /**
    Convert km to km or miles
 */
-float LiveData::km2distance(float inKm) {
+float LiveData::km2distance(float inKm)
+{
   return (settings.distanceUnit == 'k') ? inKm : inKm / 1.609344;
 }
 
 /**
    Convert celsius to celsius or farenheit
 */
-float LiveData::celsius2temperature(float inCelsius) {
+float LiveData::celsius2temperature(float inCelsius)
+{
   return (settings.temperatureUnit == 'c') ? inCelsius : (inCelsius * 1.8) + 32;
 }
 
 /**
    Convert bar to bar or psi
 */
-float LiveData::bar2pressure(float inBar) {
+float LiveData::bar2pressure(float inBar)
+{
   return (settings.pressureUnit == 'b') ? inBar : inBar * 14.503773800722;
 }
 
 /**
    batteryManagementModeStr
 */
-String LiveData::getBatteryManagementModeStr(int8_t mode) {
-  switch (mode) {
-    case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE: return "LTR";
-    case BAT_MAN_MODE_COOLING: return "COOL";
-    case BAT_MAN_MODE_OFF: return "OFF";
-    case BAT_MAN_MODE_PTC_HEATER: return "PTC";
-    case BAT_MAN_MODE_UNKNOWN: return "UNK";
-    default: return "";
+String LiveData::getBatteryManagementModeStr(int8_t mode)
+{
+  switch (mode)
+  {
+  case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING:
+    return "LTRCOOL"; // via motor (charging 75kW / bat.25°C in the winter)
+  case BAT_MAN_MODE_LOW_TEMPERATURE_RANGE:
+    return "LTR"; // via motor (drive)
+  case BAT_MAN_MODE_COOLING:
+    return "COOL"; // chiller via A/C
+  case BAT_MAN_MODE_OFF:
+    return "OFF"; // water pump off
+  case BAT_MAN_MODE_PTC_HEATER:
+    return "PTC"; // PTC heater
+  case BAT_MAN_MODE_UNKNOWN:
+    return "UNK";
+  default:
+    return "";
   }
 }

@@ -298,14 +298,8 @@ void BoardInterface::afterSetup()
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
 
-// Temporary to force it to COMMU CAN
-//liveData->settings.commType = COMM_TYPE_OBD2CAN; 
-//saveSettings();
-
-
   if (liveData->settings.commType == COMM_TYPE_OBD2BLE4)
   {
-    ;
     commInterface = new CommObd2Ble4();
   }
   else if (liveData->settings.commType == COMM_TYPE_OBD2CAN)
@@ -331,6 +325,8 @@ void BoardInterface::customConsoleCommand(String cmd)
 
   if (cmd.equals("reboot"))
     ESP.restart();
+  if (cmd.equals("saveSettings"))
+    saveSettings();
   // CAN comparer
   if (cmd.equals("compare"))
     commInterface->compareCanRecords();
@@ -424,6 +420,10 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 
   jsonData["cellMinV"] = liveData->params.batCellMinV;
   jsonData["cellMaxV"] = liveData->params.batCellMaxV;
+  if (liveData->params.batCellMinVNo != 255)
+    jsonData["cellMinVNo"] = liveData->params.batCellMinVNo;
+  if (liveData->params.batCellMaxVNo != 255)
+    jsonData["cellMaxVNo"] = liveData->params.batCellMaxVNo;
   jsonData["bMinC"] = round(liveData->params.batMinC);
   jsonData["bMaxC"] = round(liveData->params.batMaxC);
   jsonData["bHeatC"] = round(liveData->params.batHeaterC);
