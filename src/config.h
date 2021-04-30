@@ -127,6 +127,7 @@ typedef enum
   MENU_WIFI_ENABLED,
   MENU_WIFI_SSID,
   MENU_WIFI_PASSWORD,
+  MENU_WIFI_IPADDR,
 
   //menu sdcard
   MENU_SDCARD_TOP = 3040,

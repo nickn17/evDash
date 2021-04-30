@@ -15,6 +15,14 @@ void CommInterface::initComm(LiveData *pLiveData, BoardInterface *pBoard)
 }
 
 /**
+ * checkConnectAttempts
+ */
+uint8_t CommInterface::checkConnectAttempts()
+{
+  return connectAttempts > 0;
+}
+
+/**
   Main loop
 */
 void CommInterface::mainLoop()

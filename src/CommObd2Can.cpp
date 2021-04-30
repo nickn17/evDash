@@ -10,6 +10,7 @@
 */
 void CommObd2Can::connectDevice()
 {
+  connectAttempts--;
 
   syslog->println("CAN connectDevice");
 

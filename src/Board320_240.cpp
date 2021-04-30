@@ -1,8 +1,8 @@
 //#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
-//#include <WiFi.h>
-//#include <WiFiClient.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -57,9 +57,9 @@ void Board320_240::initBoard()
   tv.tv_sec = 1589011873;
 #endif
 
-  struct timezone tz;
+  /*struct timezone tz;
   tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
-  tz.tz_dsttime = 0;
+  tz.tz_dsttime = 0;*/
   settimeofday(&tv, NULL);
   struct tm tm;
   getLocalTime(&tm);
@@ -138,13 +138,13 @@ void Board320_240::afterSetup()
   // Starting Wifi after BLE prevents reboot loop
   if (liveData->settings.wifiEnabled == 1)
   {
-    /*syslog->print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
-        syslog->println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
-        syslog->println("WiFi init...");
-      WiFi.enableSTA(true);
-      WiFi.mode(WIFI_STA);
-      WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
-        syslog->println("WiFi init completed...");*/
+    syslog->print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
+    syslog->println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
+    syslog->println("WiFi init...");
+    WiFi.enableSTA(true);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+    syslog->println("WiFi init completed...");
   }
 
   // Init GPS
@@ -310,7 +310,7 @@ void Board320_240::afterSleep()
       liveData->settings.sleepModeLevel = 3;
       goToSleep();
     }
-    else if (liveData->params.auxVoltage < liveData->settings.voltmeterWakeUp)
+    else if (liveData->params.auxVoltage > 0 && liveData->params.auxVoltage < liveData->settings.voltmeterWakeUp)
     {
       syslog->print("AUX voltage under: ");
       syslog->println(liveData->settings.voltmeterWakeUp);
@@ -708,20 +708,20 @@ void Board320_240::drawSceneSpeed()
           liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
   spr.setTextDatum(BL_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
-  spr.drawString("cons./regen.kWh", 0, 240-28, 2);
+  spr.drawString("cons./regen.kWh", 0, 240 - 28, 2);
   posx = 319;
   float kwh100a = 0;
   float kwh100b = 0;
   if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
     kwh100a = ((100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart) -
-                        (liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart))) /
-              (liveData->params.odoKm - liveData->params.odoKmStart));
+                       (liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart))) /
+               (liveData->params.odoKm - liveData->params.odoKmStart));
   if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
     kwh100b = ((100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart))) /
-              (liveData->params.odoKm - liveData->params.odoKmStart));
+               (liveData->params.odoKm - liveData->params.odoKmStart));
   sprintf(tmpStr3, "%01.01f/%01.01f", kwh100a, kwh100b);
   spr.setTextDatum(BR_DATUM);
-  spr.drawString("avg.kWh/100km", posx, 240-28, 2);
+  spr.drawString("avg.kWh/100km", posx, 240 - 28, 2);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   // Bat.power
   /*posx = 320 / 2;
@@ -1606,6 +1606,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "%s", liveData->settings.wifiPassword);
     suffix = tmpStr1;
     break;
+  case MENU_WIFI_IPADDR:
+    suffix = WiFi.localIP().toString();
+    break;
   //
   case MENU_DISTANCE_UNIT:
     suffix = (liveData->settings.distanceUnit == 'k') ? "[km]" : "[mi]";
@@ -1725,7 +1728,6 @@ void Board320_240::menuMove(bool forward, bool rotate)
 */
 void Board320_240::menuItemClick()
 {
-
   // Locate menu item for meta data
   MENU_ITEM *tmpMenuItem = NULL;
   uint16_t tmpCurrMenuItem = 0;
@@ -1995,9 +1997,8 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_WIFI_SSID:
-      return;
-      break;
     case MENU_WIFI_PASSWORD:
+    case MENU_WIFI_IPADDR:
       return;
       break;
     // Sdcard
@@ -2581,14 +2582,15 @@ void Board320_240::mainLoop()
     {
       sim800lSendData();
     }
-    goToSleep();
+    if (liveData->params.auxVoltage > 0)
+      goToSleep();
   }
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
 
   // Reconnect CAN bus if no response for 5s
-  if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5)
+  if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 && commInterface->checkConnectAttempts())
   {
     syslog->println("No response from CANbus for 5 seconds, reconnecting");
     commInterface->connectDevice();
@@ -2808,9 +2810,9 @@ void Board320_240::syncGPS()
     time_t t = mktime(&tm);
     printf("%02d%02d%02d%02d%02d%02d\n", gps.date.year() - 2000, gps.date.month() - 1, gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
     struct timeval now = {.tv_sec = t};
-    struct timezone tz;
+    /*struct timezone tz;
     tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
-    tz.tz_dsttime = 0;
+    tz.tz_dsttime = 0;*/
     settimeofday(&now, NULL);
 
     syncTimes(t);
