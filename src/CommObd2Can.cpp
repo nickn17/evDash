@@ -222,14 +222,11 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 
   lastPid = pid;
   bResponseProcessed = false;
-// logic to choose from 11-bit or 29-bit
+// logic to choose from 11-bit or 29-bit by testing if PID is bigger than 4095 (ie bigger than FF)
 byte is29bit=0;
 if (pid>4095) is29bit=1;
 
 const uint8_t sndStat = CAN->sendMsgBuf(pid, is29bit, 8, txBuf); // 11 bit or 29 bit
-  // const uint8_t sndStat = CAN->sendMsgBuf(pid, (isVwId ? 1: 0), 8, txBuf); // 11 bit
-  //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
-  //  const uint8_t sndStat = CAN->sendMsgBuf(0x17FC00B9, 1, 8, txBuf); // 29 bit extended frame, test with 29 bit CAN iD manual
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
