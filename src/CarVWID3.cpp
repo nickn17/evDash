@@ -67,7 +67,8 @@ void CarVWID3::activateCommandQueue()
       "222A0B",       // HV Battery temp (main value), °C
       "221E32",       // Total accumulated charged and discharge
       "220500",       // HV battery serial
-
+      "221E1B",       // Dynamic limit for charging in ampere
+      "221E1C",       // Dynamic limit for discharging in ampere
       /*
       "221EAE", // HV Battery temp point 1, °C
       "221EAF", // HV Battery temp point 2, °C
@@ -406,6 +407,18 @@ void CarVWID3::parseRowMerged()
     {
       liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
     }
+
+    if (liveData->commandRequest.equals("221E1B")) // Dynamic limit for charging in ampere
+    {
+      //liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+    }
+
+    if (liveData->commandRequest.equals("221E1C")) // Dynamic limit for discharging in ampere
+    {
+      //liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+    }
+
+
 
     // Here is the 18 temperature points in the HV battery
 
