@@ -222,9 +222,11 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 
   lastPid = pid;
   bResponseProcessed = false;
-  const uint8_t sndStat = CAN->sendMsgBuf(pid, (isVwId ? 1: 0), 8, txBuf); // 11 bit
-  //  uint8_t sndStat = CAN->sendMsgBuf(0x7e4, 1, 8, tmp); // 29 bit extended frame
-  //  const uint8_t sndStat = CAN->sendMsgBuf(0x17FC00B9, 1, 8, txBuf); // 29 bit extended frame, test with 29 bit CAN iD manual
+// logic to choose from 11-bit or 29-bit by testing if PID is bigger than 4095 (ie bigger than FF)
+byte is29bit=0;
+if (pid>4095) is29bit=1;
+
+const uint8_t sndStat = CAN->sendMsgBuf(pid, is29bit, 8, txBuf); // 11 bit or 29 bit
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
@@ -258,8 +260,10 @@ void CommObd2Can::sendFlowControlFrame()
     memmove(txBuf + 1, txBuf, 7);
     txBuf[0] = liveData->commandStartChar;
   }
-
-  const uint8_t sndStat = CAN->sendMsgBuf(lastPid, (isVwId ? 1 : 0), 8, txBuf); // VW:29bit vs others:11 bit
+  // logic to choose from 11-bit or 29-bit
+  byte is29bit=0;
+  if (lastPid>4095) is29bit=1;
+  const uint8_t sndStat = CAN->sendMsgBuf(lastPid, is29bit, 8, txBuf); // VW:29bit vs others:11 bit
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "Flow control frame sent ");

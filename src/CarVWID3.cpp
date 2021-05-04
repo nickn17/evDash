@@ -67,7 +67,8 @@ void CarVWID3::activateCommandQueue()
       "222A0B",       // HV Battery temp (main value), °C
       "221E32",       // Total accumulated charged and discharge
       "220500",       // HV battery serial
-
+      "221E1B",       // Dynamic limit for charging in ampere
+      "221E1C",       // Dynamic limit for discharging in ampere
       /*
       "221EAE", // HV Battery temp point 1, °C
       "221EAF", // HV Battery temp point 2, °C
@@ -203,15 +204,16 @@ void CarVWID3::activateCommandQueue()
       "22295A",       // ODOMETER, km
       "22210E",       // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
       "22F802",       // VIN number
-                      /*
+                      
       // ECU XXXX
-      "ATSH00000767", // Sets header to 00 00 07 67
+      //"ATSH00000767", // Sets header to 00 00 07 67
+      "ATSH767", // Sets header to 00 00 07 67
       "222430", // GPS multiframe data lat, long, init, height, quality
-      "222431", // GPS number of tracked satellites
-      "222431", // GPS number of vissible satelites
+      "222431", // GPS number of tracked and visual satellites
+      
 
       // ECU XXXX
-      "ATSH00000746", // Sets header to 00 00 07 46
+      "ATSH746", // Sets header to 00 00 07 46
       "222613", // Inside temperature, °C
       "22263B", // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
       "2242DB", // CO2 content interior, ppm
@@ -221,16 +223,16 @@ void CarVWID3::activateCommandQueue()
 
 
       // ECU XXXX
-      "ATSH0000070E", // Sets header to 00 00 07 0E
+      "ATSH70E", // Sets header to 00 00 07 0E
       "222609", // Outdoor temperature, °C
 
 // ECU XXXX
-      "ATSH00000710", // Sets header to 00 00 07 10
+      "ATSH710", // Sets header to 00 00 07 10
       "222AB2", // HV battery max energy content Wh
       "222AF7", // 12V multiframe
       "222AB8", // HV battery energy content
 
-*/
+
 
   };
 
@@ -405,6 +407,18 @@ void CarVWID3::parseRowMerged()
     {
       liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
     }
+
+    if (liveData->commandRequest.equals("221E1B")) // Dynamic limit for charging in ampere
+    {
+      //liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+    }
+
+    if (liveData->commandRequest.equals("221E1C")) // Dynamic limit for discharging in ampere
+    {
+      //liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+    }
+
+
 
     // Here is the 18 temperature points in the HV battery
 
