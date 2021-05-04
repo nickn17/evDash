@@ -36,9 +36,6 @@ void CommObd2Can::connectDevice()
     return;
   }
 
-  isVwId = (liveData->settings.carType == CAR_VW_ID3_2021_45 ||
-          liveData->settings.carType == CAR_VW_ID3_2021_58 ||
-          liveData->settings.carType == CAR_VW_ID3_2021_77);
   if (liveData->settings.carType == CAR_BMW_I3_2014)
   {
     //initialise mask and filter to allow only receipt of 0x7xx CAN IDs
@@ -161,7 +158,8 @@ void CommObd2Can::executeCommand(String cmd)
   liveData->currentAtshRequest.replace(" ", "");                 // remove possible spaces
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", "");                                          // remove possible spaces
-  sendPID(liveData->hexToDec(atsh, (isVwId ? 4: 2), false), cmd);
+  sendPID(liveData->hexToDec(atsh, 4, false), cmd);
+  
   delay(40);
 }
 

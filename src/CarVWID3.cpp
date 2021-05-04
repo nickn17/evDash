@@ -284,7 +284,7 @@ void CarVWID3::activateCommandQueue()
 void CarVWID3::parseRowMerged()
 {
 
-  uint8_t tempByte;
+  //uint8_t tempByte;
   //  float tempFloat;
   String tmpStr;
 

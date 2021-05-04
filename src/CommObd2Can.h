@@ -27,7 +27,6 @@ class CommObd2Can : public CommInterface {
     char msgString[128];                        // Array to store serial string
     uint32_t lastPid;
     unsigned long lastDataSent = 0;
-    bool isVwId = false;
     
     std::vector<uint8_t> mergedData;
     std::unordered_map<uint16_t, std::vector<uint8_t>> dataRows;

@@ -714,8 +714,10 @@ void CarKiaEniro::testHandler(const String &cmd)
   // AIRCON SCANNER
   if (key.equals("bms"))
   {
+    syslog->println("Scanning...");
+
     // SET TESTER PRESENT
-    commInterface->sendPID(liveData->hexToDec("07A5", 2, false), "3E");
+    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "3E");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -726,7 +728,7 @@ void CarKiaEniro::testHandler(const String &cmd)
     delay(liveData->delayBetweenCommandsMs);
 
     // CHANGE SESSION
-    commInterface->sendPID(liveData->hexToDec("07A5", 2, false), "1003");
+    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "1003");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -744,7 +746,7 @@ void CarKiaEniro::testHandler(const String &cmd)
     delay(liveData->delayBetweenCommandsMs);
 
     // test=bms/1
-    for (uint16_t a = 176; a < 255; a++)
+    for (uint16_t a = 188; a < 255; a++)
     {
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
@@ -766,7 +768,7 @@ void CarKiaEniro::testHandler(const String &cmd)
 
         // EXECUTE COMMAND
         //syslog->print(".");
-        commInterface->sendPID(liveData->hexToDec("07A5", 2, false), command);
+        commInterface->sendPID(liveData->hexToDec("0770", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
         for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
