@@ -69,7 +69,7 @@ void CarVWID3::activateCommandQueue()
       "220500",       // HV battery serial
       "221E1B",       // Dynamic limit for charging in ampere
       "221E1C",       // Dynamic limit for discharging in ampere
-      /*
+      
       "221EAE", // HV Battery temp point 1, °C
       "221EAF", // HV Battery temp point 2, °C
       "221EB0", // HV Battery temp point 3, °C
@@ -196,7 +196,7 @@ void CarVWID3::activateCommandQueue()
       "221EA9", // HV Battery cell voltage - cell 106, V
       "221EAA", // HV Battery cell voltage - cell 107, V
       "221EAB", // HV Battery cell voltage - cell 108, V
-*/
+
 
       // ECU XXXX
       "ATSH17FC0076", // Sets header to 17 FC 00 76
@@ -293,12 +293,12 @@ void CarVWID3::parseRowMerged()
   // ATSHFC00B9
   if (liveData->currentAtshRequest.equals("ATSH17FC00B9")) // For data after this header
   {
-    if (liveData->commandRequest.equals("22465B")) // HV - 12V current
+    if (liveData->commandRequest.equals("22465B")) // DC-DC converter HV to 12V current
     {
       // Put code here to parse the data
       //liveData->params.batPowerAmp = liveData->hexToDecFromResponse(6, 10, 2, false) / 16;
     }
-    if (liveData->commandRequest.equals("22465D")) // HV -> 12V Voltage
+    if (liveData->commandRequest.equals("22465D")) // DC-DC converter HV to 12V Voltage
     {
       // Put code here to parse the data
       //liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 512;
@@ -354,7 +354,7 @@ void CarVWID3::parseRowMerged()
     {
       // kräver en ny variabel
       if (liveData->hexToDecFromResponse(6, 8, 1, false) > 0)
-        liveData->params.batFanStatus;
+        liveData->params.batFanStatus= liveData->hexToDecFromResponse(6, 8, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(6, 8, 1, false);
     }
 
@@ -410,12 +410,12 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("221E1B")) // Dynamic limit for charging in ampere
     {
-      //liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+      liveData->params.availableChargePower = (liveData->hexToDecFromResponse(6, 10, 2, false) / 5)*liveData->params.batVoltage/1000; // available charge power in kW
     }
 
     if (liveData->commandRequest.equals("221E1C")) // Dynamic limit for discharging in ampere
     {
-      //liveData->params.batTempC = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 40; // kod här
+      liveData->params.availableDischargePower = (liveData->hexToDecFromResponse(6, 10, 2, false) / 5)*liveData->params.batVoltage/1000; // available discharge power in kW
     }
 
 
@@ -1000,7 +1000,7 @@ void CarVWID3::parseRowMerged()
   }
 
   // ATSH00000767
-  if (liveData->currentAtshRequest.equals("ATSH00000767")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH767")) // For data after this header
   {
     if (liveData->commandRequest.equals("222431")) // GPS number of tracked and vissible satellites
     {
@@ -1009,7 +1009,7 @@ void CarVWID3::parseRowMerged()
   }
 
   // ATSH000746
-  if (liveData->currentAtshRequest.equals("ATSH00000746")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH746")) // For data after this header
   {
     if (liveData->commandRequest.equals("222613")) // Inside temperature, °C
     {
@@ -1030,13 +1030,37 @@ void CarVWID3::parseRowMerged()
   }
 
   // ATSH00070E
-  if (liveData->currentAtshRequest.equals("ATSH0000070E")) // For data after this header
+  if (liveData->currentAtshRequest.equals("ATSH70E")) // For data after this header
   {
     if (liveData->commandRequest.equals("222609")) // Outdoor temperature, °C
     {
       liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // Outdoor temperature
     }
   }
+
+// ATSH000710
+  if (liveData->currentAtshRequest.equals("ATSH710")) // For data after this header
+  {
+    if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
+    {
+      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // // HV battery max energy content Wh
+    }
+
+    if (liveData->commandRequest.equals("222AF7")) // // 12V multiframe
+    {
+      if (liveData->settings.voltmeterEnabled == 0)
+      {
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 1024+4.26;  // 12V multiframe
+      }
+            
+    }
+
+    if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
+    {
+      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
+    }
+  }
+
 }
 
 /**
