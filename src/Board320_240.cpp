@@ -75,7 +75,6 @@ void Board320_240::initBoard()
 */
 void Board320_240::afterSetup()
 {
-
   // Check if board was sleeping
   bool afterSetup = false;
 

@@ -69,7 +69,8 @@ void CarVWID3::activateCommandQueue()
       "220500",       // HV battery serial
       "221E1B",       // Dynamic limit for charging in ampere
       "221E1C",       // Dynamic limit for discharging in ampere
-      
+
+      // Execute only for "Battery cell" screen  (via commandAllowed function)
       "221EAE", // HV Battery temp point 1, °C
       "221EAF", // HV Battery temp point 2, °C
       "221EB0", // HV Battery temp point 3, °C
@@ -197,40 +198,34 @@ void CarVWID3::activateCommandQueue()
       "221EAA", // HV Battery cell voltage - cell 107, V
       "221EAB", // HV Battery cell voltage - cell 108, V
 
-
       // ECU XXXX
       "ATSH17FC0076", // Sets header to 17 FC 00 76
       "220364",       // HV auxilary consumer power, kW
       "22295A",       // ODOMETER, km
       "22210E",       // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=0c->B,YY=07->R,YY=06->N
       "22F802",       // VIN number
-                      
+
       // ECU XXXX
       //"ATSH00000767", // Sets header to 00 00 07 67
       "ATSH767", // Sets header to 00 00 07 67
-      "222430", // GPS multiframe data lat, long, init, height, quality
-      "222431", // GPS number of tracked and visual satellites
-      
+      "222430",  // GPS multiframe data lat, long, init, height, quality
+      "222431",  // GPS number of tracked and visual satellites
 
       // ECU XXXX
       "ATSH746", // Sets header to 00 00 07 46
-      "222613", // Inside temperature, °C
-      "222609", // Outside temperature,  °C
-      "22263B", // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
-      "2242DB", // CO2 content interior, ppm
-      "22F449", // Accelerator pedal position, %
-      "220801", // PTC air heater inside, ampere
-      "220800", // A/C compressor multiframe
+      "222613",  // Inside temperature, °C
+      "222609",  // Outside temperature,  °C
+      "22263B",  // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
+      "2242DB",  // CO2 content interior, ppm
+      "22F449",  // Accelerator pedal position, %
+      "220801",  // PTC air heater inside, ampere
+      "220800",  // A/C compressor multiframe
 
-
-      
-// ECU XXXX
+      // ECU XXXX
       "ATSH710", // Sets header to 00 00 07 10
-      "222AB2", // HV battery max energy content Wh
-      "222AF7", // 12V multiframe
-      "222AB8", // HV battery energy content
-
-
+      "222AB2",  // HV battery max energy content Wh
+      "222AF7",  // 12V multiframe
+      "222AB8",  // HV battery energy content
 
   };
 
@@ -352,7 +347,7 @@ void CarVWID3::parseRowMerged()
     {
       // kräver en ny variabel
       if (liveData->hexToDecFromResponse(6, 8, 1, false) > 0)
-        liveData->params.batFanStatus= liveData->hexToDecFromResponse(6, 8, 1, false);
+        liveData->params.batFanStatus = liveData->hexToDecFromResponse(6, 8, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(6, 8, 1, false);
     }
 
@@ -408,15 +403,13 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("221E1B")) // Dynamic limit for charging in ampere
     {
-      liveData->params.availableChargePower = (liveData->hexToDecFromResponse(6, 10, 2, false) / 5)*liveData->params.batVoltage/1000; // available charge power in kW
+      liveData->params.availableChargePower = (liveData->hexToDecFromResponse(6, 10, 2, false) / 5) * liveData->params.batVoltage / 1000; // available charge power in kW
     }
 
     if (liveData->commandRequest.equals("221E1C")) // Dynamic limit for discharging in ampere
     {
-      liveData->params.availableDischargePower = (liveData->hexToDecFromResponse(6, 10, 2, false) / 5)*liveData->params.batVoltage/1000; // available discharge power in kW
+      liveData->params.availableDischargePower = (liveData->hexToDecFromResponse(6, 10, 2, false) / 5) * liveData->params.batVoltage / 1000; // available discharge power in kW
     }
-
-
 
     // Here is the 18 temperature points in the HV battery
 
@@ -960,7 +953,7 @@ void CarVWID3::parseRowMerged()
     {
       liveData->params.cumulativeEnergyChargedKWh = liveData->hexToDecFromResponse(22, 30, 4, false) / 8583.07123641215;        // beräkning av totalt accumulerat laddat
       liveData->params.cumulativeEnergyDischargedKWh = abs(liveData->hexToDecFromResponse(30, 38, 4, true) / 8583.07123641215); // beräkning av totalt accumulerat urladdat
-      
+
       if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
       {
         if (liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
@@ -1031,8 +1024,7 @@ void CarVWID3::parseRowMerged()
     }
   }
 
-  
-// ATSH000710
+  // ATSH000710
   if (liveData->currentAtshRequest.equals("ATSH710")) // For data after this header
   {
     if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
@@ -1044,9 +1036,8 @@ void CarVWID3::parseRowMerged()
     {
       if (liveData->settings.voltmeterEnabled == 0)
       {
-        liveData->params.auxVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 1024+4.26;  // 12V multiframe
+        liveData->params.auxVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 1024 + 4.26; // 12V multiframe
       }
-            
     }
 
     if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
@@ -1054,7 +1045,6 @@ void CarVWID3::parseRowMerged()
       //liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
     }
   }
-
 }
 
 /**
@@ -1062,14 +1052,13 @@ void CarVWID3::parseRowMerged()
 */
 bool CarVWID3::commandAllowed()
 {
-
   /* syslog->print("Command allowed: ");
     syslog->print(liveData->currentAtshRequest);
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
   //SleepMode Queue Filter
-  if (liveData->params.sleepModeQueue)
+  /*if (liveData->params.sleepModeQueue)
   {
     if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
     {
@@ -1085,10 +1074,10 @@ bool CarVWID3::commandAllowed()
     }
 
     return false;
-  }
+  }*/
 
   // TPMS (once per 30 secs.)
-  if (liveData->commandRequest.equals("ATSH7A0"))
+  /*if (liveData->commandRequest.equals("ATSH7A0"))
   {
     return lastAllowTpms + 30 < liveData->params.currentTime;
   }
@@ -1102,20 +1091,26 @@ bool CarVWID3::commandAllowed()
     {
       return false;
     }
-  }
+  }*/
 
   // BMS (only for SCREEN_CELLS)
-  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  if (liveData->currentAtshRequest.equals("ATSH17FC007B"))
   {
-    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104"))
-    {
-      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+    if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+      if (
+          liveData->commandRequest.indexOf("22742") == 0 // 22742x => 227425, 227426 
+          ||
+          (liveData->commandRequest.indexOf("221E") == 0 && // All other cells
+           liveData->commandRequest.indexOf("221E0") != 0 &&
+           liveData->commandRequest.indexOf("221E1") != 0 &&
+           liveData->commandRequest.indexOf("221E3") != 0))
+      {
         return false;
-    }
+      }
   }
 
   // HUD speedup
-  if (liveData->params.displayScreen == SCREEN_HUD)
+  /*if (liveData->params.displayScreen == SCREEN_HUD)
   {
     // no cooling water temp
     if (liveData->currentAtshRequest.equals("ATSH7E4"))
@@ -1149,7 +1144,7 @@ bool CarVWID3::commandAllowed()
     {
       return false;
     }
-  }
+  }*/
 
   return true;
 }
