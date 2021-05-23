@@ -215,6 +215,7 @@ void CarVWID3::activateCommandQueue()
       // ECU XXXX
       "ATSH746", // Sets header to 00 00 07 46
       "222613", // Inside temperature, °C
+      "222609", // Outside temperature,  °C
       "22263B", // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
       "2242DB", // CO2 content interior, ppm
       "22F449", // Accelerator pedal position, %
@@ -222,10 +223,7 @@ void CarVWID3::activateCommandQueue()
       "220800", // A/C compressor multiframe
 
 
-      // ECU XXXX
-      "ATSH70E", // Sets header to 00 00 07 0E
-      "222609", // Outdoor temperature, °C
-
+      
 // ECU XXXX
       "ATSH710", // Sets header to 00 00 07 10
       "222AB2", // HV battery max energy content Wh
@@ -1015,6 +1013,10 @@ void CarVWID3::parseRowMerged()
     {
       liveData->params.indoorTemperature = liveData->hexToDecFromResponse(6, 10, 2, false) / 5 - 40; // Interior temperature
     }
+    if (liveData->commandRequest.equals("222609")) // Outdoor temperature, °C
+    {
+      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // Outdoor temperature
+    }
     if (liveData->commandRequest.equals("22263B")) // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
     {
       // Put code here to parse the data
@@ -1029,21 +1031,13 @@ void CarVWID3::parseRowMerged()
     }
   }
 
-  // ATSH00070E
-  if (liveData->currentAtshRequest.equals("ATSH70E")) // For data after this header
-  {
-    if (liveData->commandRequest.equals("222609")) // Outdoor temperature, °C
-    {
-      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // Outdoor temperature
-    }
-  }
-
+  
 // ATSH000710
   if (liveData->currentAtshRequest.equals("ATSH710")) // For data after this header
   {
     if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
     {
-      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // // HV battery max energy content Wh
+      //liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // // HV battery max energy content Wh
     }
 
     if (liveData->commandRequest.equals("222AF7")) // // 12V multiframe
@@ -1057,7 +1051,7 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
     {
-      liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
+      //liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
     }
   }
 
