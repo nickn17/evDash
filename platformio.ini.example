@@ -11,6 +11,7 @@ build_flags =
 	-D COMMU_INT_PIN=2
 	-D SERIAL2_RX=13
 	-D SERIAL2_TX=14
+	-D SIM800L_RST=26
 lib_deps = 
 	https://github.com/m5stack/M5Core2
 	mikalhart/TinyGPSPlus@^1.0.2
@@ -39,6 +40,7 @@ build_flags =
 	-D COMMU_INT_PIN=15
 	-D SERIAL2_RX=16
 	-D SERIAL2_TX=17
+	-D SIM800L_RST=5
 lib_deps = 
 	https://github.com/m5stack/M5Stack
 	mikalhart/TinyGPSPlus@^1.0.2

@@ -167,7 +167,6 @@ double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
 {
 
   double decValue = 0;
-  double nextInt;
 
   for (int i = 0; i < hexString.length(); i++)
   {
