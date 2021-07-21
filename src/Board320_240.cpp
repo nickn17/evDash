@@ -675,7 +675,7 @@ void Board320_240::drawSceneSpeed()
   else
   {
     sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a" : "%01.01f", liveData->params.batPowerKw);
-    spr.drawString("kWh", 200, posy + 48, 2);
+    spr.drawString("kW", 200, posy + 48, 2);
   }
   spr.drawString(tmpStr3, 200, posy, 7);
 
