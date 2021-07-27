@@ -128,7 +128,7 @@ void Board320_240::afterSetup()
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
-  if (isButtonPressed(pinButtonRight))
+  if (isButtonPressed(pinButtonRight, true))
   {
     loadTestData();
   }
@@ -1343,43 +1343,43 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     suffix = tmpStr1;
     break;
   //TODO: Why is do these cases not match the vehicle type id?
-  case 101:
+  case VEHICLE_TYPE_ENIRO_2020_64:
     prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
     break;
-  case 102:
-    prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) ? ">" : "";
-    break;
-  case 103:
-    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
-    break;
-  case 104:
+  case VEHICLE_TYPE_ENIRO_2020_39:
     prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_39) ? ">" : "";
     break;
-  case 105:
-    prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : "";
-    break;
-  case 106:
-    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
-    break;
-  case 107:
-    prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : "";
-    break;
-  case 108:
-    prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
-    break;
-  case 109:
+  case VEHICLE_TYPE_ESOUL_2020_64:
     prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
     break;
-  case 110:
+  case VEHICLE_TYPE_IONIQ_2018_28:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_KONA_2020_64:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_KONA_2020_39:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_ZOE_22_DEV:
+    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_NIROPHEV_8_9:
+    prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_BMWI3_2014_22:
+    prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_VW_ID3_2021_45:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
     break;
-  case 111:
+  case VEHICLE_TYPE_VW_ID3_2021_58:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_58) ? ">" : "";
     break;
-  case 112:
+  case VEHICLE_TYPE_VW_ID3_2021_77:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_77) ? ">" : "";
     break;
-  case 120:
+  case VEHICLE_TYPE_DEBUG_OBD_KIA:
     prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
     break;
   //
@@ -1789,8 +1789,13 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_KONA_2020_64:
-      liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64;
+    case VEHICLE_TYPE_ENIRO_2020_39:
+      liveData->settings.carType = CAR_KIA_ENIRO_2020_39;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_ESOUL_2020_64:
+      liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
       showMenu();
       return;
       break;
@@ -1799,8 +1804,8 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_ENIRO_2020_39:
-      liveData->settings.carType = CAR_KIA_ENIRO_2020_39;
+    case VEHICLE_TYPE_KONA_2020_64:
+      liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64;
       showMenu();
       return;
       break;
@@ -1821,11 +1826,6 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_BMWI3_2014_22:
       liveData->settings.carType = CAR_BMW_I3_2014;
-      showMenu();
-      return;
-      break;
-    case VEHICLE_TYPE_ESOUL_2020_64:
-      liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
       showMenu();
       return;
       break;
