@@ -117,11 +117,12 @@ void BoardM5stackCore2::eventDisplay(Event &e)
   lastTouchX = e.to.x;
   lastTouchY = e.to.y;
 
-  syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
+  /*syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
                  e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
                  e.to.x, e.to.y);
   syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
                  e.distance(), e.duration);
+                 */
 }
 
 void BoardM5stackCore2::enterSleepMode(int secs)

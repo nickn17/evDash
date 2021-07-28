@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 103
+#define MENU_SIZE 104
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -37,6 +37,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_BLE4,             MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth 4 (BLE4)"},
     {MENU_ADAPTER_CAN,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "CAN bus (MCP2515-1/SO)"},
     //{MENU_ADAPTER_BT3,            MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth 3 (dev)"},
+    {MENU_ADAPTER_LOAD_TEST_DATA,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Load demo data"},
 
     {MENU_OTHER_TOP,                MENU_OTHERS,        MENU_TOP_LEVEL,   "<- parent menu"},
     {MENU_WIFI,                     MENU_OTHERS,        MENU_NO_MENU,     "WiFi network"},

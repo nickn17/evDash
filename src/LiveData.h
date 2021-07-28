@@ -97,6 +97,7 @@ typedef struct
   time_t lastChargingOnTime;
   uint64_t operationTimeSec;
   bool sdcardCanNotify;
+  time_t timeInForwardDriveMode;
   bool forwardDriveMode;
   bool reverseDriveMode;
   bool parkModeOrNeutral;
@@ -113,6 +114,7 @@ typedef struct
   float batteryTotalAvailableKWh;
   float speedKmh;
   float speedKmhGPS;
+  float avgSpeedKmh;
   float motorRpm;
   float odoKm;
   float odoKmStart;

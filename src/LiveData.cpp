@@ -64,10 +64,12 @@ void LiveData::initParams()
   params.leftRearDoorOpen = false;
   params.rightRearDoorOpen = false;
   params.hoodDoorOpen = false;
+  params.timeInForwardDriveMode = 0;
   params.forwardDriveMode = false;
   params.reverseDriveMode = false;
   params.parkModeOrNeutral = false;
   params.speedKmh = -1;
+  params.avgSpeedKmh = 0;
   params.speedKmhGPS = -1;
   params.motorRpm = -1;
   params.inverterTempC = -100;

@@ -128,7 +128,7 @@ void Board320_240::afterSetup()
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
-  if (isButtonPressed(pinButtonRight, true))
+  if (isButtonPressed(pinButtonRight))
   {
     loadTestData();
   }
@@ -664,7 +664,7 @@ void Board320_240::drawSceneSpeed()
   }
   spr.drawString(tmpStr3, 200, posy, 7);
 
-  posy = 145;
+  posy = 140;
   spr.setTextDatum(TR_DATUM); // Top center
   spr.setTextSize(1);
   if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0)
@@ -699,6 +699,13 @@ void Board320_240::drawSceneSpeed()
     sprintf(tmpStr3, "%01.00frpm", liveData->params.motorRpm);
     spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
   }
+
+  // Avg speed
+  posy = 120;
+  sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
+  spr.setTextDatum(TL_DATUM);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.drawString("avg.km/h", 0, posy + 20, 2);
 
   // Bottom info
   // Cummulative regen/power
@@ -1392,6 +1399,10 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_ADAPTER_BT3:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2BT3) ? ">" : "";
     break;
+  case MENU_ADAPTER_LOAD_TEST_DATA:
+    loadTestData();
+    break;
+
   /*case MENU_WIFI:
       suffix = "n/a";
       switch (WiFi.status()) {
@@ -2165,6 +2176,7 @@ void Board320_240::menuItemClick()
 */
 void Board320_240::redrawScreen()
 {
+  lastRedrawTime = liveData->params.currentTime;
 
   if (liveData->menuVisible)
   {
@@ -2310,17 +2322,17 @@ void Board320_240::redrawScreen()
   else
   {
     if (liveData->params.trunkDoorOpen)
-      spr.fillRect(20, 0, 320 - 40, 10, TFT_GOLD);
+      spr.fillRect(20, 0, 320 - 40, 4, TFT_GOLD);
     if (liveData->params.leftFrontDoorOpen)
-      spr.fillRect(0, 20, 10, 98, TFT_GOLD);
+      spr.fillRect(0, 20, 4, 98, TFT_GOLD);
     if (liveData->params.rightFrontDoorOpen)
-      spr.fillRect(0, 122, 10, 98, TFT_GOLD);
+      spr.fillRect(0, 122, 4, 98, TFT_GOLD);
     if (liveData->params.leftRearDoorOpen)
-      spr.fillRect(320 - 10, 20, 10, 98, TFT_GOLD);
+      spr.fillRect(320 - 4, 20, 4, 98, TFT_GOLD);
     if (liveData->params.rightRearDoorOpen)
-      spr.fillRect(320 - 10, 122, 10, 98, TFT_GOLD);
+      spr.fillRect(320 - 4, 122, 4, 98, TFT_GOLD);
     if (liveData->params.hoodDoorOpen)
-      spr.fillRect(20, 240 - 10, 320 - 40, 10, TFT_GOLD);
+      spr.fillRect(20, 240 - 4, 320 - 40, 4, TFT_GOLD);
   }
 
   // BLE not connected
@@ -2595,6 +2607,49 @@ void Board320_240::mainLoop()
     commInterface->connectDevice();
     liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   }
+
+  // force redraw (min 1 sec update)
+  if (liveData->params.currentTime - lastRedrawTime >= 1)
+  {
+    redrawScreen();
+  }
+
+  // Calculating avg.speed and time in forward mode
+  if (liveData->params.odoKm != -1 && forwardDriveOdoKmLast == -1)
+  {
+    forwardDriveOdoKmLast = liveData->params.odoKm;
+  }
+  if (liveData->params.forwardDriveMode != lastForwardDriveMode)
+  {
+    if (liveData->params.forwardDriveMode)
+    {
+      if (forwardDriveOdoKmStart != -1 ||
+          (liveData->params.odoKm != -1 && forwardDriveOdoKmLast != -1 && liveData->params.odoKm != forwardDriveOdoKmLast))
+      {
+        if (forwardDriveOdoKmStart == -1)
+          forwardDriveOdoKmStart = liveData->params.odoKm;
+        lastForwardDriveModeStart = liveData->params.currentTime;
+        lastForwardDriveMode = liveData->params.forwardDriveMode;
+      }
+    }
+    else
+    {
+      if (lastForwardDriveModeStart != 0)
+      {
+        previousForwardDriveModeTotal = previousForwardDriveModeTotal + (liveData->params.currentTime - lastForwardDriveModeStart);
+        lastForwardDriveModeStart = 0;
+      }
+      lastForwardDriveMode = liveData->params.forwardDriveMode;
+    }
+  }
+  liveData->params.timeInForwardDriveMode = previousForwardDriveModeTotal +
+                                            (lastForwardDriveModeStart == 0 ? 0 : liveData->params.currentTime - lastForwardDriveModeStart);
+  if (liveData->params.odoKm != -1 && forwardDriveOdoKmLast != -1 && liveData->params.odoKm != forwardDriveOdoKmLast && liveData->params.timeInForwardDriveMode > 0)
+  {
+    forwardDriveOdoKmLast = liveData->params.odoKm;
+    liveData->params.avgSpeedKmh = (double)(liveData->params.odoKm - forwardDriveOdoKmStart) /
+                                   ((double)liveData->params.timeInForwardDriveMode / 3600.0);
+  }
 }
 
 /**
@@ -2635,6 +2690,10 @@ void Board320_240::syncTimes(time_t newTime)
 
   if (liveData->params.lastCanbusResponseTime != 0)
     liveData->params.lastCanbusResponseTime = newTime - (liveData->params.currentTime - liveData->params.lastCanbusResponseTime);
+
+  // reset avg speed counter
+  lastForwardDriveModeStart = 0;
+  lastForwardDriveMode = false;
 }
 
 /**
