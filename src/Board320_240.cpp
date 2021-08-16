@@ -1368,14 +1368,11 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_KONA_2020_39:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : "";
     break;
-  case VEHICLE_TYPE_ZOE_22_DEV:
-    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
+  case VEHICLE_TYPE_HYUNDAI_IONIQ5_58:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58) ? ">" : "";
     break;
-  case VEHICLE_TYPE_NIROPHEV_8_9:
-    prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : "";
-    break;
-  case VEHICLE_TYPE_BMWI3_2014_22:
-    prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
+  case VEHICLE_TYPE_HYUNDAI_IONIQ5_72:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72) ? ">" : "";
     break;
   case VEHICLE_TYPE_VW_ID3_2021_45:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
@@ -1385,6 +1382,15 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case VEHICLE_TYPE_VW_ID3_2021_77:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_77) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_ZOE_22_DEV:
+    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_NIROPHEV_8_9:
+    prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_BMWI3_2014_22:
+    prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
     break;
   case VEHICLE_TYPE_DEBUG_OBD_KIA:
     prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
@@ -1825,18 +1831,13 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_ZOE_22_DEV:
-      liveData->settings.carType = CAR_RENAULT_ZOE;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ5_58:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_58;
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_NIROPHEV_8_9:
-      liveData->settings.carType = CAR_KIA_NIRO_PHEV;
-      showMenu();
-      return;
-      break;
-    case VEHICLE_TYPE_BMWI3_2014_22:
-      liveData->settings.carType = CAR_BMW_I3_2014;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ5_72:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_72;
       showMenu();
       return;
       break;
@@ -1852,6 +1853,21 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_VW_ID3_2021_77:
       liveData->settings.carType = CAR_VW_ID3_2021_77;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_ZOE_22_DEV:
+      liveData->settings.carType = CAR_RENAULT_ZOE;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_NIROPHEV_8_9:
+      liveData->settings.carType = CAR_KIA_NIRO_PHEV;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_BMWI3_2014_22:
+      liveData->settings.carType = CAR_BMW_I3_2014;
       showMenu();
       return;
       break;
@@ -3144,6 +3160,12 @@ bool Board320_240::sim800lSendData()
       break;
     case CAR_VW_ID3_2021_77:
       jsonData["car_model"] = "volkswagen:id3:20:77:lr";
+      break;
+    case CAR_HYUNDAI_IONIQ5_58:
+      jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
+      break;
+    case CAR_HYUNDAI_IONIQ5_72:
+      jsonData["car_model"] = "hyundai:ioniq5:21:72:lr";
       break;
     default:
       syslog->println("Car not supported by ABRP Uploader");

@@ -63,7 +63,6 @@ void CarKiaEniro::activateCommandQueue()
       "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
       "22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
-      // BCM / TPMS
       "ATSH7A0",
       "22C00B", // tire pressure/temp
 
@@ -107,6 +106,10 @@ void CarKiaEniro::activateCommandQueue()
   {
     liveData->params.batteryTotalAvailableKWh = 39.2;
   }
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58)
+    liveData->params.batteryTotalAvailableKWh = 58;
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72)
+    liveData->params.batteryTotalAvailableKWh = 72.6;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();

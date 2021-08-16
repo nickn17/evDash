@@ -93,6 +93,8 @@ void setup(void)
   case CAR_HYUNDAI_KONA_2020_39:
   case CAR_HYUNDAI_KONA_2020_64:
   case CAR_KIA_ESOUL_2020_64:
+  case CAR_HYUNDAI_IONIQ5_58:
+  case CAR_HYUNDAI_IONIQ5_72:
     car = new CarKiaEniro();
     break;
   case CAR_HYUNDAI_IONIQ_2018:
