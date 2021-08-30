@@ -32,6 +32,10 @@
 #define COMM_TYPE_OBD2CAN 1
 #define COMM_TYPE_OBD2BT3 2
 
+// REMOTE_UPLOAD
+#define REMOTE_UPLOAD_SIM800L 0
+#define REMOTE_UPLOAD_WIFI 1
+
 // SCREENS
 #define SCREEN_BLANK 0
 #define SCREEN_AUTO 1
@@ -275,7 +279,7 @@ typedef struct
   uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds (0 = disabled) // will be used as mqtt upload interval in future builds
   uint16_t sleepModeIntervalSec;    // In sleep, check CANbus / Volmeter every X seconds
   uint16_t sleepModeShutdownHrs;    // 0 - disabled # shutdown after X hours of sleep
-  uint16_t remoteUploadModuleType;  // 0 - SIM800L
+  uint16_t remoteUploadModuleType;  // 0 (REMOTE_UPLOAD_SIM800L) - SIM800L, 1 - wifi
   // == settings version 10
   // =================================
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)

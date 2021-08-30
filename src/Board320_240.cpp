@@ -3,6 +3,7 @@
 #include <analogWrite.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
+#include <HTTPClient.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -1410,17 +1411,32 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
 
   /*case MENU_WIFI:
-      suffix = "n/a";
-      switch (WiFi.status()) {
-      WL_CONNECTED: suffix = "CONNECTED"; break;
-      WL_NO_SHIELD: suffix = "NO_SHIELD"; break;
-      WL_IDLE_STATUS: suffix = "IDLE_STATUS"; break;
-      WL_SCAN_COMPLETED: suffix = "SCAN_COMPLETED"; break;
-      WL_CONNECT_FAILED: suffix = "CONNECT_FAILED"; break;
-      WL_CONNECTION_LOST: suffix = "CONNECTION_LOST"; break;
-      WL_DISCONNECTED: suffix = "DISCONNECTED"; break;
-      }
-      break;*/
+    suffix = "n/a";
+    switch (WiFi.status())
+    {
+    WL_CONNECTED:
+      suffix = "CONNECTED";
+      break;
+    WL_NO_SHIELD:
+      suffix = "NO_SHIELD";
+      break;
+    WL_IDLE_STATUS:
+      suffix = "IDLE_STATUS";
+      break;
+    WL_SCAN_COMPLETED:
+      suffix = "SCAN_COMPLETED";
+      break;
+    WL_CONNECT_FAILED:
+      suffix = "CONNECT_FAILED";
+      break;
+    WL_CONNECTION_LOST:
+      suffix = "CONNECTION_LOST";
+      break;
+    WL_DISCONNECTED:
+      suffix = "DISCONNECTED";
+      break;
+    }
+    break;*/
   case MENU_REMOTE_UPLOAD:
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);
     suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1;
@@ -1432,8 +1448,11 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_REMOTE_UPLOAD_TYPE:
     switch (liveData->settings.remoteUploadModuleType)
     {
-    case 0:
+    case REMOTE_UPLOAD_SIM800L:
       suffix = "[SIM800L]";
+      break;
+    case REMOTE_UPLOAD_WIFI:
+      suffix = "[WIFI]";
       break;
     default:
       suffix = "[unknown]";
@@ -1965,7 +1984,8 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_REMOTE_UPLOAD_TYPE:
-      liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
+      //liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
+      liveData->settings.remoteUploadModuleType = (liveData->settings.remoteUploadModuleType == 1) ? REMOTE_UPLOAD_SIM800L : liveData->settings.remoteUploadModuleType + 1;
       showMenu();
       return;
       break;
@@ -2502,11 +2522,8 @@ void Board320_240::mainLoop()
   getLocalTime(&now);
   liveData->params.currentTime = mktime(&now);
 
-  // SIM800L
-  if (liveData->params.sim800l_enabled)
-  {
-    sim800lLoop();
-  }
+  // SIM800L + WiFI remote upload ABRP
+  sim800lLoop();
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
@@ -2989,37 +3006,45 @@ bool Board320_240::sim800lSetup()
 
 void Board320_240::sim800lLoop()
 {
-  // Upload to API
-  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
+  // Upload to API - SIM800L or WIFI is supported
+  if (liveData->params.sim800l_enabled || liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
   {
-    liveData->params.lastDataSent = liveData->params.currentTime;
-    sim800lSendData();
+    if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
+    {
+      liveData->params.lastDataSent = liveData->params.currentTime;
+      sim800lSendData();
+    }
+
+    // Upload to ABRP
+    if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
+    {
+      liveData->params.lastDataSent = liveData->params.currentTime;
+      sim800lSendData();
+    }
   }
 
-  // Upload to ABRP
-  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  // SIM 800 only
+  if (liveData->params.sim800l_enabled)
   {
-    liveData->params.lastDataSent = liveData->params.currentTime;
-    sim800lSendData();
-  }
-
-  uint16_t rc = sim800l->readPostResponse(SIM800L_RCV_TIMEOUT * 1000);
-
-  if (rc == 200)
-  {
-    syslog->print("HTTP POST OK: ");
-    syslog->println(sim800l->getDataReceived());
-    liveData->params.sim800l_lastOkReceiveTime = liveData->params.currentTime;
-  }
-  else if (rc != 1 && rc != 0)
-  {
-    syslog->print("HTTP POST error: ");
-    syslog->println(rc);
+    uint16_t rc = sim800l->readPostResponse(SIM800L_RCV_TIMEOUT * 1000);
+    if (rc == 200)
+    {
+      syslog->print("HTTP POST OK: ");
+      syslog->println(sim800l->getDataReceived());
+      liveData->params.sim800l_lastOkReceiveTime = liveData->params.currentTime;
+    }
+    else if (rc != 1 && rc != 0)
+    {
+      syslog->print("HTTP POST error: ");
+      syslog->println(rc);
+    }
   }
 }
 
 bool Board320_240::sim800lSendData()
 {
+  uint16_t rc = 0;
+
   syslog->println("Sending data to API");
 
   if (liveData->params.socPerc < 0)
@@ -3028,33 +3053,46 @@ bool Board320_240::sim800lSendData()
     return false;
   }
 
-  NetworkRegistration network = sim800l->getRegistrationStatus();
-  if (network != REGISTERED_HOME && network != REGISTERED_ROAMING)
+  // WIFI
+  if (liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
   {
-    syslog->println("SIM800L module not connected to network, skipping data send");
-    return false;
-  }
-
-  if (!sim800l->isConnectedGPRS())
-  {
-    syslog->println("GPRS not connected... Connecting");
-    bool connected = sim800l->connectGPRS();
-    for (uint8_t i = 0; i < 5 && !connected; i++)
+    if (WiFi.status() != WL_CONNECTED)
     {
-      syslog->println("Problem to connect GPRS, retry in 1 sec");
-      delay(1000);
-      connected = sim800l->connectGPRS();
-    }
-    if (connected)
-    {
-      syslog->println("GPRS connected!");
-    }
-    else
-    {
-      syslog->println("GPRS not connected! Reseting module...");
-      sim800l->reset();
-      sim800lSetup();
+      syslog->println("WIFI not connected to the network, skipping data send");
       return false;
+    }
+  }
+  else
+  {
+    // SIM800L
+    NetworkRegistration network = sim800l->getRegistrationStatus();
+    if (network != REGISTERED_HOME && network != REGISTERED_ROAMING)
+    {
+      syslog->println("SIM800L module not connected to network, skipping data send");
+      return false;
+    }
+
+    if (!sim800l->isConnectedGPRS())
+    {
+      syslog->println("GPRS not connected... Connecting");
+      bool connected = sim800l->connectGPRS();
+      for (uint8_t i = 0; i < 5 && !connected; i++)
+      {
+        syslog->println("Problem to connect GPRS, retry in 1 sec");
+        delay(1000);
+        connected = sim800l->connectGPRS();
+      }
+      if (connected)
+      {
+        syslog->println("GPRS connected!");
+      }
+      else
+      {
+        syslog->println("GPRS not connected! Reseting module...");
+        sim800l->reset();
+        sim800lSetup();
+        return false;
+      }
     }
   }
 
@@ -3108,7 +3146,25 @@ bool Board320_240::sim800lSendData()
     syslog->print("Remote API server: ");
     syslog->println(liveData->settings.remoteApiUrl);
 
-    uint16_t rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
+    // WIFI
+    rc = 0;
+    if (liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
+    {
+      WiFiClient client;
+      HTTPClient http;
+
+      http.begin(client, liveData->settings.remoteApiUrl);
+      http.setConnectTimeout(500);
+      http.addHeader("Content-Type", "application/json");
+      rc = http.POST(payload);
+      http.end();
+    }
+    else
+    {
+      // SIM800L
+      rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
+    }
+
     if (rc == 200)
     {
       syslog->println("HTTP POST send successful");
@@ -3224,7 +3280,24 @@ bool Board320_240::sim800lSendData()
     syslog->print("Sending data: ");
     syslog->println(dta);
 
-    uint16_t rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
+    rc = 0;
+    if (liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
+    {
+      WiFiClient client;
+      HTTPClient http;
+
+      http.begin(client, "http://api.iternio.com/1/tlm/send");
+      http.setConnectTimeout(500);
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+      rc = http.POST(payload);
+      http.end();
+    }
+    else
+    {
+      // SIM800L
+      rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
+    }
+
     if (rc == 200)
     {
       syslog->println("HTTP POST send successful");
