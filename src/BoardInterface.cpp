@@ -111,7 +111,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 11;
+  liveData->settings.settingsVersion = 12;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -273,6 +273,15 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.daylightSaving = 0;
         liveData->tmpSettings.rightHandDrive = 0;
       }
+      if (liveData->tmpSettings.settingsVersion == 11)
+      {
+        liveData->tmpSettings.settingsVersion = 12;
+        tmpStr = "empty";
+        tmpStr.toCharArray(liveData->tmpSettings.wifiSsidb, tmpStr.length() + 1);
+        tmpStr = "not_set";
+        tmpStr.toCharArray(liveData->tmpSettings.wifiPasswordb, tmpStr.length() + 1);
+        liveData->tmpSettings.backupWifiEnabled = 0;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -348,6 +357,11 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
   if (key == "wifiPassword")
     value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
+  if (key == "wifiSsid2")
+    value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
+    liveData->settings.backupWifiEnabled = 1;
+  if (key == "wifiPassword2")
+    value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
   if (key == "gprsApn")
     value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl")

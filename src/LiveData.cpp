@@ -18,11 +18,13 @@ void LiveData::initParams()
 {
 
   params.queueLoopCounter = 0;
-  // SIM
+  // Network
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
   params.sim800l_lastOkReceiveTime = 0;
   params.sim800l_lastOkSendTime = 0;
+  params.isWifiBackupLive = false;
+  params.wifiLastConnectedTime = 0;
   // SD card
   params.sdcardInit = false;
   params.sdcardRecording = false;
