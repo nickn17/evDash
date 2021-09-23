@@ -37,6 +37,7 @@
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
 #include "CarHyundaiIoniq.h"
+#include "CarHyundaiIoniq5.h"
 #include "CarRenaultZoe.h"
 #include "CarKiaNiroPhev.h"
 #include "CarKiaDebugObd2.h"
@@ -93,9 +94,11 @@ void setup(void)
   case CAR_HYUNDAI_KONA_2020_39:
   case CAR_HYUNDAI_KONA_2020_64:
   case CAR_KIA_ESOUL_2020_64:
+    car = new CarKiaEniro();
+    break;
   case CAR_HYUNDAI_IONIQ5_58:
   case CAR_HYUNDAI_IONIQ5_72:
-    car = new CarKiaEniro();
+    car = new CarHyundaiIoniq5();
     break;
   case CAR_HYUNDAI_IONIQ_2018:
     car = new CarHyundaiIoniq();

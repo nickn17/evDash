@@ -1,36 +1,26 @@
-/*
-      eNiro/Kona chargings limits depending on battery temperature (min.value of 01-04 battery module)
-  >= 35°C BMS allows max 180A
-  >= 25°C without limit (200A)
-  >= 15°C BMS allows max 120A
-  >= 5°C BMS allows max 90A
-  >= 1°C BMS allows max 60A
-  <= 0°C BMS allows max 40A
-*/
-
 #include <Arduino.h>
 #include <stdint.h>
 #include <WString.h>
 #include <string.h>
 #include <sys/time.h>
 #include "LiveData.h"
-#include "CarKiaEniro.h"
+#include "CarHyundaiIoniq5.h"
 #include "CommInterface.h"
 #include <vector>
 
-#define commandQueueLoopFromKiaENiro 8
+#define commandQueueLoopFromHyundaiIoniq5 8
 
 /**
    activateCommandQueue
 */
-void CarKiaEniro::activateCommandQueue()
+void CarHyundaiIoniq5::activateCommandQueue()
 {
 
   // Optimizer
   lastAllowTpms = 0;
 
   // Command queue
-  std::vector<String> commandQueueKiaENiro = {
+  std::vector<String> commandQueueHyundaiIoniq5 = {
       "AT Z",    // Reset all
       "AT I",    // Print the version ID
       "AT S0",   // Printing of spaces on
@@ -102,33 +92,28 @@ void CarKiaEniro::activateCommandQueue()
   liveData->params.batteryTotalAvailableKWh = 64;
   // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
   // Calculates based on nick.n17 dashboard data
-  if (liveData->settings.carType == CAR_KIA_ENIRO_2020_39 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
-  {
-    liveData->params.batteryTotalAvailableKWh = 39.2;
-  }
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58)
+    liveData->params.batteryTotalAvailableKWh = 58;
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72)
+    liveData->params.batteryTotalAvailableKWh = 72.6;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
-  //for (int i = 0; i < commandQueueCountKiaENiro; i++) {
-  for (auto cmd : commandQueueKiaENiro)
+  //for (int i = 0; i < commandQueueCountHyundaiIoniq5; i++) {
+  for (auto cmd : commandQueueHyundaiIoniq5)
   {
     liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
   }
 
   //
-  liveData->commandQueueLoopFrom = commandQueueLoopFromKiaENiro;
-  liveData->commandQueueCount = commandQueueKiaENiro.size();
-  if (liveData->settings.carType == CAR_KIA_ESOUL_2020_64)
-  {
-    liveData->rxTimeoutMs = 500;            // timeout for receiving of CAN response
-    liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed
-  }
+  liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq5;
+  liveData->commandQueueCount = commandQueueHyundaiIoniq5.size();
 }
 
 /**
    parseRowMerged
 */
-void CarKiaEniro::parseRowMerged()
+void CarHyundaiIoniq5::parseRowMerged()
 {
 
   uint8_t tempByte;
@@ -438,7 +423,7 @@ void CarKiaEniro::parseRowMerged()
 /**
    Is command from queue allowed for execute, or continue with next
 */
-bool CarKiaEniro::commandAllowed()
+bool CarHyundaiIoniq5::commandAllowed()
 {
 
   /* syslog->print("Command allowed: ");
@@ -535,7 +520,7 @@ bool CarKiaEniro::commandAllowed()
 /**
    loadTestData
 */
-void CarKiaEniro::loadTestData()
+void CarHyundaiIoniq5::loadTestData()
 {
 
   // IGPM
@@ -702,7 +687,7 @@ void CarKiaEniro::loadTestData()
 /**
    Test handler
 */
-void CarKiaEniro::testHandler(const String &cmd)
+void CarHyundaiIoniq5::testHandler(const String &cmd)
 {
   int8_t idx = cmd.indexOf("/");
   if (idx == -1)
@@ -820,7 +805,7 @@ void CarKiaEniro::testHandler(const String &cmd)
 /**
  * Custom menu
  */
-std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
+std::vector<String> CarHyundaiIoniq5::customMenu(int16_t menuId)
 {
   if (menuId == MENU_CAR_COMMANDS)
     return {
@@ -867,7 +852,7 @@ std::vector<String> CarKiaEniro::customMenu(int16_t menuId)
 /**
  * Execute custom command
  */
-void CarKiaEniro::carCommand(const String &cmd)
+void CarHyundaiIoniq5::carCommand(const String &cmd)
 {
   if (cmd.equals("vessOn"))
   {
@@ -1016,7 +1001,7 @@ void CarKiaEniro::carCommand(const String &cmd)
 /**
  * Eniro cmds
  */
-void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
+void CarHyundaiIoniq5::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
   //syslog->println("EXECUTING COMMAND");
   //syslog->println(cmd);
