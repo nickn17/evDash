@@ -1680,7 +1680,7 @@ void Board320_240::showMenu()
 {
 
   uint16_t posY = 0, tmpCurrMenuItem = 0;
-  int8_t idx;
+  int8_t idx, off = 2;
 
   liveData->menuVisible = true;
   spr.fillSprite(TFT_BLACK);
@@ -1693,6 +1693,10 @@ void Board320_240::showMenu()
 
   // Page scroll
   menuItemHeight = spr.fontHeight();
+#ifdef BOARD_M5STACK_CORE2
+  off = menuItemHeight /4;
+  menuItemHeight = menuItemHeight * 1.5;
+#endif
   menuVisibleCount = (int)(tft.height() / menuItemHeight);
 
   if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCount)
@@ -1708,10 +1712,10 @@ void Board320_240::showMenu()
       if (tmpCurrMenuItem >= liveData->menuItemOffset)
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-        spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
+        spr.fillRect(0, posY, 320, menuItemHeight, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
         spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
-        spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + 2, GFXFF);
-        posY += spr.fontHeight();
+        spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + off, GFXFF);
+        posY += menuItemHeight;
       }
       tmpCurrMenuItem++;
     }
@@ -1722,11 +1726,11 @@ void Board320_240::showMenu()
     if (tmpCurrMenuItem >= liveData->menuItemOffset)
     {
       bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-      spr.fillRect(0, posY, 320, spr.fontHeight() + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
+      spr.fillRect(0, posY, 320, menuItemHeight + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
       spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
       idx = customMenu.at(i).indexOf("=");
-      spr.drawString(customMenu.at(i).substring(idx + 1), 0, posY + 2, GFXFF);
-      posY += spr.fontHeight();
+      spr.drawString(customMenu.at(i).substring(idx + 1), 0, posY + off, GFXFF);
+      posY += menuItemHeight;
     }
     tmpCurrMenuItem++;
   }
@@ -2952,10 +2956,11 @@ bool Board320_240::wifiSetup()
  **/
 void Board320_240::wifiFallback()
 {
-  if(liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.backupWifiEnabled == 1) {
+  if (liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.backupWifiEnabled == 1)
+  {
     WiFi.disconnect(true);
 
-    if(liveData->params.isWifiBackupLive == false)
+    if (liveData->params.isWifiBackupLive == false)
     {
       syslog->print("WiFi switchover to backup: ");
       syslog->println(liveData->settings.wifiSsidb);
@@ -3087,7 +3092,6 @@ void Board320_240::netLoop()
       syslog->println(rc);
     }
   }
-
 }
 
 bool Board320_240::netSendData()
@@ -3111,7 +3115,9 @@ bool Board320_240::netSendData()
 
       wifiFallback();
       return false;
-    } else {
+    }
+    else
+    {
       liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
     }
   }
@@ -3150,7 +3156,9 @@ bool Board320_240::netSendData()
         return false;
       }
     }
-  } else {
+  }
+  else
+  {
     syslog->println("Unsupported module");
     return false;
   }
