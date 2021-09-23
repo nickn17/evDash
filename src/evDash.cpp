@@ -7,6 +7,8 @@
    charRxUUID=xxx
    wifiSsid=xxx
    wifiPassword=xxx
+   wifiSsid2=xxx
+   wifiPassword2=xxx
    gprsApn=xxx
    remoteApiUrl=xxx
    remoteApiKey=xxx

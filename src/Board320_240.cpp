@@ -138,13 +138,7 @@ void Board320_240::afterSetup()
   // Starting Wifi after BLE prevents reboot loop
   if (liveData->settings.wifiEnabled == 1)
   {
-    syslog->print("memReport(): MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM bytes free. ");
-    syslog->println(heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM));
-    syslog->println("WiFi init...");
-    WiFi.enableSTA(true);
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
-    syslog->println("WiFi init completed...");
+    wifiSetup();
   }
 
   // Init GPS
@@ -1486,7 +1480,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
       suffix = "[comm]";
       break;
     case DEBUG_GSM:
-      suffix = "[gsm]";
+      suffix = "[net]";
       break;
     case DEBUG_SDCARD:
       suffix = "[sdcard]";
@@ -1640,6 +1634,24 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_WIFI_PASSWORD:
     sprintf(tmpStr1, "%s", liveData->settings.wifiPassword);
     suffix = tmpStr1;
+    break;
+  case MENU_WIFI_SSID2:
+    sprintf(tmpStr1, "%s", liveData->settings.wifiSsidb);
+    suffix = tmpStr1;
+    break;
+  case MENU_WIFI_PASSWORD2:
+    sprintf(tmpStr1, "%s", liveData->settings.wifiPasswordb);
+    suffix = tmpStr1;
+    break;
+  case MENU_WIFI_ACTIVE:
+    if (liveData->params.isWifiBackupLive == true)
+    {
+      suffix = "backup";
+    }
+    else
+    {
+      suffix = "main";
+    }
     break;
   case MENU_WIFI_IPADDR:
     suffix = WiFi.localIP().toString();
@@ -2044,6 +2056,9 @@ void Board320_240::menuItemClick()
       break;
     case MENU_WIFI_SSID:
     case MENU_WIFI_PASSWORD:
+    case MENU_WIFI_SSID2:
+    case MENU_WIFI_PASSWORD2:
+    case MENU_WIFI_ACTIVE:
     case MENU_WIFI_IPADDR:
       return;
       break;
@@ -2522,8 +2537,8 @@ void Board320_240::mainLoop()
   getLocalTime(&now);
   liveData->params.currentTime = mktime(&now);
 
-  // SIM800L + WiFI remote upload ABRP
-  sim800lLoop();
+  // SIM800L + WiFI remote upload
+  netLoop();
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
@@ -2612,20 +2627,12 @@ void Board320_240::mainLoop()
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && liveData->settings.voltmeterBasedSleep == 0)
   {
-    if (liveData->params.sim800l_enabled)
-    {
-      sim800lSendData();
-    }
     goToSleep();
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
   if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
-    if (liveData->params.sim800l_enabled)
-    {
-      sim800lSendData();
-    }
     if (liveData->params.auxVoltage > 0)
       goToSleep();
   }
@@ -2926,6 +2933,50 @@ void Board320_240::syncGPS()
 }
 
 /**
+   Setup WiFi
+ **/
+bool Board320_240::wifiSetup()
+{
+  syslog->print("WiFi init: ");
+  syslog->println(liveData->settings.wifiSsid);
+  WiFi.enableSTA(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+  syslog->println("WiFi init completed...");
+  liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+  return true;
+}
+
+/**
+  Switch Wifi network
+ **/
+void Board320_240::wifiFallback()
+{
+  if(liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.backupWifiEnabled == 1) {
+    WiFi.disconnect(true);
+
+    if(liveData->params.isWifiBackupLive == false)
+    {
+      syslog->print("WiFi switchover to backup: ");
+      syslog->println(liveData->settings.wifiSsidb);
+      WiFi.begin(liveData->settings.wifiSsidb, liveData->settings.wifiPasswordb);
+      liveData->params.isWifiBackupLive = true;
+      syslog->println("WiFi init completed...");
+    }
+    else
+    {
+      syslog->print("WiFi switchover to main: ");
+      syslog->println(liveData->settings.wifiSsid);
+      WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+      liveData->params.isWifiBackupLive = false;
+      syslog->println("WiFi init completed...");
+    }
+
+    liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+  }
+}
+
+/**
   SIM800L
 */
 bool Board320_240::sim800lSetup()
@@ -3004,27 +3055,24 @@ bool Board320_240::sim800lSetup()
   return true;
 }
 
-void Board320_240::sim800lLoop()
+void Board320_240::netLoop()
 {
   // Upload to API - SIM800L or WIFI is supported
-  if (liveData->params.sim800l_enabled || liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
+  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
   {
-    if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
-    {
-      liveData->params.lastDataSent = liveData->params.currentTime;
-      sim800lSendData();
-    }
-
-    // Upload to ABRP
-    if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
-    {
-      liveData->params.lastDataSent = liveData->params.currentTime;
-      sim800lSendData();
-    }
+    liveData->params.lastDataSent = liveData->params.currentTime;
+    netSendData();
   }
 
-  // SIM 800 only
-  if (liveData->params.sim800l_enabled)
+  // Upload to ABRP
+  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  {
+    liveData->params.lastDataSent = liveData->params.currentTime;
+    netSendData();
+  }
+
+  // SIM800
+  if (liveData->params.sim800l_enabled && liveData->settings.remoteUploadModuleType == 0)
   {
     uint16_t rc = sim800l->readPostResponse(SIM800L_RCV_TIMEOUT * 1000);
     if (rc == 200)
@@ -3039,13 +3087,12 @@ void Board320_240::sim800lLoop()
       syslog->println(rc);
     }
   }
+
 }
 
-bool Board320_240::sim800lSendData()
+bool Board320_240::netSendData()
 {
   uint16_t rc = 0;
-
-  syslog->println("Sending data to API");
 
   if (liveData->params.socPerc < 0)
   {
@@ -3054,17 +3101,26 @@ bool Board320_240::sim800lSendData()
   }
 
   // WIFI
-  if (liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
+  if (liveData->settings.remoteUploadModuleType == 1)
   {
+    syslog->println("Sending data to API - via WIFI");
+
     if (WiFi.status() != WL_CONNECTED)
     {
       syslog->println("WIFI not connected to the network, skipping data send");
+
+      wifiFallback();
       return false;
+    } else {
+      liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
     }
   }
-  else
+
+  // SIM800L
+  else if (liveData->settings.remoteUploadModuleType == 0)
   {
-    // SIM800L
+    syslog->println("Sending data to API - via WIFI");
+
     NetworkRegistration network = sim800l->getRegistrationStatus();
     if (network != REGISTERED_HOME && network != REGISTERED_ROAMING)
     {
@@ -3094,6 +3150,9 @@ bool Board320_240::sim800lSendData()
         return false;
       }
     }
+  } else {
+    syslog->println("Unsupported module");
+    return false;
   }
 
   syslog->println("Start HTTP POST...");
@@ -3148,7 +3207,7 @@ bool Board320_240::sim800lSendData()
 
     // WIFI
     rc = 0;
-    if (liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
+    if (liveData->settings.remoteUploadModuleType == 1)
     {
       WiFiClient client;
       HTTPClient http;
@@ -3281,7 +3340,7 @@ bool Board320_240::sim800lSendData()
     syslog->println(dta);
 
     rc = 0;
-    if (liveData->settings.remoteUploadAbrpIntervalSec == REMOTE_UPLOAD_WIFI)
+    if (liveData->settings.remoteUploadModuleType == 1)
     {
       WiFiClient client;
       HTTPClient http;

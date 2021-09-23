@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 106
+#define MENU_SIZE 109
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -68,8 +68,11 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
 
     {MENU_WIFI_TOP,                 MENU_WIFI,          MENU_OTHERS,      "<- parent menu"},
     {MENU_WIFI_ENABLED,             MENU_WIFI,          MENU_NO_MENU,     "WiFi enabled"},
-    {MENU_WIFI_SSID,                MENU_WIFI,          MENU_NO_MENU,     "SSID"},
-    {MENU_WIFI_PASSWORD,            MENU_WIFI,          MENU_NO_MENU,     "Password"},
+    {MENU_WIFI_SSID,                MENU_WIFI,          MENU_NO_MENU,     "SSID:"},
+    {MENU_WIFI_PASSWORD,            MENU_WIFI,          MENU_NO_MENU,     "Password:"},
+    {MENU_WIFI_SSID2,               MENU_WIFI,          MENU_NO_MENU,     "SSID2:"},
+    {MENU_WIFI_PASSWORD2,           MENU_WIFI,          MENU_NO_MENU,     "Password2:"},
+    {MENU_WIFI_ACTIVE,              MENU_WIFI,          MENU_NO_MENU,     "Active:"},
     {MENU_WIFI_IPADDR,              MENU_WIFI,          MENU_NO_MENU,     "IP addr:"},
 
     {MENU_SDCARD_TOP,               MENU_SDCARD,        MENU_OTHERS,      "<- parent menu"},

@@ -68,11 +68,13 @@ typedef struct
   time_t chargingStartTime;
   uint32_t queueLoopCounter;
   time_t lastCanbusResponseTime;
-  // SIM
+  // Network
   time_t lastDataSent;
   bool sim800l_enabled;
   time_t sim800l_lastOkReceiveTime;
   time_t sim800l_lastOkSendTime;
+  bool isWifiBackupLive;
+  time_t wifiLastConnectedTime;
   // GPS
   bool currTimeSyncWithGps;
   float gpsLat;
@@ -289,7 +291,10 @@ typedef struct
   int8_t timezone;                  // 0 - default, -11 .. +14 hrs
   uint8_t daylightSaving;              // 0/1
   uint8_t rightHandDrive;              // 0 - default is LHD, 1 RHD (UK)
-  //
+  // == settings version 12
+  char wifiSsidb[32];                  //backup wifi SSID
+  char wifiPasswordb[32];              //backup wifi Pass
+  uint8_t backupWifiEnabled;           //enable Backup WIFI fallback 0/1
 } SETTINGS_STRUC;
 
 // LiveData class

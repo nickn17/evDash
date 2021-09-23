@@ -89,10 +89,12 @@ public:
   void initGPS();
   void syncGPS();
   void syncTimes(time_t newTime);
-  // SIM800L
+  // Notwork
   bool sim800lSetup();
-  void sim800lLoop();
-  bool sim800lSendData();
+  bool wifiSetup();
+  void netLoop();
+  bool netSendData();
+  void wifiFallback();
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;
