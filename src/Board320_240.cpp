@@ -19,7 +19,6 @@ RTC_DATA_ATTR unsigned int sleepCount = 0;
 */
 void Board320_240::initBoard()
 {
-
 // Set button pins for input
 #ifdef BOARD_TTGO_T4
   pinMode(pinButtonMiddle, INPUT);
@@ -2870,8 +2869,8 @@ void Board320_240::syncGPS()
       // <70 = 100% brightnesss
       // >100 = 10%
       double sunDeg = getSZA(liveData->params.currentTime);
-      syslog->print("SUN from zenith, degrees: ");
-      syslog->println(sunDeg);
+      syslog->infoNolf(DEBUG_GPS, "SUN from zenith, degrees: ");
+      syslog->info(DEBUG_GPS, sunDeg);
       int32_t newBrightness = (105 - sunDeg) * 3.5;
       newBrightness = (newBrightness < 20 ? 20 : (newBrightness > 100) ? 100
                                                                        : newBrightness);
