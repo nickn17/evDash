@@ -3352,10 +3352,11 @@ bool Board320_240::netSendData()
       WiFiClient client;
       HTTPClient http;
 
+      //http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
       http.begin(client, "http://api.iternio.com/1/tlm/send");
       http.setConnectTimeout(500);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-      rc = http.POST(payload);
+      rc = http.POST(dta);
       http.end();
     }
     else
