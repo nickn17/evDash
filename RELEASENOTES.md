@@ -2,10 +2,13 @@
 
 ### Next version
 
+### v2.5.1 2021-07-27
 - dynamic scale for charging graph
 - speed screen - added calculated kWh/100km
+- basic support for Hyudani Ioniq5
+- ABRP Live Data / API over Wifi
 
-### v2.5.0 2020-04-19
+### v2.5.0 2021-04-19
 - Volkswagen ID3 45/58/77 support by spot2000 (CAN only 29bit)
 - menu refactoring
 - touch screen support for m5stack core2
