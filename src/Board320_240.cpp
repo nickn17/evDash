@@ -2955,29 +2955,40 @@ bool Board320_240::wifiSetup()
  **/
 void Board320_240::wifiFallback()
 {
-  if (liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.backupWifiEnabled == 1)
+  if (liveData->settings.backupWifiEnabled == 1)
   {
     WiFi.disconnect(true);
 
     if (liveData->params.isWifiBackupLive == false)
     {
-      syslog->print("WiFi switchover to backup: ");
-      syslog->println(liveData->settings.wifiSsidb);
-      WiFi.begin(liveData->settings.wifiSsidb, liveData->settings.wifiPasswordb);
-      liveData->params.isWifiBackupLive = true;
-      syslog->println("WiFi init completed...");
+      wifiSwitchToBackup();
     }
     else
     {
-      syslog->print("WiFi switchover to main: ");
-      syslog->println(liveData->settings.wifiSsid);
-      WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
-      liveData->params.isWifiBackupLive = false;
-      syslog->println("WiFi init completed...");
+      wifiSwitchToMain();
     }
 
     liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
   }
+}
+
+void Board320_240::wifiSwitchToBackup()
+{
+  syslog->print("WiFi switchover to backup: ");
+  syslog->println(liveData->settings.wifiSsidb);
+  WiFi.begin(liveData->settings.wifiSsidb, liveData->settings.wifiPasswordb);
+  liveData->params.isWifiBackupLive = true;
+  syslog->println("WiFi init completed...");
+  liveData->params.wifiBackupUptime = liveData->params.currentTime;
+}
+
+void Board320_240::wifiSwitchToMain()
+{
+  syslog->print("WiFi switchover to main: ");
+  syslog->println(liveData->settings.wifiSsid);
+  WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+  liveData->params.isWifiBackupLive = false;
+  syslog->println("WiFi init completed...");
 }
 
 /**
@@ -3112,7 +3123,17 @@ bool Board320_240::netSendData()
     {
       syslog->println("WIFI not connected to the network, skipping data send");
 
-      wifiFallback();
+      if (liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.backupWifiEnabled == 1)
+      {
+        wifiFallback();
+      }
+      return false;
+    }
+    else if (liveData->params.isWifiBackupLive == true && liveData->params.currentTime - liveData->params.wifiBackupUptime > 600)
+    {
+      syslog->println("Trying if Main wifi is accessible - switching to main");
+      wifiSwitchToMain();
+      liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
       return false;
     }
     else

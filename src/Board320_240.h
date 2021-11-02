@@ -95,6 +95,8 @@ public:
   void netLoop();
   bool netSendData();
   void wifiFallback();
+  void wifiSwitchToMain();
+  void wifiSwitchToBackup();
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;

@@ -75,6 +75,7 @@ typedef struct
   time_t sim800l_lastOkSendTime;
   bool isWifiBackupLive;
   time_t wifiLastConnectedTime;
+  time_t wifiBackupUptime;
   // GPS
   bool currTimeSyncWithGps;
   float gpsLat;
