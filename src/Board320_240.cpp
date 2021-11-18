@@ -177,7 +177,7 @@ void Board320_240::afterSetup()
 */
 void Board320_240::goToSleep()
 {
-  //Sleep SIM800L
+  // Sleep SIM800L
   if (liveData->params.sim800l_enabled)
   {
     if (sim800l->isConnectedGPRS())
@@ -198,7 +198,7 @@ void Board320_240::goToSleep()
     sim800l->enterSleepMode();
   }
 
-  //Sleep GPS
+  // Sleep GPS
   if (gpsHwUart != NULL)
   {
     uint8_t GPSoff[] = {0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x4D, 0x3B};
@@ -640,7 +640,7 @@ void Board320_240::drawSceneSpeed()
 
   int32_t posx, posy;
 
-  //spr.fillRect(0, 34, 206, 170, TFT_BLACK); // TFT_DARKRED
+  // spr.fillRect(0, 34, 206, 170, TFT_BLACK); // TFT_DARKRED
 
   posx = 320 / 2;
   posy = 40;
@@ -876,33 +876,42 @@ void Board320_240::drawSceneHud()
 void Board320_240::drawSceneBatteryCells()
 {
 
-  int32_t posx, posy;
+  int32_t posx, posy, lastPosY;
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
   drawSmallCell(0, 0, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
   drawSmallCell(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
-  drawSmallCell(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
-  drawSmallCell(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
-  drawSmallCell(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
-  drawSmallCell(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  // Ioniq (up to 12 cells)
-  for (uint16_t i = 4; i < liveData->params.batModuleTempCount; i++)
+
+  lastPosY = 64-16;
+
+  if (liveData->params.batModuleTempCount <= 4)
   {
-    if (liveData->params.batModuleTempC[i] == 0)
-      continue;
-    posx = (((i - 4) % 8) * 40);
-    posy = ((floor((i - 4) / 8)) * 13) + 64;
-    //spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
-    spr.setTextSize(1); // Size for small 5x7 font
-    spr.setTextDatum(TL_DATUM);
-    spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED));
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]), char(127));
-    spr.drawString(tmpStr1, posx + 4, posy, 2);
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
+    drawSmallCell(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
+    drawSmallCell(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
+    drawSmallCell(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
+    drawSmallCell(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
+  }
+  else
+  {
+    // Ioniq (up to 12 cells)
+    for (uint16_t i = 0; i < liveData->params.batModuleTempCount; i++)
+    {
+      if (/*liveData->params.batModuleTempC[i] == 0 && */liveData->params.batModuleTempC[i] == -100)
+        continue;
+      posx = (((i - 0) % 8) * 40);
+      posy = lastPosY = ((floor((i - 0) / 8)) * 13) + 32;
+      // spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
+      spr.setTextSize(1); // Size for small 5x7 font
+      spr.setTextDatum(TL_DATUM);
+      spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED));
+      sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]), char(127));
+      spr.drawString(tmpStr1, posx + 4, posy, 2);
+    }
   }
 
   spr.setTextDatum(TL_DATUM); // Topleft
@@ -926,7 +935,7 @@ void Board320_240::drawSceneBatteryCells()
     if (liveData->params.cellVoltage[i] == -1)
       continue;
     posx = ((i % 8) * 40) + 4;
-    posy = ((floor(i / 8) + (liveData->params.cellCount > 96 ? 0 : 1)) * 13) + 68;
+    posy = ((floor(i / 8) + (liveData->params.cellCount > 96 ? 0 : 1)) * 13) + lastPosY;//68;
     sprintf(tmpStr3, "%01.02f", liveData->params.cellVoltage[i]);
     spr.setTextColor(TFT_SILVER);
     if (liveData->params.cellVoltage[i] == minVal && minVal != maxVal)
@@ -1343,7 +1352,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "[%s]", APP_VERSION);
     suffix = tmpStr1;
     break;
-  //TODO: Why is do these cases not match the vehicle type id?
+  // TODO: Why is do these cases not match the vehicle type id?
   case VEHICLE_TYPE_ENIRO_2020_64:
     prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
     break;
@@ -1379,9 +1388,6 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case VEHICLE_TYPE_ZOE_22_DEV:
     prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
-    break;
-  case VEHICLE_TYPE_NIROPHEV_8_9:
-    prefix = (liveData->settings.carType == CAR_KIA_NIRO_PHEV) ? ">" : "";
     break;
   case VEHICLE_TYPE_BMWI3_2014_22:
     prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
@@ -1693,7 +1699,7 @@ void Board320_240::showMenu()
   // Page scroll
   menuItemHeight = spr.fontHeight();
 #ifdef BOARD_M5STACK_CORE2
-  off = menuItemHeight /4;
+  off = menuItemHeight / 4;
   menuItemHeight = menuItemHeight * 1.5;
 #endif
   menuVisibleCount = (int)(tft.height() / menuItemHeight);
@@ -1895,11 +1901,6 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_NIROPHEV_8_9:
-      liveData->settings.carType = CAR_KIA_NIRO_PHEV;
-      showMenu();
-      return;
-      break;
     case VEHICLE_TYPE_BMWI3_2014_22:
       liveData->settings.carType = CAR_BMW_I3_2014;
       showMenu();
@@ -1999,7 +2000,7 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_REMOTE_UPLOAD_TYPE:
-      //liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
+      // liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
       liveData->settings.remoteUploadModuleType = (liveData->settings.remoteUploadModuleType == 1) ? REMOTE_UPLOAD_SIM800L : liveData->settings.remoteUploadModuleType + 1;
       showMenu();
       return;
@@ -2337,7 +2338,7 @@ void Board320_240::redrawScreen()
   }
 
   // SIM800L status
-  if (liveData->params.sim800l_enabled)
+  if (liveData->params.sim800l_enabled || liveData->settings.remoteUploadModuleType == 1)
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
@@ -2548,7 +2549,7 @@ void Board320_240::mainLoop()
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
   {
 
-    //syslog->println(&now, "%y%m%d%H%M");
+    // syslog->println(&now, "%y%m%d%H%M");
 
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0)
@@ -2588,7 +2589,7 @@ void Board320_240::mainLoop()
     }
   }
 
-  //Read voltmeter INA3221 (if enabled)
+  // Read voltmeter INA3221 (if enabled)
   if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 2)
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
@@ -2597,7 +2598,7 @@ void Board320_240::mainLoop()
 
     if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
     {
-      float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
+      float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); // min 11.6V; max: 12.8V
 
       if (tmpAuxPerc > 100)
       {
@@ -2894,8 +2895,8 @@ void Board320_240::syncGPS()
   if (gps.satellites.isValid())
   {
     liveData->params.gpsSat = gps.satellites.value();
-    //syslog->print("GPS satellites: ");
-    //syslog->println(liveData->params.gpsSat);
+    // syslog->print("GPS satellites: ");
+    // syslog->println(liveData->params.gpsSat);
   }
   if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
   {
@@ -3012,7 +3013,7 @@ bool Board320_240::sim800lSetup()
 
   sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
   // SIM800L DebugMode:
-  //sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
+  // sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
 
   bool sim800l_ready = sim800l->isReady();
   for (uint8_t i = 0; i < 3 && !sim800l_ready; i++)
@@ -3215,7 +3216,7 @@ bool Board320_240::netSendData()
     jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
-    //Send GPS data via GPRS (if enabled && valid)
+    // Send GPS data via GPRS (if enabled && valid)
     if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
@@ -3373,7 +3374,7 @@ bool Board320_240::netSendData()
       WiFiClient client;
       HTTPClient http;
 
-      //http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
+      // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
       http.begin(client, "http://api.iternio.com/1/tlm/send");
       http.setConnectTimeout(500);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -3431,13 +3432,13 @@ void Board320_240::initGPS()
       // disable sleep mode
       0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x4C, 0x37,
       // enable GPGGA & RMC sentences (only these are evaluated by TinyGPS++)
-      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x05, 0x38, //GGA
-      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x04, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x09, 0x54, //RMC
+      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x05, 0x38, // GGA
+      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x04, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x09, 0x54, // RMC
       // disable all other NMEA sentences to save bandwith
-      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x2B, //GLL
-      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x32, //GSA
-      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x39, //GSV
-      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, //VTG
+      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x2B, // GLL
+      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x32, // GSA
+      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x39, // GSV
+      0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, // VTG
       // setup SBAS search to EGNOS only
       0xB5, 0x62, 0x06, 0x16, 0x08, 0x00, 0x01, 0x03, 0x03, 0x00, 0x51, 0x08, 0x00, 0x00, 0x84, 0x15,
       // set NAV5 model to automotive, static hold on 0.5m/s, 3m
@@ -3447,10 +3448,10 @@ void Board320_240::initGPS()
       // 150ms update interval
       0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x96, 0x00, 0x01, 0x00, 0x01, 0x00, 0xAC, 0x3E,
       // 100ms update interval (needs higher baudrate, whose config doesnt work?)
-      //0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01, 0x00, 0x7A, 0x12,
+      // 0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01, 0x00, 0x7A, 0x12,
       // uart to baud 115200 and nmea only  -> wont work?! TODO :^(
-      //0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xD0, 0x08, 0x00, 0x00, 0x00, 0xC2,
-      //0x01, 0x00, 0x07, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBF, 0x78,
+      // 0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xD0, 0x08, 0x00, 0x00, 0x00, 0xC2,
+      // 0x01, 0x00, 0x07, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBF, 0x78,
       // save changes
       0xB5, 0x62, 0x06, 0x09, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x03, 0x1D, 0xAB};

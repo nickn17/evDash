@@ -1,4 +1,4 @@
-/* 
+/*
 
 First start at implementing the VW ID.3 EV into evDash
 Conny Nikolaisen 2021-02-14
@@ -15,7 +15,7 @@ Conny Nikolaisen 2021-02-14
 #include "CommInterface.h"
 #include <vector>
 
-#define commandQueueLoopFromVWID3 9 //number of commands that are only used for init, ie loop from the one after this
+#define commandQueueLoopFromVWID3 9 // number of commands that are only used for init, ie loop from the one after this
 
 /**
    activateCommandQueue
@@ -229,7 +229,7 @@ void CarVWID3::activateCommandQueue()
 
   };
 
-  /* 
+  /*
   Battery	capacity
 
   Name    Net (kWh)    Gross (kWh)   defined name
@@ -242,7 +242,7 @@ void CarVWID3::activateCommandQueue()
 */
 
   liveData->params.batModuleTempCount = 18;       // Maximum temperture points in battery, 18 for the VW ID.3 but maximum limit to show is 12 in evDash
-  liveData->params.batteryTotalAvailableKWh = 58; //defines that Pro trim is the standard guess
+  liveData->params.batteryTotalAvailableKWh = 58; // defines that Pro trim is the standard guess
   if (liveData->settings.carType == CAR_VW_ID3_2021_45)
   {
     liveData->params.batteryTotalAvailableKWh = 45;
@@ -277,8 +277,8 @@ void CarVWID3::activateCommandQueue()
 void CarVWID3::parseRowMerged()
 {
 
-  //uint8_t tempByte;
-  //  float tempFloat;
+  // uint8_t tempByte;
+  //   float tempFloat;
   String tmpStr;
 
   // New parser for VW ID.3
@@ -289,12 +289,12 @@ void CarVWID3::parseRowMerged()
     if (liveData->commandRequest.equals("22465B")) // DC-DC converter HV to 12V current
     {
       // Put code here to parse the data
-      //liveData->params.batPowerAmp = liveData->hexToDecFromResponse(6, 10, 2, false) / 16;
+      // liveData->params.batPowerAmp = liveData->hexToDecFromResponse(6, 10, 2, false) / 16;
     }
     if (liveData->commandRequest.equals("22465D")) // DC-DC converter HV to 12V Voltage
     {
       // Put code here to parse the data
-      //liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 512;
+      // liveData->params.batVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 512;
     }
   }
 
@@ -331,11 +331,11 @@ void CarVWID3::parseRowMerged()
     {
 
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 1)
-        liveData->params.ignitionOn = true; //ignition on
+        liveData->params.ignitionOn = true; // ignition on
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 4)
         liveData->params.chargerACconnected = true; // AC charger connected
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 6)
-        liveData->params.chargerDCconnected = true; //DC charger connected
+        liveData->params.chargerDCconnected = true; // DC charger connected
       if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
         liveData->params.chargingOn = true; // Carging on
       if (liveData->params.chargingOn)
@@ -353,12 +353,12 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("221E33")) // HV Battery cell # with highest voltage, V
     {
-      // kod här
+      liveData->params.batCellMinV = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
     }
 
     if (liveData->commandRequest.equals("221E34")) // HV Battery cell # with lowest  voltage, V
     {
-      // kod här
+      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
     }
 
     if (liveData->commandRequest.equals("221E3B")) // HV Battery voltage, V
@@ -393,7 +393,7 @@ void CarVWID3::parseRowMerged()
     if (liveData->commandRequest.equals("22189D")) // HV battery cooling liquid inlet and outlet, °C
     {
       liveData->params.batInletC = liveData->hexToDecFromResponse(10, 14, 2, false) / 64; // kod här
-      //liveData->params.batOutletC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här
+      // liveData->params.batOutletC = liveData->hexToDecFromResponse(6, 10, 2, false) / 64; // kod här
     }
 
     if (liveData->commandRequest.equals("222A0B")) // HV Battery temp (main value), °C
@@ -936,18 +936,19 @@ void CarVWID3::parseRowMerged()
       liveData->params.cellVoltage[107] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
     }
 
-    float maxCellVolt = 0;
-    float minCellVolt = 6;
-
-    for (int i = 0; i < 108; i++)
-    {
-      if (liveData->params.cellVoltage[i] > maxCellVolt)
-        maxCellVolt = liveData->params.cellVoltage[i];
-      if (liveData->params.cellVoltage[i] < minCellVolt)
-        minCellVolt = liveData->params.cellVoltage[i];
-    }
-    liveData->params.batCellMinV = minCellVolt;
-    liveData->params.batCellMaxV = maxCellVolt;
+    /*    float maxCellVolt = 0;
+        float minCellVolt = 6;
+        for (int i = 0; i < 108; i++)
+        {
+          if (liveData->params.cellVoltage[i] > 5.00)
+            continue;
+          if (liveData->params.cellVoltage[i] > maxCellVolt)
+            maxCellVolt = liveData->params.cellVoltage[i];
+          if (liveData->params.cellVoltage[i] < minCellVolt)
+            minCellVolt = liveData->params.cellVoltage[i];
+        }
+        liveData->params.batCellMinV = minCellVolt;
+        liveData->params.batCellMaxV = maxCellVolt;*/
 
     if (liveData->commandRequest.equals("221E32")) // HV Battery total accumulated charge and total accumulated discharge, MF answer
     {
@@ -1029,7 +1030,7 @@ void CarVWID3::parseRowMerged()
   {
     if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
     {
-      //liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // // HV battery max energy content Wh
+      // liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // // HV battery max energy content Wh
     }
 
     if (liveData->commandRequest.equals("222AF7")) // // 12V multiframe
@@ -1042,7 +1043,7 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
     {
-      //liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
+      // liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
     }
   }
 }
@@ -1057,7 +1058,7 @@ bool CarVWID3::commandAllowed()
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
-  //SleepMode Queue Filter
+  // SleepMode Queue Filter
   /*if (liveData->params.sleepModeQueue)
   {
     if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
@@ -1098,7 +1099,7 @@ bool CarVWID3::commandAllowed()
   {
     if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
       if (
-          liveData->commandRequest.indexOf("22742") == 0 // 22742x => 227425, 227426 
+          liveData->commandRequest.indexOf("22742") == 0 // 22742x => 227425, 227426
           ||
           (liveData->commandRequest.indexOf("221E") == 0 && // All other cells
            liveData->commandRequest.indexOf("221E0") != 0 &&
@@ -1243,6 +1244,18 @@ void CarVWID3::loadTestData()
   liveData->params.batModuleTempC[1] = 29;
   liveData->params.batModuleTempC[2] = 28;
   liveData->params.batModuleTempC[3] = 30;
+  liveData->params.batModuleTempC[4] = 28;
+  liveData->params.batModuleTempC[5] = 29;
+  liveData->params.batModuleTempC[6] = 28;
+  liveData->params.batModuleTempC[7] = 30;
+  liveData->params.batModuleTempC[8] = 28;
+  liveData->params.batModuleTempC[9] = 29;
+  liveData->params.batModuleTempC[10] = 28;
+  liveData->params.batModuleTempC[11] = 30;
+  liveData->params.batModuleTempC[12] = 28;
+  liveData->params.batModuleTempC[13] = 29;
+  liveData->params.batModuleTempC[14] = 28;
+  liveData->params.batModuleTempC[15] = 30;
 
   // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
   liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -1377,7 +1390,7 @@ void CarVWID3::testHandler(const String &cmd)
         command += "00";
 
         // EXECUTE COMMAND
-        //syslog->print(".");
+        // syslog->print(".");
         commInterface->sendPID(liveData->hexToDec("0736", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
@@ -1624,8 +1637,8 @@ void CarVWID3::carCommand(const String &cmd)
  */
 void CarVWID3::VWID3CarControl(const uint16_t pid, const String &cmd)
 {
-  //syslog->println("EXECUTING COMMAND");
-  //syslog->println(cmd);
+  // syslog->println("EXECUTING COMMAND");
+  // syslog->println(cmd);
   commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
   delay(10);
   for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
