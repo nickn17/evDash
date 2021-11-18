@@ -88,7 +88,14 @@ void Board320_240::afterSetup()
   // Init Voltmeter
   if (liveData->settings.voltmeterEnabled == 1)
   {
+    syslog->print("Initializing INA3221 voltmeter:");
     ina3221.begin();
+    syslog->print(" ch1:");
+    syslog->print(ina3221.getBusVoltage_V(1));
+    syslog->print(" ch2:");
+    syslog->print(ina3221.getBusVoltage_V(2));
+    syslog->print(" ch3:");
+    syslog->println(ina3221.getBusVoltage_V(3));
   }
 
   if (liveData->settings.sleepModeLevel >= 2 && !skipAdapterScan() && bootCount > 1)
@@ -461,7 +468,6 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
   }
   else
   {
-
     // All others 1x1 cells
     spr.setTextDatum(MC_DATUM);
     spr.setTextColor(fgColor);
@@ -883,7 +889,7 @@ void Board320_240::drawSceneBatteryCells()
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
   drawSmallCell(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
 
-  lastPosY = 64-16;
+  lastPosY = 64 - 16;
 
   if (liveData->params.batModuleTempCount <= 4)
   {
@@ -901,7 +907,7 @@ void Board320_240::drawSceneBatteryCells()
     // Ioniq (up to 12 cells)
     for (uint16_t i = 0; i < liveData->params.batModuleTempCount; i++)
     {
-      if (/*liveData->params.batModuleTempC[i] == 0 && */liveData->params.batModuleTempC[i] == -100)
+      if (/*liveData->params.batModuleTempC[i] == 0 && */ liveData->params.batModuleTempC[i] == -100)
         continue;
       posx = (((i - 0) % 8) * 40);
       posy = lastPosY = ((floor((i - 0) / 8)) * 13) + 32;
@@ -935,7 +941,7 @@ void Board320_240::drawSceneBatteryCells()
     if (liveData->params.cellVoltage[i] == -1)
       continue;
     posx = ((i % 8) * 40) + 4;
-    posy = ((floor(i / 8) + (liveData->params.cellCount > 96 ? 0 : 1)) * 13) + lastPosY;//68;
+    posy = ((floor(i / 8)) * 13) + lastPosY + 16; // 68;
     sprintf(tmpStr3, "%01.02f", liveData->params.cellVoltage[i]);
     spr.setTextColor(TFT_SILVER);
     if (liveData->params.cellVoltage[i] == minVal && minVal != maxVal)

@@ -353,12 +353,12 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("221E33")) // HV Battery cell # with highest voltage, V
     {
-      liveData->params.batCellMinV = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+      liveData->params.batCellMinV = liveData->hexToDecFromResponse(6, 10, 2, false) / 4096; // Cell voltage, cell 1
     }
 
     if (liveData->commandRequest.equals("221E34")) // HV Battery cell # with lowest  voltage, V
     {
-      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
+      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(6, 10, 2, false) / 4096; // Cell voltage, cell 1
     }
 
     if (liveData->commandRequest.equals("221E3B")) // HV Battery voltage, V
