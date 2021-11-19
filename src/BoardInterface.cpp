@@ -153,7 +153,7 @@ void BoardInterface::loadSettings()
   liveData->settings.debugLevel = 1;         // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard
   liveData->settings.sdcardLogIntervalSec = 2;
   liveData->settings.gprsLogIntervalSec = 60;
-  liveData->settings.sleepModeLevel = 0;
+  liveData->settings.sleepModeLevel = SLEEP_MODE_OFF;
   liveData->settings.voltmeterEnabled = 0;
   liveData->settings.voltmeterBasedSleep = 0;
   liveData->settings.voltmeterCutOff = 12.0;
@@ -240,7 +240,7 @@ void BoardInterface::loadSettings()
       if (liveData->tmpSettings.settingsVersion == 6)
       {
         liveData->tmpSettings.settingsVersion = 7;
-        liveData->tmpSettings.sleepModeLevel = 0;
+        liveData->tmpSettings.sleepModeLevel = SLEEP_MODE_OFF;
       }
       if (liveData->tmpSettings.settingsVersion == 7)
       {

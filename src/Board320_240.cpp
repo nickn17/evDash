@@ -98,7 +98,7 @@ void Board320_240::afterSetup()
     syslog->println(ina3221.getBusVoltage_V(3));
   }
 
-  if (liveData->settings.sleepModeLevel >= 2 && !skipAdapterScan() && bootCount > 1)
+  if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && !skipAdapterScan() && bootCount > 1)
   {
     // Init comm device if COMM device based wakeup
     if (liveData->settings.voltmeterBasedSleep == 0)
@@ -184,6 +184,8 @@ void Board320_240::afterSetup()
 */
 void Board320_240::goToSleep()
 {
+  syslog->println("Going to sleep.");
+
   // Sleep SIM800L
   if (liveData->params.sim800l_enabled)
   {
@@ -214,7 +216,7 @@ void Board320_240::goToSleep()
 
   int sleepSeconds = 0;
 
-  if (liveData->settings.sleepModeLevel == 2 &&
+  if (liveData->settings.sleepModeLevel == SLEEP_MODE_DEEP_SLEEP &&
       (sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600 ||
        liveData->settings.sleepModeShutdownHrs == 0))
   {
@@ -307,7 +309,7 @@ void Board320_240::afterSleep()
     {
       syslog->print("AUX voltage under cut-off voltage: ");
       syslog->println(liveData->settings.voltmeterCutOff);
-      liveData->settings.sleepModeLevel = 3;
+      liveData->settings.sleepModeLevel = SLEEP_MODE_SHUTDOWN;
       goToSleep();
     }
     else if (liveData->params.auxVoltage > 0 && liveData->params.auxVoltage < liveData->settings.voltmeterWakeUp)
@@ -361,6 +363,12 @@ void Board320_240::afterSleep()
  */
 void Board320_240::turnOffScreen()
 {
+  if (currentBrightness == 0)
+    return;
+  
+  syslog->println("Turn off screen");
+  currentBrightness = 0;
+
 #ifdef BOARD_TTGO_T4
   analogWrite(4 /*TFT_BL*/, 0);
 #endif // BOARD_TTGO_T4
@@ -393,6 +401,14 @@ void Board320_240::setBrightness()
   {
     lcdBrightnessPerc = 100;
   }
+
+
+  if (currentBrightness == lcdBrightnessPerc)
+    return;
+  
+  syslog->print("Set brightness: ");
+  syslog->println(lcdBrightnessPerc);
+  currentBrightness = lcdBrightnessPerc;
 
 #ifdef BOARD_TTGO_T4
   analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
@@ -1524,16 +1540,16 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_SLEEP_MODE:
     switch (liveData->settings.sleepModeLevel)
     {
-    case 0:
+    case SLEEP_MODE_OFF:
       suffix = "[off]";
       break;
-    case 1:
+    case SLEEP_MODE_SCREEN_ONLY:
       suffix = "[screen only]";
       break;
-    case 2:
+    case SLEEP_MODE_DEEP_SLEEP:
       suffix = "[deep sleep]";
       break;
-    case 3:
+    case SLEEP_MODE_SHUTDOWN:
       suffix = "[shutdown]";
       break;
     default:
@@ -1543,16 +1559,16 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_SLEEP_MODE_MODE:
     switch (liveData->settings.sleepModeLevel)
     {
-    case 0:
+    case SLEEP_MODE_OFF:
       suffix = "[off]";
       break;
-    case 1:
+    case SLEEP_MODE_SCREEN_ONLY:
       suffix = "[screen only]";
       break;
-    case 2:
+    case SLEEP_MODE_DEEP_SLEEP:
       suffix = "[deep sleep]";
       break;
-    case 3:
+    case SLEEP_MODE_SHUTDOWN:
       suffix = "[shutdown]";
       break;
     default:
@@ -1967,7 +1983,7 @@ void Board320_240::menuItemClick()
       break;
     // SleepMode off/on
     case MENU_SLEEP_MODE_MODE:
-      liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == 3) ? 0 : liveData->settings.sleepModeLevel + 1;
+      liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == SLEEP_MODE_SHUTDOWN) ? SLEEP_MODE_OFF : liveData->settings.sleepModeLevel + 1;
       showMenu();
       return;
       break;
@@ -2625,7 +2641,10 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && liveData->settings.sleepModeLevel >= 1 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && 
+      liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY && 
+      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 && 
+      (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
   {
     turnOffScreen();
   }
@@ -2635,13 +2654,13 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && liveData->settings.voltmeterBasedSleep == 0)
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && liveData->settings.voltmeterBasedSleep == 0)
   {
     goToSleep();
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->settings.sleepModeLevel >= 2 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
     if (liveData->params.auxVoltage > 0)
       goToSleep();
@@ -2879,7 +2898,7 @@ void Board320_240::syncGPS()
       syslog->infoNolf(DEBUG_GPS, "SUN from zenith, degrees: ");
       syslog->info(DEBUG_GPS, sunDeg);
       int32_t newBrightness = (105 - sunDeg) * 3.5;
-      newBrightness = (newBrightness < 20 ? 20 : (newBrightness > 100) ? 100
+      newBrightness = (newBrightness < 5 ? 5 : (newBrightness > 100) ? 100
                                                                        : newBrightness);
       if (liveData->params.lcdBrightnessCalc != newBrightness)
       {

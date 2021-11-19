@@ -4,6 +4,8 @@
 - MEB optimizations (cell screen, min/max voltage)
 - removed Niro PHEV support (not completed and longer without maintainer)
 - display status for ABRP live via Wifi
+- bugfix prevent blank screen (sleep mode) with touch panel (core2) 
+- new display low brightness limit (based on gps). Lower 20% was too bright.
 
 ### v2.5.1 2021-07-27
 - dynamic scale for charging graph

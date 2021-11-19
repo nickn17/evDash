@@ -27,15 +27,15 @@ void BoardM5stackCore2::initBoard()
   Wire1.begin(21, 22);
   Wire1.setClock(400000);
 
-  //AXP192 30H
+  // AXP192 30H
   Write1Byte(0x30, (Read8bit(0x30) & 0x04) | 0X02);
-  //AXP192 GPIO1:OD OUTPUT
+  // AXP192 GPIO1:OD OUTPUT
   Write1Byte(0x92, Read8bit(0x92) & 0xf8);
-  //AXP192 GPIO2:OD OUTPUT
+  // AXP192 GPIO2:OD OUTPUT
   Write1Byte(0x93, Read8bit(0x93) & 0xf8);
-  //AXP192 RTC CHG
+  // AXP192 RTC CHG
   Write1Byte(0x35, (Read8bit(0x35) & 0x1c) | 0xa2);
-  //AXP192 GPIO4
+  // AXP192 GPIO4
   Write1Byte(0X95, (Read8bit(0x95) & 0x72) | 0X84);
   Write1Byte(0X36, 0X4C);
   Write1Byte(0x82, 0xff);
@@ -153,6 +153,8 @@ void BoardM5stackCore2::mainLoop()
   // Touch
   if (M5.background.pressedFor(200, 500))
   {
+    liveData->params.lastButtonPushedTime = liveData->params.currentTime; // prevent screen sleep mode
+
     if (!liveData->menuVisible)
     {
       liveData->params.lastButtonPushedTime = liveData->params.currentTime;
@@ -192,25 +194,25 @@ void BoardM5stackCore2::mainLoop()
         menuItemClick();
       }
       else // Right top corner - page up
-          if (lastTouchX > 320 - 64 && lastTouchY < 64)
-      {
-        for (uint8_t i = 0; i < menuVisibleCount; i++)
-          menuMove(false, false);
-        showMenu();
-      }
-      else // Right bottom corne - page down
+        if (lastTouchX > 320 - 64 && lastTouchY < 64)
+        {
+          for (uint8_t i = 0; i < menuVisibleCount; i++)
+            menuMove(false, false);
+          showMenu();
+        }
+        else // Right bottom corne - page down
           if (lastTouchX > 320 - 64 && lastTouchY > 240 - 64)
-      {
-        for (uint8_t i = 0; i < menuVisibleCount; i++)
-          menuMove(true, false);
-        showMenu();
-      }
-      else // Click item
-      {
-        liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
-        showMenu();
-        menuItemClick();
-      }
+          {
+            for (uint8_t i = 0; i < menuVisibleCount; i++)
+              menuMove(true, false);
+            showMenu();
+          }
+          else // Click item
+          {
+            liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
+            showMenu();
+            menuItemClick();
+          }
     }
   }
 }

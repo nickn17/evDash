@@ -56,6 +56,12 @@
 #define SIM800L_INT_BUFFER 768 // Internal buffer
 #define SIM800L_RCV_BUFFER 128 // Receive buffer
 
+// SLEEP MODE
+#define SLEEP_MODE_OFF 0
+#define SLEEP_MODE_SCREEN_ONLY 1
+#define SLEEP_MODE_DEEP_SLEEP 2
+#define SLEEP_MODE_SHUTDOWN 3
+
 #define ABRP_API_KEY "b8992aa2-cec6-43a9-8561-32499cf98ceb"
 
 typedef enum

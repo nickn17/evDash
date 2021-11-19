@@ -130,7 +130,39 @@ void setup(void)
   board->redrawScreen();
 
   // End
+  syslog->println("");  
   syslog->println("Device setup completed");
+  syslog->println("");  
+  syslog->println("▓█████ ██▒   █▓▓█████▄  ▄▄▄        ██████  ██░ ██ ");
+  syslog->println("▓█   ▀▓██░   █▒▒██▀ ██▌▒████▄    ▒██    ▒ ▓██░ ██▒");
+  syslog->println("▒███   ▓██  █▒░░██   █▌▒██  ▀█▄  ░ ▓██▄   ▒██▀▀██░");
+  syslog->println("▒▓█  ▄  ▒██ █░░░▓█▄   ▌░██▄▄▄▄██   ▒   ██▒░▓█ ░██ ");
+  syslog->println("░▒████▒  ▒▀█░  ░▒████▓  ▓█   ▓██▒▒██████▒▒░▓█▒░██▓");
+  syslog->println("░░ ▒░ ░  ░ ▐░   ▒▒▓  ▒  ▒▒   ▓▒█░▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒");
+  syslog->println(" ░ ░  ░  ░ ░░   ░ ▒  ▒   ▒   ▒▒ ░░ ░▒  ░ ░ ▒ ░▒░ ░");
+  syslog->println("   ░       ░░   ░ ░  ░   ░   ▒   ░  ░  ░   ░  ░░ ░");
+  syslog->println("   ░  ░     ░     ░          ░  ░      ░   ░  ░  ░");
+  syslog->println("           ░    ░                                 ");
+  syslog->println("");  
+  syslog->println(".-[ HELP: Console commands ]-_.");
+  syslog->println("reboot   ... reboot device");
+  syslog->println("saveSettings   ... save current settings");
+  syslog->println("wifiSsid=x     ... set wifi ssid");
+  syslog->println("wifiPassword=x     ... set wifi passwords");
+  syslog->println("wifiSsid2=x     ... alternate accesspoint name [ssid]");
+  syslog->println("wifiPassword2=x     ... password for alternate accesspoint");
+  syslog->println("abrpApiToken=x     ... set abrp api token for live data");
+  syslog->println("gprsApn=x     ... set gprs (sim800l) apn");
+  syslog->println("remoteApiUrl=x     ... set remote api url");
+  syslog->println("remoteApiKey=x     ... set remote api key");
+  syslog->println("serviceUUID=x     ... set device uuid for obd2 ble adapter");
+  syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
+  syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");
+  syslog->println("debugLevel=n   [n = 0..3]  ... set debug level off, gps, comm, ...");
+  syslog->println("record=n   [n = 1..4]  ... record can response to buffer 1..4");
+  syslog->println("compare      ... compare buffers");
+  syslog->println("test     ... test handler");
+  syslog->println("__________________________________________________");
 }
 
 /**

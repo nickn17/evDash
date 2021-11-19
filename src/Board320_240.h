@@ -58,6 +58,7 @@ protected:
   uint8_t menuVisibleCount = 5;
   uint8_t menuItemHeight = 20;
   time_t lastRedrawTime = 0;
+  uint8_t currentBrightness = 255;
   // time in fwd mode for avg speed calc.
   time_t previousForwardDriveModeTotal = 0;
   time_t lastForwardDriveModeStart = 0;
