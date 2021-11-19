@@ -146,6 +146,7 @@ void setup(void)
   syslog->println(".-[ HELP: Console commands ]-_.");
   syslog->println("reboot   ... reboot device");
   syslog->println("saveSettings   ... save current settings");
+  syslog->println("debugLevel=n   [n = 0..3]  ... set debug level off, gps, comm, ...");
   syslog->println("wifiSsid=x     ... set primary AP ssid");
   syslog->println("wifiPassword=x     ... set primary AP password");
   syslog->println("wifiSsid2=x     ... set alternate AP ssid");
@@ -157,7 +158,6 @@ void setup(void)
   syslog->println("serviceUUID=x     ... set device uuid for obd2 ble adapter");
   syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
   syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");
-  syslog->println("debugLevel=n   [n = 0..3]  ... set debug level off, gps, comm, ...");
   syslog->println("record=n   [n = 1..4]  ... record can response to buffer 1..4");
   syslog->println("compare      ... compare buffers");
   syslog->println("test     ... test handler");
