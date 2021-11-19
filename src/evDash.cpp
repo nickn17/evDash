@@ -130,7 +130,6 @@ void setup(void)
   board->redrawScreen();
 
   // End
-  syslog->println("");  
   syslog->println("Device setup completed");
   syslog->println("");  
   syslog->println("▓█████ ██▒   █▓▓█████▄  ▄▄▄        ██████  ██░ ██ ");
