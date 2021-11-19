@@ -2359,19 +2359,44 @@ void Board320_240::redrawScreen()
     );
   }
 
+  int tmp_send_interval = 0;
+
+  if(liveData->settings.remoteUploadIntervalSec > 0) {
+    tmp_send_interval = liveData->settings.remoteUploadIntervalSec;
+  } else if (liveData->settings.remoteUploadAbrpIntervalSec > 0) {
+    tmp_send_interval = liveData->settings.remoteUploadAbrpIntervalSec;
+  }
+
   // SIM800L status
-  if (liveData->params.sim800l_enabled || liveData->settings.remoteUploadModuleType == 1)
+  if (liveData->params.sim800l_enabled && liveData->settings.remoteUploadModuleType == 0)
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
       spr.fillRect(140, 7, 7, 7,
-                   (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ? (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
+                   (sim800l->isConnectedGPRS()) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
       );
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
       spr.fillRect(308, 0, 5, 5,
-                   (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT > liveData->params.sim800l_lastOkSendTime) ? (liveData->params.lastDataSent + SIM800L_SND_TIMEOUT + SIM800L_RCV_TIMEOUT > liveData->params.sim800l_lastOkReceiveTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
+                   (sim800l->isConnectedGPRS()) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
+      );
+    }
+  }
+
+  //WiFi Status
+  if (liveData->settings.wifiEnabled == 1 && liveData->settings.remoteUploadModuleType == 1)
+  {
+    if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
+    {
+      spr.fillRect(140, 7, 7, 7,
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastDataSent + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
+      );
+    }
+    else if (liveData->params.displayScreen != SCREEN_BLANK)
+    {
+      spr.fillRect(308, 0, 5, 5,
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastDataSent + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
     }
   }
@@ -3282,6 +3307,7 @@ bool Board320_240::netSendData()
     {
       syslog->println("HTTP POST send successful");
       liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+      liveData->params.lastDataSent = liveData->params.currentTime;
     }
     else
     {
@@ -3416,6 +3442,7 @@ bool Board320_240::netSendData()
     {
       syslog->println("HTTP POST send successful");
       liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+      liveData->params.lastDataSent = liveData->params.currentTime;
     }
     else
     {
