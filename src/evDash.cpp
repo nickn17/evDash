@@ -146,10 +146,10 @@ void setup(void)
   syslog->println(".-[ HELP: Console commands ]-_.");
   syslog->println("reboot   ... reboot device");
   syslog->println("saveSettings   ... save current settings");
-  syslog->println("wifiSsid=x     ... set wifi ssid");
-  syslog->println("wifiPassword=x     ... set wifi passwords");
-  syslog->println("wifiSsid2=x     ... alternate accesspoint name [ssid]");
-  syslog->println("wifiPassword2=x     ... password for alternate accesspoint");
+  syslog->println("wifiSsid=x     ... set primary AP ssid");
+  syslog->println("wifiPassword=x     ... set primary AP password");
+  syslog->println("wifiSsid2=x     ... set alternate AP ssid");
+  syslog->println("wifiPassword2=x     ... set alternate AP password");
   syslog->println("abrpApiToken=x     ... set abrp api token for live data");
   syslog->println("gprsApn=x     ... set gprs (sim800l) apn");
   syslog->println("remoteApiUrl=x     ... set remote api url");
