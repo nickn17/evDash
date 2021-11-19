@@ -2390,13 +2390,13 @@ void Board320_240::redrawScreen()
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
       spr.fillRect(140, 7, 7, 7,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastDataSent + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
       spr.fillRect(308, 0, 5, 5,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastDataSent + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
     }
   }
@@ -3307,7 +3307,6 @@ bool Board320_240::netSendData()
     {
       syslog->println("HTTP POST send successful");
       liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
-      liveData->params.lastDataSent = liveData->params.currentTime;
     }
     else
     {
@@ -3442,7 +3441,6 @@ bool Board320_240::netSendData()
     {
       syslog->println("HTTP POST send successful");
       liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
-      liveData->params.lastDataSent = liveData->params.currentTime;
     }
     else
     {
