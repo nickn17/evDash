@@ -365,7 +365,7 @@ void Board320_240::turnOffScreen()
 {
   if (currentBrightness == 0)
     return;
-  
+
   syslog->println("Turn off screen");
   currentBrightness = 0;
 
@@ -402,10 +402,9 @@ void Board320_240::setBrightness()
     lcdBrightnessPerc = 100;
   }
 
-
   if (currentBrightness == lcdBrightnessPerc)
     return;
-  
+
   syslog->print("Set brightness: ");
   syslog->println(lcdBrightnessPerc);
   currentBrightness = lcdBrightnessPerc;
@@ -2361,9 +2360,12 @@ void Board320_240::redrawScreen()
 
   int tmp_send_interval = 0;
 
-  if(liveData->settings.remoteUploadIntervalSec > 0) {
+  if (liveData->settings.remoteUploadIntervalSec > 0)
+  {
     tmp_send_interval = liveData->settings.remoteUploadIntervalSec;
-  } else if (liveData->settings.remoteUploadAbrpIntervalSec > 0) {
+  }
+  else if (liveData->settings.remoteUploadAbrpIntervalSec > 0)
+  {
     tmp_send_interval = liveData->settings.remoteUploadAbrpIntervalSec;
   }
 
@@ -2384,7 +2386,7 @@ void Board320_240::redrawScreen()
     }
   }
 
-  //WiFi Status
+  // WiFi Status
   if (liveData->settings.wifiEnabled == 1 && liveData->settings.remoteUploadModuleType == 1)
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
@@ -2666,9 +2668,9 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 && 
-      liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY && 
-      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 && 
+  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
+      liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
+      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 &&
       (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
   {
     turnOffScreen();
@@ -2924,7 +2926,7 @@ void Board320_240::syncGPS()
       syslog->info(DEBUG_GPS, sunDeg);
       int32_t newBrightness = (105 - sunDeg) * 3.5;
       newBrightness = (newBrightness < 5 ? 5 : (newBrightness > 100) ? 100
-                                                                       : newBrightness);
+                                                                     : newBrightness);
       if (liveData->params.lcdBrightnessCalc != newBrightness)
       {
         liveData->params.lcdBrightnessCalc = newBrightness;
@@ -3196,35 +3198,38 @@ bool Board320_240::netSendData()
   // SIM800L
   else if (liveData->settings.remoteUploadModuleType == 0)
   {
-    syslog->println("Sending data to API - via WIFI");
-
-    NetworkRegistration network = sim800l->getRegistrationStatus();
-    if (network != REGISTERED_HOME && network != REGISTERED_ROAMING)
+    if (liveData->params.sim800l_enabled)
     {
-      syslog->println("SIM800L module not connected to network, skipping data send");
-      return false;
-    }
+      syslog->println("Sending data to API - via SIM800L");
 
-    if (!sim800l->isConnectedGPRS())
-    {
-      syslog->println("GPRS not connected... Connecting");
-      bool connected = sim800l->connectGPRS();
-      for (uint8_t i = 0; i < 5 && !connected; i++)
+      NetworkRegistration network = sim800l->getRegistrationStatus();
+      if (network != REGISTERED_HOME && network != REGISTERED_ROAMING)
       {
-        syslog->println("Problem to connect GPRS, retry in 1 sec");
-        delay(1000);
-        connected = sim800l->connectGPRS();
-      }
-      if (connected)
-      {
-        syslog->println("GPRS connected!");
-      }
-      else
-      {
-        syslog->println("GPRS not connected! Reseting module...");
-        sim800l->reset();
-        sim800lSetup();
+        syslog->println("SIM800L module not connected to network, skipping data send");
         return false;
+      }
+
+      if (!sim800l->isConnectedGPRS())
+      {
+        syslog->println("GPRS not connected... Connecting");
+        bool connected = sim800l->connectGPRS();
+        for (uint8_t i = 0; i < 5 && !connected; i++)
+        {
+          syslog->println("Problem to connect GPRS, retry in 1 sec");
+          delay(1000);
+          connected = sim800l->connectGPRS();
+        }
+        if (connected)
+        {
+          syslog->println("GPRS connected!");
+        }
+        else
+        {
+          syslog->println("GPRS not connected! Reseting module...");
+          sim800l->reset();
+          sim800lSetup();
+          return false;
+        }
       }
     }
   }
@@ -3286,7 +3291,7 @@ bool Board320_240::netSendData()
 
     // WIFI
     rc = 0;
-    if (liveData->settings.remoteUploadModuleType == 1)
+    if (liveData->settings.remoteUploadModuleType == 1 && liveData->settings.wifiEnabled == 1)
     {
       WiFiClient client;
       HTTPClient http;

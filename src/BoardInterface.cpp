@@ -4,6 +4,7 @@
 #include <EEPROM.h>
 #include <BLEDevice.h>
 #include "BoardInterface.h"
+#include "CommObd2Bt3.h"
 #include "CommObd2Ble4.h"
 #include "CommObd2Can.h"
 #include "LiveData.h"
@@ -317,8 +318,7 @@ void BoardInterface::afterSetup()
   }
   else if (liveData->settings.commType == COMM_TYPE_OBD2BT3)
   {
-    //commInterface = new CommObd2Bt3();
-    syslog->println("BT3 not implemented");
+    commInterface = new CommObd2Bt3();
   }
 
   commInterface->initComm(liveData, this);

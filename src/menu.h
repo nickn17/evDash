@@ -35,9 +35,9 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {VEHICLE_TYPE_DEBUG_OBD_KIA,    MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Debug OBD2 Kia"},
 
     {MENU_ADAPTER_TYPE_TOP,         MENU_ADAPTER_TYPE,  MENU_TOP_LEVEL,   "<- parent menu"},
-    {MENU_ADAPTER_BLE4,             MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth 4 (BLE4)"},
+    {MENU_ADAPTER_BLE4,             MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth4 (BLE4)"},
     {MENU_ADAPTER_CAN,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "CAN bus (MCP2515-1/SO)"},
-    //{MENU_ADAPTER_BT3,            MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth 3 (dev)"},
+    {MENU_ADAPTER_BT3,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth3 serial"},
     {MENU_ADAPTER_LOAD_TEST_DATA,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Load demo data"},
 
     {MENU_OTHER_TOP,                MENU_OTHERS,        MENU_TOP_LEVEL,   "<- parent menu"},

@@ -1,6 +1,7 @@
 # RELEASE NOTES
 
 ### Next version
+- DEV adding Bluetooth3 OBD2 device
 
 ### v2.5.2 2021-11-19
 - MEB optimizations (cell screen, min/max voltage)
