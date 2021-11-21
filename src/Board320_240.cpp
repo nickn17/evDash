@@ -3291,7 +3291,7 @@ bool Board320_240::netSendData()
 
     // WIFI
     rc = 0;
-    if (liveData->settings.remoteUploadModuleType == 1 && liveData->settings.wifiEnabled == 1)
+    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
       WiFiClient client;
       HTTPClient http;
@@ -3303,6 +3303,7 @@ bool Board320_240::netSendData()
       http.end();
     }
     else
+    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
     {
       // SIM800L
       rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
@@ -3424,7 +3425,7 @@ bool Board320_240::netSendData()
     syslog->println(dta);
 
     rc = 0;
-    if (liveData->settings.remoteUploadModuleType == 1)
+    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
       WiFiClient client;
       HTTPClient http;
@@ -3437,6 +3438,7 @@ bool Board320_240::netSendData()
       http.end();
     }
     else
+    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
     {
       // SIM800L
       rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
