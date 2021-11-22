@@ -268,7 +268,6 @@ void Board320_240::otaUpdate()
   if (!client.connect(host.c_str(), port))
   {
     syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
-
     displayMessage("Connection failed.", "");
     return;
   }
@@ -326,7 +325,7 @@ void Board320_240::otaUpdate()
       contentType.trim();
       if (contentType != "application/octet-stream")
       {
-        displayMessage("Content-Type must be application/octet-stream", "");
+        displayMessage("Content-Type must be", "application/octet-stream");
         return;
       }
     }
@@ -340,7 +339,7 @@ void Board320_240::otaUpdate()
     syslog->printf("Error: %i, malloc %i bytes\n", Update.getError(), SPI_FLASH_SEC_SIZE);
     syslog->print("contentLength: ");
     syslog->println(contentLength);
-    displayMessage("Not enough space to begin OTA", "");
+    displayMessage("Not enough space", "to begin OTA");
     client.flush();
     return;
   }
@@ -355,11 +354,11 @@ void Board320_240::otaUpdate()
 
   if (!Update.isFinished())
   {
-    displayMessage("Update not finished. Something went wrong.", "");
+    displayMessage("Update not finished.", "Something went wrong.");
     return;
   }
 
-  displayMessage("OTA installed. Reboot device.", "");
+  displayMessage("OTA installed.", "Reboot device.");
 }
 
 /**
