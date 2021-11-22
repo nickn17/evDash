@@ -42,6 +42,7 @@ class BoardInterface {
     virtual void hideMenu()=0;
     // Common
     void shutdownDevice();
+    virtual void otaUpdate()=0;
     void saveSettings();
     void resetSettings();
     void loadSettings();

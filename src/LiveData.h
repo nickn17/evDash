@@ -67,6 +67,7 @@ typedef struct
   time_t currentTime;
   time_t chargingStartTime;
   uint32_t queueLoopCounter;
+  bool stopCommandQueue; // sleep mode/screen only & ina3221 voltmeter based
   time_t lastCanbusResponseTime;
   // Network
   time_t lastDataSent;
@@ -91,6 +92,7 @@ typedef struct
   uint8_t displayScreenAutoMode;
   time_t lastButtonPushedTime;
   int8_t lcdBrightnessCalc;
+  bool spriteInit;
   //voltagemeter INA3221
   time_t lastVoltageReadTime;
   time_t lastVoltageOkTime;

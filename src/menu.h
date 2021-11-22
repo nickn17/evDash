@@ -15,7 +15,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_UNITS,                    MENU_TOP_LEVEL,     MENU_NO_MENU,     "Units"},
     {MENU_FACTORY_RESET,            MENU_TOP_LEVEL,     MENU_NO_MENU,     "Factory reset"},
     {MENU_SAVE_SETTINGS,            MENU_TOP_LEVEL,     MENU_NO_MENU,     "Save settings"},
-    {MENU_APP_VERSION,              MENU_TOP_LEVEL,     MENU_NO_MENU,     "Version"},
+    {MENU_APP_VERSION,              MENU_TOP_LEVEL,     MENU_NO_MENU,     "OTA update, curr:"},
     {MENU_SHUTDOWN,                 MENU_TOP_LEVEL,     MENU_NO_MENU,     "Shutdown"},
     {MENU_CAR_COMMANDS,             MENU_TOP_LEVEL,     MENU_NO_MENU,     "Car commands [CAN]"},
     {VEHICLE_TYPE_TOP,              MENU_VEHICLE_TYPE,  MENU_TOP_LEVEL,   "<- parent menu"},

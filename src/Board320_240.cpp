@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <HTTPClient.h>
+#include <Update.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -127,17 +128,19 @@ void Board320_240::afterSetup()
   if (psramFound())
     psramUsed = true;
 #endif
-  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   syslog->println((psramUsed) ? "Sprite 16" : "Sprite 8");
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
-  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+  liveData->params.spriteInit = true;
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
   if (isButtonPressed(pinButtonRight))
   {
     loadTestData();
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   }
 
   // Wifi
@@ -145,12 +148,14 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   }
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2)
   {
     initGPS();
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   }
 
   // SD card
@@ -160,6 +165,7 @@ void Board320_240::afterSetup()
     {
       syslog->println("Toggle recording on SD card");
       sdcardToggleRecording();
+      syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
     }
   }
 
@@ -167,16 +173,192 @@ void Board320_240::afterSetup()
   if (liveData->settings.gprsHwSerialPort <= 2)
   {
     sim800lSetup();
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   }
 
   // Init comm device
   if (!afterSetup)
   {
     BoardInterface::afterSetup();
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   }
 
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+}
+
+/**
+ * OTA Update
+ */
+void Board320_240::otaUpdate()
+{
+  // https://github.com/M5ez/M5ez/tree/master/examples/OTA_https
+  /*  if (ez.msgBox("evDash update over OTA", "This will download and replace the current version of evDash", "Cancel#OK#") == "OK")
+    {
+      ezProgressBar progress_bar("OTA update in progress", "Downloading ...", "Abort");
+      if (ez.wifi.update("https://github.com/nickn17/evDash/raw/master/dist/m5stack-core2/evDash.ino.bin", root_cert, &progress_bar))
+      {
+        ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
+        ESP.restart();
+      }
+      else
+      {
+        ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
+      }
+    }*/
+
+#include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
+
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+
+  String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
+#ifdef BOARD_TTGO_T4
+  url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/ttgo-t4-v13/evDash.ino.bin";
+#endif // BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE
+  url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core/evDash.ino.bin";
+#endif // BOARD_M5STACK_CORE
+
+  if (!WiFi.isConnected())
+  {
+    displayMessage("No WiFi connection.", "");
+    return;
+  }
+
+  if (!url.startsWith("https://"))
+  {
+    displayMessage("URL must start with 'https://'", "");
+    return;
+  }
+
+  displayMessage("Downloading OTA...", "");
+  url = url.substring(8);
+
+  String host, file;
+  uint16_t port;
+  int16_t first_slash_pos = url.indexOf("/");
+  if (first_slash_pos == -1)
+  {
+    host = url;
+    file = "/";
+  }
+  else
+  {
+    host = url.substring(0, first_slash_pos);
+    file = url.substring(first_slash_pos);
+  }
+  int16_t colon = host.indexOf(":");
+
+  if (colon == -1)
+  {
+    port = 443;
+  }
+  else
+  {
+    host = host.substring(0, colon);
+    port = host.substring(colon + 1).toInt();
+  }
+
+  WiFiClientSecure client;
+  client.setTimeout(20000);
+  client.setCACert(root_cert);
+
+  int contentLength = 0;
+
+  if (!client.connect(host.c_str(), port))
+  {
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+
+    displayMessage("Connection failed.", "");
+    return;
+  }
+
+  client.print(String("GET ") + file + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" +
+               "Cache-Control: no-cache\r\n" +
+               "Connection: close\r\n\r\n");
+
+  unsigned long timeout = millis();
+  while (!client.available())
+  {
+    if (millis() - timeout > 10000)
+    {
+      displayMessage("Client Timeout", "");
+      client.stop();
+      return;
+    }
+  }
+
+  // Process header
+  while (client.available())
+  {
+    String line = client.readStringUntil('\n');
+    line.trim();
+    if (!line.length())
+      break; // empty line, assume headers done
+
+    if (line.startsWith("HTTP/1.1"))
+    {
+      String http_response = line.substring(line.indexOf(" ") + 1);
+      http_response.trim();
+      if (http_response.indexOf("200") == -1)
+      {
+        syslog->println(http_response);
+        displayMessage("Got response: must be 200", "");
+        // displayMessage("Got response: \"" + http_response + "\", must be 200", http_response);
+        return;
+      }
+    }
+
+    if (line.startsWith("Content-Length: "))
+    {
+      contentLength = atoi(line.substring(line.indexOf(":") + 1).c_str());
+      if (contentLength <= 0)
+      {
+        displayMessage("Content-Length zero", "");
+        return;
+      }
+    }
+
+    if (line.startsWith("Content-Type: "))
+    {
+      String contentType = line.substring(line.indexOf(":") + 1);
+      contentType.trim();
+      if (contentType != "application/octet-stream")
+      {
+        displayMessage("Content-Type must be application/octet-stream", "");
+        return;
+      }
+    }
+  }
+
+  // Process payload
+  displayMessage("Installing OTA...", "");
+  if (!Update.begin(contentLength))
+  {
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->print("contentLength: ");
+    syslog->println(contentLength);
+    displayMessage("Not enough space to begin OTA", "");
+    client.flush();
+    return;
+  }
+
+  /*size_t written =*/Update.writeStream(client);
+
+  if (!Update.end())
+  {
+    displayMessage("Downloading error", "");
+    return;
+  }
+
+  if (!Update.isFinished())
+  {
+    displayMessage("Update not finished. Something went wrong.", "");
+    return;
+  }
+
+  displayMessage("OTA installed. Reboot device.", "");
 }
 
 /**
@@ -363,11 +545,18 @@ void Board320_240::afterSleep()
  */
 void Board320_240::turnOffScreen()
 {
+  bool debugTurnOffScreen = false;
+  // debugTurnOffScreen = true;
+  if (debugTurnOffScreen)
+    displayMessage("Turn off screen", (liveData->params.stopCommandQueue ? "Command queue stopped" : "Queue is running"));
   if (currentBrightness == 0)
     return;
 
   syslog->println("Turn off screen");
   currentBrightness = 0;
+
+  if (debugTurnOffScreen)
+    return;
 
 #ifdef BOARD_TTGO_T4
   analogWrite(4 /*TFT_BL*/, 0);
@@ -387,6 +576,8 @@ void Board320_240::turnOffScreen()
 void Board320_240::setBrightness()
 {
   uint8_t lcdBrightnessPerc;
+
+  liveData->params.stopCommandQueue = true;
   lcdBrightnessPerc = liveData->settings.lcdBrightness;
   if (lcdBrightnessPerc == 0)
   { // automatic brightness (based on gps&and sun angle)
@@ -428,15 +619,31 @@ void Board320_240::setBrightness()
 */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
+  uint16_t height = tft.height();
 
-  // Must draw directly, withou sprite (due to psramFound check)
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextDatum(ML_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setFreeFont(&Roboto_Thin_24);
-  tft.setTextDatum(BL_DATUM);
-  tft.drawString(row1, 0, 240 / 2, GFXFF);
-  tft.drawString(row2, 0, (240 / 2) + 30, GFXFF);
+  // Must draw directly without sprite (psramUsed check)
+  if (liveData->params.spriteInit)
+  {
+    spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
+    spr.setTextDatum(ML_DATUM);
+    spr.setTextColor(TFT_YELLOW, TFT_NAVY);
+    spr.setFreeFont(&Roboto_Thin_24);
+    spr.setTextDatum(BL_DATUM);
+    spr.drawString(row1, 0, height / 2, GFXFF);
+    spr.drawString(row2, 0, (height / 2) + 30, GFXFF);
+    spr.pushSprite(0, 0);
+  }
+  else
+  {
+    tft.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
+    // tft.fillScreen(TFT_BLACK);
+    tft.setTextDatum(ML_DATUM);
+    tft.setTextColor(TFT_YELLOW, TFT_NAVY);
+    tft.setFreeFont(&Roboto_Thin_24);
+    tft.setTextDatum(BL_DATUM);
+    tft.drawString(row1, 0, height / 2, GFXFF);
+    tft.drawString(row2, 0, (height / 2) + 30, GFXFF);
+  }
 }
 
 /**
@@ -1738,8 +1945,13 @@ void Board320_240::showMenu()
       if (tmpCurrMenuItem >= liveData->menuItemOffset)
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-        spr.fillRect(0, posY, 320, menuItemHeight, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
-        spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
+        // spr.fillRect(0, posY, 320, menuItemHeight, TFT_BLACK);
+        if (isMenuItemSelected)
+        {
+          spr.fillRect(0, posY, 320, 2, TFT_WHITE);
+          spr.fillRect(0, posY + menuItemHeight - 2, 320, 2, TFT_WHITE);
+        }
+        spr.setTextColor(TFT_WHITE);
         spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + off, GFXFF);
         posY += menuItemHeight;
       }
@@ -1752,8 +1964,13 @@ void Board320_240::showMenu()
     if (tmpCurrMenuItem >= liveData->menuItemOffset)
     {
       bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-      spr.fillRect(0, posY, 320, menuItemHeight + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
-      spr.setTextColor(isMenuItemSelected ? TFT_BLACK : TFT_WHITE);
+      if (isMenuItemSelected)
+      {
+        spr.fillRect(0, posY, 320, 2, TFT_WHITE);
+        spr.fillRect(0, posY + menuItemHeight - 2, 320, 2, TFT_WHITE);
+      }
+      // spr.fillRect(0, posY, 320, menuItemHeight + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
+      spr.setTextColor(TFT_WHITE);
       idx = customMenu.at(i).indexOf("=");
       spr.drawString(customMenu.at(i).substring(idx + 1), 0, posY + off, GFXFF);
       posY += menuItemHeight;
@@ -2183,6 +2400,7 @@ void Board320_240::menuItemClick()
       break;
     // Version
     case MENU_APP_VERSION:
+      otaUpdate();
       /*  commInterface->executeCommand("ATSH770");
           delay(50);
           commInterface->executeCommand("3E");
@@ -2199,7 +2417,6 @@ void Board320_240::menuItemClick()
           delay(50);
           commInterface->executeCommand("2FBC1103");
           delay(5000);*/
-      hideMenu();
       return;
     // Shutdown
     case MENU_SHUTDOWN:
@@ -2254,7 +2471,7 @@ void Board320_240::redrawScreen()
 {
   lastRedrawTime = liveData->params.currentTime;
 
-  if (liveData->menuVisible)
+  if (liveData->menuVisible || currentBrightness == 0)
   {
     return;
   }
@@ -2687,9 +2904,11 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->params.auxVoltage > 0 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
-    if (liveData->params.auxVoltage > 0)
+    if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
+      liveData->params.stopCommandQueue = true;
+    if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP)
       goToSleep();
   }
 
@@ -3302,8 +3521,7 @@ bool Board320_240::netSendData()
       rc = http.POST(payload);
       http.end();
     }
-    else
-    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
+    else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
     {
       // SIM800L
       rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
@@ -3437,8 +3655,7 @@ bool Board320_240::netSendData()
       rc = http.POST(dta);
       http.end();
     }
-    else
-    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
+    else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
     {
       // SIM800L
       rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);

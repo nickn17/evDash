@@ -61,8 +61,15 @@ void CommInterface::mainLoop()
   // Can send next command from queue to OBD
   if (liveData->canSendNextAtCommand)
   {
-    liveData->canSendNextAtCommand = false;
-    doNextQueueCommand();
+    if (liveData->commandQueueIndex == liveData->commandQueueCount && liveData->params.stopCommandQueue)
+    {
+      syslog->info(DEBUG_COMM, "CAN/OBD2 command queue stopped due to sleep mode & voltage...");
+    }
+    else
+    {
+      liveData->canSendNextAtCommand = false;
+      doNextQueueCommand();
+    }
   }
 }
 
@@ -225,14 +232,14 @@ void CommInterface::compareCanRecords()
 }
 
 /**
- * 
+ *
  */
 void CommInterface::sendPID(const uint32_t pid, const String &cmd)
 {
 }
 
 /**
- * 
+ *
  */
 uint8_t CommInterface::receivePID()
 {

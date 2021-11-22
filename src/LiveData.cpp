@@ -18,6 +18,7 @@ void LiveData::initParams()
 {
 
   params.queueLoopCounter = 0;
+  params.stopCommandQueue = false;
   // Network
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
@@ -43,6 +44,7 @@ void LiveData::initParams()
   params.displayScreenAutoMode = SCREEN_AUTO;
   params.lastButtonPushedTime = 0;
   params.lcdBrightnessCalc = -1; // calculated for automatic mode
+  params.spriteInit = false;
   // VoltageMeter INA3221
   params.lastVoltageReadTime = 0;
   params.lastVoltageOkTime = 0;

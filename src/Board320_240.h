@@ -35,15 +35,15 @@ class Board320_240 : public BoardInterface
 {
 
 protected:
-  // TFT, SD SPI
-  #ifdef BOARD_TTGO_T4
+// TFT, SD SPI
+#ifdef BOARD_TTGO_T4
   TFT_eSPI tft = TFT_eSPI();
   TFT_eSprite spr = TFT_eSprite(&tft);
-  #endif // BOARD_TTGO_T4
-  #if defined(BOARD_M5STACK_CORE) || defined(BOARD_M5STACK_CORE2)
-  M5Display& tft = M5.Lcd;
+#endif // BOARD_TTGO_T4
+#if defined(BOARD_M5STACK_CORE) || defined(BOARD_M5STACK_CORE2)
+  M5Display &tft = M5.Lcd;
   TFT_eSprite spr = TFT_eSprite(&M5.Lcd);
-  #endif // BOARD_M5STACK_CORE OR BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE OR BOARD_M5STACK_CORE2
   HardwareSerial *gpsHwUart = NULL;
   HardwareSerial *gprsHwUart = NULL;
   SIM800L *sim800l;
@@ -65,6 +65,7 @@ protected:
   bool lastForwardDriveMode = false;
   float forwardDriveOdoKmStart = -1;
   float forwardDriveOdoKmLast = -1;
+
 public:
   bool invertDisplay = false;
   byte pinButtonLeft = 0;
@@ -83,6 +84,7 @@ public:
   bool skipAdapterScan() override;
   void goToSleep();
   void afterSleep();
+  void otaUpdate() override;
   // SD card
   bool sdcardMount() override;
   void sdcardToggleRecording() override;

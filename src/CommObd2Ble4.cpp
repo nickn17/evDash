@@ -200,7 +200,7 @@ void CommObd2Ble4::startBleScan() {
   liveData->scanningDeviceIndex = 0;
   board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
-  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Start scanning
   syslog->println("Scanning BLE devices...");
@@ -258,7 +258,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
   if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM) ) syslog->println("liveData->bleConnected");
   syslog->println(" - liveData->bleConnected to server");
 
-  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Remote service
   board->displayMessage(" > Connecting device", "Connecting service...");
@@ -274,7 +274,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress) {
     return false;
   }
   syslog->println(" - Found our service");
-  syslog->printf("FreeHeap: %i bytes\n", ESP.getFreeHeap());
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting TxUUID...");
