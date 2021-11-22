@@ -337,6 +337,7 @@ void Board320_240::otaUpdate()
   if (!Update.begin(contentLength))
   {
     syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Error: %i, malloc %i bytes\n", Update.getError(), SPI_FLASH_SEC_SIZE);
     syslog->print("contentLength: ");
     syslog->println(contentLength);
     displayMessage("Not enough space to begin OTA", "");
