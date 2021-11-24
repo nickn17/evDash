@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 109
+#define MENU_SIZE 110
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -32,6 +32,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {VEHICLE_TYPE_VW_ID3_2021_77,   MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "VW ID.3 2021 77 kWh (CAN)"},
     {VEHICLE_TYPE_ZOE_22_DEV,       MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Renault Zoe 22kWh (DEV)"},
     {VEHICLE_TYPE_BMWI3_2014_22,    MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "BMW i3 2014 22kWh (DEV)"},
+    {VEHICLE_TYPE_PEUGEOT_E208,     MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Peugeot e-208 (DEV)"},
     {VEHICLE_TYPE_DEBUG_OBD_KIA,    MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Debug OBD2 Kia"},
 
     {MENU_ADAPTER_TYPE_TOP,         MENU_ADAPTER_TYPE,  MENU_TOP_LEVEL,   "<- parent menu"},

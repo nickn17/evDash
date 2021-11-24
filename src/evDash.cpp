@@ -44,6 +44,7 @@
 #include "CarKiaDebugObd2.h"
 #include "CarBmwI3.h"
 #include "CarVWID3.h"
+#include "CarPeugeotE208.h"
 
 // Board, Car, Livedata (params, settings)
 BoardInterface *board;
@@ -114,6 +115,9 @@ void setup(void)
   case CAR_VW_ID3_2021_58:
   case CAR_VW_ID3_2021_77:
     car = new CarVWID3();
+    break;
+  case CAR_PEUGEOT_E208:
+    car = new CarPeugeotE208();
     break;
   default:
     car = new CarKiaDebugObd2();

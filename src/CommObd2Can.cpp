@@ -89,8 +89,10 @@ void CommObd2Can::scanDevices()
 */
 void CommObd2Can::mainLoop()
 {
-
   CommInterface::mainLoop();
+
+  if (liveData->params.stopCommandQueue)
+    return;
 
   // if delay between commands is defined, check if this delay is not expired
   if (liveData->delayBetweenCommandsMs != 0)

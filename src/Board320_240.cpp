@@ -89,14 +89,22 @@ void Board320_240::afterSetup()
   // Init Voltmeter
   if (liveData->settings.voltmeterEnabled == 1)
   {
-    syslog->print("Initializing INA3221 voltmeter:");
+    syslog->println("Initializing INA3221 voltmeter:");
     ina3221.begin();
-    syslog->print(" ch1:");
+    syslog->print("ch1:");
     syslog->print(ina3221.getBusVoltage_V(1));
-    syslog->print(" ch2:");
+    syslog->print("V\t ch2:");
     syslog->print(ina3221.getBusVoltage_V(2));
-    syslog->print(" ch3:");
-    syslog->println(ina3221.getBusVoltage_V(3));
+    syslog->print("V\t ch3:");
+    syslog->print(ina3221.getBusVoltage_V(3));
+    syslog->println("V");
+    syslog->print("ch1:");
+    syslog->print(ina3221.getCurrent_mA(1));
+    syslog->print("mA\t ch2:");
+    syslog->print(ina3221.getCurrent_mA(2));
+    syslog->print("mA\t ch3:");
+    syslog->print(ina3221.getCurrent_mA(3));
+    syslog->println("mA");
   }
 
   if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && !skipAdapterScan() && bootCount > 1)
@@ -209,6 +217,13 @@ void Board320_240::otaUpdate()
 
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
+  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  if (liveData->params.spriteInit)
+  {
+    syslog->printf("Removing sprite\n");
+    spr.deleteSprite();
+    liveData->params.spriteInit = false;
+  }
   syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
@@ -344,14 +359,17 @@ void Board320_240::otaUpdate()
     return;
   }
 
+  displayMessage("Writing stream...", "");
   /*size_t written =*/Update.writeStream(client);
 
+  displayMessage("End...", "");
   if (!Update.end())
   {
     displayMessage("Downloading error", "");
     return;
   }
 
+  displayMessage("Is finished?", "");
   if (!Update.isFinished())
   {
     displayMessage("Update not finished.", "Something went wrong.");
@@ -546,7 +564,7 @@ void Board320_240::afterSleep()
 void Board320_240::turnOffScreen()
 {
   bool debugTurnOffScreen = false;
-  // debugTurnOffScreen = true;
+  //debugTurnOffScreen = true;
   if (debugTurnOffScreen)
     displayMessage("Turn off screen", (liveData->params.stopCommandQueue ? "Command queue stopped" : "Queue is running"));
   if (currentBrightness == 0)
@@ -577,7 +595,7 @@ void Board320_240::setBrightness()
 {
   uint8_t lcdBrightnessPerc;
 
-  liveData->params.stopCommandQueue = true;
+  liveData->params.stopCommandQueue = false;
   lcdBrightnessPerc = liveData->settings.lcdBrightness;
   if (lcdBrightnessPerc == 0)
   { // automatic brightness (based on gps&and sun angle)
@@ -620,6 +638,10 @@ void Board320_240::setBrightness()
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
   uint16_t height = tft.height();
+  syslog->print("Message: ");
+  syslog->print(row1);
+  syslog->print(" ");
+  syslog->println(row2);
 
   // Must draw directly without sprite (psramUsed check)
   if (liveData->params.spriteInit)
@@ -1620,6 +1642,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_BMWI3_2014_22:
     prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
     break;
+  case VEHICLE_TYPE_PEUGEOT_E208:
+    prefix = (liveData->settings.carType == CAR_PEUGEOT_E208) ? ">" : "";
+    break;
   case VEHICLE_TYPE_DEBUG_OBD_KIA:
     prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
     break;
@@ -2144,6 +2169,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_PEUGEOT_E208:
+      liveData->settings.carType = CAR_PEUGEOT_E208;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_DEBUG_OBD_KIA:
       liveData->settings.carType = CAR_DEBUG_OBD2_KIA;
       showMenu();
@@ -2471,7 +2501,7 @@ void Board320_240::redrawScreen()
 {
   lastRedrawTime = liveData->params.currentTime;
 
-  if (liveData->menuVisible || currentBrightness == 0)
+  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
   {
     return;
   }

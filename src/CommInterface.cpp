@@ -63,7 +63,7 @@ void CommInterface::mainLoop()
   {
     if (liveData->commandQueueIndex == liveData->commandQueueCount && liveData->params.stopCommandQueue)
     {
-      syslog->info(DEBUG_COMM, "CAN/OBD2 command queue stopped due to sleep mode & voltage...");
+      syslog->println("CAN/OBD2 command queue stopped due to sleep mode & voltage...");
     }
     else
     {
