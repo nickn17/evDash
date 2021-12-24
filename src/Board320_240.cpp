@@ -3481,6 +3481,11 @@ bool Board320_240::netSendData()
         }
       }
     }
+    else
+    {
+      syslog->println("SIM800L module not present, skipping data send");
+      return false;
+    }
   }
   else
   {
