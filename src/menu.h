@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 110
+#define MENU_SIZE 112
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -18,6 +18,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_APP_VERSION,              MENU_TOP_LEVEL,     MENU_NO_MENU,     "OTA update, curr:"},
     {MENU_SHUTDOWN,                 MENU_TOP_LEVEL,     MENU_NO_MENU,     "Shutdown"},
     {MENU_CAR_COMMANDS,             MENU_TOP_LEVEL,     MENU_NO_MENU,     "Car commands [CAN]"},
+
     {VEHICLE_TYPE_TOP,              MENU_VEHICLE_TYPE,  MENU_TOP_LEVEL,   "<- parent menu"},
     {VEHICLE_TYPE_ENIRO_2020_64,    MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Kia eNiro 2020 64kWh"},
     {VEHICLE_TYPE_ENIRO_2020_39,    MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Kia eNiro 2020 39kWh"},
@@ -40,6 +41,9 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_CAN,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "CAN bus (MCP2515-1/SO)"},
     {MENU_ADAPTER_BT3,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth3 serial"},
     {MENU_ADAPTER_LOAD_TEST_DATA,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Load demo data"},
+
+    {FACTORY_RESET_TOP,             MENU_FACTORY_RESET, MENU_TOP_LEVEL,   "<- parent menu"},
+    {FACTORY_RESET_CONFIRM,         MENU_FACTORY_RESET, MENU_NO_MENU,     "Confirm factory reset"},
 
     {MENU_OTHER_TOP,                MENU_OTHERS,        MENU_TOP_LEVEL,   "<- parent menu"},
     {MENU_WIFI,                     MENU_OTHERS,        MENU_NO_MENU,     "WiFi network"},
