@@ -2420,7 +2420,7 @@ void Board320_240::menuItemClick()
       commInterface->scanDevices();
       return;
     // Reset settings
-    case MENU_FACTORY_RESET:
+    case FACTORY_RESET_CONFIRM:
       resetSettings();
       hideMenu();
       return;
