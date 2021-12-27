@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 112
+#define MENU_SIZE 113
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -53,7 +53,6 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_SERIAL_CONSOLE,           MENU_OTHERS,        MENU_NO_MENU,     "Serial console"},
     {MENU_VOLTMETER,                MENU_OTHERS,        MENU_NO_MENU,     "Voltmeter INA3221"},
     {MENU_DEBUG_LEVEL,              MENU_OTHERS,        MENU_NO_MENU,     "Debug level"},
-    //{MENU_NTP,                      MENU_OTHERS,        MENU_NO_MENU,     "[dev] NTP"},
     {MENU_SCREEN_ROTATION,          MENU_OTHERS,        MENU_NO_MENU,     "Screen rotation"},
     {MENU_DEFAULT_SCREEN,           MENU_OTHERS,        MENU_NO_MENU,     "Default screen"},
     {MENU_SCREEN_BRIGHTNESS,        MENU_OTHERS,        MENU_NO_MENU,     "LCD brightness"},
@@ -76,6 +75,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_WIFI_PASSWORD,            MENU_WIFI,          MENU_NO_MENU,     "Password:"},
     {MENU_WIFI_SSID2,               MENU_WIFI,          MENU_NO_MENU,     "SSID2:"},
     {MENU_WIFI_PASSWORD2,           MENU_WIFI,          MENU_NO_MENU,     "Password2:"},
+    {MENU_WIFI_NTP,                 MENU_WIFI,          MENU_NO_MENU,     "NTP sync:"},
     {MENU_WIFI_ACTIVE,              MENU_WIFI,          MENU_NO_MENU,     "Active:"},
     {MENU_WIFI_IPADDR,              MENU_WIFI,          MENU_NO_MENU,     "IP addr:"},
 

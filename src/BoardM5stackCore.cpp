@@ -7,10 +7,11 @@
 /**
   Init board
 */
-void BoardM5stackCore::initBoard() {
+void BoardM5stackCore::initBoard()
+{
 
   invertDisplay = true;
-  
+
   pinButtonLeft = BUTTON_LEFT;
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
@@ -22,11 +23,12 @@ void BoardM5stackCore::initBoard() {
   Board320_240::initBoard();
 }
 
-void BoardM5stackCore::wakeupBoard() {
-
+void BoardM5stackCore::wakeupBoard()
+{
 }
 
-bool BoardM5stackCore::isButtonPressed(int button) {
+bool BoardM5stackCore::isButtonPressed(int button)
+{
   switch (button)
   {
   case BUTTON_LEFT:
@@ -44,8 +46,9 @@ bool BoardM5stackCore::isButtonPressed(int button) {
   }
 }
 
-void BoardM5stackCore::enterSleepMode(int secs) {
-  
+void BoardM5stackCore::enterSleepMode(int secs)
+{
+
   M5.Power.setWakeupButton(GPIO_NUM_37);
 
   if (secs > 0)
@@ -64,11 +67,27 @@ void BoardM5stackCore::enterSleepMode(int secs) {
   }
 }
 
-void BoardM5stackCore::mainLoop() {
+void BoardM5stackCore::mainLoop()
+{
 
   Board320_240::mainLoop();
   M5.update();
+}
 
+/**
+ * Sync NTP time
+ *
+ */
+void BoardM5stackCore::ntpSync()
+{
+
+  syslog->println("Syncing NTP time.");
+
+  char ntpServer[] = "de.pool.ntp.org";
+  configTime(liveData->settings.timezone * 3600, liveData->settings.daylightSaving * 3600, ntpServer);
+  liveData->params.ntpTimeSet = true;
+
+  showTime();
 }
 
 #endif // BOARD_M5STACK_CORE

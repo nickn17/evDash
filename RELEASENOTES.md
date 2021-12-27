@@ -4,6 +4,8 @@
 - DEV adding Bluetooth3 OBD2 device
 - DEV ota
 - new message dialog
+- new commands time/setTime/ntpSync (core2 RTC only)
+- Wifi menu / NTP sync off/on option
 
 ### v2.5.2 2021-11-19
 - MEB optimizations (cell screen, min/max voltage)

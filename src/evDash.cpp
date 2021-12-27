@@ -162,6 +162,8 @@ void setup(void)
   syslog->println("serviceUUID=x     ... set device uuid for obd2 ble adapter");
   syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
   syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");
+  syslog->println("time   ... print current time");
+  syslog->println("setTime=2022-12-30 05:00:00  ... set current time");
   syslog->println("record=n   [n = 1..4]  ... record can response to buffer 1..4");
   syslog->println("compare      ... compare buffers");
   syslog->println("test     ... test handler");

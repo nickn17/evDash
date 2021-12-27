@@ -52,4 +52,13 @@ void BoardTtgoT4v13::enterSleepMode(int secs) {
   esp_deep_sleep_start();
 }
 
+/**
+ * Sync NTP time
+ *
+ */
+void BoardTtgoT4v13::ntpSync()
+{
+  liveData->params.ntpTimeSet = true;
+}
+
 #endif // BOARD_TTGO_T4

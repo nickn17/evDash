@@ -20,6 +20,8 @@ RTC_DATA_ATTR unsigned int sleepCount = 0;
 */
 void Board320_240::initBoard()
 {
+  liveData->params.booting = true;
+
 // Set button pins for input
 #ifdef BOARD_TTGO_T4
   pinMode(pinButtonMiddle, INPUT);
@@ -191,8 +193,11 @@ void Board320_240::afterSetup()
     syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
   }
 
+  showTime();
+
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+  liveData->params.booting = false;
 }
 
 /**
@@ -564,7 +569,7 @@ void Board320_240::afterSleep()
 void Board320_240::turnOffScreen()
 {
   bool debugTurnOffScreen = false;
-  //debugTurnOffScreen = true;
+  // debugTurnOffScreen = true;
   if (debugTurnOffScreen)
     displayMessage("Turn off screen", (liveData->params.stopCommandQueue ? "Command queue stopped" : "Queue is running"));
   if (currentBrightness == 0)
@@ -1901,6 +1906,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "%s", liveData->settings.wifiPasswordb);
     suffix = tmpStr1;
     break;
+  case MENU_WIFI_NTP:
+    suffix = (liveData->settings.ntpEnabled == 1) ? "[on]" : "[off]";
+    break;
   case MENU_WIFI_ACTIVE:
     if (liveData->params.isWifiBackupLive == true)
     {
@@ -2090,6 +2098,7 @@ void Board320_240::menuItemClick()
   bool showParentMenu = false;
   if (liveData->menuItemSelected > 0 && tmpMenuItem != NULL)
   {
+    syslog->print("Menu item: ");
     syslog->println(tmpMenuItem->id);
     // Device list
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
@@ -2323,6 +2332,13 @@ void Board320_240::menuItemClick()
     // Wifi menu
     case MENU_WIFI_ENABLED:
       liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_WIFI_NTP:
+      liveData->settings.ntpEnabled = (liveData->settings.ntpEnabled == 1) ? 0 : 1;
+      if (liveData->settings.ntpEnabled)
+        ntpSync();
       showMenu();
       return;
       break;
@@ -3374,6 +3390,12 @@ bool Board320_240::sim800lSetup()
 
 void Board320_240::netLoop()
 {
+  // Sync NTP firsttime
+  if (liveData->settings.wifiEnabled == 1 && !liveData->params.ntpTimeSet && WiFi.status() == WL_CONNECTED && liveData->settings.ntpEnabled)
+  {
+    ntpSync();
+  }
+
   // Upload to API - SIM800L or WIFI is supported
   if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
   {

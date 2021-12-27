@@ -135,7 +135,7 @@ void BoardInterface::loadSettings()
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
   tmpStr = "not_set";
   tmpStr.toCharArray(liveData->settings.wifiPassword, tmpStr.length() + 1);
-  liveData->settings.ntpEnabled = 0;
+  liveData->settings.ntpEnabled = 1;
   liveData->settings.ntpTimezone = 1;
   liveData->settings.ntpDaySaveTime = 0;
   liveData->settings.sdcardEnabled = 0;
@@ -211,7 +211,7 @@ void BoardInterface::loadSettings()
         tmpStr.toCharArray(liveData->tmpSettings.wifiSsid, tmpStr.length() + 1);
         tmpStr = "not_set";
         tmpStr.toCharArray(liveData->tmpSettings.wifiPassword, tmpStr.length() + 1);
-        liveData->tmpSettings.ntpEnabled = 0;
+        liveData->tmpSettings.ntpEnabled = 1;
         liveData->tmpSettings.ntpTimezone = 1;
         liveData->tmpSettings.ntpDaySaveTime = 0;
         liveData->tmpSettings.sdcardEnabled = 0;
@@ -336,6 +336,10 @@ void BoardInterface::customConsoleCommand(String cmd)
     ESP.restart();
   if (cmd.equals("saveSettings"))
     saveSettings();
+  if (cmd.equals("time"))
+    showTime();
+  if (cmd.equals("ntpSync"))
+    ntpSync();
   // CAN comparer
   if (cmd.equals("compare"))
     commInterface->compareCanRecords();
@@ -375,6 +379,8 @@ void BoardInterface::customConsoleCommand(String cmd)
     liveData->settings.debugLevel = value.toInt();
     syslog->setDebugLevel(liveData->settings.debugLevel);
   }
+  if (key == "setTime")
+    setTime(value);
   // CAN comparer
   if (key == "record")
     commInterface->recordLoop(value.toInt());
@@ -487,3 +493,61 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 
   return true;
 }
+
+/**
+ * Show time
+ */
+void BoardInterface::showTime()
+{
+  struct tm now;
+  getLocalTime(&now);
+  char dts[32];
+  strftime(dts, sizeof(dts), "%Y-%m-%d %X", &now);
+  syslog->print("Current time: ");
+  syslog->println(dts);
+}
+
+/**
+ * Set time
+ */
+void BoardInterface::setTime(String timestamp)
+{
+    struct timeval tv;
+    struct tm tm_tmp;
+    tm_tmp.tm_year = timestamp.substring(0, 4).toInt() - 1900;
+    tm_tmp.tm_mon = timestamp.substring(5, 7).toInt() - 1;
+    tm_tmp.tm_mday = timestamp.substring(8, 10).toInt();
+    tm_tmp.tm_hour = timestamp.substring(11, 13).toInt();
+    tm_tmp.tm_min = timestamp.substring(14, 16).toInt();
+    tm_tmp.tm_sec = timestamp.substring(17, 19).toInt();
+
+/*#ifdef BOARD_M5STACK_CORE2
+    RTC_TimeTypeDef RTCtime;
+    RTC_DateTypeDef RTCdate;
+
+    RTCdate.Year = timestamp.substring(0, 4).toInt();
+    RTCdate.Month = timestamp.substring(5, 7).toInt();
+    RTCdate.Date = timestamp.substring(8, 10).toInt();
+    ;
+    RTCtime.Hours = timestamp.substring(11, 13).toInt();
+    RTCtime.Minutes = timestamp.substring(14, 16).toInt();
+    RTCtime.Seconds = timestamp.substring(17, 19).toInt();
+
+    M5.Rtc.SetTime(&RTCtime);
+    M5.Rtc.SetDate(&RTCdate);
+#endif**/
+
+    time_t t = mktime(&tm_tmp);
+    tv.tv_sec = t;
+
+    settimeofday(&tv, NULL);
+    struct tm tm;
+    getLocalTime(&tm);
+    liveData->params.currentTime = mktime(&tm);
+    liveData->params.chargingStartTime = liveData->params.currentTime;
+
+    syslog->println("New time set. Only M5 Core2 is supported.");
+    showTime();
+}
+
+

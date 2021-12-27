@@ -31,6 +31,9 @@ class BoardInterface {
     virtual void enterSleepMode(int secs)=0;
     virtual bool skipAdapterScan() {return false;};
     bool carCommandAllowed() { return carInterface->commandAllowed(); }
+    void showTime();
+    virtual void setTime(String timestamp);
+    virtual void ntpSync()=0;
     // Graphics & GUI
     virtual void displayMessage(const char* row1, const char* row2)=0;
     virtual void turnOffScreen()=0;
