@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 113
+#define MENU_SIZE 115
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -84,6 +84,8 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_SDCARD_AUTOSTARTLOG,      MENU_SDCARD,        MENU_NO_MENU,     "Autostart log enabled"},
     {MENU_SDCARD_MOUNT_STATUS,      MENU_SDCARD,        MENU_NO_MENU,     "Status"},
     {MENU_SDCARD_REC,               MENU_SDCARD,        MENU_NO_MENU,     "Record"},
+    {MENU_SDCARD_SETTINGS_SAVE,     MENU_SDCARD,        MENU_NO_MENU,     "Save settings to sd"},
+    {MENU_SDCARD_SETTINGS_RESTORE,  MENU_SDCARD,        MENU_NO_MENU,     "Restore settings from sd"},
 //  {MENU_SDCARD_INTERVAL,          MENU_SDCARD,        MENU_NO_MENU,     "Log interval sec."},
 
     {MENU_VOLTMETER_TOP,            MENU_VOLTMETER,     MENU_OTHERS,      "<- parent menu"},

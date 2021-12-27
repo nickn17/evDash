@@ -2100,6 +2100,7 @@ void Board320_240::menuItemClick()
   {
     syslog->print("Menu item: ");
     syslog->println(tmpMenuItem->id);
+    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
     // Device list
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
@@ -2366,6 +2367,59 @@ void Board320_240::menuItemClick()
       break;
     case MENU_SDCARD_REC:
       sdcardToggleRecording();
+      showMenu();
+      return;
+      break;
+    case MENU_SDCARD_SETTINGS_SAVE:
+      if (liveData->settings.sdcardEnabled && sdcardMount())
+      {
+        File file = SD.open("/settings_backup.bin", FILE_WRITE);
+        if (!file)
+        {
+          syslog->println("Failed to create file");
+          displayMessage("SDCARD", "Failed to create file");
+        }
+        if (file)
+        {
+          syslog->info(DEBUG_NONE, "Save settings to SD card");
+          uint8_t *buff = (uint8_t *)&liveData->settings;
+          file.write(buff, sizeof(liveData->settings));
+          file.close();
+          displayMessage("SDCARD", "Saved");
+        }
+      }
+      else
+      {
+        displayMessage("SDCARD", "Not mounted");
+      }
+      showMenu();
+      return;
+      break;
+    case MENU_SDCARD_SETTINGS_RESTORE:
+      if (liveData->settings.sdcardEnabled && sdcardMount())
+      {
+        File file = SD.open("/settings_backup.bin", FILE_READ);
+        if (!file)
+        {
+          syslog->println("Failed to open file for reading");
+          displayMessage("SDCARD", "Failed to open file for reading");
+        }
+        else
+        {
+          syslog->info(DEBUG_NONE, "Restore settings from SD card");
+          syslog->println( file.size());
+          size_t size = file.read((uint8_t *)&liveData->settings, file.size());
+          syslog->println( size);
+          file.close();
+          //
+          saveSettings();
+          ESP.restart();
+        }
+      }
+      else
+      {
+        displayMessage("SDCARD", "Not mounted or not exists");
+      }
       showMenu();
       return;
       break;
@@ -3073,7 +3127,7 @@ bool Board320_240::sdcardMount()
 
   if (liveData->params.sdcardInit)
   {
-    syslog->print("SD card already mounted...");
+    syslog->println("SD card already mounted...");
     return true;
   }
 

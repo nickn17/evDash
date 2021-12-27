@@ -29,7 +29,7 @@
 #define TFT_WHITE 0xFFFF                    /* 255, 255, 255 */
 #define TFT_ORANGE 0xFDA0                   /* 255, 180,   0 */
 #define TFT_GREENYELLOW 0xB7E0              /* 180, 255,   0 */
-#define TFT_PINK 0xFC9F /* 255, 192, 203 */ //Lighter pink, was 0xFC9F
+#define TFT_PINK 0xFC9F /* 255, 192, 203 */ // Lighter pink, was 0xFC9F
 #define TFT_BROWN 0x9A60                    /* 150,  75,   0 */
 #define TFT_GOLD 0xFEA0                     /* 255, 215,   0 */
 #define TFT_SILVER 0xC618                   /* 192, 192, 192 */
@@ -66,7 +66,7 @@
 
 typedef enum
 {
-  //Top level menu
+  // Top level menu
   MENU_NO_MENU = -1,
   MENU_TOP_LEVEL = 0,
   MENU_VEHICLE_TYPE = 1,
@@ -118,7 +118,7 @@ typedef enum
   MENU_RHD,
   MENU_CURRENT_TIME,
 
-  //menu unit
+  // menu unit
   MENU_UNIT_TOP = 400,
   MENU_DISTANCE_UNIT,
   MENU_TEMPERATURE_UNIT,
@@ -135,7 +135,7 @@ typedef enum
   FACTORY_RESET_TOP,
   FACTORY_RESET_CONFIRM,
 
-  //menu wifi
+  // menu wifi
   MENU_WIFI_TOP = 3010,
   MENU_WIFI_ENABLED,
   MENU_WIFI_SSID,
@@ -146,12 +146,14 @@ typedef enum
   MENU_WIFI_ACTIVE,
   MENU_WIFI_IPADDR,
 
-  //menu sdcard
+  // menu sdcard
   MENU_SDCARD_TOP = 3040,
   MENU_SDCARD_ENABLED,
   MENU_SDCARD_AUTOSTARTLOG,
   MENU_SDCARD_MOUNT_STATUS,
   MENU_SDCARD_REC,
+  MENU_SDCARD_SETTINGS_SAVE,
+  MENU_SDCARD_SETTINGS_RESTORE,
   MENU_SDCARD_INTERVAL,
 
   // menu default screen
@@ -170,13 +172,13 @@ typedef enum
   MENU_REMOTE_UPLOAD_API_INTERVAL,
   MENU_REMOTE_UPLOAD_ABRP_INTERVAL,
 
-  //menu sleep
+  // menu sleep
   MENU_SLEEP_TOP = 3110,
   MENU_SLEEP_MODE_MODE,
   MENU_SLEEP_MODE_WAKEINTERVAL,
   MENU_SLEEP_MODE_SHUTDOWNHRS,
 
-  //menu voltmeter
+  // menu voltmeter
   MENU_VOLTMETER_TOP = 3150,
   MENU_VOLTMETER_ENABLED,
   MENU_VOLTMETER_SLEEP,
@@ -184,22 +186,22 @@ typedef enum
   MENU_VOLTMETER_WAKEUPVOL,
   MENU_VOLTMETER_CUTOFFVOL,
 
-  //distance unit menu
+  // distance unit menu
   DISTANCE_UNIT_TOP = 4010,
   DISTANCE_UNIT_KM,
   DISTANCE_UNIT_MI,
 
-  //temperature unit menu
+  // temperature unit menu
   TEMPERATURE_UNIT_TOP = 4020,
   TEMPERATURE_UNIT_CEL,
   TEMPERATURE_UNIT_FAR,
 
-  //presure unit menu
+  // presure unit menu
   PRESURE_UNIT_TOP = 4030,
   PRESURE_UNIT_BAR,
   PRESURE_UNIT_PSI,
 
-  //BLE unit menu
+  // BLE unit menu
   LIST_OF_BLE_DEV = 9999,
   LIST_OF_BLE_DEV_TOP,
   LIST_OF_BLE_1,
@@ -216,7 +218,7 @@ typedef enum
   // car commands menu
   MENU_CAR_COMMANDS_TOP = 12000,
 
-  //menu last (no menu)
+  // menu last (no menu)
   MENU_LAST
 } MENU_ID;
 

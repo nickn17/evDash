@@ -6,6 +6,7 @@
 - new message dialog
 - new commands time/setTime/ntpSync (core2 RTC only)
 - Wifi menu / NTP sync off/on option
+- Save/restore setting to/from SD card (/settings_backup.bin)
 
 ### v2.5.2 2021-11-19
 - MEB optimizations (cell screen, min/max voltage)
