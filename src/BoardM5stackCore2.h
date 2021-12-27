@@ -14,6 +14,7 @@ class BoardM5stackCore2 : public Board320_240 {
     void initBoard() override;
     void afterSetup() override;
     void wakeupBoard() override;
+    void boardLoop() override;
     void mainLoop() override;
     bool isButtonPressed(int button) override;
     void enterSleepMode(int secs) override;

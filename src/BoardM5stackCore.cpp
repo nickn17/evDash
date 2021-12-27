@@ -29,8 +29,6 @@ void BoardM5stackCore::wakeupBoard()
 
 bool BoardM5stackCore::isButtonPressed(int button)
 {
-  M5.update();
-
   switch (button)
   {
   case BUTTON_LEFT:
@@ -69,11 +67,15 @@ void BoardM5stackCore::enterSleepMode(int secs)
   }
 }
 
+void BoardM5stackCore::boardLoop()
+{
+  Board320_240::boardLoop();
+  M5.update();
+}
+
 void BoardM5stackCore::mainLoop()
 {
-
   Board320_240::mainLoop();
-  M5.update();
 }
 
 /**

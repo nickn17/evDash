@@ -26,6 +26,7 @@ class BoardInterface {
     virtual void initBoard()=0;
     virtual void wakeupBoard()=0;
     virtual void afterSetup()=0;
+    virtual void boardLoop()=0;
     virtual void mainLoop()=0;
     virtual bool isButtonPressed(int button) {return false;};
     virtual void enterSleepMode(int secs)=0;

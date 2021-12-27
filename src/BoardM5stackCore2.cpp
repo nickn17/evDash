@@ -93,7 +93,7 @@ uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
 
 bool BoardM5stackCore2::isButtonPressed(int button)
 {
-  M5.update();
+  //M5.update();
 
   switch (button)
   {
@@ -145,12 +145,16 @@ void BoardM5stackCore2::enterSleepMode(int secs)
   }
 }
 
+void BoardM5stackCore2::boardLoop()
+{
+  Board320_240::boardLoop();
+  M5.update();
+}
+
 void BoardM5stackCore2::mainLoop()
 {
-
   Board320_240::mainLoop();
-  M5.update();
-
+ 
   // Touch
   if (M5.background.pressedFor(200, 500))
   {

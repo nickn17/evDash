@@ -175,12 +175,6 @@ void CommObd2Ble4::connectDevice()
   boardObj = board;
 
   syslog->println("BLE4 connectDevice");
-  if (heap_caps_get_free_size(MALLOC_CAP_8BIT) < 76000)
-  {
-    boardObj->displayMessage("BLE4 failed", "Not enough memory");
-    delay(3000);
-    return;
-  }
 
   // Start BLE connection
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
@@ -235,7 +229,7 @@ void CommObd2Ble4::startBleScan()
   liveData->scanningDeviceIndex = 0;
   board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+  syslog->printf("Total/free heap: %i/%i-%i\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Start scanning
   syslog->println("Scanning BLE devices...");
@@ -301,7 +295,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
     syslog->println("liveData->bleConnected");
   syslog->println(" - liveData->bleConnected to server");
 
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+  syslog->printf("Total/free heap: %i/%i-%i\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Remote service
   board->displayMessage(" > Connecting device", "Connecting service...");
@@ -317,7 +311,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
     return false;
   }
   syslog->println(" - Found our service");
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+  syslog->printf("Total/free heap: %i/%i-%i\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Get characteristics
   board->displayMessage(" > Connecting device", "Connecting TxUUID...");

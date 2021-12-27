@@ -685,13 +685,14 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   spr.pushSprite(0, 0);
 
   bool res = false;
-  for (uint16_t i = 0; i < 30 * 5; i++)
+  for (uint16_t i = 0; i < 20 * 10; i++)
   {
-    delay(200);
+    boardLoop();
     if (isButtonPressed(pinButtonLeft))
       return true;
     if (isButtonPressed(pinButtonRight))
       return false;
+    delay(100);
   }
 
   return res;
@@ -2876,10 +2877,21 @@ void Board320_240::loadTestData()
 }
 
 /**
-  Board looop
+ * Board loop
+ * 
+ */
+void Board320_240::boardLoop()
+{
+  
+}
+
+/**
+  Main looop
 */
 void Board320_240::mainLoop()
 {
+  boardLoop();
+
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
   // MIDDLE - menu select

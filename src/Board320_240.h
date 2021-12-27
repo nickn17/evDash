@@ -80,6 +80,7 @@ public:
   //
   void initBoard() override;
   void afterSetup() override;
+  void boardLoop() override;
   void mainLoop() override;
   bool skipAdapterScan() override;
   void goToSleep();
