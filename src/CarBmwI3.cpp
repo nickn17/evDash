@@ -57,7 +57,7 @@ void CarBmwI3::activateCommandQueue() {
 	// 60Ah / 22kWh version
 	liveData->params.batteryTotalAvailableKWh = 18.8;
 	liveData->params.batModuleTempCount = 4; //?
-  
+
   // init params which are currently not filled from parsed data
   liveData->params.tireFrontLeftPressureBar = 0;
   liveData->params.tireFrontLeftTempC = 0;

@@ -224,6 +224,7 @@ void CarKiaDebugObd2::activateCommandQueue()
 
   // 39 or 64 kWh model?
   liveData->params.batteryTotalAvailableKWh = 64;
+  liveData->params.cellCount = 98;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();

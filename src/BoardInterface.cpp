@@ -59,16 +59,16 @@ void BoardInterface::shutdownDevice()
 */
   setCpuFrequencyMhz(80);
   turnOffScreen();
-  //WiFi.disconnect(true);
-  //WiFi.mode(WIFI_OFF);
+  // WiFi.disconnect(true);
+  // WiFi.mode(WIFI_OFF);
 
   commInterface->disconnectDevice();
-  //adc_power_off();
-  //esp_wifi_stop();
+  // adc_power_off();
+  // esp_wifi_stop();
   esp_bt_controller_disable();
 
   delay(2000);
-  //esp_sleep_enable_timer_wakeup(525600L * 60L * 1000000L); // minutes
+  // esp_sleep_enable_timer_wakeup(525600L * 60L * 1000000L); // minutes
   esp_deep_sleep_start();
 }
 
@@ -359,7 +359,7 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
   if (key == "wifiSsid2")
     value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
-    liveData->settings.backupWifiEnabled = 1;
+  liveData->settings.backupWifiEnabled = 1;
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
   if (key == "gprsApn")
@@ -397,7 +397,7 @@ void BoardInterface::parseRowMerged()
 bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 {
 
-  StaticJsonDocument<2048> jsonData;
+  StaticJsonDocument<4096> jsonData;
 
   if (inclApiKey)
     jsonData["apiKey"] = liveData->settings.remoteApiKey;
@@ -470,6 +470,14 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   jsonData["tRlBar"] = round(liveData->params.tireRearLeftPressureBar * 10) / 10;
   jsonData["tRrC"] = liveData->params.tireRearRightTempC;
   jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
+
+  // cell voltage
+  for (int i = 0; i < liveData->params.cellCount; i++)
+  {
+    if (liveData->params.cellVoltage[i] == -1)
+      continue;
+    jsonData[String("c" + String(i) + "V")] = liveData->params.cellVoltage[i];
+  }
 
   jsonData["debug"] = liveData->params.debugData;
   jsonData["debug2"] = liveData->params.debugData2;

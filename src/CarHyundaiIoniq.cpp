@@ -74,6 +74,7 @@ void CarHyundaiIoniq::activateCommandQueue()
   // 28kWh version
   liveData->params.batteryTotalAvailableKWh = 28;
   liveData->params.batModuleTempCount = 12;
+liveData->params.cellCount = 98;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
