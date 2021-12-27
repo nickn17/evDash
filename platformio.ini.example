@@ -7,6 +7,8 @@ board_build.partitions = no_ota.csv
 framework = arduino
 build_flags = 
 	-D BOARD_M5STACK_CORE2
+	-D BOARD_HAS_PSRAM
+    -mfix-esp32-psram-cache-issue
 	-D COMMU_CS_PIN=27
 	-D COMMU_INT_PIN=2
 	-D SERIAL2_RX=13
@@ -58,6 +60,8 @@ board_build.partitions = no_ota.csv
 framework = arduino
 build_flags = 
 	-D BOARD_TTGO_T4
+	-D BOARD_HAS_PSRAM
+    -mfix-esp32-psram-cache-issue
 	-D USE_HSPI_PORT
 	-D ILI9341_DRIVER
 	-D USER_SETUP_LOADED=1

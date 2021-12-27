@@ -1,12 +1,14 @@
 # RELEASE NOTES
 
 ### Next version
-- DEV adding Bluetooth3 OBD2 device
-- DEV ota
 - new message dialog
 - new commands time/setTime/ntpSync (core2 RTC only)
 - Wifi menu / NTP sync off/on option
 - Save/restore setting to/from SD card (/settings_backup.bin)
+- INA3221 voltmeter - info item (3x voltage/current)
+- FIX added PSRAM option for M5 Core2 and TTGO T4
+- [DEV] OTA
+- [DEV] adding Bluetooth3 OBD2 device
 
 ### v2.5.2 2021-11-19
 - MEB optimizations (cell screen, min/max voltage)

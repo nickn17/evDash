@@ -138,19 +138,19 @@ void Board320_240::afterSetup()
   if (psramFound())
     psramUsed = true;
 #endif
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   syslog->println((psramUsed) ? "Sprite 16" : "Sprite 8");
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   liveData->params.spriteInit = true;
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
   if (isButtonPressed(pinButtonRight))
   {
     loadTestData();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // Wifi
@@ -158,14 +158,14 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2)
   {
     initGPS();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // SD card
@@ -175,7 +175,7 @@ void Board320_240::afterSetup()
     {
       syslog->println("Toggle recording on SD card");
       sdcardToggleRecording();
-      syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+      syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     }
   }
 
@@ -183,14 +183,14 @@ void Board320_240::afterSetup()
   if (liveData->settings.gprsHwSerialPort <= 2)
   {
     sim800lSetup();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // Init comm device
   if (!afterSetup)
   {
     BoardInterface::afterSetup();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   showTime();
@@ -222,14 +222,14 @@ void Board320_240::otaUpdate()
 
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   if (liveData->params.spriteInit)
   {
     syslog->printf("Removing sprite\n");
     spr.deleteSprite();
     liveData->params.spriteInit = false;
   }
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
 #ifdef BOARD_TTGO_T4
@@ -287,7 +287,7 @@ void Board320_240::otaUpdate()
 
   if (!client.connect(host.c_str(), port))
   {
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     displayMessage("Connection failed.", "");
     return;
   }
@@ -355,7 +355,7 @@ void Board320_240::otaUpdate()
   displayMessage("Installing OTA...", "");
   if (!Update.begin(contentLength))
   {
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     syslog->printf("Error: %i, malloc %i bytes\n", Update.getError(), SPI_FLASH_SEC_SIZE);
     syslog->print("contentLength: ");
     syslog->println(contentLength);
@@ -2100,7 +2100,7 @@ void Board320_240::menuItemClick()
   {
     syslog->print("Menu item: ");
     syslog->println(tmpMenuItem->id);
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     // Device list
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
@@ -2407,9 +2407,9 @@ void Board320_240::menuItemClick()
         else
         {
           syslog->info(DEBUG_NONE, "Restore settings from SD card");
-          syslog->println( file.size());
+          syslog->println(file.size());
           size_t size = file.read((uint8_t *)&liveData->settings, file.size());
-          syslog->println( size);
+          syslog->println(size);
           file.close();
           //
           saveSettings();
@@ -2432,6 +2432,28 @@ void Board320_240::menuItemClick()
     case MENU_VOLTMETER_SLEEP:
       liveData->settings.voltmeterBasedSleep = (liveData->settings.voltmeterBasedSleep == 1) ? 0 : 1;
       showMenu();
+      return;
+      break;
+    case MENU_VOLTMETER_INFO:
+      if (liveData->settings.voltmeterEnabled == 1)
+      {
+        String m1 = "";
+        m1.concat(ina3221.getBusVoltage_V(1));
+        m1.concat("/");
+        m1.concat(ina3221.getBusVoltage_V(2));
+        m1.concat("/");
+        m1.concat(ina3221.getBusVoltage_V(3));
+        m1.concat("V");
+        String m2 = "";
+        m2.concat(ina3221.getCurrent_mA(1));
+        m2.concat("/");
+        m2.concat(ina3221.getCurrent_mA(2));
+        m2.concat("/");
+        m2.concat(ina3221.getCurrent_mA(3));
+        m2.concat("mA");
+        displayMessage(m1.c_str(), m2.c_str());
+      }
+
       return;
       break;
     case MENU_VOLTMETER_SLEEPVOL:
