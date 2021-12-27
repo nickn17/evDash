@@ -205,22 +205,7 @@ void Board320_240::afterSetup()
  */
 void Board320_240::otaUpdate()
 {
-  // https://github.com/M5ez/M5ez/tree/master/examples/OTA_https
-  /*  if (ez.msgBox("evDash update over OTA", "This will download and replace the current version of evDash", "Cancel#OK#") == "OK")
-    {
-      ezProgressBar progress_bar("OTA update in progress", "Downloading ...", "Abort");
-      if (ez.wifi.update("https://github.com/nickn17/evDash/raw/master/dist/m5stack-core2/evDash.ino.bin", root_cert, &progress_bar))
-      {
-        ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
-        ESP.restart();
-      }
-      else
-      {
-        ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
-      }
-    }*/
-
-#include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
+  #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
   syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   if (liveData->params.spriteInit)
@@ -364,7 +349,7 @@ void Board320_240::otaUpdate()
     return;
   }
 
-  displayMessage("Writing stream...", "");
+  displayMessage("Writing stream...", "Please wait!");
   /*size_t written =*/Update.writeStream(client);
 
   displayMessage("End...", "");
