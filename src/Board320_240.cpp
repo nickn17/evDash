@@ -623,7 +623,7 @@ void Board320_240::setBrightness()
 }
 
 /**
-   Clear screen a display two lines message
+  Message dialog
 */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
@@ -656,6 +656,45 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
     tft.drawString(row1, 0, height / 2, GFXFF);
     tft.drawString(row2, 0, (height / 2) + 30, GFXFF);
   }
+}
+
+/**
+  Confirm message
+*/
+bool Board320_240::confirmMessage(const char *row1, const char *row2)
+{
+  uint16_t height = tft.height();
+  syslog->print("Confirm: ");
+  syslog->print(row1);
+  syslog->print(" ");
+  syslog->println(row2);
+
+  spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
+  spr.setTextDatum(ML_DATUM);
+  spr.setTextColor(TFT_YELLOW, TFT_NAVY);
+  spr.setFreeFont(&Roboto_Thin_24);
+  spr.setTextDatum(BL_DATUM);
+  spr.drawString(row1, 0, height / 2, GFXFF);
+  spr.drawString(row2, 0, (height / 2) + 30, GFXFF);
+  spr.fillRect(0, height - 50, 100, 50, TFT_NAVY);
+  spr.fillRect(tft.width() - 100, height - 50, 100, 50, TFT_NAVY);
+  spr.setTextDatum(BL_DATUM);
+  spr.drawString("YES", 10, height - 10, GFXFF);
+  spr.setTextDatum(BR_DATUM);
+  spr.drawString("NO", tft.width() - 10, height - 10, GFXFF);
+  spr.pushSprite(0, 0);
+
+  bool res = false;
+  for (uint16_t i = 0; i < 30 * 5; i++)
+  {
+    delay(200);
+    if (isButtonPressed(pinButtonLeft))
+      return true;
+    if (isButtonPressed(pinButtonRight))
+      return false;
+  }
+
+  return res;
 }
 
 /**
@@ -2049,6 +2088,7 @@ void Board320_240::menuItemClick()
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
   uint16_t i;
+  String m1, m2;
 
   for (i = 0; i < liveData->menuItemsCount; ++i)
   {
@@ -2360,6 +2400,12 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_SDCARD_SETTINGS_SAVE:
+      if (!confirmMessage("Confirm action", "Do you want to save?"))
+      {
+        showMenu();
+        return;
+      }
+      showMenu();
       if (liveData->settings.sdcardEnabled && sdcardMount())
       {
         File file = SD.open("/settings_backup.bin", FILE_WRITE);
@@ -2375,6 +2421,7 @@ void Board320_240::menuItemClick()
           file.write(buff, sizeof(liveData->settings));
           file.close();
           displayMessage("SDCARD", "Saved");
+          delay(2000);
         }
       }
       else
@@ -2385,6 +2432,12 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_SDCARD_SETTINGS_RESTORE:
+      if (!confirmMessage("Confirm action", "Do you want to restore?"))
+      {
+        showMenu();
+        return;
+      }
+      showMenu();
       if (liveData->settings.sdcardEnabled && sdcardMount())
       {
         File file = SD.open("/settings_backup.bin", FILE_READ);
@@ -2426,14 +2479,14 @@ void Board320_240::menuItemClick()
     case MENU_VOLTMETER_INFO:
       if (liveData->settings.voltmeterEnabled == 1)
       {
-        String m1 = "";
+        m1 = "";
         m1.concat(ina3221.getBusVoltage_V(1));
         m1.concat("/");
         m1.concat(ina3221.getBusVoltage_V(2));
         m1.concat("/");
         m1.concat(ina3221.getBusVoltage_V(3));
         m1.concat("V");
-        String m2 = "";
+        m2 = "";
         m2.concat(ina3221.getCurrent_mA(1));
         m2.concat("/");
         m2.concat(ina3221.getCurrent_mA(2));
@@ -2501,9 +2554,17 @@ void Board320_240::menuItemClick()
       commInterface->scanDevices();
       return;
     // Reset settings
-    case FACTORY_RESET_CONFIRM:
-      resetSettings();
-      hideMenu();
+    case MENU_FACTORY_RESET:
+      if (confirmMessage("Confirm action", "Do you want to reset?"))
+      {
+        showMenu();
+        resetSettings();
+        hideMenu();
+      }
+      else
+      {
+        showMenu();
+      }
       return;
     // Save settings
     case MENU_SAVE_SETTINGS:
@@ -2511,7 +2572,12 @@ void Board320_240::menuItemClick()
       break;
     // Version
     case MENU_APP_VERSION:
-      otaUpdate();
+      if (confirmMessage("Confirm action", "Do you want to run OTA?"))
+      {
+        showMenu();
+        otaUpdate();
+      }
+      showMenu();
       /*  commInterface->executeCommand("ATSH770");
           delay(50);
           commInterface->executeCommand("3E");
@@ -2529,6 +2595,20 @@ void Board320_240::menuItemClick()
           commInterface->executeCommand("2FBC1103");
           delay(5000);*/
       return;
+      break;
+    // Memory usage
+    case MENU_MEMORY_USAGE:
+      m1 = "Heap ";
+      m1.concat(ESP.getHeapSize());
+      m1.concat("/");
+      m1.concat(heap_caps_get_free_size(MALLOC_CAP_8BIT));
+      m2 = "Psram ";
+      m2.concat(ESP.getPsramSize());
+      m2.concat("/");
+      m2.concat(ESP.getFreePsram());
+      displayMessage(m1.c_str(), m2.c_str());
+      return;
+      break;
     // Shutdown
     case MENU_SHUTDOWN:
       enterSleepMode(0);
@@ -2800,7 +2880,6 @@ void Board320_240::loadTestData()
 */
 void Board320_240::mainLoop()
 {
-
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
   // MIDDLE - menu select

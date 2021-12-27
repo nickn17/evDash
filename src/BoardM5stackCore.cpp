@@ -29,6 +29,8 @@ void BoardM5stackCore::wakeupBoard()
 
 bool BoardM5stackCore::isButtonPressed(int button)
 {
+  M5.update();
+
   switch (button)
   {
   case BUTTON_LEFT:

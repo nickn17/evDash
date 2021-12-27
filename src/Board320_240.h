@@ -104,6 +104,7 @@ public:
   void turnOffScreen() override;
   void setBrightness() override;
   void displayMessage(const char *row1, const char *row2) override;
+  bool confirmMessage(const char *row1, const char *row2) override;
   void redrawScreen() override;
   // Custom screens
   void drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, uint16_t bgColor, uint16_t fgColor);

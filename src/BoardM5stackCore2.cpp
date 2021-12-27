@@ -93,6 +93,7 @@ uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
 
 bool BoardM5stackCore2::isButtonPressed(int button)
 {
+  M5.update();
 
   switch (button)
   {

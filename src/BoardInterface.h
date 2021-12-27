@@ -36,6 +36,7 @@ class BoardInterface {
     virtual void ntpSync()=0;
     // Graphics & GUI
     virtual void displayMessage(const char* row1, const char* row2)=0;
+    virtual bool confirmMessage(const char *row1, const char *row2) { return false; }
     virtual void turnOffScreen()=0;
     virtual void setBrightness()=0;
     virtual void redrawScreen()=0;
