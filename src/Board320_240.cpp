@@ -208,13 +208,6 @@ void Board320_240::otaUpdate()
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
   syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
-  if (liveData->params.spriteInit)
-  {
-    syslog->printf("Removing sprite\n");
-    spr.deleteSprite();
-    liveData->params.spriteInit = false;
-  }
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
 #ifdef BOARD_TTGO_T4
@@ -227,12 +220,14 @@ void Board320_240::otaUpdate()
   if (!WiFi.isConnected())
   {
     displayMessage("No WiFi connection.", "");
+    delay(2000);
     return;
   }
 
   if (!url.startsWith("https://"))
   {
     displayMessage("URL must start with 'https://'", "");
+    delay(2000);
     return;
   }
 
@@ -274,6 +269,7 @@ void Board320_240::otaUpdate()
   {
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     displayMessage("Connection failed.", "");
+    delay(2000);
     return;
   }
 
@@ -289,6 +285,7 @@ void Board320_240::otaUpdate()
     {
       displayMessage("Client Timeout", "");
       client.stop();
+      delay(2000);
       return;
     }
   }
@@ -310,6 +307,7 @@ void Board320_240::otaUpdate()
         syslog->println(http_response);
         displayMessage("Got response: must be 200", "");
         // displayMessage("Got response: \"" + http_response + "\", must be 200", http_response);
+        delay(2000);
         return;
       }
     }
@@ -320,6 +318,7 @@ void Board320_240::otaUpdate()
       if (contentLength <= 0)
       {
         displayMessage("Content-Length zero", "");
+        delay(2000);
         return;
       }
     }
@@ -331,6 +330,7 @@ void Board320_240::otaUpdate()
       if (contentType != "application/octet-stream")
       {
         displayMessage("Content-Type must be", "application/octet-stream");
+        delay(2000);
         return;
       }
     }
@@ -346,6 +346,7 @@ void Board320_240::otaUpdate()
     syslog->println(contentLength);
     displayMessage("Not enough space", "to begin OTA");
     client.flush();
+    delay(2000);
     return;
   }
 
@@ -356,6 +357,7 @@ void Board320_240::otaUpdate()
   if (!Update.end())
   {
     displayMessage("Downloading error", "");
+    delay(2000);
     return;
   }
 
@@ -363,10 +365,12 @@ void Board320_240::otaUpdate()
   if (!Update.isFinished())
   {
     displayMessage("Update not finished.", "Something went wrong.");
+    delay(2000);
     return;
   }
 
   displayMessage("OTA installed.", "Reboot device.");
+  delay(2000);
 }
 
 /**
@@ -2878,11 +2882,10 @@ void Board320_240::loadTestData()
 
 /**
  * Board loop
- * 
+ *
  */
 void Board320_240::boardLoop()
 {
-  
 }
 
 /**
