@@ -93,6 +93,7 @@ uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
 
 bool BoardM5stackCore2::isButtonPressed(int button)
 {
+  //M5.update();
 
   switch (button)
   {
@@ -144,12 +145,16 @@ void BoardM5stackCore2::enterSleepMode(int secs)
   }
 }
 
+void BoardM5stackCore2::boardLoop()
+{
+  Board320_240::boardLoop();
+  M5.update();
+}
+
 void BoardM5stackCore2::mainLoop()
 {
-
   Board320_240::mainLoop();
-  M5.update();
-
+ 
   // Touch
   if (M5.background.pressedFor(200, 500))
   {
@@ -215,6 +220,43 @@ void BoardM5stackCore2::mainLoop()
           }
     }
   }
+}
+
+/**
+ * Set time
+ */
+void BoardM5stackCore2::setTime(String timestamp)
+{
+  RTC_TimeTypeDef RTCtime;
+  RTC_DateTypeDef RTCdate;
+
+  RTCdate.Year = timestamp.substring(0, 4).toInt();
+  RTCdate.Month = timestamp.substring(5, 7).toInt();
+  RTCdate.Date = timestamp.substring(8, 10).toInt();
+  RTCtime.Hours = timestamp.substring(11, 13).toInt();
+  RTCtime.Minutes = timestamp.substring(14, 16).toInt();
+  RTCtime.Seconds = timestamp.substring(17, 19).toInt();
+
+  M5.Rtc.SetTime(&RTCtime);
+  M5.Rtc.SetDate(&RTCdate);
+
+  BoardInterface::setTime(timestamp);
+}
+
+/**
+ * Sync NTP time
+ *
+ */
+void BoardM5stackCore2::ntpSync()
+{
+
+  syslog->println("Syncing NTP time.");
+
+  char ntpServer[] = "de.pool.ntp.org";
+  configTime(liveData->settings.timezone * 3600, liveData->settings.daylightSaving * 3600, ntpServer);
+  liveData->params.ntpTimeSet = true;
+
+  showTime();
 }
 
 #endif // BOARD_M5STACK_CORE2

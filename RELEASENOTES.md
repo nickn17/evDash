@@ -1,9 +1,19 @@
 # RELEASE NOTES
 
 ### Next version
-- DEV adding Bluetooth3 OBD2 device
-- DEV ota
+- SD card usage in %
+- new confirm message dialog
+- Memory usage menu item
+
+### v2.6.0 2021-12-27
+- FIX added PSRAM option for M5 Core2 and TTGO T4 (BLE4+SD+Wifi is now working)
+- OTA update for M5Core2 (now VS code build only)
+- Wifi menu / NTP sync (Core1/Core2)
+- Save/restore settings to SD card (/settings_backup.bin)
+- INA3221 voltmeter - info item (3x voltage/current)
+- new commands time/setTime/ntpSync (core2 RTC only)
 - new message dialog
+- [DEV] adding Bluetooth3 OBD2 device (not working yet)
 
 ### v2.5.2 2021-11-19
 - MEB optimizations (cell screen, min/max voltage)

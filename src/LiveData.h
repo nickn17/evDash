@@ -65,11 +65,13 @@ extern LogSerial *syslog;
 typedef struct
 {
   // System
+  bool booting;
   time_t currentTime;
   time_t chargingStartTime;
   uint32_t queueLoopCounter;
   bool stopCommandQueue; // sleep mode/screen only & ina3221 voltmeter based
   time_t lastCanbusResponseTime;
+  bool ntpTimeSet;
   // Network
   time_t lastDataSent;
   bool sim800l_enabled;

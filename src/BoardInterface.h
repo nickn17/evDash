@@ -26,13 +26,18 @@ class BoardInterface {
     virtual void initBoard()=0;
     virtual void wakeupBoard()=0;
     virtual void afterSetup()=0;
+    virtual void boardLoop()=0;
     virtual void mainLoop()=0;
     virtual bool isButtonPressed(int button) {return false;};
     virtual void enterSleepMode(int secs)=0;
     virtual bool skipAdapterScan() {return false;};
     bool carCommandAllowed() { return carInterface->commandAllowed(); }
+    void showTime();
+    virtual void setTime(String timestamp);
+    virtual void ntpSync()=0;
     // Graphics & GUI
     virtual void displayMessage(const char* row1, const char* row2)=0;
+    virtual bool confirmMessage(const char *row1, const char *row2) { return false; }
     virtual void turnOffScreen()=0;
     virtual void setBrightness()=0;
     virtual void redrawScreen()=0;

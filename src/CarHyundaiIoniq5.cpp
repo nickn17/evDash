@@ -90,6 +90,8 @@ void CarHyundaiIoniq5::activateCommandQueue()
   // 39 or 64 kWh model?
   liveData->params.batModuleTempCount = 4;
   liveData->params.batteryTotalAvailableKWh = 64;
+  liveData->params.cellCount = 98;
+
   // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
   // Calculates based on nick.n17 dashboard data
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58)

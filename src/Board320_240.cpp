@@ -20,6 +20,8 @@ RTC_DATA_ATTR unsigned int sleepCount = 0;
 */
 void Board320_240::initBoard()
 {
+  liveData->params.booting = true;
+
 // Set button pins for input
 #ifdef BOARD_TTGO_T4
   pinMode(pinButtonMiddle, INPUT);
@@ -136,19 +138,19 @@ void Board320_240::afterSetup()
   if (psramFound())
     psramUsed = true;
 #endif
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   syslog->println((psramUsed) ? "Sprite 16" : "Sprite 8");
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   liveData->params.spriteInit = true;
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
   if (isButtonPressed(pinButtonRight))
   {
     loadTestData();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // Wifi
@@ -156,14 +158,14 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2)
   {
     initGPS();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // SD card
@@ -173,7 +175,7 @@ void Board320_240::afterSetup()
     {
       syslog->println("Toggle recording on SD card");
       sdcardToggleRecording();
-      syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+      syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     }
   }
 
@@ -181,18 +183,21 @@ void Board320_240::afterSetup()
   if (liveData->settings.gprsHwSerialPort <= 2)
   {
     sim800lSetup();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
   // Init comm device
   if (!afterSetup)
   {
     BoardInterface::afterSetup();
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
+
+  showTime();
 
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+  liveData->params.booting = false;
 }
 
 /**
@@ -200,31 +205,9 @@ void Board320_240::afterSetup()
  */
 void Board320_240::otaUpdate()
 {
-  // https://github.com/M5ez/M5ez/tree/master/examples/OTA_https
-  /*  if (ez.msgBox("evDash update over OTA", "This will download and replace the current version of evDash", "Cancel#OK#") == "OK")
-    {
-      ezProgressBar progress_bar("OTA update in progress", "Downloading ...", "Abort");
-      if (ez.wifi.update("https://github.com/nickn17/evDash/raw/master/dist/m5stack-core2/evDash.ino.bin", root_cert, &progress_bar))
-      {
-        ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
-        ESP.restart();
-      }
-      else
-      {
-        ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
-      }
-    }*/
-
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
-  if (liveData->params.spriteInit)
-  {
-    syslog->printf("Removing sprite\n");
-    spr.deleteSprite();
-    liveData->params.spriteInit = false;
-  }
-  syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
 #ifdef BOARD_TTGO_T4
@@ -237,12 +220,14 @@ void Board320_240::otaUpdate()
   if (!WiFi.isConnected())
   {
     displayMessage("No WiFi connection.", "");
+    delay(2000);
     return;
   }
 
   if (!url.startsWith("https://"))
   {
     displayMessage("URL must start with 'https://'", "");
+    delay(2000);
     return;
   }
 
@@ -282,8 +267,9 @@ void Board320_240::otaUpdate()
 
   if (!client.connect(host.c_str(), port))
   {
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     displayMessage("Connection failed.", "");
+    delay(2000);
     return;
   }
 
@@ -299,6 +285,7 @@ void Board320_240::otaUpdate()
     {
       displayMessage("Client Timeout", "");
       client.stop();
+      delay(2000);
       return;
     }
   }
@@ -320,6 +307,7 @@ void Board320_240::otaUpdate()
         syslog->println(http_response);
         displayMessage("Got response: must be 200", "");
         // displayMessage("Got response: \"" + http_response + "\", must be 200", http_response);
+        delay(2000);
         return;
       }
     }
@@ -330,6 +318,7 @@ void Board320_240::otaUpdate()
       if (contentLength <= 0)
       {
         displayMessage("Content-Length zero", "");
+        delay(2000);
         return;
       }
     }
@@ -341,6 +330,7 @@ void Board320_240::otaUpdate()
       if (contentType != "application/octet-stream")
       {
         displayMessage("Content-Type must be", "application/octet-stream");
+        delay(2000);
         return;
       }
     }
@@ -350,22 +340,24 @@ void Board320_240::otaUpdate()
   displayMessage("Installing OTA...", "");
   if (!Update.begin(contentLength))
   {
-    syslog->printf("FreeHeap: %i/%i bytes\n", ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     syslog->printf("Error: %i, malloc %i bytes\n", Update.getError(), SPI_FLASH_SEC_SIZE);
     syslog->print("contentLength: ");
     syslog->println(contentLength);
     displayMessage("Not enough space", "to begin OTA");
     client.flush();
+    delay(2000);
     return;
   }
 
-  displayMessage("Writing stream...", "");
+  displayMessage("Writing stream...", "Please wait!");
   /*size_t written =*/Update.writeStream(client);
 
   displayMessage("End...", "");
   if (!Update.end())
   {
     displayMessage("Downloading error", "");
+    delay(2000);
     return;
   }
 
@@ -373,10 +365,12 @@ void Board320_240::otaUpdate()
   if (!Update.isFinished())
   {
     displayMessage("Update not finished.", "Something went wrong.");
+    delay(2000);
     return;
   }
 
   displayMessage("OTA installed.", "Reboot device.");
+  delay(2000);
 }
 
 /**
@@ -564,7 +558,7 @@ void Board320_240::afterSleep()
 void Board320_240::turnOffScreen()
 {
   bool debugTurnOffScreen = false;
-  //debugTurnOffScreen = true;
+  // debugTurnOffScreen = true;
   if (debugTurnOffScreen)
     displayMessage("Turn off screen", (liveData->params.stopCommandQueue ? "Command queue stopped" : "Queue is running"));
   if (currentBrightness == 0)
@@ -633,7 +627,7 @@ void Board320_240::setBrightness()
 }
 
 /**
-   Clear screen a display two lines message
+  Message dialog
 */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
@@ -666,6 +660,46 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
     tft.drawString(row1, 0, height / 2, GFXFF);
     tft.drawString(row2, 0, (height / 2) + 30, GFXFF);
   }
+}
+
+/**
+  Confirm message
+*/
+bool Board320_240::confirmMessage(const char *row1, const char *row2)
+{
+  uint16_t height = tft.height();
+  syslog->print("Confirm: ");
+  syslog->print(row1);
+  syslog->print(" ");
+  syslog->println(row2);
+
+  spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
+  spr.setTextDatum(ML_DATUM);
+  spr.setTextColor(TFT_YELLOW, TFT_NAVY);
+  spr.setFreeFont(&Roboto_Thin_24);
+  spr.setTextDatum(BL_DATUM);
+  spr.drawString(row1, 0, height / 2, GFXFF);
+  spr.drawString(row2, 0, (height / 2) + 30, GFXFF);
+  spr.fillRect(0, height - 50, 100, 50, TFT_NAVY);
+  spr.fillRect(tft.width() - 100, height - 50, 100, 50, TFT_NAVY);
+  spr.setTextDatum(BL_DATUM);
+  spr.drawString("YES", 10, height - 10, GFXFF);
+  spr.setTextDatum(BR_DATUM);
+  spr.drawString("NO", tft.width() - 10, height - 10, GFXFF);
+  spr.pushSprite(0, 0);
+
+  bool res = false;
+  for (uint16_t i = 0; i < 20 * 10; i++)
+  {
+    boardLoop();
+    if (isButtonPressed(pinButtonLeft))
+      return true;
+    if (isButtonPressed(pinButtonRight))
+      return false;
+    delay(100);
+  }
+
+  return res;
 }
 
 /**
@@ -1586,6 +1620,7 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
 {
 
   String prefix = "", suffix = "";
+  uint8_t perc = 0;
 
   switch (menuItemId)
   {
@@ -1719,7 +1754,10 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     suffix = (liveData->settings.remoteUploadAbrpIntervalSec == 0) ? "[off]" : tmpStr1;
     break;
   case MENU_SDCARD:
-    sprintf(tmpStr1, "[%d] %lluMB", SD.cardType(), SD.cardSize() / (1024 * 1024));
+    perc = 0;
+    if (SD.totalBytes() != 0)
+      perc = (uint8_t)(((float)SD.usedBytes() / (float)SD.totalBytes()) * 100.0);
+    sprintf(tmpStr1, "[%d] %lluMB %d%%", SD.cardType(), SD.cardSize() / (1024 * 1024), perc);
     suffix = tmpStr1;
     break;
   case MENU_SERIAL_CONSOLE:
@@ -1901,6 +1939,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "%s", liveData->settings.wifiPasswordb);
     suffix = tmpStr1;
     break;
+  case MENU_WIFI_NTP:
+    suffix = (liveData->settings.ntpEnabled == 1) ? "[on]" : "[off]";
+    break;
   case MENU_WIFI_ACTIVE:
     if (liveData->params.isWifiBackupLive == true)
     {
@@ -2052,6 +2093,7 @@ void Board320_240::menuItemClick()
   uint16_t tmpCurrMenuItem = 0;
   int16_t parentMenu = -1;
   uint16_t i;
+  String m1, m2;
 
   for (i = 0; i < liveData->menuItemsCount; ++i)
   {
@@ -2090,7 +2132,9 @@ void Board320_240::menuItemClick()
   bool showParentMenu = false;
   if (liveData->menuItemSelected > 0 && tmpMenuItem != NULL)
   {
+    syslog->print("Menu item: ");
     syslog->println(tmpMenuItem->id);
+    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
     // Device list
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
@@ -2326,6 +2370,13 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_WIFI_NTP:
+      liveData->settings.ntpEnabled = (liveData->settings.ntpEnabled == 1) ? 0 : 1;
+      if (liveData->settings.ntpEnabled)
+        ntpSync();
+      showMenu();
+      return;
+      break;
     case MENU_WIFI_SSID:
     case MENU_WIFI_PASSWORD:
     case MENU_WIFI_SSID2:
@@ -2353,6 +2404,72 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_SDCARD_SETTINGS_SAVE:
+      if (!confirmMessage("Confirm action", "Do you want to save?"))
+      {
+        showMenu();
+        return;
+      }
+      showMenu();
+      if (liveData->settings.sdcardEnabled && sdcardMount())
+      {
+        File file = SD.open("/settings_backup.bin", FILE_WRITE);
+        if (!file)
+        {
+          syslog->println("Failed to create file");
+          displayMessage("SDCARD", "Failed to create file");
+        }
+        if (file)
+        {
+          syslog->info(DEBUG_NONE, "Save settings to SD card");
+          uint8_t *buff = (uint8_t *)&liveData->settings;
+          file.write(buff, sizeof(liveData->settings));
+          file.close();
+          displayMessage("SDCARD", "Saved");
+          delay(2000);
+        }
+      }
+      else
+      {
+        displayMessage("SDCARD", "Not mounted");
+      }
+      showMenu();
+      return;
+      break;
+    case MENU_SDCARD_SETTINGS_RESTORE:
+      if (!confirmMessage("Confirm action", "Do you want to restore?"))
+      {
+        showMenu();
+        return;
+      }
+      showMenu();
+      if (liveData->settings.sdcardEnabled && sdcardMount())
+      {
+        File file = SD.open("/settings_backup.bin", FILE_READ);
+        if (!file)
+        {
+          syslog->println("Failed to open file for reading");
+          displayMessage("SDCARD", "Failed to open file for reading");
+        }
+        else
+        {
+          syslog->info(DEBUG_NONE, "Restore settings from SD card");
+          syslog->println(file.size());
+          size_t size = file.read((uint8_t *)&liveData->settings, file.size());
+          syslog->println(size);
+          file.close();
+          //
+          saveSettings();
+          ESP.restart();
+        }
+      }
+      else
+      {
+        displayMessage("SDCARD", "Not mounted or not exists");
+      }
+      showMenu();
+      return;
+      break;
     // Voltmeter INA 3221
     case MENU_VOLTMETER_ENABLED:
       liveData->settings.voltmeterEnabled = (liveData->settings.voltmeterEnabled == 1) ? 0 : 1;
@@ -2362,6 +2479,28 @@ void Board320_240::menuItemClick()
     case MENU_VOLTMETER_SLEEP:
       liveData->settings.voltmeterBasedSleep = (liveData->settings.voltmeterBasedSleep == 1) ? 0 : 1;
       showMenu();
+      return;
+      break;
+    case MENU_VOLTMETER_INFO:
+      if (liveData->settings.voltmeterEnabled == 1)
+      {
+        m1 = "";
+        m1.concat(ina3221.getBusVoltage_V(1));
+        m1.concat("/");
+        m1.concat(ina3221.getBusVoltage_V(2));
+        m1.concat("/");
+        m1.concat(ina3221.getBusVoltage_V(3));
+        m1.concat("V");
+        m2 = "";
+        m2.concat(ina3221.getCurrent_mA(1));
+        m2.concat("/");
+        m2.concat(ina3221.getCurrent_mA(2));
+        m2.concat("/");
+        m2.concat(ina3221.getCurrent_mA(3));
+        m2.concat("mA");
+        displayMessage(m1.c_str(), m2.c_str());
+      }
+
       return;
       break;
     case MENU_VOLTMETER_SLEEPVOL:
@@ -2420,9 +2559,17 @@ void Board320_240::menuItemClick()
       commInterface->scanDevices();
       return;
     // Reset settings
-    case FACTORY_RESET_CONFIRM:
-      resetSettings();
-      hideMenu();
+    case MENU_FACTORY_RESET:
+      if (confirmMessage("Confirm action", "Do you want to reset?"))
+      {
+        showMenu();
+        resetSettings();
+        hideMenu();
+      }
+      else
+      {
+        showMenu();
+      }
       return;
     // Save settings
     case MENU_SAVE_SETTINGS:
@@ -2430,7 +2577,12 @@ void Board320_240::menuItemClick()
       break;
     // Version
     case MENU_APP_VERSION:
-      otaUpdate();
+      if (confirmMessage("Confirm action", "Do you want to run OTA?"))
+      {
+        showMenu();
+        otaUpdate();
+      }
+      showMenu();
       /*  commInterface->executeCommand("ATSH770");
           delay(50);
           commInterface->executeCommand("3E");
@@ -2448,6 +2600,20 @@ void Board320_240::menuItemClick()
           commInterface->executeCommand("2FBC1103");
           delay(5000);*/
       return;
+      break;
+    // Memory usage
+    case MENU_MEMORY_USAGE:
+      m1 = "Heap ";
+      m1.concat(ESP.getHeapSize());
+      m1.concat("/");
+      m1.concat(heap_caps_get_free_size(MALLOC_CAP_8BIT));
+      m2 = "Psram ";
+      m2.concat(ESP.getPsramSize());
+      m2.concat("/");
+      m2.concat(ESP.getFreePsram());
+      displayMessage(m1.c_str(), m2.c_str());
+      return;
+      break;
     // Shutdown
     case MENU_SHUTDOWN:
       enterSleepMode(0);
@@ -2715,10 +2881,19 @@ void Board320_240::loadTestData()
 }
 
 /**
-  Board looop
+ * Board loop
+ *
+ */
+void Board320_240::boardLoop()
+{
+}
+
+/**
+  Main looop
 */
 void Board320_240::mainLoop()
 {
+  boardLoop();
 
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
@@ -3057,7 +3232,7 @@ bool Board320_240::sdcardMount()
 
   if (liveData->params.sdcardInit)
   {
-    syslog->print("SD card already mounted...");
+    syslog->println("SD card already mounted...");
     return true;
   }
 
@@ -3374,6 +3549,12 @@ bool Board320_240::sim800lSetup()
 
 void Board320_240::netLoop()
 {
+  // Sync NTP firsttime
+  if (liveData->settings.wifiEnabled == 1 && !liveData->params.ntpTimeSet && WiFi.status() == WL_CONNECTED && liveData->settings.ntpEnabled)
+  {
+    ntpSync();
+  }
+
   // Upload to API - SIM800L or WIFI is supported
   if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
   {

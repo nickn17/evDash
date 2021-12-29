@@ -100,8 +100,9 @@ void CarKiaEniro::activateCommandQueue()
   // 39 or 64 kWh model?
   liveData->params.batModuleTempCount = 4;
   liveData->params.batteryTotalAvailableKWh = 64;
+  liveData->params.cellCount = 98;
   // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
-  // Calculates based on nick.n17 dashboard data
+  // Calculation based on nick.n17 dashboard data
   if (liveData->settings.carType == CAR_KIA_ENIRO_2020_39 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
   {
     liveData->params.batteryTotalAvailableKWh = 39.2;
@@ -487,7 +488,8 @@ bool CarKiaEniro::commandAllowed()
   {
     if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104"))
     {
-      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
+      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS 
+          && liveData->settings.sdcardEnabled != 1)
         return false;
     }
   }

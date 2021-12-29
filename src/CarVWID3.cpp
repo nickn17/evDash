@@ -243,6 +243,8 @@ void CarVWID3::activateCommandQueue()
 
   liveData->params.batModuleTempCount = 18;       // Maximum temperture points in battery, 18 for the VW ID.3 but maximum limit to show is 12 in evDash
   liveData->params.batteryTotalAvailableKWh = 58; // defines that Pro trim is the standard guess
+  liveData->params.cellCount = 108;
+
   if (liveData->settings.carType == CAR_VW_ID3_2021_45)
   {
     liveData->params.batteryTotalAvailableKWh = 45;

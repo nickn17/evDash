@@ -20,6 +20,7 @@ void LiveData::initParams()
   params.queueLoopCounter = 0;
   params.stopCommandQueue = false;
   // Network
+  params.ntpTimeSet = false;
   params.lastDataSent = 0;
   params.sim800l_enabled = false;
   params.sim800l_lastOkReceiveTime = 0;
