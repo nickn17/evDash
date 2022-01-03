@@ -67,9 +67,9 @@ void BoardM5stackCore::enterSleepMode(int secs)
   }
 }
 
-void BoardM5stackCore::boardLoop()
+void BoardM5stackCore::boardLoop(void * pvParameters))
 {
-  Board320_240::boardLoop();
+  Board320_240::boardLoop(pvParameters));
   M5.update();
 }
 

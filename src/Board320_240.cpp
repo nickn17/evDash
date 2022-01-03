@@ -15,12 +15,15 @@
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
 
+BoardInterface *boardObj2;
+
 /**
    Init board
 */
 void Board320_240::initBoard()
 {
   liveData->params.booting = true;
+  boardObj2 = this;
 
 // Set button pins for input
 #ifdef BOARD_TTGO_T4
@@ -192,6 +195,9 @@ void Board320_240::afterSetup()
     BoardInterface::afterSetup();
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
+
+  // Comm via thread (ble/can)
+  xTaskCreatePinnedToCore(xTaskCommLoop, "xTaskCommLoop", 4096, NULL, 0, NULL, 0);
 
   showTime();
 
@@ -691,7 +697,7 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   bool res = false;
   for (uint16_t i = 0; i < 20 * 10; i++)
   {
-    boardLoop();
+    //boardLoop();
     if (isButtonPressed(pinButtonLeft))
       return true;
     if (isButtonPressed(pinButtonRight))
@@ -2881,15 +2887,36 @@ void Board320_240::loadTestData()
 }
 
 /**
- * Board loop
- *
+ * void Board320_240::xTaskCommLoop(void * pvParameters) {
  */
-void Board320_240::boardLoop()
+void Board320_240::xTaskCommLoop(void *pvParameters)
 {
+  while (1)
+  {
+    boardObj2->commLoop();
+    delay(10);
+  }
 }
 
 /**
-  Main looop
+ * Board loop - secondary thread
+ */
+void Board320_240::commLoop()
+{
+    // Read data from BLE/CAN
+    //commInterface->mainLoop();
+}
+
+/**
+ * Board loop - secondary thread
+ */
+void Board320_240::boardLoop()
+{
+  // touch events, m5.update
+}
+
+/**
+  Main loop - primary thread
 */
 void Board320_240::mainLoop()
 {
@@ -2989,7 +3016,8 @@ void Board320_240::mainLoop()
     hideMenu();
   }
 
-  // GPS process
+  //boardLoop();
+  //  GPS process
   if (gpsHwUart != NULL)
   {
     unsigned long start = millis();
@@ -3119,6 +3147,12 @@ void Board320_240::mainLoop()
 
   // Read data from BLE/CAN
   commInterface->mainLoop();
+  
+  // force redraw (min 1 sec update)
+  if (liveData->params.currentTime - lastRedrawTime >= 1)
+  {
+    redrawScreen();
+  }
 
   // Reconnect CAN bus if no response for 5s
   if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 && commInterface->checkConnectAttempts())
@@ -3126,12 +3160,6 @@ void Board320_240::mainLoop()
     syslog->println("No response from CANbus for 5 seconds, reconnecting");
     commInterface->connectDevice();
     liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
-  }
-
-  // force redraw (min 1 sec update)
-  if (liveData->params.currentTime - lastRedrawTime >= 1)
-  {
-    redrawScreen();
   }
 
   // Calculating avg.speed and time in forward mode
