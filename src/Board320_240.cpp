@@ -197,7 +197,7 @@ void Board320_240::afterSetup()
   }
 
   // Comm via thread (ble/can)
-  xTaskCreatePinnedToCore(xTaskCommLoop, "xTaskCommLoop", 4096, NULL, 0, NULL, 0);
+  xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 4096, (void*) liveData, 0, NULL);
 
   showTime();
 
@@ -2889,11 +2889,14 @@ void Board320_240::loadTestData()
 /**
  * void Board320_240::xTaskCommLoop(void * pvParameters) {
  */
-void Board320_240::xTaskCommLoop(void *pvParameters)
+void Board320_240::xTaskCommLoop(void * pvParameters)
 {
+  LiveData * liveData = (LiveData *) pvParameters;
   while (1)
   {
     boardObj2->commLoop();
+    // usage example:
+    printf("xTaskCommLoop: %s\n", liveData->settings.wifiSsid);
     delay(10);
   }
 }
