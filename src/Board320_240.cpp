@@ -3090,6 +3090,18 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
+  if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
+  {
+    if (liveData->settings.voltmeterEnabled == 1)
+    {
+      syslog->print("Voltmeter");
+      syslog->print(ina3221.getBusVoltage_V(1));
+      syslog->print("V\t ");
+      syslog->print(ina3221.getCurrent_mA(1));
+      syslog->print("mA\t QUEUE:");
+      syslog->println((liveData->params.stopCommandQueue ? "stopped": "running"));
+    }
+  }
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
       liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 &&

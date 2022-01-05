@@ -153,8 +153,8 @@ void setup(void)
   syslog->println("debugLevel=n   [n = 0..3]  ... set debug level all, gps, comm, ...");
   syslog->println("wifiSsid=x     ... set primary AP ssid");
   syslog->println("wifiPassword=x     ... set primary AP password");
-  syslog->println("wifiSsid2=x     ... set alternate AP ssid");
-  syslog->println("wifiPassword2=x     ... set alternate AP password");
+  syslog->println("wifiSsid2=x     ... set backup AP ssid (replace primary wifi automatically in 1-2 minutes)");
+  syslog->println("wifiPassword2=x     ... set backup AP password");
   syslog->println("abrpApiToken=x     ... set abrp api token for live data");
   syslog->println("gprsApn=x     ... set gprs (sim800l) apn");
   syslog->println("remoteApiUrl=x     ... set remote api url");

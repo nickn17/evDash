@@ -361,9 +361,10 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
   if (key == "wifiPassword")
     value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
-  if (key == "wifiSsid2")
+  if (key == "wifiSsid2") {
     value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
-  liveData->settings.backupWifiEnabled = 1;
+    liveData->settings.backupWifiEnabled = 1;
+  }
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
   if (key == "gprsApn")
