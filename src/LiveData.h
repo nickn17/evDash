@@ -96,7 +96,7 @@ typedef struct
   time_t lastButtonPushedTime;
   int8_t lcdBrightnessCalc;
   bool spriteInit;
-  //voltagemeter INA3221
+  // voltagemeter INA3221
   time_t lastVoltageReadTime;
   time_t lastVoltageOkTime;
   // Car params
@@ -231,9 +231,9 @@ typedef struct
   char charTxUUID[40];
   char charRxUUID[40];
   uint8_t displayRotation; // 0 portrait, 1 landscape, 2.., 3..
-  char distanceUnit;    // k - kilometers
-  char temperatureUnit; // c - celsius
-  char pressureUnit;    // b - bar
+  char distanceUnit;       // k - kilometers
+  char temperatureUnit;    // c - celsius
+  char pressureUnit;       // b - bar
   // === settings version 3
   // =================================
   uint8_t defaultScreen;          // 1 .. 6
@@ -256,11 +256,11 @@ typedef struct
   uint8_t sdcardAutstartLog; // 0/1
   // GPRS SIM800L
   uint8_t gprsEnabled_deprecated; // Deprecated - Variable is free to use
-  char gprsApn[64];            // Will be used as mqtt server url in future builds
+  char gprsApn[64];               // Will be used as mqtt server url in future builds
   // Remote upload
   uint8_t remoteUploadEnabled_deprecated; // Deprecated - Variable is free to use
-  char remoteApiUrl[64];               // Will be used as mqtt password in future builds
-  char remoteApiKey[32];               // Will be used as mqtt username in future builds
+  char remoteApiUrl[64];                  // Will be used as mqtt password in future builds
+  char remoteApiKey[32];                  // Will be used as mqtt username in future builds
   //
   uint8_t headlightsReminder;
   // === settings version 5
@@ -269,7 +269,7 @@ typedef struct
   uint8_t gprsHwSerialPort; // 255-off, 0,1,2 - hw serial
   // === settings version 6
   // =================================
-  uint8_t serialConsolePort;        // 255-off, 0 - hw serial (std)
+  uint8_t serialConsolePort;     // 255-off, 0 - hw serial (std)
   uint8_t debugLevel;            // 0 - info only, 1 - debug communication (BLE/CAN), 2 - debug GSM, 3 - debug SDcard, 4 - GPS
   uint16_t sdcardLogIntervalSec; // every x seconds
   uint16_t gprsLogIntervalSec;   // every x seconds
@@ -291,16 +291,20 @@ typedef struct
   // == settings version 10
   // =================================
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
-  char abrpApiToken[48]; // ABRP APIkey
+  char abrpApiToken[48];                // ABRP APIkey
   // == settings version 11
   // =================================
-  int8_t timezone;                  // 0 - default, -11 .. +14 hrs
-  uint8_t daylightSaving;              // 0/1
-  uint8_t rightHandDrive;              // 0 - default is LHD, 1 RHD (UK)
+  int8_t timezone;        // 0 - default, -11 .. +14 hrs
+  uint8_t daylightSaving; // 0/1
+  uint8_t rightHandDrive; // 0 - default is LHD, 1 RHD (UK)
   // == settings version 12
-  char wifiSsidb[32];                  //backup wifi SSID
-  char wifiPasswordb[32];              //backup wifi Pass
-  uint8_t backupWifiEnabled;           //enable Backup WIFI fallback 0/1
+  char wifiSsidb[32];        // backup wifi SSID
+  char wifiPasswordb[32];    // backup wifi Pass
+  uint8_t backupWifiEnabled; // enable Backup WIFI fallback 0/1
+  // == settings version 13
+  uint8_t threading;         // 0 - off, 1 - on
+  int8_t speedCorrection; // -5 to +5
+  //
 } SETTINGS_STRUC;
 
 // LiveData class
@@ -352,6 +356,9 @@ public:
   uint8_t expectedMinimalPacketLength = 0; // what length of packet should be accepted. Set to 0 to accept any length
   uint16_t rxTimeoutMs = 500;              // timeout for receiving of CAN response
   uint16_t delayBetweenCommandsMs = 0;     // delay between commands, set to 0 if no delay is needed
+
+  // Draw events
+  bool redrawScreenRequested = true;
 
   // Params
   PARAMS_STRUC params; // Realtime sensor values

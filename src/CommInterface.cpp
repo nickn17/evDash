@@ -97,7 +97,8 @@ bool CommInterface::doNextQueueCommand()
     {
       liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
       liveData->params.queueLoopCounter++;
-      board->redrawScreen();
+      liveData->redrawScreenRequested = true;
+      //board->redrawScreen();
 
       // log every queue loop (temp) TODO rewrite to secs interval
       liveData->params.sdcardCanNotify = true;

@@ -101,7 +101,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
-  //for (int i = 0; i < commandQueueCountHyundaiIoniq5; i++) {
+  // for (int i = 0; i < commandQueueCountHyundaiIoniq5; i++) {
   for (auto cmd : commandQueueHyundaiIoniq5)
   {
     liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
@@ -180,6 +180,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
       {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+        if (liveData->params.speedKmh > 10)
+          liveData->params.speedKmh += liveData->settings.speedCorrection;
       }
     }
   }
@@ -221,9 +223,9 @@ void CarHyundaiIoniq5::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22B002"))
     {
-      //tempFloat = liveData->params.odoKm;
+      // tempFloat = liveData->params.odoKm;
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
+      // if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
     }
   }
 
@@ -235,6 +237,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
       {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+        if (liveData->params.speedKmh > 10)
+          liveData->params.speedKmh += liveData->settings.speedCorrection;
         if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
           liveData->params.speedKmh = 0;
       }
@@ -266,7 +270,7 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
-      //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
+      // liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 1, false);
       liveData->params.batPowerAmp = -liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
@@ -288,9 +292,9 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
       liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true);
       liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
-      //liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      //liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
-      //liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      // liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
+      // liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -417,7 +421,7 @@ void CarHyundaiIoniq5::parseRowMerged()
       // log 220106 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
-      //syslog->println(liveData->params.debugData2);
+      // syslog->println(liveData->params.debugData2);
     }
   }
 }
@@ -433,7 +437,7 @@ bool CarHyundaiIoniq5::commandAllowed()
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
-  //SleepMode Queue Filter
+  // SleepMode Queue Filter
   if (liveData->params.sleepModeQueue)
   {
     if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
@@ -737,7 +741,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
       for (uint16_t b = 0; b < 255; b++)
-      //for (uint16_t c = 0; c < 255; c++)
+      // for (uint16_t c = 0; c < 255; c++)
       {
         String command = "2F";
         if (a < 16)
@@ -749,11 +753,12 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
         /*if (c < 16)
             command += "0";
           command += String(c, HEX);
-        */ command.toUpperCase();
+        */
+        command.toUpperCase();
         command += "00";
 
         // EXECUTE COMMAND
-        //syslog->print(".");
+        // syslog->print(".");
         commInterface->sendPID(liveData->hexToDec("0770", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
@@ -1005,8 +1010,8 @@ void CarHyundaiIoniq5::carCommand(const String &cmd)
  */
 void CarHyundaiIoniq5::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
-  //syslog->println("EXECUTING COMMAND");
-  //syslog->println(cmd);
+  // syslog->println("EXECUTING COMMAND");
+  // syslog->println(cmd);
   commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
   delay(10);
   for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)

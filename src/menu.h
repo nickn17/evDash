@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 115
+#define MENU_SIZE 117
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -41,7 +41,8 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_BLE4,             MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth4 (BLE4)"},
     {MENU_ADAPTER_CAN,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "CAN bus (MCP2515-1/SO)"},
     {MENU_ADAPTER_BT3,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth3 serial"},
-    {MENU_ADAPTER_LOAD_TEST_DATA,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Load demo data"},
+    {MENU_ADAPTER_THREADING,        MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Threading"},
+    {MENU_ADAPTER_LOAD_TEST_DATA,   MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Load demo data"},
 
     {MENU_OTHER_TOP,                MENU_OTHERS,        MENU_TOP_LEVEL,   "<- parent menu"},
     {MENU_WIFI,                     MENU_OTHERS,        MENU_NO_MENU,     "WiFi network"},
@@ -60,6 +61,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_CURRENT_TIME,             MENU_OTHERS,        MENU_NO_MENU,     "Time:"},
     {MENU_TIMEZONE,                 MENU_OTHERS,        MENU_NO_MENU,     "Timezone"},
     {MENU_DAYLIGHT_SAVING,          MENU_OTHERS,        MENU_NO_MENU,     "Daylight saving"},
+    {MENU_SPEED_CORRECTION,         MENU_OTHERS,        MENU_NO_MENU,     "Speed correction:"},
     {MENU_RHD,                      MENU_OTHERS,        MENU_NO_MENU,     "RHD (Right hand drive)"},
 
     {MENU_UNIT_TOP,                 MENU_UNITS,         MENU_TOP_LEVEL,   "<- parent menu"},

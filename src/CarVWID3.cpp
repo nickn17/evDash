@@ -327,6 +327,8 @@ void CarVWID3::parseRowMerged()
     {
       // Put code here to parse the data
       liveData->params.speedKmh = liveData->hexToDecFromResponse(6, 8, 1, false); // speed from car in km/h (not GPS)
+      if (liveData->params.speedKmh > 10)
+        liveData->params.speedKmh += liveData->settings.speedCorrection;
     }
 
     if (liveData->commandRequest.equals("227448")) // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
