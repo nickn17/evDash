@@ -4,6 +4,8 @@
 - SD card usage in %
 - new confirm message dialog
 - Memory usage menu item
+- Adapter type / Threading off/on [experimental]
+- SpeedKmh correction (-5 to +5kmh)
 
 ### v2.6.0 2021-12-27
 - FIX added PSRAM option for M5 Core2 and TTGO T4 (BLE4+SD+Wifi is now working)

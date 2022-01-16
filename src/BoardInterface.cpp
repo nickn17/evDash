@@ -112,7 +112,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 12;
+  liveData->settings.settingsVersion = 13;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -171,6 +171,15 @@ void BoardInterface::loadSettings()
   liveData->settings.timezone = 0;
   liveData->settings.daylightSaving = 0;
   liveData->settings.rightHandDrive = 0;
+  // v12
+  tmpStr = "empty";
+  tmpStr.toCharArray(liveData->settings.wifiSsidb, tmpStr.length() + 1);
+  tmpStr = "not_set";
+  tmpStr.toCharArray(liveData->settings.wifiPasswordb, tmpStr.length() + 1);
+  liveData->settings.backupWifiEnabled = 0;
+  // v13
+  liveData->settings.threading = 0;
+  liveData->settings.speedCorrection = 0;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -283,6 +292,12 @@ void BoardInterface::loadSettings()
         tmpStr.toCharArray(liveData->tmpSettings.wifiPasswordb, tmpStr.length() + 1);
         liveData->tmpSettings.backupWifiEnabled = 0;
       }
+      if (liveData->tmpSettings.settingsVersion == 12)
+      {
+        liveData->tmpSettings.settingsVersion = 13;
+        liveData->tmpSettings.threading = 0;
+        liveData->tmpSettings.speedCorrection = 0;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -362,8 +377,10 @@ void BoardInterface::customConsoleCommand(String cmd)
   if (key == "wifiPassword")
     value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
   if (key == "wifiSsid2")
+  {
     value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
-  liveData->settings.backupWifiEnabled = 1;
+    liveData->settings.backupWifiEnabled = 1;
+  }
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
   if (key == "gprsApn")
@@ -512,42 +529,40 @@ void BoardInterface::showTime()
  */
 void BoardInterface::setTime(String timestamp)
 {
-    struct timeval tv;
-    struct tm tm_tmp;
-    tm_tmp.tm_year = timestamp.substring(0, 4).toInt() - 1900;
-    tm_tmp.tm_mon = timestamp.substring(5, 7).toInt() - 1;
-    tm_tmp.tm_mday = timestamp.substring(8, 10).toInt();
-    tm_tmp.tm_hour = timestamp.substring(11, 13).toInt();
-    tm_tmp.tm_min = timestamp.substring(14, 16).toInt();
-    tm_tmp.tm_sec = timestamp.substring(17, 19).toInt();
+  struct timeval tv;
+  struct tm tm_tmp;
+  tm_tmp.tm_year = timestamp.substring(0, 4).toInt() - 1900;
+  tm_tmp.tm_mon = timestamp.substring(5, 7).toInt() - 1;
+  tm_tmp.tm_mday = timestamp.substring(8, 10).toInt();
+  tm_tmp.tm_hour = timestamp.substring(11, 13).toInt();
+  tm_tmp.tm_min = timestamp.substring(14, 16).toInt();
+  tm_tmp.tm_sec = timestamp.substring(17, 19).toInt();
 
-/*#ifdef BOARD_M5STACK_CORE2
-    RTC_TimeTypeDef RTCtime;
-    RTC_DateTypeDef RTCdate;
+  /*#ifdef BOARD_M5STACK_CORE2
+      RTC_TimeTypeDef RTCtime;
+      RTC_DateTypeDef RTCdate;
 
-    RTCdate.Year = timestamp.substring(0, 4).toInt();
-    RTCdate.Month = timestamp.substring(5, 7).toInt();
-    RTCdate.Date = timestamp.substring(8, 10).toInt();
-    ;
-    RTCtime.Hours = timestamp.substring(11, 13).toInt();
-    RTCtime.Minutes = timestamp.substring(14, 16).toInt();
-    RTCtime.Seconds = timestamp.substring(17, 19).toInt();
+      RTCdate.Year = timestamp.substring(0, 4).toInt();
+      RTCdate.Month = timestamp.substring(5, 7).toInt();
+      RTCdate.Date = timestamp.substring(8, 10).toInt();
+      ;
+      RTCtime.Hours = timestamp.substring(11, 13).toInt();
+      RTCtime.Minutes = timestamp.substring(14, 16).toInt();
+      RTCtime.Seconds = timestamp.substring(17, 19).toInt();
 
-    M5.Rtc.SetTime(&RTCtime);
-    M5.Rtc.SetDate(&RTCdate);
-#endif**/
+      M5.Rtc.SetTime(&RTCtime);
+      M5.Rtc.SetDate(&RTCdate);
+  #endif**/
 
-    time_t t = mktime(&tm_tmp);
-    tv.tv_sec = t;
+  time_t t = mktime(&tm_tmp);
+  tv.tv_sec = t;
 
-    settimeofday(&tv, NULL);
-    struct tm tm;
-    getLocalTime(&tm);
-    liveData->params.currentTime = mktime(&tm);
-    liveData->params.chargingStartTime = liveData->params.currentTime;
+  settimeofday(&tv, NULL);
+  struct tm tm;
+  getLocalTime(&tm);
+  liveData->params.currentTime = mktime(&tm);
+  liveData->params.chargingStartTime = liveData->params.currentTime;
 
-    syslog->println("New time set. Only M5 Core2 is supported.");
-    showTime();
+  syslog->println("New time set. Only M5 Core2 is supported.");
+  showTime();
 }
-
-

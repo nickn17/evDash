@@ -193,6 +193,13 @@ void Board320_240::afterSetup()
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
+  // Threading
+  // Comm via thread (ble/can)
+  if (liveData->settings.threading)
+  {
+    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 4096, (void *)this, 0, NULL);
+  }
+
   showTime();
 
   liveData->params.wakeUpTime = liveData->params.currentTime;
@@ -1693,6 +1700,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_ADAPTER_BT3:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2BT3) ? ">" : "";
     break;
+  case MENU_ADAPTER_THREADING:
+    suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
+    break;
   case MENU_ADAPTER_LOAD_TEST_DATA:
     loadTestData();
     break;
@@ -1868,6 +1878,10 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case MENU_DAYLIGHT_SAVING:
     suffix = (liveData->settings.daylightSaving == 1) ? "[on]" : "[off]";
+    break;
+  case MENU_SPEED_CORRECTION:
+    sprintf(tmpStr1, "[%d]", liveData->settings.speedCorrection);
+    suffix = tmpStr1;
     break;
   case MENU_RHD:
     suffix = (liveData->settings.rightHandDrive == 1) ? "[on]" : "[off]";
@@ -2239,6 +2253,11 @@ void Board320_240::menuItemClick()
       saveSettings();
       ESP.restart();
       break;
+    case MENU_ADAPTER_THREADING:
+      liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
     // Screen orientation
     case MENU_SCREEN_ROTATION:
       liveData->settings.displayRotation = (liveData->settings.displayRotation == 1) ? 3 : 1;
@@ -2356,6 +2375,11 @@ void Board320_240::menuItemClick()
       break;
     case MENU_DAYLIGHT_SAVING:
       liveData->settings.daylightSaving = (liveData->settings.daylightSaving == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_SPEED_CORRECTION:
+      liveData->settings.speedCorrection = (liveData->settings.speedCorrection == 5) ? -5 : liveData->settings.speedCorrection + 1;
       showMenu();
       return;
       break;
@@ -2666,11 +2690,17 @@ void Board320_240::menuItemClick()
 void Board320_240::redrawScreen()
 {
   lastRedrawTime = liveData->params.currentTime;
+  liveData->redrawScreenRequested = false;
 
   if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
   {
     return;
   }
+  if (redrawScreenIsRunning)
+  {
+    return;
+  }
+  redrawScreenIsRunning = true;
 
   // Headlights reminders
   if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode &&
@@ -2682,6 +2712,7 @@ void Board320_240::redrawScreen()
     spr.setTextDatum(MC_DATUM);
     spr.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
     spr.pushSprite(0, 0);
+    redrawScreenIsRunning = false;
     return;
   }
 
@@ -2747,7 +2778,10 @@ void Board320_240::redrawScreen()
 
   // Skip following lines for HUD display mode
   if (liveData->params.displayScreen == SCREEN_HUD)
+  {
+    redrawScreenIsRunning = false;
     return;
+  }
 
   // GPS state
   if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED))
@@ -2865,6 +2899,7 @@ void Board320_240::redrawScreen()
   }
 
   spr.pushSprite(0, 0);
+  redrawScreenIsRunning = false;
 }
 
 /**
@@ -2881,16 +2916,40 @@ void Board320_240::loadTestData()
 }
 
 /**
+ * void Board320_240::xTaskCommLoop(void * pvParameters) {
+ */
+void Board320_240::xTaskCommLoop(void *pvParameters)
+{
+  // LiveData * liveData = (LiveData *) pvParameters;
+  BoardInterface *boardObj = (BoardInterface *)pvParameters;
+  while (1)
+  {
+    boardObj->commLoop();
+    delay(10);
+  }
+}
+
+/**
+ * Board loop - secondary thread
+ */
+void Board320_240::commLoop()
+{
+  // Read data from BLE/CAN
+  commInterface->mainLoop();
+}
+
+/**
  * Board loop
  *
  */
 void Board320_240::boardLoop()
 {
+  // touch events, m5.update
 }
 
 /**
-  Main looop
-*/
+  Main loop - primary thread
+  */
 void Board320_240::mainLoop()
 {
   boardLoop();
@@ -3090,6 +3149,18 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
+  if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
+  {
+    if (liveData->settings.voltmeterEnabled == 1)
+    {
+      syslog->print("Voltmeter");
+      syslog->print(ina3221.getBusVoltage_V(1));
+      syslog->print("V\t ");
+      syslog->print(ina3221.getCurrent_mA(1));
+      syslog->print("mA\t QUEUE:");
+      syslog->println((liveData->params.stopCommandQueue ? "stopped" : "running"));
+    }
+  }
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
       liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 &&
@@ -3118,7 +3189,10 @@ void Board320_240::mainLoop()
   }
 
   // Read data from BLE/CAN
-  commInterface->mainLoop();
+  if (!liveData->settings.threading)
+  {
+    commInterface->mainLoop();
+  }
 
   // Reconnect CAN bus if no response for 5s
   if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 && commInterface->checkConnectAttempts())
@@ -3129,7 +3203,7 @@ void Board320_240::mainLoop()
   }
 
   // force redraw (min 1 sec update)
-  if (liveData->params.currentTime - lastRedrawTime >= 1)
+  if (liveData->params.currentTime - lastRedrawTime >= 1 || liveData->redrawScreenRequested)
   {
     redrawScreen();
   }

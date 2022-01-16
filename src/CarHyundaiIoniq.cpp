@@ -74,7 +74,7 @@ void CarHyundaiIoniq::activateCommandQueue()
   // 28kWh version
   liveData->params.batteryTotalAvailableKWh = 28;
   liveData->params.batModuleTempCount = 12;
-liveData->params.cellCount = 98;
+  liveData->params.cellCount = 98;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -103,6 +103,8 @@ void CarHyundaiIoniq::parseRowMerged()
     if (liveData->commandRequest.equals("2101"))
     {
       liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+      if (liveData->params.speedKmh > 10)
+        liveData->params.speedKmh += liveData->settings.speedCorrection;
       if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
         liveData->params.speedKmh = 0;
     }
@@ -208,7 +210,7 @@ void CarHyundaiIoniq::parseRowMerged()
       {
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(62, 64, 1, false) / 10.0;
 
-        float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); //min 11.6V; max: 12.8V
+        float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); // min 11.6V; max: 12.8V
 
         if (tmpAuxPerc > 100)
         {
@@ -239,9 +241,9 @@ void CarHyundaiIoniq::parseRowMerged()
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(40, 42, 1, true);
       liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(42, 44, 1, true);
       liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(44, 46, 1, true);
-      //liveData->params.batTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
-      //liveData->params.batMaxC = liveData->hexToDecFromResponse(32, 34, 1, true);
-      //liveData->params.batMinC = liveData->hexToDecFromResponse(34, 36, 1, true);
+      // liveData->params.batTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
+      // liveData->params.batMaxC = liveData->hexToDecFromResponse(32, 34, 1, true);
+      // liveData->params.batMinC = liveData->hexToDecFromResponse(34, 36, 1, true);
 
       tempByte = liveData->hexToDecFromResponse(22, 24, 1, false); // bit 5 = AC; bit 6 = DC; bit 7 = charging on
       liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
@@ -371,7 +373,7 @@ bool CarHyundaiIoniq::commandAllowed()
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
-  //SleepMode Queue Filter
+  // SleepMode Queue Filter
   if (liveData->params.sleepModeQueue)
   {
     if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
@@ -424,7 +426,7 @@ bool CarHyundaiIoniq::commandAllowed()
     }
   }
 
-  //AirCon (once per 31 secs.)
+  // AirCon (once per 31 secs.)
   if (liveData->commandRequest.equals("ATSH7B3"))
   {
     return lastAllowAircon + 31 < liveData->params.currentTime;
@@ -448,7 +450,7 @@ bool CarHyundaiIoniq::commandAllowed()
     }
   }
 
-  //DriveMode (once per 13s)
+  // DriveMode (once per 13s)
   if (liveData->commandRequest.equals("ATSH7D1"))
   {
     return lastAllowDriveMode + 13 < liveData->params.currentTime;
@@ -546,7 +548,7 @@ void CarHyundaiIoniq::loadTestData()
   liveData->responseRowMerged = "62B002E000000000AA003B0B0000000000000000";
   parseRowMerged();
 
-  //ATSH770
+  // ATSH770
   liveData->currentAtshRequest = "ATSH770";
   liveData->commandRequest = "22BC03";
   liveData->responseRowMerged = "62BC03FDEE3C7300600000AAAA";

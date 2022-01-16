@@ -80,6 +80,8 @@ public:
   //
   void initBoard() override;
   void afterSetup() override;
+  static void xTaskCommLoop(void *pvParameters);
+  void commLoop() override;
   void boardLoop() override;
   void mainLoop() override;
   bool skipAdapterScan() override;
