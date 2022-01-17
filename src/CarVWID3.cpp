@@ -208,6 +208,7 @@ void CarVWID3::activateCommandQueue()
       // ECU XXXX
       //"ATSH00000767", // Sets header to 00 00 07 67
       "ATSH767", // Sets header to 00 00 07 67
+      "2222B3",  // GPS time
       "222430",  // GPS multiframe data lat, long, init, height, quality
       "222431",  // GPS number of tracked and visual satellites
 
@@ -998,9 +999,16 @@ void CarVWID3::parseRowMerged()
   // ATSH00000767
   if (liveData->currentAtshRequest.equals("ATSH767")) // For data after this header
   {
-    if (liveData->commandRequest.equals("222431")) // GPS number of tracked and vissible satellites
+    syslog->println(liveData->currentAtshRequest);
+    syslog->println(liveData->responseRowMerged);
+    if (liveData->commandRequest.equals("2222B3"))
     {
-      // Put code here to parse the data
+    }
+    if (liveData->commandRequest.equals("222430"))
+    {
+    }
+    if (liveData->commandRequest.equals("222431"))
+    {
     }
   }
 
