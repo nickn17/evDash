@@ -8,6 +8,7 @@
 #include "CommObd2Ble4.h"
 #include "CommObd2Can.h"
 #include "LiveData.h"
+#include "Solarlib.h"
 
 /**
    Set live data
@@ -565,4 +566,34 @@ void BoardInterface::setTime(String timestamp)
 
   syslog->println("New time set. Only M5 Core2 is supported.");
   showTime();
+}
+
+/**
+ * Automatic brightness by sunset/sunrise
+ */
+void BoardInterface::calcAutomaticBrightnessLatLon()
+{
+  if (liveData->settings.lcdBrightness == 0) // only for automatic mode
+  {
+    if (liveData->params.lcdBrightnessCalc == -1)
+    {
+      initSolarCalc(liveData->settings.timezone, liveData->params.gpsLat, liveData->params.gpsLon);
+    }
+    // angle from zenith
+    // <70 = 100% brightnesss
+    // >100 = 10%
+    double sunDeg = getSZA(liveData->params.currentTime);
+    syslog->infoNolf(DEBUG_GPS, "SUN from zenith, degrees: ");
+    syslog->info(DEBUG_GPS, sunDeg);
+    int32_t newBrightness = (105 - sunDeg) * 3.5;
+    newBrightness = (newBrightness < 5 ? 5 : (newBrightness > 100) ? 100
+                                                                   : newBrightness);
+    if (liveData->params.lcdBrightnessCalc != newBrightness)
+    {
+      liveData->params.lcdBrightnessCalc = newBrightness;
+      syslog->print("New automatic brightness: ");
+      syslog->println(newBrightness);
+      setBrightness();
+    }
+  }
 }

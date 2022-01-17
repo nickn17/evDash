@@ -208,6 +208,7 @@ void CarVWID3::activateCommandQueue()
       // ECU XXXX
       //"ATSH00000767", // Sets header to 00 00 07 67
       "ATSH767", // Sets header to 00 00 07 67
+      "2222B3",  // GPS time
       "222430",  // GPS multiframe data lat, long, init, height, quality
       "222431",  // GPS number of tracked and visual satellites
 
@@ -282,6 +283,9 @@ void CarVWID3::parseRowMerged()
   // uint8_t tempByte;
   //   float tempFloat;
   String tmpStr;
+
+  // Fix for MEB (missing opTime in car)
+  liveData->params.operationTimeSec = liveData->params.currentTime;
 
   // New parser for VW ID.3
 
@@ -996,11 +1000,62 @@ void CarVWID3::parseRowMerged()
   }
 
   // ATSH00000767
-  if (liveData->currentAtshRequest.equals("ATSH767")) // For data after this header
+  if (liveData->settings.gpsHwSerialPort == 255) // GPS from car and no external GPS attached
   {
-    if (liveData->commandRequest.equals("222431")) // GPS number of tracked and vissible satellites
+    if (liveData->currentAtshRequest.equals("ATSH767")) // For data after this header
     {
-      // Put code here to parse the data
+      if (liveData->commandRequest.equals("2222B3") && !liveData->params.currTimeSyncWithGps)
+      {
+        // 6222B30100585F1792AAAAAAAA
+        //           ^^^^^^^^
+        uint32_t dt = liveData->hexToDecFromResponse(10, 18, 4, false); // Time
+        struct tm tm;
+        tm.tm_year = ((dt & 0b1111100000000000000000000000000) >> 26) + 2000 - 1900; // 5 bits year (22)
+        tm.tm_mon = ((dt & 0b11110000000000000000000000) >> 22) - 1;                 // 4 bits month
+        tm.tm_mday = ((dt & 0b1111100000000000000000) >> 17);                        // 5 bits day
+        tm.tm_hour = ((dt & 0b11111000000000000) >> 12);                             // 5 bits hour
+        tm.tm_min = ((dt & 0b111111000000) >> 6);                                    // 6 bits minutes
+        tm.tm_sec = ((dt & 0b111111));                                               // 6 bits seconds
+        tm.tm_isdst = 0;
+        liveData->params.setGpsTimeFromCar = mktime(&tm);
+      }
+      if (liveData->commandRequest.equals("222430")) // LAT/LON/ALT
+      {
+        // 6224303138B0333627362E3022450000003438B031322733342E33224E000002A1AA
+        //       ^^^^
+        // Parse latitude
+        uint8_t b;
+        String tmp = "";
+        for (uint16_t i = 0; i < 14; i++)
+        {
+          b = liveData->hexToDecFromResponse(6 + (i * 2), 6 + (i * 2) + 2, 1, false);
+          if (b == 0)
+            break;
+          tmp += char((b > 100) ? 95 : b);
+        }
+        // 18_36'6.0"E
+        liveData->params.gpsLon = convertLatLonToDecimal(tmp);
+        // Parse logitude
+        tmp = "";
+        for (uint16_t i = 0; i < 14; i++)
+        {
+          b = liveData->hexToDecFromResponse(34 + (i * 2), 34 + (i * 2) + 2, 1, false);
+          if (b == 0)
+            break;
+          tmp += char((b > 100) ? 95 : b);
+        }
+        // 48_12'34.3"N
+        liveData->params.gpsLat = convertLatLonToDecimal(tmp);
+        // altitude
+        liveData->params.gpsAlt = liveData->hexToDecFromResponse(62, 66, 2, false) - 501;
+      }
+      if (liveData->commandRequest.equals("222431"))
+      {
+        // 622431041010
+        //           ^^
+        liveData->params.gpsSat = liveData->hexToDecFromResponse(10, 12, 1, false); // Satelites
+        liveData->params.gpsValid = (liveData->params.gpsSat >= 4);
+      }
     }
   }
 
@@ -1114,6 +1169,22 @@ bool CarVWID3::commandAllowed()
       }
   }
 
+  // GPS
+  if (liveData->currentAtshRequest.equals("ATSH767"))
+  {
+    if (liveData->settings.gpsHwSerialPort == 255)
+    {
+      // Sync time from GPS only once, then continue with RTC
+      if (liveData->commandRequest.equals("2222B3") && liveData->params.currTimeSyncWithGps)
+        return false;
+    }
+    else
+    {
+      // Skip all gps command when using external GPS
+      return false;
+    }
+  }
+
   // HUD speedup
   /*if (liveData->params.displayScreen == SCREEN_HUD)
   {
@@ -1159,6 +1230,17 @@ bool CarVWID3::commandAllowed()
 */
 void CarVWID3::loadTestData()
 {
+  // MEB GPS TEST DATA
+  liveData->currentAtshRequest = "ATSH767";
+  liveData->commandRequest = "222431";
+  liveData->responseRowMerged = "622431041010";
+  parseRowMerged();
+  liveData->commandRequest = "222430";
+  liveData->responseRowMerged = "6224303138B0333627362E3022450000003438B031322733342E33224E000002A1AA";
+  parseRowMerged();
+  liveData->commandRequest = "2222B3";
+  liveData->responseRowMerged = "6222B30100585F1792AAAAAAAA";
+  parseRowMerged();
 
   // IGPM
   liveData->currentAtshRequest = "ATSH770";
@@ -1682,4 +1764,15 @@ void CarVWID3::VWID3CarControl(const uint16_t pid, const String &cmd)
   delay(liveData->delayBetweenCommandsMs);
 
   syslog->setDebugLevel(liveData->settings.debugLevel);
+}
+
+/**
+ * Convert lat/lon to decimal
+ */
+float CarVWID3::convertLatLonToDecimal(String orig)
+{
+  return (orig.substring(0, orig.indexOf("_")).toFloat() +
+          (orig.substring(orig.indexOf("_") + 1, orig.indexOf("'")).toFloat() / 60) +
+          (orig.substring(orig.indexOf("'") + 1, orig.indexOf(".")).toFloat() / 3600)) *
+         ((orig.charAt(orig.length() - 1) == 'W' || orig.charAt(orig.length() - 1) == 'S') ? -1.0 : 1.0);
 }

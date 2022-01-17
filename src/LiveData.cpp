@@ -36,10 +36,12 @@ void LiveData::initParams()
   params.sdcardCanNotify = false;
   // Gps
   params.currTimeSyncWithGps = false;
+  params.gpsValid = false;
   params.gpsLat = -1;
   params.gpsLon = -1;
   params.gpsSat = 0;
   params.gpsAlt = -1;
+  params.setGpsTimeFromCar = 0;
   // Display
   params.displayScreen = SCREEN_AUTO;
   params.displayScreenAutoMode = SCREEN_AUTO;

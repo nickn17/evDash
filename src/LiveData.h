@@ -82,10 +82,12 @@ typedef struct
   time_t wifiBackupUptime;
   // GPS
   bool currTimeSyncWithGps;
+  bool gpsValid;
   float gpsLat;
   float gpsLon;
   uint8_t gpsSat; // satellites count
   int16_t gpsAlt;
+  time_t setGpsTimeFromCar;
   // SD card
   bool sdcardInit;
   bool sdcardRecording;
