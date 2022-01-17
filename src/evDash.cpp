@@ -1,6 +1,6 @@
 /*
   evDash (older name eNiroDashboard)
-  
+
   Serial console commands
    serviceUUID=xxx
    charTxUUID=xxx
@@ -135,7 +135,7 @@ void setup(void)
 
   // End
   syslog->println("Device setup completed");
-  syslog->println("");  
+  syslog->println("");
   syslog->println("▓█████ ██▒   █▓▓█████▄  ▄▄▄        ██████  ██░ ██ ");
   syslog->println("▓█   ▀▓██░   █▒▒██▀ ██▌▒████▄    ▒██    ▒ ▓██░ ██▒");
   syslog->println("▒███   ▓██  █▒░░██   █▌▒██  ▀█▄  ░ ▓██▄   ▒██▀▀██░");
@@ -146,7 +146,7 @@ void setup(void)
   syslog->println("   ░       ░░   ░ ░  ░   ░   ▒   ░  ░  ░   ░  ░░ ░");
   syslog->println("   ░  ░     ░     ░          ░  ░      ░   ░  ░  ░");
   syslog->println("           ░    ░                                 ");
-  syslog->println("");  
+  syslog->println("");
   syslog->println(".-[ HELP: Console commands ]-_.");
   syslog->println("reboot   ... reboot device");
   syslog->println("saveSettings   ... save current settings");

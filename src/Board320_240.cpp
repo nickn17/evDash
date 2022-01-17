@@ -3063,6 +3063,10 @@ void Board320_240::mainLoop()
     } while (millis() - start < 20);
     //
     syncGPS();
+  } else {
+    // MEB CAR GPS
+    if (liveData->params.gpsValid && liveData->params.gpsLat != -1 && liveData->params.gpsLon != -1)
+      calcAutomaticBrightnessLatLon();
   }
   if (liveData->params.setGpsTimeFromCar != 0)
   {

@@ -1019,11 +1019,11 @@ void CarVWID3::parseRowMerged()
         tm.tm_isdst = 0;
         liveData->params.setGpsTimeFromCar = mktime(&tm);
       }
-      if (liveData->commandRequest.equals("222430"))
+      if (liveData->commandRequest.equals("222430")) // LAT/LON/ALT
       {
         // 6224303138B0333627362E3022450000003438B031322733342E33224E000002A1AA
         //       ^^^^
-        // TODO: lon/lat parser
+        // Parse latitude
         uint8_t b;
         String tmp = "";
         for (uint16_t i = 0; i < 14; i++)
@@ -1031,21 +1031,23 @@ void CarVWID3::parseRowMerged()
           b = liveData->hexToDecFromResponse(6 + (i * 2), 6 + (i * 2) + 2, 1, false);
           if (b == 0)
             break;
-          tmp += char(b);
+          tmp += char((b > 100) ? 95 : b);
         }
-        syslog->println(tmp); // Print lon
-        // 18�36'6.0"E
+        // 18_36'6.0"E
+        liveData->params.gpsLon = convertLatLonToDecimal(tmp);
+        // Parse logitude
         tmp = "";
         for (uint16_t i = 0; i < 14; i++)
         {
           b = liveData->hexToDecFromResponse(34 + (i * 2), 34 + (i * 2) + 2, 1, false);
           if (b == 0)
             break;
-          tmp += char(b);
+          tmp += char((b > 100) ? 95 : b);
         }
-        syslog->println(tmp); // Print lat
-        // 48�12'34.3"N
-        // TODO: dont forget to call calcAutomaticBrightness
+        // 48_12'34.3"N
+        liveData->params.gpsLat = convertLatLonToDecimal(tmp);
+        // altitude
+        liveData->params.gpsAlt = liveData->hexToDecFromResponse(62, 66, 2, false) - 501;
       }
       if (liveData->commandRequest.equals("222431"))
       {
@@ -1762,4 +1764,15 @@ void CarVWID3::VWID3CarControl(const uint16_t pid, const String &cmd)
   delay(liveData->delayBetweenCommandsMs);
 
   syslog->setDebugLevel(liveData->settings.debugLevel);
+}
+
+/**
+ * Convert lat/lon to decimal
+ */
+float CarVWID3::convertLatLonToDecimal(String orig)
+{
+  return (orig.substring(0, orig.indexOf("_")).toFloat() +
+          (orig.substring(orig.indexOf("_") + 1, orig.indexOf("'")).toFloat() / 60) +
+          (orig.substring(orig.indexOf("'") + 1, orig.indexOf(".")).toFloat() / 3600)) *
+         ((orig.charAt(orig.length() - 1) == 'W' || orig.charAt(orig.length() - 1) == 'S') ? -1.0 : 1.0);
 }
