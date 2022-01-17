@@ -175,45 +175,14 @@ void LiveData::initParams()
 */
 double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
 {
-
-  double decValue = 0;
-
-  for (int i = 0; i < hexString.length(); i++)
-  {
-    if (hexString[i] >= 48 && hexString[i] <= 57)
-    {
-      decValue += (hexString[i] - 48) * pow(16, hexString.length() - i - 1);
-    }
-    else if (hexString[i] >= 65 && hexString[i] <= 70)
-    {
-      decValue += (hexString[i] - 55) * pow(16, hexString.length() - i - 1);
-    }
-    else if (hexString[i] >= 97 && hexString[i] <= 102)
-    {
-      decValue += (hexString[i] - 87) * pow(16, hexString.length() - i - 1);
-    }
+  long range;
+  double decValue = strtol(hexString.c_str(), NULL, 16);
+  if (signedNum) {
+    range = 1<<(bytes*8);
+    if (decValue > (range-1)/2) decValue -= range;
   }
-
-  // Unsigned - do nothing
-  if (!signedNum)
-  {
-    return decValue;
-  }
-
-  // Signed 1-4 bytes
-  switch (bytes)
-  {
-  case 1:
-    return (decValue > 127 ? (float)decValue - 256.0 : decValue);
-  case 2:
-    return (decValue > 32767 ? (float)decValue - 65536.0 : decValue);
-  case 3:
-    return (decValue > 8388607 ? (float)decValue - 16777216.0 : decValue);
-  case 4:
-    return (decValue > 3147483647 ? (float)decValue - 4294967296.0 : decValue);
-  default:
-    return -1;
-  }
+  if (bytes<1 || bytes>4) return -1;
+  else return decValue;
 }
 
 /**
