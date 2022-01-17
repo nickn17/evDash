@@ -127,7 +127,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
 
     {PRESURE_UNIT_TOP,              MENU_PRESSURE_UNIT,  MENU_UNITS,     "<- parent menu"},
     {PRESURE_UNIT_BAR,              MENU_PRESSURE_UNIT,  MENU_NO_MENU,   "Bar"},
-    {PRESURE_UNIT_BAR,              MENU_PRESSURE_UNIT,  MENU_NO_MENU,   "Psi"},
+    {PRESURE_UNIT_PSI,              MENU_PRESSURE_UNIT,  MENU_NO_MENU,   "Psi"},
 
     {LIST_OF_BLE_DEV_TOP,           LIST_OF_BLE_DEV,     MENU_TOP_LEVEL, "List of BLE devices"},
     {LIST_OF_BLE_1,                 LIST_OF_BLE_DEV,     MENU_TOP_LEVEL, "<- parent menu"},
