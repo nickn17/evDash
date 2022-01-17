@@ -1022,7 +1022,30 @@ void CarVWID3::parseRowMerged()
       if (liveData->commandRequest.equals("222430"))
       {
         // 6224303138B0333627362E3022450000003438B031322733342E33224E000002A1AA
-        // dont forget to call calcAutomaticBrightness
+        //       ^^^^
+        // TODO: lon/lat parser
+        uint8_t b;
+        String tmp = "";
+        for (uint16_t i = 0; i < 14; i++)
+        {
+          b = liveData->hexToDecFromResponse(6 + (i * 2), 6 + (i * 2) + 2, 1, false);
+          if (b == 0)
+            break;
+          tmp += char(b);
+        }
+        syslog->println(tmp); // Print lon
+        // 18�36'6.0"E
+        tmp = "";
+        for (uint16_t i = 0; i < 14; i++)
+        {
+          b = liveData->hexToDecFromResponse(34 + (i * 2), 34 + (i * 2) + 2, 1, false);
+          if (b == 0)
+            break;
+          tmp += char(b);
+        }
+        syslog->println(tmp); // Print lat
+        // 48�12'34.3"N
+        // TODO: dont forget to call calcAutomaticBrightness
       }
       if (liveData->commandRequest.equals("222431"))
       {
