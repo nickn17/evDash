@@ -284,6 +284,9 @@ void CarVWID3::parseRowMerged()
   //   float tempFloat;
   String tmpStr;
 
+  // Fix for MEB (missing opTime in car)
+  liveData->params.operationTimeSec = liveData->params.currentTime;
+
   // New parser for VW ID.3
 
   // ATSHFC00B9
@@ -997,18 +1000,37 @@ void CarVWID3::parseRowMerged()
   }
 
   // ATSH00000767
-  if (liveData->currentAtshRequest.equals("ATSH767")) // For data after this header
+  if (liveData->settings.gpsHwSerialPort == 255) // GPS from car and no external GPS attached
   {
-    syslog->println(liveData->currentAtshRequest);
-    syslog->println(liveData->responseRowMerged);
-    if (liveData->commandRequest.equals("2222B3"))
+    if (liveData->currentAtshRequest.equals("ATSH767")) // For data after this header
     {
-    }
-    if (liveData->commandRequest.equals("222430"))
-    {
-    }
-    if (liveData->commandRequest.equals("222431"))
-    {
+      if (liveData->commandRequest.equals("2222B3") && !liveData->params.currTimeSyncWithGps)
+      {
+        // 6222B30100585F1792AAAAAAAA
+        //           ^^^^^^^^
+        uint32_t dt = liveData->hexToDecFromResponse(10, 18, 4, false); // Time
+        struct tm tm;
+        tm.tm_year = ((dt & 0b1111100000000000000000000000000) >> 26) + 2000 - 1900; // 5 bits year (22)
+        tm.tm_mon = ((dt & 0b11110000000000000000000000) >> 22) - 1;                 // 4 bits month
+        tm.tm_mday = ((dt & 0b1111100000000000000000) >> 17);                        // 5 bits day
+        tm.tm_hour = ((dt & 0b11111000000000000) >> 12);                             // 5 bits hour
+        tm.tm_min = ((dt & 0b111111000000) >> 6);                                    // 6 bits minutes
+        tm.tm_sec = ((dt & 0b111111));                                               // 6 bits seconds
+        tm.tm_isdst = 0;
+        liveData->params.setGpsTimeFromCar = mktime(&tm);
+      }
+      if (liveData->commandRequest.equals("222430"))
+      {
+        // 6224303138B0333627362E3022450000003438B031322733342E33224E000002A1AA
+        // dont forget to call calcAutomaticBrightness
+      }
+      if (liveData->commandRequest.equals("222431"))
+      {
+        // 622431041010
+        //           ^^
+        liveData->params.gpsSat = liveData->hexToDecFromResponse(10, 12, 1, false); // Satelites
+        liveData->params.gpsValid = (liveData->params.gpsSat >= 4);
+      }
     }
   }
 
@@ -1122,6 +1144,22 @@ bool CarVWID3::commandAllowed()
       }
   }
 
+  // GPS
+  if (liveData->currentAtshRequest.equals("ATSH767"))
+  {
+    if (liveData->settings.gpsHwSerialPort == 255)
+    {
+      // Sync time from GPS only once, then continue with RTC
+      if (liveData->commandRequest.equals("2222B3") && liveData->params.currTimeSyncWithGps)
+        return false;
+    }
+    else
+    {
+      // Skip all gps command when using external GPS
+      return false;
+    }
+  }
+
   // HUD speedup
   /*if (liveData->params.displayScreen == SCREEN_HUD)
   {
@@ -1167,6 +1205,17 @@ bool CarVWID3::commandAllowed()
 */
 void CarVWID3::loadTestData()
 {
+  // MEB GPS TEST DATA
+  liveData->currentAtshRequest = "ATSH767";
+  liveData->commandRequest = "222431";
+  liveData->responseRowMerged = "622431041010";
+  parseRowMerged();
+  liveData->commandRequest = "222430";
+  liveData->responseRowMerged = "6224303138B0333627362E3022450000003438B031322733342E33224E000002A1AA";
+  parseRowMerged();
+  liveData->commandRequest = "2222B3";
+  liveData->responseRowMerged = "6222B30100585F1792AAAAAAAA";
+  parseRowMerged();
 
   // IGPM
   liveData->currentAtshRequest = "ATSH770";

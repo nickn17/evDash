@@ -95,6 +95,7 @@ public:
   void initGPS();
   void syncGPS();
   void syncTimes(time_t newTime);
+  void setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t seconds);
   // Notwork
   bool sim800lSetup();
   bool wifiSetup();

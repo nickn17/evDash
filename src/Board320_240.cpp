@@ -10,7 +10,6 @@
 #include "Board320_240.h"
 #include <Time.h>
 #include <ArduinoJson.h>
-#include "Solarlib.h"
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
@@ -2784,12 +2783,12 @@ void Board320_240::redrawScreen()
   }
 
   // GPS state
-  if (gpsHwUart != NULL && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED))
+  if ((gpsHwUart != NULL || liveData->params.gpsSat > 0) && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED))
   {
-    spr.fillCircle(160, 10, 8, (gps.location.isValid()) ? TFT_GREEN : TFT_RED);
+    spr.fillCircle(160, 10, 8, (liveData->params.gpsValid) ? TFT_GREEN : TFT_RED);
     spr.fillCircle(160, 10, 6, TFT_BLACK);
     spr.setTextSize(1);
-    spr.setTextColor((gps.location.isValid()) ? TFT_GREEN : TFT_WHITE);
+    spr.setTextColor((liveData->params.gpsValid) ? TFT_GREEN : TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "%d", liveData->params.gpsSat);
     spr.drawString(tmpStr1, 174, 2, 2);
@@ -3065,6 +3064,13 @@ void Board320_240::mainLoop()
     //
     syncGPS();
   }
+  if (liveData->params.setGpsTimeFromCar != 0)
+  {
+    struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);   
+    tmm->tm_isdst = 0;
+    setGpsTime(tmm->tm_year + 1900, tmm->tm_mon + 1, tmm->tm_mday, tmm->tm_hour, tmm->tm_min, tmm->tm_sec);
+    liveData->params.setGpsTimeFromCar = 0;
+  }
 
   // currentTime
   struct tm now;
@@ -3247,9 +3253,47 @@ void Board320_240::mainLoop()
 }
 
 /**
+ * Set GPS time
+ */
+void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t seconds)
+{
+  liveData->params.currTimeSyncWithGps = true;
+
+  struct tm tm;
+  tm.tm_year = year - 1900;
+  tm.tm_mon = month - 1;
+  tm.tm_mday = day;
+  tm.tm_hour = hour;
+  tm.tm_min = minute;
+  tm.tm_sec = seconds;
+  time_t t = mktime(&tm);
+  printf("%02d%02d%02d%02d%02d%02d\n", year - 2000, month, day, hour, minute, seconds);
+  struct timeval now = {.tv_sec = t};
+  /*struct timezone tz;
+  tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
+  tz.tz_dsttime = 0;*/
+  settimeofday(&now, NULL);
+  syncTimes(t);
+
+#ifdef BOARD_M5STACK_CORE2
+  RTC_TimeTypeDef RTCtime;
+  RTC_DateTypeDef RTCdate;
+
+  RTCdate.Year = year;
+  RTCdate.Month = month;
+  RTCdate.Date = day;
+  RTCtime.Hours = hour;
+  RTCtime.Minutes = minute;
+  RTCtime.Seconds = seconds;
+
+  M5.Rtc.SetTime(&RTCtime);
+  M5.Rtc.SetDate(&RTCdate);
+#endif
+}
+
+/**
   sync all times
 */
-
 void Board320_240::syncTimes(time_t newTime)
 {
   if (liveData->params.chargingStartTime != 0)
@@ -3401,38 +3445,14 @@ void Board320_240::sdcardToggleRecording()
 */
 void Board320_240::syncGPS()
 {
-
-  if (gps.location.isValid())
+  liveData->params.gpsValid = gps.location.isValid();
+  if (liveData->params.gpsValid)
   {
     liveData->params.gpsLat = gps.location.lat();
     liveData->params.gpsLon = gps.location.lng();
     if (gps.altitude.isValid())
       liveData->params.gpsAlt = gps.altitude.meters();
-
-    // Automatic brightness by sunset/sunrise
-    if (liveData->settings.lcdBrightness == 0) // only for automatic mode
-    {
-      if (liveData->params.lcdBrightnessCalc == -1)
-      {
-        initSolarCalc(liveData->settings.timezone, liveData->params.gpsLat, liveData->params.gpsLon);
-      }
-      // angle from zenith
-      // <70 = 100% brightnesss
-      // >100 = 10%
-      double sunDeg = getSZA(liveData->params.currentTime);
-      syslog->infoNolf(DEBUG_GPS, "SUN from zenith, degrees: ");
-      syslog->info(DEBUG_GPS, sunDeg);
-      int32_t newBrightness = (105 - sunDeg) * 3.5;
-      newBrightness = (newBrightness < 5 ? 5 : (newBrightness > 100) ? 100
-                                                                     : newBrightness);
-      if (liveData->params.lcdBrightnessCalc != newBrightness)
-      {
-        liveData->params.lcdBrightnessCalc = newBrightness;
-        syslog->print("New automatic brightness: ");
-        syslog->println(newBrightness);
-        setBrightness();
-      }
-    }
+    calcAutomaticBrightnessLatLon();
   }
   if (gps.speed.isValid())
   {
@@ -3445,44 +3465,10 @@ void Board320_240::syncGPS()
   if (gps.satellites.isValid())
   {
     liveData->params.gpsSat = gps.satellites.value();
-    // syslog->print("GPS satellites: ");
-    // syslog->println(liveData->params.gpsSat);
   }
   if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
   {
-    liveData->params.currTimeSyncWithGps = true;
-
-    struct tm tm;
-    tm.tm_year = gps.date.year() - 1900;
-    tm.tm_mon = gps.date.month() - 1;
-    tm.tm_mday = gps.date.day();
-    tm.tm_hour = gps.time.hour();
-    tm.tm_min = gps.time.minute();
-    tm.tm_sec = gps.time.second();
-    time_t t = mktime(&tm);
-    printf("%02d%02d%02d%02d%02d%02d\n", gps.date.year() - 2000, gps.date.month() - 1, gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
-    struct timeval now = {.tv_sec = t};
-    /*struct timezone tz;
-    tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
-    tz.tz_dsttime = 0;*/
-    settimeofday(&now, NULL);
-
-    syncTimes(t);
-
-#ifdef BOARD_M5STACK_CORE2
-    RTC_TimeTypeDef RTCtime;
-    RTC_DateTypeDef RTCdate;
-
-    RTCdate.Year = gps.date.year();
-    RTCdate.Month = gps.date.month();
-    RTCdate.Date = gps.date.day();
-    RTCtime.Hours = gps.time.hour();
-    RTCtime.Minutes = gps.time.minute();
-    RTCtime.Seconds = gps.time.second();
-
-    M5.Rtc.SetTime(&RTCtime);
-    M5.Rtc.SetDate(&RTCdate);
-#endif
+    setGpsTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
   }
 }
 
