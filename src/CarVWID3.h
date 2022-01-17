@@ -17,4 +17,6 @@ class CarVWID3 : public CarInterface {
     //
     std::vector<String> customMenu(int16_t menuId) override;
     void carCommand(const String& cmd) override;
+    //
+    float convertLatLonToDecimal(String orig);
 };

@@ -157,6 +157,13 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
+    
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      syslog->println("WIFI not connected to the network");
+      wifiFallback();
+    }
+
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
@@ -3063,6 +3070,10 @@ void Board320_240::mainLoop()
     } while (millis() - start < 20);
     //
     syncGPS();
+  } else {
+    // MEB CAR GPS
+    if (liveData->params.gpsValid && liveData->params.gpsLat != -1 && liveData->params.gpsLon != -1)
+      calcAutomaticBrightnessLatLon();
   }
   if (liveData->params.setGpsTimeFromCar != 0)
   {
