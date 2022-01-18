@@ -384,6 +384,7 @@ void Board320_240::otaUpdate()
 
   displayMessage("OTA installed.", "Reboot device.");
   delay(2000);
+  ESP.restart();
 }
 
 /**

@@ -1025,6 +1025,7 @@ void CarVWID3::parseRowMerged()
         //       ^^^^
         // Parse latitude
         uint8_t b;
+        float val;
         String tmp = "";
         for (uint16_t i = 0; i < 14; i++)
         {
@@ -1034,7 +1035,9 @@ void CarVWID3::parseRowMerged()
           tmp += char((b > 100) ? 95 : b);
         }
         // 18_36'6.0"E
-        liveData->params.gpsLon = convertLatLonToDecimal(tmp);
+        val = convertLatLonToDecimal(tmp);
+        if (val != 0)
+          liveData->params.gpsLon = val;
         // Parse logitude
         tmp = "";
         for (uint16_t i = 0; i < 14; i++)
@@ -1045,9 +1048,13 @@ void CarVWID3::parseRowMerged()
           tmp += char((b > 100) ? 95 : b);
         }
         // 48_12'34.3"N
-        liveData->params.gpsLat = convertLatLonToDecimal(tmp);
+        val = convertLatLonToDecimal(tmp);
+        if (val != 0)
+          liveData->params.gpsLat = val;
         // altitude
-        liveData->params.gpsAlt = liveData->hexToDecFromResponse(62, 66, 2, false) - 501;
+        int16_t alt = liveData->hexToDecFromResponse(62, 66, 2, false) - 501;
+        if (alt > -500)
+          liveData->params.gpsAlt = alt;
       }
       if (liveData->commandRequest.equals("222431"))
       {
@@ -1773,6 +1780,6 @@ float CarVWID3::convertLatLonToDecimal(String orig)
 {
   return (orig.substring(0, orig.indexOf("_")).toFloat() +
           (orig.substring(orig.indexOf("_") + 1, orig.indexOf("'")).toFloat() / 60) +
-          (orig.substring(orig.indexOf("'") + 1, orig.indexOf(".")).toFloat() / 3600)) *
+          (orig.substring(orig.indexOf("'") + 1, orig.indexOf("\"")).toFloat() / 3600)) *
          ((orig.charAt(orig.length() - 1) == 'W' || orig.charAt(orig.length() - 1) == 'S') ? -1.0 : 1.0);
 }
