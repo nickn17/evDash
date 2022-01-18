@@ -157,7 +157,7 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    
+
     if (WiFi.status() != WL_CONNECTED)
     {
       syslog->println("WIFI not connected to the network");
@@ -880,9 +880,8 @@ void Board320_240::drawSceneMain()
   // socPerc
   sprintf(tmpStr1, (liveData->params.socPerc == -1 ? "n/a" : "%01.00f%%"), liveData->params.socPerc);
   sprintf(tmpStr2, (liveData->params.sohPerc == -1) ? "SOC/SOH?" : (liveData->params.sohPerc == 100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), liveData->params.sohPerc);
-  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---" : tmpStr1), tmpStr2, 
-  (liveData->params.socPerc < 10 || (liveData->params.sohPerc != -1 && liveData->params.sohPerc < 100) ? 
-  TFT_RED : (liveData->params.socPerc > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
+  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---" : tmpStr1), tmpStr2,
+              (liveData->params.socPerc < 10 || (liveData->params.sohPerc != -1 && liveData->params.sohPerc < 100) ? TFT_RED : (liveData->params.socPerc > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
 
   // batPowerAmp
   sprintf(tmpStr1, (liveData->params.batPowerAmp == -1000) ? "n/a" : (abs(liveData->params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), liveData->params.batPowerAmp);
@@ -3073,14 +3072,16 @@ void Board320_240::mainLoop()
     } while (millis() - start < 20);
     //
     syncGPS();
-  } else {
+  }
+  else
+  {
     // MEB CAR GPS
     if (liveData->params.gpsValid && liveData->params.gpsLat != -1 && liveData->params.gpsLon != -1)
       calcAutomaticBrightnessLatLon();
   }
   if (liveData->params.setGpsTimeFromCar != 0)
   {
-    struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);   
+    struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);
     tmm->tm_isdst = 0;
     setGpsTime(tmm->tm_year + 1900, tmm->tm_mon + 1, tmm->tm_mday, tmm->tm_hour, tmm->tm_min, tmm->tm_sec);
     liveData->params.setGpsTimeFromCar = 0;
@@ -3781,7 +3782,8 @@ bool Board320_240::netSendData()
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
     // Send GPS data via GPRS (if enabled && valid)
-    if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1))
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
       jsonData["gpsLon"] = liveData->params.gpsLon;
@@ -3897,7 +3899,8 @@ bool Board320_240::netSendData()
     if (liveData->params.chargingOn)
       jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
 
-    if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1))
     {
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;
