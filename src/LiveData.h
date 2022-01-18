@@ -192,7 +192,7 @@ typedef struct
   float tireRearRightTempC;
   float tireRearRightPressureBar;
   uint16_t cellCount;
-  float cellVoltage[108]; // 1..108 has index 0..107
+  float cellVoltage[180]; // 1..180 has index 0..179
 
   // Screen - charging graph
   float chargingGraphMinKw[101];             // 0..100% .. Min power Kw

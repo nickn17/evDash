@@ -1219,18 +1219,18 @@ void Board320_240::drawSceneBatteryCells()
 
   // Find min and max val
   float minVal = -1, maxVal = -1;
-  for (int i = 0; i < 98; i++)
+  for (int i = 0; i < liveData->params.cellCount; i++)
   {
     if ((liveData->params.cellVoltage[i] < minVal || minVal == -1) && liveData->params.cellVoltage[i] != -1)
       minVal = liveData->params.cellVoltage[i];
     if ((liveData->params.cellVoltage[i] > maxVal || maxVal == -1) && liveData->params.cellVoltage[i] != -1)
       maxVal = liveData->params.cellVoltage[i];
-    if (liveData->params.cellVoltage[i] > 0 && i > liveData->params.cellCount + 1)
-      liveData->params.cellCount = i + 1;
+    /*if (liveData->params.cellVoltage[i] > 0 && i > liveData->params.cellCount + 1)
+      liveData->params.cellCount = i + 1;*/
   }
 
   // Draw cell matrix
-  for (int i = 0; i < 98; i++)
+  for (int i = 0; i < liveData->params.cellCount; i++)
   {
     if (liveData->params.cellVoltage[i] == -1)
       continue;
