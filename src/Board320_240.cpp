@@ -148,6 +148,7 @@ void Board320_240::afterSetup()
   liveData->params.displayScreen = liveData->settings.defaultScreen;
   if (isButtonPressed(pinButtonRight))
   {
+    syslog->printf("Right button pressed");
     loadTestData();
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
@@ -1711,10 +1712,6 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_ADAPTER_THREADING:
     suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
     break;
-  case MENU_ADAPTER_LOAD_TEST_DATA:
-    loadTestData();
-    break;
-
   /*case MENU_WIFI:
     suffix = "n/a";
     switch (WiFi.status())
@@ -2265,6 +2262,9 @@ void Board320_240::menuItemClick()
       liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
       showMenu();
       return;
+      break;
+    case MENU_ADAPTER_LOAD_TEST_DATA:
+      loadTestData();
       break;
     // Screen orientation
     case MENU_SCREEN_ROTATION:
