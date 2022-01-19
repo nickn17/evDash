@@ -175,14 +175,18 @@ void LiveData::initParams()
 */
 double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
 {
-  long range;
-  double decValue = strtol(hexString.c_str(), NULL, 16);
-  if (signedNum) {
-    range = 1<<(bytes*8);
-    if (decValue > (range-1)/2) decValue -= range;
+  uint64_t range;
+  double decValue = strtoll(hexString.c_str(), NULL, 16);
+  if (signedNum)
+  {
+    range = pow(256, bytes);
+    if (decValue > (range - 1) / 2)
+      decValue -= range;
   }
-  if (bytes<1 || bytes>4) return -1;
-  else return decValue;
+  if (bytes < 1 || bytes > 4)
+    return -1;
+  else
+    return decValue;
 }
 
 /**
@@ -190,7 +194,8 @@ double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
   Hex to dec (1-2 byte values, signed/unsigned)
   For 4 byte change int to long and add part for signed numbers
 */
-double LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum) {
+double LiveData::hexToDecFromResponse(uint8_t from, uint8_t to, uint8_t bytes, bool signedNum)
+{
   return hexToDec(responseRowMerged.substring(from, to).c_str(), bytes, signedNum);
 }
 
