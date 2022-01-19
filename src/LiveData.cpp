@@ -176,17 +176,16 @@ void LiveData::initParams()
 double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
 {
   uint64_t range;
-  double decValue = strtoll(hexString.c_str(), NULL, 16);
-  if (signedNum)
-  {
-    range = pow(256, bytes);
+  if (bytes < 1 || bytes > 4)
+    return -1;
+
+  double decValue = strtoul(hexString.c_str(), NULL, 16);
+  if (signedNum) {
+    range = ((uint64_t) 1) << (bytes*8);
     if (decValue > (range - 1) / 2)
       decValue -= range;
   }
-  if (bytes < 1 || bytes > 4)
-    return -1;
-  else
-    return decValue;
+  return decValue;
 }
 
 /**
