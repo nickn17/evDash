@@ -225,8 +225,8 @@ void CarVWID3::activateCommandQueue()
       // ECU XXXX
       "ATSH710", // Sets header to 00 00 07 10
       "222AB2",  // HV battery max energy content Wh
-      "222AF7",  // 12V multiframe
       "222AB8",  // HV battery energy content
+      "222AF7",  // 12V multiframe
 
   };
 
@@ -1100,18 +1100,18 @@ void CarVWID3::parseRowMerged()
       syslog->println(liveData->responseRowMerged);
     }
 
+    if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
+    {
+      syslog->println(liveData->commandRequest);
+      syslog->println(liveData->responseRowMerged);
+    }
+
     if (liveData->commandRequest.equals("222AF7")) // // 12V multiframe
     {
       if (liveData->settings.voltmeterEnabled == 0)
       {
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 1024 + 4.26; // 12V multiframe
       }
-    }
-
-    if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
-    {
-      syslog->println(liveData->commandRequest);
-      syslog->println(liveData->responseRowMerged);
     }
   }
 }
