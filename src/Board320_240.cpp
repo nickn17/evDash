@@ -1678,6 +1678,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_HYUNDAI_IONIQ5_72:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72) ? ">" : "";
     break;
+  case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77) ? ">" : "";
+    break;
   case VEHICLE_TYPE_VW_ID3_2021_45:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
     break;
@@ -2204,6 +2207,11 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_HYUNDAI_IONIQ5_72:
       liveData->settings.carType = CAR_HYUNDAI_IONIQ5_72;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_77;
       showMenu();
       return;
       break;
@@ -3876,6 +3884,9 @@ bool Board320_240::netSendData()
       break;
     case CAR_HYUNDAI_IONIQ5_72:
       jsonData["car_model"] = "hyundai:ioniq5:21:72:lr";
+      break;
+    case CAR_HYUNDAI_IONIQ5_77:
+      jsonData["car_model"] = "hyundai:ioniq5:21:77:lr";
       break;
     default:
       syslog->println("Car not supported by ABRP Uploader");

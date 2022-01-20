@@ -98,6 +98,8 @@ void CarHyundaiIoniq5::activateCommandQueue()
     liveData->params.batteryTotalAvailableKWh = 58;
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72)
     liveData->params.batteryTotalAvailableKWh = 72.6;
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77)
+    liveData->params.batteryTotalAvailableKWh = 77.4;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -364,7 +366,7 @@ void CarHyundaiIoniq5::parseRowMerged()
     // BMS 7e4
     if (liveData->commandRequest.equals("22010C"))
     {
-      for (int i = 0; i < 20; i++)
+      for (int i = 0; i < 32; i++)
       {
         liveData->params.cellVoltage[160 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
       }
