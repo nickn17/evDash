@@ -8,7 +8,7 @@
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
-#include <Time.h>
+#include <time.h>
 #include <ArduinoJson.h>
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
