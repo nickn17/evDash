@@ -95,6 +95,8 @@ void LiveData::initParams()
   params.availableChargePower = -1;
   params.availableDischargePower = -1;
   params.isolationResistanceKOhm = -1;
+  params.batEnergyContent = -1;
+  params.batMaxEnergyContent = -1;
   params.batPowerAmp = -1000;
   params.batPowerKw = -1000;
   params.batPowerKwh100 = -1;
@@ -180,8 +182,9 @@ double LiveData::hexToDec(String hexString, uint8_t bytes, bool signedNum)
     return -1;
 
   double decValue = strtoul(hexString.c_str(), NULL, 16);
-  if (signedNum) {
-    range = ((uint64_t) 1) << (bytes*8);
+  if (signedNum)
+  {
+    range = ((uint64_t)1) << (bytes * 8);
     if (decValue > (range - 1) / 2)
       decValue -= range;
   }

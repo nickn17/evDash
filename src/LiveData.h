@@ -145,6 +145,8 @@ typedef struct
   float availableChargePower;    // max regen
   float availableDischargePower; // max power
   float isolationResistanceKOhm;
+  float batEnergyContent;
+  float batMaxEnergyContent;
   float batPowerAmp;
   float batPowerKw;
   float batPowerKwh100;

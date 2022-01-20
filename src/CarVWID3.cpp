@@ -1096,7 +1096,8 @@ void CarVWID3::parseRowMerged()
   {
     if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
     {
-      // liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // // HV battery max energy content Wh
+      syslog->println(liveData->commandRequest);
+      syslog->println(liveData->responseRowMerged);
     }
 
     if (liveData->commandRequest.equals("222AF7")) // // 12V multiframe
@@ -1109,7 +1110,8 @@ void CarVWID3::parseRowMerged()
 
     if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
     {
-      // liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // HV battery energy content
+      syslog->println(liveData->commandRequest);
+      syslog->println(liveData->responseRowMerged);
     }
   }
 }
