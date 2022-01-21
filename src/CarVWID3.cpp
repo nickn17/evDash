@@ -1096,9 +1096,8 @@ void CarVWID3::parseRowMerged()
   {
     if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
     {
-      syslog->println(liveData->commandRequest);
-      syslog->println(liveData->responseRowMerged);
-      // (A*16777216+B*65536+C*256+D)/1310.77 https://www.goingelectric.de/forum/viewtopic.php?f=97&t=57429&start=20
+      liveData->params.batMaxEnergyContent = liveData->hexToDecFromResponse(6, 14, 4, false) / 1310.77;
+      // https://www.goingelectric.de/forum/viewtopic.php?f=97&t=57429&start=20
     }
 
     if (liveData->commandRequest.equals("222AB8")) // HV battery energy content
