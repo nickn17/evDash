@@ -14,7 +14,7 @@ void CommObd2Can::connectDevice()
 
   syslog->println("CAN connectDevice");
 
-  //CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
+  // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
   CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
   if (CAN == nullptr)
   {
@@ -38,12 +38,12 @@ void CommObd2Can::connectDevice()
 
   if (liveData->settings.carType == CAR_BMW_I3_2014)
   {
-    //initialise mask and filter to allow only receipt of 0x7xx CAN IDs
+    // initialise mask and filter to allow only receipt of 0x7xx CAN IDs
     CAN->init_Mask(0, 0, 0x07000000); // Init first mask...
     CAN->init_Mask(1, 0, 0x07000000); // Init second mask...
     for (uint8_t i = 0; i < 6; ++i)
     {
-      CAN->init_Filt(i, 0, 0x06000000); //Init filters
+      CAN->init_Filt(i, 0, 0x06000000); // Init filters
     }
   }
 
@@ -161,7 +161,7 @@ void CommObd2Can::executeCommand(String cmd)
   String atsh = "0" + liveData->currentAtshRequest.substring(4); // remove ATSH
   cmd.replace(" ", "");                                          // remove possible spaces
   sendPID(liveData->hexToDec(atsh, 4, false), cmd);
-  
+
   delay(40);
 }
 
@@ -222,11 +222,12 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 
   lastPid = pid;
   bResponseProcessed = false;
-// logic to choose from 11-bit or 29-bit by testing if PID is bigger than 4095 (ie bigger than FF)
-byte is29bit=0;
-if (pid>4095) is29bit=1;
+  // logic to choose from 11-bit or 29-bit by testing if PID is bigger than 4095 (ie bigger than FF)
+  byte is29bit = 0;
+  if (pid > 4095)
+    is29bit = 1;
 
-const uint8_t sndStat = CAN->sendMsgBuf(pid, is29bit, 8, txBuf); // 11 bit or 29 bit
+  const uint8_t sndStat = CAN->sendMsgBuf(pid, is29bit, 8, txBuf); // 11 bit or 29 bit
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
@@ -261,8 +262,9 @@ void CommObd2Can::sendFlowControlFrame()
     txBuf[0] = liveData->commandStartChar;
   }
   // logic to choose from 11-bit or 29-bit
-  byte is29bit=0;
-  if (lastPid>4095) is29bit=1;
+  byte is29bit = 0;
+  if (lastPid > 4095)
+    is29bit = 1;
   const uint8_t sndStat = CAN->sendMsgBuf(lastPid, is29bit, 8, txBuf); // VW:29bit vs others:11 bit
   if (sndStat == CAN_OK)
   {
@@ -336,11 +338,11 @@ uint8_t CommObd2Can::receivePID()
 
     syslog->info(DEBUG_COMM, "");
     processFrameBytes();
-    //processFrame();
+    // processFrame();
   }
   else
   {
-    //syslog->println(" CAN NOT READ ");
+    // syslog->println(" CAN NOT READ ");
     return 0xff;
   }
 
@@ -418,7 +420,7 @@ bool CommObd2Can::processFrameBytes()
 
     rxRemaining = 0;
 
-    //syslog->print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
+    // syslog->print("----Processing SingleFrame payload: "); printHexBuffer(pSingleFrame->pData, pSingleFrame->size, true);
 
     // single frame - process directly
     buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size());
@@ -452,7 +454,7 @@ bool CommObd2Can::processFrameBytes()
     dataRows[0].assign(pFirstFrame->pData, pFirstFrame->pData + framePayloadSize);
     rxRemaining -= framePayloadSize;
 
-    //syslog->print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
+    // syslog->print("----Processing FirstFrame payload: "); printHexBuffer(pFirstFrame->pData, framePayloadSize, true);
   }
   break;
 
@@ -465,15 +467,15 @@ bool CommObd2Can::processFrameBytes()
       uint8_t pData[];
     };
 
-    //const uint8_t structSize = sizeof(ConsecutiveFrame_t);
-    //syslog->print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); syslog->println(structSize);
+    // const uint8_t structSize = sizeof(ConsecutiveFrame_t);
+    // syslog->print("[debug] sizeof(ConsecutiveFrame_t) is expected to be 1 and it's "); syslog->println(structSize);
 
     ConsecutiveFrame_t *pConseqFrame = (ConsecutiveFrame_t *)pDataStart;
     const uint8_t framePayloadSize = frameLenght - sizeof(ConsecutiveFrame_t); // remove one byte of header
     dataRows[pConseqFrame->index].assign(pConseqFrame->pData, pConseqFrame->pData + framePayloadSize);
     rxRemaining -= framePayloadSize;
 
-    //syslog->print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
+    // syslog->print("----Processing ConsecFrame payload: "); printHexBuffer(pConseqFrame->pData, framePayloadSize, true);
   }
   break;
 
@@ -490,10 +492,10 @@ bool CommObd2Can::processFrameBytes()
     // multiple frames and no data remaining - merge everything to single packet
     for (int i = 0; i < dataRows.size(); i++)
     {
-      //syslog->print("------merging packet index ");
-      //syslog->print(i);
-      //syslog->print(" with length ");
-      //syslog->println(dataRows[i].size());
+      // syslog->print("------merging packet index ");
+      // syslog->print(i);
+      // syslog->print(" with length ");
+      // syslog->println(dataRows[i].size());
 
       mergedData.insert(mergedData.end(), dataRows[i].begin(), dataRows[i].end());
     }
@@ -560,14 +562,14 @@ bool CommObd2Can::processFrame()
   syslog->infoNolf(DEBUG_COMM, rxRemaining);
   syslog->info(DEBUG_COMM, "   ");
 
-  //parseResponse();
-  // We need to sort frames
-  // 1 frame data
+  // parseResponse();
+  //  We need to sort frames
+  //  1 frame data
   syslog->info(DEBUG_COMM, liveData->responseRow);
   // Merge frames 0:xxxx 1:yyyy 2:zzzz to single response xxxxyyyyzzzz string
   if (liveData->responseRow.length() >= 2 && liveData->responseRow.charAt(1) == ':')
   {
-    //liveData->responseRowMerged += liveData->responseRow.substring(2);
+    // liveData->responseRowMerged += liveData->responseRow.substring(2);
     uint8_t rowNo = liveData->hexToDec(liveData->responseRow.substring(0, 1), 1, false);
     uint16_t startPos = (rowNo * 14) - ((rowNo > 0) ? 2 : 0);
     uint16_t endPos = ((rowNo + 1) * 14) - ((rowNo > 0) ? 2 : 0);
@@ -592,12 +594,21 @@ void CommObd2Can::processMergedResponse()
 {
   syslog->infoNolf(DEBUG_COMM, "merged:");
   syslog->info(DEBUG_COMM, liveData->responseRowMerged);
+
+  // Wait for real response (MEB GPS sometimes return 7F2278 and then real data)
+  if (liveData->responseRowMerged == "7F2278")
+  {
+    liveData->responseRowMerged = "";
+    liveData->vResponseRowMerged.clear();
+    return;
+  }
+
   parseRowMerged();
 
   liveData->prevResponseRowMerged = liveData->responseRowMerged;
   liveData->responseRowMerged = "";
   liveData->vResponseRowMerged.clear();
-  bResponseProcessed = true; // to allow delay untill next message
+  bResponseProcessed = true; // to allow delay until next message
 
   if (liveData->delayBetweenCommandsMs == 0)
   {
