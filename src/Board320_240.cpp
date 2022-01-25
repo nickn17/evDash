@@ -1066,7 +1066,7 @@ void Board320_240::drawSceneSpeed()
   spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPercBms > 80 || (liveData->params.socPercBms == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
+  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 80 || (liveData->params.socPerc == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
                                                                                                                                                                            : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
