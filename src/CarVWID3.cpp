@@ -941,6 +941,7 @@ void CarVWID3::parseRowMerged()
     }
     if (liveData->commandRequest.equals("221EAB")) // HV Battery cell voltage - cell 108
     {
+      // todo: 621EAB0FFE => 0FFE = invalid cell value (~5.09V). 80kWh model has only 96 cells
       liveData->params.cellVoltage[107] = liveData->hexToDecFromResponse(6, 10, 2, false) / 1000 + 1; // Cell voltage, cell 1
     }
 
