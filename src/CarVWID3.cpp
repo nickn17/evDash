@@ -340,6 +340,7 @@ void CarVWID3::parseRowMerged()
 
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 1)
         liveData->params.ignitionOn = true; // ignition on
+        liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 4)
         liveData->params.chargerACconnected = true; // AC charger connected
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 6)
