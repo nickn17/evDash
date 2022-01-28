@@ -338,9 +338,10 @@ void CarVWID3::parseRowMerged()
     if (liveData->commandRequest.equals("227448")) // Car operation mode, XX = 0 => standby, XX = 1 => driving, XX = 4 => AC charging, XX = 6 => DC charging
     {
 
-      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 1)
+      if (liveData->hexToDecFromResponse(6, 8, 1, false) == 1) {
         liveData->params.ignitionOn = true; // ignition on
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+      }
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 4)
         liveData->params.chargerACconnected = true; // AC charger connected
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 6)
