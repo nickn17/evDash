@@ -100,6 +100,7 @@ void setup(void)
     break;
   case CAR_HYUNDAI_IONIQ5_58:
   case CAR_HYUNDAI_IONIQ5_72:
+  case CAR_HYUNDAI_IONIQ5_77:
     car = new CarHyundaiIoniq5();
     break;
   case CAR_HYUNDAI_IONIQ_2018:

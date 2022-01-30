@@ -82,7 +82,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64
       "220104", // cell voltages 65 - 96
-      "220105", // soh, soc, .. 
+      "220105", // soh, soc, ..
       "220106", // cooling water temp
       "22010A", // cell voltages 97 - 128
       "22010B", // cell voltages 129 - 160
@@ -194,13 +194,13 @@ void CarHyundaiIoniq5::parseRowMerged()
     if (liveData->commandRequest.equals("22C00B"))
     {
       liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(24, 26, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(34, 36, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(44, 46, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false) - 50;                    // === OK Valid
-      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;                   // === OK Valid
-      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;                    // === OK Valid
-      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;                     // === OK Valid
+      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(26, 28, 2, false) - 50;                   // === OK Valid
+      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(36, 38, 2, false) - 50;                     // === OK Valid
+      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(46, 48, 2, false) - 50;                    // === OK Valid
     }
   }
 
@@ -390,7 +390,7 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(84, 86, 1, true); // 13
       liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(86, 88, 1, true); // 14
       liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(88, 90, 1, true); // 15
-      liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(90, 90, 1, true); // 16
+      liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(90, 92, 1, true); // 16
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
@@ -765,7 +765,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
     syslog->println("Scanning...");
 
     // SET TESTER PRESENT
-    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "3E");
+    commInterface->sendPID(liveData->hexToDec("07E2", 2, false), "3E");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -776,7 +776,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
     delay(liveData->delayBetweenCommandsMs);
 
     // CHANGE SESSION
-    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "1003");
+    commInterface->sendPID(liveData->hexToDec("07E2", 2, false), "1003");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -846,19 +846,41 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
     // test=batch/1
     for (uint16_t i = 0; i < 250; i++)
     {
-      String command = "2F";
+      String command = "23";
       if (i < 16)
         command += "0";
       command += String(i, HEX);
       command.toUpperCase();
-      command += "0100";
+      command += "01";
 
       syslog->print(command);
       syslog->print(" ");
 
-      eNiroCarControl(liveData->hexToDec("07B3", 2, false), command);
+      eNiroCarControl(liveData->hexToDec("07E2", 2, false), command);
     }
   }
+  // ECU SCAN
+  else if (key.equals("ecu"))
+  {
+    // test=ecu/1
+    for (uint16_t unit = 1904; unit < 2047; unit++)
+    {
+      String command = "2101"; /*
+       if (i < 16)
+         command += "0";
+       command += String(i, HEX);
+       command.toUpperCase();
+       command += "01";*/
+
+      eNiroCarControl(unit, command);
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("7F2111"))
+      {
+        syslog->print(unit);
+        syslog->println(" POSITIVE ANSWER");
+      }
+    }
+  }   
   // ONE COMMAND
   else
   {
