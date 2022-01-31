@@ -147,9 +147,9 @@ void LiveData::initParams()
     params.soc10ced[i] = params.soc10cec[i] = params.soc10odo[i] = -1;
     params.soc10time[i] = 0;
   }
-  for (int i = 0; i < 108; i++)
+  for (int i = 0; i < 200; i++)
   { // id3 58kWh = 108 cells
-    params.cellVoltage[i] = 0;
+    params.cellVoltage[i] = -1;
   }
   params.cellCount = 0;
   for (int i = 0; i <= 100; i++)
