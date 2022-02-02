@@ -9,6 +9,7 @@
 - MEB plaform (VW). Added GPS support from car (no GPS module requiredgi)
 - EGMP (Ioniq5) - read 180 cell votages, 16 bat.temp.modules
 - hexToDec function - improved speed. Thanks to mrubioroy, fix by ilachEU
+- Ioniq5 several fixes, 180 cells, tire pressure/temperature
 
 ### v2.6.0 2021-12-27
 - FIX added PSRAM option for M5 Core2 and TTGO T4 (BLE4+SD+Wifi is now working)
