@@ -515,7 +515,7 @@ void CarVWID3::parseRowMerged()
     }
 
     // Cell voltages
-    if ((liveData->commandRequest >= "221E40" && liveData->commandRequest <= "221EAB") &&
+    if ((liveData->hexToDec(liveData->commandRequest, 3, false) >= 0x221E40 && liveData->hexToDec(liveData->commandRequest, 3, false) <= 0x221EAB) &&
         (!liveData->responseRowMerged.substring(6, 10).equals("0FFE"))) // 5.09 - unused cell
     {
       tempByte = liveData->hexToDec(liveData->commandRequest.substring(4, 6).c_str(), 1, false);
