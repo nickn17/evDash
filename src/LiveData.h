@@ -25,7 +25,8 @@
 #define CAR_VW_ID3_2021_77 11
 #define CAR_HYUNDAI_IONIQ5_58 12
 #define CAR_HYUNDAI_IONIQ5_72 13
-#define CAR_PEUGEOT_E208 14
+#define CAR_HYUNDAI_IONIQ5_77 14
+#define CAR_PEUGEOT_E208 15
 #define CAR_DEBUG_OBD2_KIA 999
 
 // COMM TYPE
@@ -145,6 +146,8 @@ typedef struct
   float availableChargePower;    // max regen
   float availableDischargePower; // max power
   float isolationResistanceKOhm;
+  float batEnergyContent;
+  float batMaxEnergyContent;
   float batPowerAmp;
   float batPowerKw;
   float batPowerKwh100;
@@ -192,7 +195,7 @@ typedef struct
   float tireRearRightTempC;
   float tireRearRightPressureBar;
   uint16_t cellCount;
-  float cellVoltage[108]; // 1..108 has index 0..107
+  float cellVoltage[200]; // 1..180 has index 0..179
 
   // Screen - charging graph
   float chargingGraphMinKw[101];             // 0..100% .. Min power Kw

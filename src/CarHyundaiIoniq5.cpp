@@ -79,25 +79,27 @@ void CarHyundaiIoniq5::activateCommandQueue()
       // BMS
       "ATSH7E4",
       "220101", // power kw, ...
-      "220102", // cell voltages
-      "220103", // cell voltages
-      "220104", // cell voltages
+      "220102", // cell voltages 1 - 32
+      "220103", // cell voltages 33 - 64
+      "220104", // cell voltages 65 - 96
       "220105", // soh, soc, ..
       "220106", // cooling water temp
-
+      "22010A", // cell voltages 97 - 128
+      "22010B", // cell voltages 129 - 160
+      "22010C", // cell voltages 161 - 180
   };
 
-  // 39 or 64 kWh model?
-  liveData->params.batModuleTempCount = 4;
-  liveData->params.batteryTotalAvailableKWh = 64;
-  liveData->params.cellCount = 98;
+  // kWh model?
+  liveData->params.batModuleTempCount = 16;
+  liveData->params.batteryTotalAvailableKWh = 77;
+  liveData->params.cellCount = 180;
 
-  // =(I18*0,615)*(1+(I18*0,0008)) soc to kwh niro ev 2020
-  // Calculates based on nick.n17 dashboard data
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58)
     liveData->params.batteryTotalAvailableKWh = 58;
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72)
     liveData->params.batteryTotalAvailableKWh = 72.6;
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77)
+    liveData->params.batteryTotalAvailableKWh = 77.4;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -192,13 +194,13 @@ void CarHyundaiIoniq5::parseRowMerged()
     if (liveData->commandRequest.equals("22C00B"))
     {
       liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
-      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(24, 26, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(34, 36, 2, false) / 72.51886900361;   // === OK Valid *0.2 / 14.503773800722
+      liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(44, 46, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false) - 50;                    // === OK Valid
-      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;                   // === OK Valid
-      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;                    // === OK Valid
-      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;                     // === OK Valid
+      liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(26, 28, 2, false) - 50;                   // === OK Valid
+      liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(36, 38, 2, false) - 50;                     // === OK Valid
+      liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(46, 48, 2, false) - 50;                    // === OK Valid
     }
   }
 
@@ -287,10 +289,11 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batCellMaxVNo = liveData->hexToDecFromResponse(54, 56, 1, false);
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
       liveData->params.batCellMinVNo = liveData->hexToDecFromResponse(58, 60, 1, false);
-      liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true);
-      liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true);
-      liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
-      liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true);
+      liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true); // 1
+      liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true); // 2
+      liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true); // 3
+      liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true); // 4
+      liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
       liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
       // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
       // liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
@@ -345,12 +348,49 @@ void CarHyundaiIoniq5::parseRowMerged()
       }
     }
     // BMS 7e4
+    if (liveData->commandRequest.equals("22010A"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
+        liveData->params.cellVoltage[96 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("22010B"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
+        liveData->params.cellVoltage[128 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+    }
+    // BMS 7e4
+    if (liveData->commandRequest.equals("22010C"))
+    {
+      for (int i = 0; i < 32; i++)
+      {
+        liveData->params.cellVoltage[160 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+      }
+    }
+
+    // BMS 7e4
     if (liveData->commandRequest.equals("220105"))
     {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
       liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
       // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
+
+      liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(24, 26, 1, true);  // 6
+      liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(26, 28, 1, true);  // 7
+      liveData->params.batModuleTempC[7] = liveData->hexToDecFromResponse(28, 30, 1, true);  // 8
+      liveData->params.batModuleTempC[8] = liveData->hexToDecFromResponse(30, 32, 1, true);  // 9
+      liveData->params.batModuleTempC[9] = liveData->hexToDecFromResponse(32, 34, 1, true);  // 10
+      liveData->params.batModuleTempC[10] = liveData->hexToDecFromResponse(34, 36, 1, true); // 11
+      liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(36, 38, 1, true); // 12
+      liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(84, 86, 1, true); // 13
+      liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(86, 88, 1, true); // 14
+      liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(88, 90, 1, true); // 15
+      liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(90, 92, 1, true); // 16
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
@@ -367,11 +407,6 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
       liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
       liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
-      //
-      for (int i = 30; i < 32; i++)
-      { // ai/aj position
-        liveData->params.cellVoltage[96 - 30 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
-      }
 
       // Charging ON, AC/DC
       liveData->params.getValidResponse = true;
@@ -476,7 +511,8 @@ bool CarHyundaiIoniq5::commandAllowed()
   // BMS (only for SCREEN_CELLS)
   if (liveData->currentAtshRequest.equals("ATSH7E4"))
   {
-    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104"))
+    if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104") ||
+        liveData->commandRequest.equals("22010A") || liveData->commandRequest.equals("22010B") || liveData->commandRequest.equals("22010C"))
     {
       if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
         return false;
@@ -574,29 +610,39 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->currentAtshRequest = "ATSH7E4";
   // 220101
   liveData->commandRequest = "220101";
-  liveData->responseRowMerged = "620101FFF7E7FF99000000000300B10EFE120F11100F12000018C438C30B00008400003864000035850000153A00001374000647010D017F0BDA0BDA03E8";
-  liveData->responseRowMerged = "620101FFF7E7FFB3000000000300120F9B111011101011000014CC38CB3B00009100003A510000367C000015FB000013D3000690250D018E0000000003E8";
+  liveData->responseRowMerged = "620101EFFBE7EF9A0000000000013C1BAF1A16161A161A180039C406C48500008600000C2E00000B100000087600000776000ACC5B0002C415D500000663";
   parseRowMerged();
   // 220102
   liveData->commandRequest = "220102";
-  liveData->responseRowMerged = "620102FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  liveData->responseRowMerged = "620102FFFFFFFFC4C4C4C4C4C5C4C4C4C4C4C4C4C4C4C4C4C5C4C4C4C4C4C4C4C4C4C4C4C5C4C4AAAA";
   parseRowMerged();
   // 220103
   liveData->commandRequest = "220103";
-  liveData->responseRowMerged = "620103FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCACBCACACFCCCBCBCBCBCBCBCBCBAAAA";
+  liveData->responseRowMerged = "620103FFFFFFFFC5C5C4C5C5C5C5C5C5C5C5C5C5C5C5C4C4C5C5C5C5C5C5C5C5C4C4C5C5C5C5C5AAAA";
   parseRowMerged();
   // 220104
   liveData->commandRequest = "220104";
+  liveData->responseRowMerged = "620104FFFFFFFFC5C5C5C4C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C4C5C5C5C5C5AAAA";
+  parseRowMerged();
+  // 22010A
+  liveData->commandRequest = "22010A";
+  liveData->responseRowMerged = "620104FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  parseRowMerged();
+  // 22010B
+  liveData->commandRequest = "22010B";
+  liveData->responseRowMerged = "620104FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
+  parseRowMerged();
+  // 22010C
+  liveData->commandRequest = "22010C";
   liveData->responseRowMerged = "620104FFFFFFFFCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBAAAA";
   parseRowMerged();
   // 220105
   liveData->commandRequest = "220105";
-  liveData->responseRowMerged = "620105003fff9000000000000000000F8A86012B4946500101500DAC03E800000000AC0000C7C701000F00000000AAAA";
-  liveData->responseRowMerged = "620105003FFF90000000000000000014918E012927465000015013BB03E800000000BB0000CBCB01001300000000AAAA";
+  liveData->responseRowMerged = "620105FFFB740F012C01012C1A16191619181A58F262D4000050180003E8016737009C00000000000000161A1619AAAA";
   parseRowMerged();
   // 220106
   liveData->commandRequest = "220106";
-  liveData->responseRowMerged = "620106FFFFFFFF14001A00240000003A7C86B4B30000000928EA00";
+  liveData->responseRowMerged = "62010617F8110016001400000000001E540000000000001200EA000000000000000000000000AAAAAA";
   parseRowMerged();
 
   // BCM / TPMS ATSH7A0
@@ -615,8 +661,20 @@ void CarHyundaiIoniq5::loadTestData()
 
   liveData->params.batModuleTempC[0] = 28;
   liveData->params.batModuleTempC[1] = 29;
-  liveData->params.batModuleTempC[2] = 28;
-  liveData->params.batModuleTempC[3] = 30;
+  liveData->params.batModuleTempC[2] = 30;
+  liveData->params.batModuleTempC[3] = 31;
+  liveData->params.batModuleTempC[4] = 32;
+  liveData->params.batModuleTempC[5] = 33;
+  liveData->params.batModuleTempC[6] = 34;
+  liveData->params.batModuleTempC[7] = 35;
+  liveData->params.batModuleTempC[8] = 36;
+  liveData->params.batModuleTempC[9] = 37;
+  liveData->params.batModuleTempC[10] = 38;
+  liveData->params.batModuleTempC[11] = 39;
+  liveData->params.batModuleTempC[12] = 40;
+  liveData->params.batModuleTempC[13] = 41;
+  liveData->params.batModuleTempC[14] = 42;
+  liveData->params.batModuleTempC[15] = 43;
 
   // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
   liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -707,7 +765,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
     syslog->println("Scanning...");
 
     // SET TESTER PRESENT
-    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "3E");
+    commInterface->sendPID(liveData->hexToDec("07E2", 2, false), "3E");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -718,7 +776,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
     delay(liveData->delayBetweenCommandsMs);
 
     // CHANGE SESSION
-    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "1003");
+    commInterface->sendPID(liveData->hexToDec("07E2", 2, false), "1003");
     delay(10);
     for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
     {
@@ -788,19 +846,41 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
     // test=batch/1
     for (uint16_t i = 0; i < 250; i++)
     {
-      String command = "2F";
+      String command = "23";
       if (i < 16)
         command += "0";
       command += String(i, HEX);
       command.toUpperCase();
-      command += "0100";
+      command += "01";
 
       syslog->print(command);
       syslog->print(" ");
 
-      eNiroCarControl(liveData->hexToDec("07B3", 2, false), command);
+      eNiroCarControl(liveData->hexToDec("07E2", 2, false), command);
     }
   }
+  // ECU SCAN
+  else if (key.equals("ecu"))
+  {
+    // test=ecu/1
+    for (uint16_t unit = 1904; unit < 2047; unit++)
+    {
+      String command = "2101"; /*
+       if (i < 16)
+         command += "0";
+       command += String(i, HEX);
+       command.toUpperCase();
+       command += "01";*/
+
+      eNiroCarControl(unit, command);
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("7F2111"))
+      {
+        syslog->print(unit);
+        syslog->println(" POSITIVE ANSWER");
+      }
+    }
+  }   
   // ONE COMMAND
   else
   {

@@ -8,7 +8,7 @@
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
-#include <Time.h>
+#include <time.h>
 #include <ArduinoJson.h>
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
@@ -148,6 +148,7 @@ void Board320_240::afterSetup()
   liveData->params.displayScreen = liveData->settings.defaultScreen;
   if (isButtonPressed(pinButtonRight))
   {
+    syslog->printf("Right button pressed");
     loadTestData();
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
@@ -157,7 +158,7 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    
+
     if (WiFi.status() != WL_CONNECTED)
     {
       syslog->println("WIFI not connected to the network");
@@ -384,6 +385,7 @@ void Board320_240::otaUpdate()
 
   displayMessage("OTA installed.", "Reboot device.");
   delay(2000);
+  ESP.restart();
 }
 
 /**
@@ -879,7 +881,8 @@ void Board320_240::drawSceneMain()
   // socPerc
   sprintf(tmpStr1, (liveData->params.socPerc == -1 ? "n/a" : "%01.00f%%"), liveData->params.socPerc);
   sprintf(tmpStr2, (liveData->params.sohPerc == -1) ? "SOC/SOH?" : (liveData->params.sohPerc == 100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), liveData->params.sohPerc);
-  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---" : tmpStr1), tmpStr2, (liveData->params.socPerc < 10 || liveData->params.sohPerc < 100 ? TFT_RED : (liveData->params.socPerc > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
+  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---" : tmpStr1), tmpStr2,
+              (liveData->params.socPerc < 10 || (liveData->params.sohPerc != -1 && liveData->params.sohPerc < 100) ? TFT_RED : (liveData->params.socPerc > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
 
   // batPowerAmp
   sprintf(tmpStr1, (liveData->params.batPowerAmp == -1000) ? "n/a" : (abs(liveData->params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), liveData->params.batPowerAmp);
@@ -1063,7 +1066,7 @@ void Board320_240::drawSceneSpeed()
   spr.fillRect(170, 26, 20, 4, tmpWord);
 
   // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPercBms > 80 || (liveData->params.socPercBms == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
+  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 80 || (liveData->params.socPerc == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
                                                                                                                                                                            : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
@@ -1216,18 +1219,18 @@ void Board320_240::drawSceneBatteryCells()
 
   // Find min and max val
   float minVal = -1, maxVal = -1;
-  for (int i = 0; i < 98; i++)
+  for (int i = 0; i < liveData->params.cellCount; i++)
   {
     if ((liveData->params.cellVoltage[i] < minVal || minVal == -1) && liveData->params.cellVoltage[i] != -1)
       minVal = liveData->params.cellVoltage[i];
     if ((liveData->params.cellVoltage[i] > maxVal || maxVal == -1) && liveData->params.cellVoltage[i] != -1)
       maxVal = liveData->params.cellVoltage[i];
-    if (liveData->params.cellVoltage[i] > 0 && i > liveData->params.cellCount + 1)
-      liveData->params.cellCount = i + 1;
+    /*if (liveData->params.cellVoltage[i] > 0 && i > liveData->params.cellCount + 1)
+      liveData->params.cellCount = i + 1;*/
   }
 
   // Draw cell matrix
-  for (int i = 0; i < 98; i++)
+  for (int i = 0; i < liveData->params.cellCount; i++)
   {
     if (liveData->params.cellVoltage[i] == -1)
       continue;
@@ -1675,6 +1678,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_HYUNDAI_IONIQ5_72:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72) ? ">" : "";
     break;
+  case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77) ? ">" : "";
+    break;
   case VEHICLE_TYPE_VW_ID3_2021_45:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
     break;
@@ -1709,10 +1715,6 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_ADAPTER_THREADING:
     suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
     break;
-  case MENU_ADAPTER_LOAD_TEST_DATA:
-    loadTestData();
-    break;
-
   /*case MENU_WIFI:
     suffix = "n/a";
     switch (WiFi.status())
@@ -2208,6 +2210,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_77;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_VW_ID3_2021_45:
       liveData->settings.carType = CAR_VW_ID3_2021_45;
       showMenu();
@@ -2263,6 +2270,9 @@ void Board320_240::menuItemClick()
       liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
       showMenu();
       return;
+      break;
+    case MENU_ADAPTER_LOAD_TEST_DATA:
+      loadTestData();
       break;
     // Screen orientation
     case MENU_SCREEN_ROTATION:
@@ -2349,7 +2359,7 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
-      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec == 120) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 10;
+      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec == 30) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 2; // Better with smaller steps and maximum 30 seconds
       liveData->settings.remoteUploadIntervalSec = 0;
       showMenu();
       return;
@@ -3070,14 +3080,16 @@ void Board320_240::mainLoop()
     } while (millis() - start < 20);
     //
     syncGPS();
-  } else {
+  }
+  else
+  {
     // MEB CAR GPS
     if (liveData->params.gpsValid && liveData->params.gpsLat != -1 && liveData->params.gpsLon != -1)
       calcAutomaticBrightnessLatLon();
   }
   if (liveData->params.setGpsTimeFromCar != 0)
   {
-    struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);   
+    struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);
     tmm->tm_isdst = 0;
     setGpsTime(tmm->tm_year + 1900, tmm->tm_mon + 1, tmm->tm_mday, tmm->tm_hour, tmm->tm_min, tmm->tm_sec);
     liveData->params.setGpsTimeFromCar = 0;
@@ -3778,7 +3790,8 @@ bool Board320_240::netSendData()
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
     // Send GPS data via GPRS (if enabled && valid)
-    if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1))
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
       jsonData["gpsLon"] = liveData->params.gpsLon;
@@ -3872,6 +3885,9 @@ bool Board320_240::netSendData()
     case CAR_HYUNDAI_IONIQ5_72:
       jsonData["car_model"] = "hyundai:ioniq5:21:72:lr";
       break;
+    case CAR_HYUNDAI_IONIQ5_77:
+      jsonData["car_model"] = "hyundai:ioniq5:21:77:lr";
+      break;
     default:
       syslog->println("Car not supported by ABRP Uploader");
       return false;
@@ -3894,7 +3910,8 @@ bool Board320_240::netSendData()
     if (liveData->params.chargingOn)
       jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
 
-    if (liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid())
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1))
     {
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;

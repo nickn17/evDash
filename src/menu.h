@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 117
+#define MENU_SIZE 118
 
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
@@ -29,6 +29,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {VEHICLE_TYPE_KONA_2020_39,     MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "Hyundai Kona 2020 39kWh"},
     {VEHICLE_TYPE_HYUNDAI_IONIQ5_58,  MENU_VEHICLE_TYPE,  MENU_NO_MENU,   "Hyundai Ioniq5 2022 58kWh"},
     {VEHICLE_TYPE_HYUNDAI_IONIQ5_72,  MENU_VEHICLE_TYPE,  MENU_NO_MENU,   "Hyundai Ioniq5 2022 72.6kWh"},
+    {VEHICLE_TYPE_HYUNDAI_IONIQ5_77,  MENU_VEHICLE_TYPE,  MENU_NO_MENU,   "Hyundai Ioniq5 2022 77.4kWh"},
     {VEHICLE_TYPE_VW_ID3_2021_45,   MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "VW ID.3 2021 45 kWh (CAN)"},
     {VEHICLE_TYPE_VW_ID3_2021_58,   MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "VW ID.3 2021 58 kWh (CAN)"},
     {VEHICLE_TYPE_VW_ID3_2021_77,   MENU_VEHICLE_TYPE,  MENU_NO_MENU,     "VW ID.3 2021 77 kWh (CAN)"},
@@ -40,8 +41,8 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_TYPE_TOP,         MENU_ADAPTER_TYPE,  MENU_TOP_LEVEL,   "<- parent menu"},
     {MENU_ADAPTER_BLE4,             MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth4 (BLE4)"},
     {MENU_ADAPTER_CAN,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "CAN bus (MCP2515-1/SO)"},
-    {MENU_ADAPTER_BT3,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth3 serial"},
-    {MENU_ADAPTER_THREADING,        MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Threading"},
+    {MENU_ADAPTER_BT3,              MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Bluetooth3 serial [DEV]"},
+    {MENU_ADAPTER_THREADING,        MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Threading [DEV]"},
     {MENU_ADAPTER_LOAD_TEST_DATA,   MENU_ADAPTER_TYPE,  MENU_NO_MENU,     "Load demo data"},
 
     {MENU_OTHER_TOP,                MENU_OTHERS,        MENU_TOP_LEVEL,   "<- parent menu"},
