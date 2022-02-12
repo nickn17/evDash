@@ -11,6 +11,8 @@
 - hexToDec function - improved speed. Thanks to mrubioroy, fix by ilachEU
 - Ioniq5 several fixes, 180 cells, tire pressure/temperature
 - MEB cell voltages - refactoring, 77kWh (96 cells) support
+- added car submenus (by manufacturer)
+- added support for Kia EV6, Skoda Enyaq iV, VW ID.4
 
 ### v2.6.0 2021-12-27
 - FIX added PSRAM option for M5 Core2 and TTGO T4 (BLE4+SD+Wifi is now working)

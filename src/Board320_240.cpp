@@ -1067,7 +1067,7 @@ void Board320_240::drawSceneSpeed()
 
   // Soc%, bat.kWh
   spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 80 || (liveData->params.socPerc == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
-                                                                                                                                                                           : TFT_GREEN);
+                                                                                                                                                                     : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
   spr.setFreeFont(&Orbitron_Light_32);
@@ -1654,15 +1654,6 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     suffix = tmpStr1;
     break;
   // TODO: Why is do these cases not match the vehicle type id?
-  case VEHICLE_TYPE_ENIRO_2020_64:
-    prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
-    break;
-  case VEHICLE_TYPE_ENIRO_2020_39:
-    prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_39) ? ">" : "";
-    break;
-  case VEHICLE_TYPE_ESOUL_2020_64:
-    prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
-    break;
   case VEHICLE_TYPE_IONIQ_2018_28:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
     break;
@@ -1681,6 +1672,30 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77) ? ">" : "";
     break;
+  case VEHICLE_TYPE_ENIRO_2020_64:
+    prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_ENIRO_2020_39:
+    prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_39) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_ESOUL_2020_64:
+    prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_KIA_EV6_58:
+    prefix = (liveData->settings.carType == CAR_KIA_EV6_58) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_KIA_EV6_77:
+    prefix = (liveData->settings.carType == CAR_KIA_EV6_77) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_SKODA_ENYAQ_55:
+    prefix = (liveData->settings.carType == CAR_SKODA_ENYAQ_55) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_SKODA_ENYAQ_62:
+    prefix = (liveData->settings.carType == CAR_SKODA_ENYAQ_62) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_SKODA_ENYAQ_82:
+    prefix = (liveData->settings.carType == CAR_SKODA_ENYAQ_82) ? ">" : "";
+    break;
   case VEHICLE_TYPE_VW_ID3_2021_45:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
     break;
@@ -1689,6 +1704,15 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case VEHICLE_TYPE_VW_ID3_2021_77:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_77) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_VW_ID4_2021_45:
+    prefix = (liveData->settings.carType == CAR_VW_ID4_2021_45) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_VW_ID4_2021_58:
+    prefix = (liveData->settings.carType == CAR_VW_ID4_2021_58) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_VW_ID4_2021_77:
+    prefix = (liveData->settings.carType == CAR_VW_ID4_2021_77) ? ">" : "";
     break;
   case VEHICLE_TYPE_ZOE_22_DEV:
     prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
@@ -2170,21 +2194,6 @@ void Board320_240::menuItemClick()
     switch (tmpMenuItem->id)
     {
     // Set vehicle type
-    case VEHICLE_TYPE_ENIRO_2020_64:
-      liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
-      showMenu();
-      return;
-      break;
-    case VEHICLE_TYPE_ENIRO_2020_39:
-      liveData->settings.carType = CAR_KIA_ENIRO_2020_39;
-      showMenu();
-      return;
-      break;
-    case VEHICLE_TYPE_ESOUL_2020_64:
-      liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
-      showMenu();
-      return;
-      break;
     case VEHICLE_TYPE_IONIQ_2018_28:
       liveData->settings.carType = CAR_HYUNDAI_IONIQ_2018;
       showMenu();
@@ -2215,6 +2224,46 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_ENIRO_2020_64:
+      liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_ENIRO_2020_39:
+      liveData->settings.carType = CAR_KIA_ENIRO_2020_39;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_ESOUL_2020_64:
+      liveData->settings.carType = CAR_KIA_ESOUL_2020_64;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_KIA_EV6_58:
+      liveData->settings.carType = CAR_KIA_EV6_58;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_KIA_EV6_77:
+      liveData->settings.carType = CAR_KIA_EV6_77;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_SKODA_ENYAQ_55:
+      liveData->settings.carType = CAR_SKODA_ENYAQ_55;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_SKODA_ENYAQ_62:
+      liveData->settings.carType = CAR_SKODA_ENYAQ_62;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_SKODA_ENYAQ_82:
+      liveData->settings.carType = CAR_SKODA_ENYAQ_82;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_VW_ID3_2021_45:
       liveData->settings.carType = CAR_VW_ID3_2021_45;
       showMenu();
@@ -2227,6 +2276,21 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_VW_ID3_2021_77:
       liveData->settings.carType = CAR_VW_ID3_2021_77;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_VW_ID4_2021_45:
+      liveData->settings.carType = CAR_VW_ID4_2021_45;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_VW_ID4_2021_58:
+      liveData->settings.carType = CAR_VW_ID4_2021_58;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_VW_ID4_2021_77:
+      liveData->settings.carType = CAR_VW_ID4_2021_77;
       showMenu();
       return;
       break;
@@ -3846,29 +3910,47 @@ bool Board320_240::netSendData()
 
     switch (liveData->settings.carType)
     {
-    case CAR_KIA_ENIRO_2020_64:
-      jsonData["car_model"] = "kia:niro:19:64:other";
-      break;
-    case CAR_HYUNDAI_KONA_2020_64:
-      jsonData["car_model"] = "hyundai:kona:19:64:other";
+    case CAR_HYUNDAI_KONA_2020_39:
+      jsonData["car_model"] = "hyundai:kona:19:39:other";
       break;
     case CAR_HYUNDAI_IONIQ_2018:
       jsonData["car_model"] = "hyundai:ioniq:17:28:other";
       break;
-    case CAR_KIA_ENIRO_2020_39:
-      jsonData["car_model"] = "kia:niro:19:39:other";
+    case CAR_HYUNDAI_IONIQ5_58:
+      jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
       break;
-    case CAR_HYUNDAI_KONA_2020_39:
-      jsonData["car_model"] = "hyundai:kona:19:39:other";
+    case CAR_HYUNDAI_IONIQ5_72:
+      jsonData["car_model"] = "hyundai:ioniq5:21:72:lr";
       break;
-    case CAR_RENAULT_ZOE:
-      jsonData["car_model"] = "renault:zoe:r240:22:other";
+    case CAR_HYUNDAI_IONIQ5_77:
+      jsonData["car_model"] = "hyundai:ioniq5:21:77:lr";
       break;
-    case CAR_BMW_I3_2014:
-      jsonData["car_model"] = "bmw:i3:14:22:other";
+    case CAR_KIA_ENIRO_2020_64:
+      jsonData["car_model"] = "kia:niro:19:64:other";
       break;
     case CAR_KIA_ESOUL_2020_64:
       jsonData["car_model"] = "kia:soul:19:64:other";
+      break;
+    case CAR_HYUNDAI_KONA_2020_64:
+      jsonData["car_model"] = "hyundai:kona:19:64:other";
+      break;
+    case CAR_KIA_ENIRO_2020_39:
+      jsonData["car_model"] = "kia:niro:19:39:other";
+      break;
+    case CAR_KIA_EV6_58:
+      jsonData["car_model"] = "kia:ev6:21:58:mr";
+      break;
+    case CAR_KIA_EV6_77:
+      jsonData["car_model"] = "kia:ev6:21:77:lr";
+      break;
+    case CAR_SKODA_ENYAQ_55:
+      jsonData["car_model"] = "skoda:enyaq:20:55:sr";
+      break;
+    case CAR_SKODA_ENYAQ_62:
+      jsonData["car_model"] = "skoda:enyaq:20:62:mr";
+      break;
+    case CAR_SKODA_ENYAQ_82:
+      jsonData["car_model"] = "skoda:enyaq:20:82:lr";
       break;
     case CAR_VW_ID3_2021_45:
       jsonData["car_model"] = "volkswagen:id3:20:45:sr";
@@ -3879,14 +3961,20 @@ bool Board320_240::netSendData()
     case CAR_VW_ID3_2021_77:
       jsonData["car_model"] = "volkswagen:id3:20:77:lr";
       break;
-    case CAR_HYUNDAI_IONIQ5_58:
-      jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
+    case CAR_VW_ID4_2021_45:
+      jsonData["car_model"] = "volkswagen:id4:20:45:sr";
       break;
-    case CAR_HYUNDAI_IONIQ5_72:
-      jsonData["car_model"] = "hyundai:ioniq5:21:72:lr";
+    case CAR_VW_ID4_2021_58:
+      jsonData["car_model"] = "volkswagen:id4:20:58:mr";
       break;
-    case CAR_HYUNDAI_IONIQ5_77:
-      jsonData["car_model"] = "hyundai:ioniq5:21:77:lr";
+    case CAR_VW_ID4_2021_77:
+      jsonData["car_model"] = "volkswagen:id4:20:77:lr";
+      break;
+    case CAR_RENAULT_ZOE:
+      jsonData["car_model"] = "renault:zoe:r240:22:other";
+      break;
+    case CAR_BMW_I3_2014:
+      jsonData["car_model"] = "bmw:i3:14:22:other";
       break;
     default:
       syslog->println("Car not supported by ABRP Uploader");
