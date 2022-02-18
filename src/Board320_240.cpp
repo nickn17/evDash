@@ -3938,19 +3938,19 @@ bool Board320_240::netSendData()
       jsonData["car_model"] = "kia:niro:19:39:other";
       break;
     case CAR_KIA_EV6_58:
-      jsonData["car_model"] = "kia:ev6:21:58:mr";
+      jsonData["car_model"] = "kia:ev6:22:58:mr";
       break;
     case CAR_KIA_EV6_77:
-      jsonData["car_model"] = "kia:ev6:21:77:lr";
+      jsonData["car_model"] = "kia:ev6:22:77:lr";
       break;
     case CAR_SKODA_ENYAQ_55:
-      jsonData["car_model"] = "skoda:enyaq:20:55:sr";
+      jsonData["car_model"] = "skoda:enyaq:21:52:meb";
       break;
     case CAR_SKODA_ENYAQ_62:
-      jsonData["car_model"] = "skoda:enyaq:20:62:mr";
+      jsonData["car_model"] = "skoda:enyaq:21:55:meb";
       break;
     case CAR_SKODA_ENYAQ_82:
-      jsonData["car_model"] = "skoda:enyaq:20:82:lr";
+      jsonData["car_model"] = "skoda:enyaq:21:77:meb";
       break;
     case CAR_VW_ID3_2021_45:
       jsonData["car_model"] = "volkswagen:id3:20:45:sr";
@@ -3962,13 +3962,13 @@ bool Board320_240::netSendData()
       jsonData["car_model"] = "volkswagen:id3:20:77:lr";
       break;
     case CAR_VW_ID4_2021_45:
-      jsonData["car_model"] = "volkswagen:id4:20:45:sr";
+      jsonData["car_model"] = "volkswagen:id4:20:45:sr"; // not valid in the iterno list of cars
       break;
     case CAR_VW_ID4_2021_58:
-      jsonData["car_model"] = "volkswagen:id4:20:58:mr";
+      jsonData["car_model"] = "volkswagen:id4:21:52";
       break;
     case CAR_VW_ID4_2021_77:
-      jsonData["car_model"] = "volkswagen:id4:20:77:lr";
+      jsonData["car_model"] = "volkswagen:id4:21:77";
       break;
     case CAR_RENAULT_ZOE:
       jsonData["car_model"] = "renault:zoe:r240:22:other";
