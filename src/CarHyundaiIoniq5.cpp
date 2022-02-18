@@ -100,6 +100,10 @@ void CarHyundaiIoniq5::activateCommandQueue()
     liveData->params.batteryTotalAvailableKWh = 72.6;
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77)
     liveData->params.batteryTotalAvailableKWh = 77.4;
+  if (liveData->settings.carType == CAR_KIA_EV6_58)
+    liveData->params.batteryTotalAvailableKWh = 58;
+  if (liveData->settings.carType == CAR_KIA_EV6_77)
+    liveData->params.batteryTotalAvailableKWh = 77.4;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();

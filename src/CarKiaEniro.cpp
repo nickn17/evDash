@@ -110,7 +110,7 @@ void CarKiaEniro::activateCommandQueue()
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
-  //for (int i = 0; i < commandQueueCountKiaENiro; i++) {
+  // for (int i = 0; i < commandQueueCountKiaENiro; i++) {
   for (auto cmd : commandQueueKiaENiro)
   {
     liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
@@ -237,9 +237,9 @@ void CarKiaEniro::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22B002"))
     {
-      //tempFloat = liveData->params.odoKm;
+      // tempFloat = liveData->params.odoKm;
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      //if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
+      // if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
     }
   }
 
@@ -284,7 +284,7 @@ void CarKiaEniro::parseRowMerged()
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
       liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
-      //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
+      // liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
       liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
       liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 1, false);
       liveData->params.batPowerAmp = -liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
@@ -306,9 +306,9 @@ void CarKiaEniro::parseRowMerged()
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
       liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true);
       liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
-      //liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      //liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
-      //liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      // liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
+      // liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -435,7 +435,7 @@ void CarKiaEniro::parseRowMerged()
       // log 220106 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
       tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
-      //syslog->println(liveData->params.debugData2);
+      // syslog->println(liveData->params.debugData2);
     }
   }
 }
@@ -451,7 +451,7 @@ bool CarKiaEniro::commandAllowed()
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
-  //SleepMode Queue Filter
+  // SleepMode Queue Filter
   if (liveData->params.sleepModeQueue)
   {
     if (liveData->commandQueueIndex < liveData->commandQueueLoopFrom)
@@ -492,8 +492,7 @@ bool CarKiaEniro::commandAllowed()
   {
     if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104"))
     {
-      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS 
-          && liveData->settings.sdcardEnabled != 1)
+      if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS && liveData->settings.sdcardEnabled != 1)
         return false;
     }
   }
@@ -756,7 +755,7 @@ void CarKiaEniro::testHandler(const String &cmd)
       syslog->print("NEW CYCLE: ");
       syslog->println(a);
       for (uint16_t b = 0; b < 255; b++)
-      //for (uint16_t c = 0; c < 255; c++)
+      // for (uint16_t c = 0; c < 255; c++)
       {
         String command = "2F";
         if (a < 16)
@@ -768,11 +767,12 @@ void CarKiaEniro::testHandler(const String &cmd)
         /*if (c < 16)
             command += "0";
           command += String(c, HEX);
-        */ command.toUpperCase();
+        */
+        command.toUpperCase();
         command += "00";
 
         // EXECUTE COMMAND
-        //syslog->print(".");
+        // syslog->print(".");
         commInterface->sendPID(liveData->hexToDec("0770", 2, false), command);
         //      syslog->setDebugLevel(DEBUG_COMM);
         delay(10);
@@ -793,6 +793,28 @@ void CarKiaEniro::testHandler(const String &cmd)
         }
         delay(liveData->delayBetweenCommandsMs);
         //      syslog->setDebugLevel(liveData->settings.debugLevel);
+      }
+    }
+  }
+  // ECU SCAN
+  else if (key.equals("ecu"))
+  {
+    // test=ecu/1
+    for (uint16_t unit = 1904; unit < 2047; unit++)
+    {
+      String command = "2101"; /*
+       if (i < 16)
+         command += "0";
+       command += String(i, HEX);
+       command.toUpperCase();
+       command += "01";*/
+
+      eNiroCarControl(unit, command);
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("7F2111"))
+      {
+        syslog->print(unit);
+        syslog->println(" POSITIVE ANSWER");
       }
     }
   }
@@ -1024,8 +1046,8 @@ void CarKiaEniro::carCommand(const String &cmd)
  */
 void CarKiaEniro::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
-  //syslog->println("EXECUTING COMMAND");
-  //syslog->println(cmd);
+  // syslog->println("EXECUTING COMMAND");
+  // syslog->println(cmd);
   commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
   delay(10);
   for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)

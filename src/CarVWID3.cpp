@@ -250,16 +250,25 @@ void CarVWID3::activateCommandQueue()
   liveData->params.batteryTotalAvailableKWh = 58; // defines that Pro trim is the standard guess
   liveData->params.cellCount = 108;
 
-  if (liveData->settings.carType == CAR_VW_ID3_2021_45)
-  {
+  if (liveData->settings.carType == CAR_SKODA_ENYAQ_55)
     liveData->params.batteryTotalAvailableKWh = 45;
-  }
-
-  if (liveData->settings.carType == CAR_VW_ID3_2021_77)
-  {
+  if (liveData->settings.carType == CAR_SKODA_ENYAQ_62)
+    liveData->params.batteryTotalAvailableKWh = 58;
+  if (liveData->settings.carType == CAR_SKODA_ENYAQ_82)
     liveData->params.batteryTotalAvailableKWh = 77;
-  }
-
+  if (liveData->settings.carType == CAR_VW_ID3_2021_45)
+    liveData->params.batteryTotalAvailableKWh = 45;
+  if (liveData->settings.carType == CAR_VW_ID3_2021_58)
+    liveData->params.batteryTotalAvailableKWh = 58;
+  if (liveData->settings.carType == CAR_VW_ID3_2021_77)
+    liveData->params.batteryTotalAvailableKWh = 77;
+  if (liveData->settings.carType == CAR_VW_ID4_2021_45)
+    liveData->params.batteryTotalAvailableKWh = 45;
+  if (liveData->settings.carType == CAR_VW_ID4_2021_58)
+    liveData->params.batteryTotalAvailableKWh = 58;
+  if (liveData->settings.carType == CAR_VW_ID4_2021_77)
+    liveData->params.batteryTotalAvailableKWh = 77;
+  
   //  Empty and fill command queue
   liveData->commandQueue.clear();
 

@@ -101,6 +101,8 @@ void setup(void)
   case CAR_HYUNDAI_IONIQ5_58:
   case CAR_HYUNDAI_IONIQ5_72:
   case CAR_HYUNDAI_IONIQ5_77:
+  case CAR_KIA_EV6_58:
+  case CAR_KIA_EV6_77:
     car = new CarHyundaiIoniq5();
     break;
   case CAR_HYUNDAI_IONIQ_2018:
@@ -112,9 +114,15 @@ void setup(void)
   case CAR_BMW_I3_2014:
     car = new CarBmwI3();
     break;
+  case CAR_SKODA_ENYAQ_55:
+  case CAR_SKODA_ENYAQ_62:
+  case CAR_SKODA_ENYAQ_82:
   case CAR_VW_ID3_2021_45:
   case CAR_VW_ID3_2021_58:
   case CAR_VW_ID3_2021_77:
+  case CAR_VW_ID4_2021_45:
+  case CAR_VW_ID4_2021_58:
+  case CAR_VW_ID4_2021_77:
     car = new CarVWID3();
     break;
   case CAR_PEUGEOT_E208:
