@@ -355,13 +355,16 @@ void CarVWID3::parseRowMerged()
       {
         liveData->params.ignitionOn = true; // ignition on
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+        liveData->params.chargingOn = false; // Charging off
+        liveData->params.chargerACconnected = false; // AC charger disconnected
+        liveData->params.chargerDCconnected = false; // DC charger disconnected
       }
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 4)
         liveData->params.chargerACconnected = true; // AC charger connected
       if (liveData->hexToDecFromResponse(6, 8, 1, false) == 6)
         liveData->params.chargerDCconnected = true; // DC charger connected
       if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
-        liveData->params.chargingOn = true; // Carging on
+        liveData->params.chargingOn = true; // Charging on
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
