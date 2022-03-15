@@ -571,7 +571,7 @@ void CarVWID3::parseRowMerged()
     }
     if (liveData->commandRequest.equals("22210E")) // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=12->B,YY=07->R,YY=06->N
     {
-      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 5)  (liveData->hexToDecFromResponse(8, 10, 1, false) == 12))
+      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 5) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 12))
         {
          liveData->params.forwardDriveMode = true; // D or B mode
          liveData->params.chargerACconnected = false; // AC Kabel ur
@@ -585,7 +585,7 @@ void CarVWID3::parseRowMerged()
          liveData->params.chargerDCconnected = false; // DC Kabel ur
         liveData->params.chargingOn = false; // Charging Off
         }
-      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 6)  (liveData->hexToDecFromResponse(8, 10, 1, false) == 8))
+      if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 6) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 8))
         liveData->params.parkModeOrNeutral = true; // N or P mode
     }
   }
