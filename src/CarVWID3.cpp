@@ -268,7 +268,7 @@ void CarVWID3::activateCommandQueue()
     liveData->params.batteryTotalAvailableKWh = 58;
   if (liveData->settings.carType == CAR_VW_ID4_2021_77)
     liveData->params.batteryTotalAvailableKWh = 77;
-  
+
   //  Empty and fill command queue
   liveData->commandQueue.clear();
 
@@ -355,7 +355,7 @@ void CarVWID3::parseRowMerged()
       {
         liveData->params.ignitionOn = true; // ignition on
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
-        liveData->params.chargingOn = false; // Charging off
+        liveData->params.chargingOn = false;         // Charging off
         liveData->params.chargerACconnected = false; // AC charger disconnected
         liveData->params.chargerDCconnected = false; // DC charger disconnected
       }
@@ -572,21 +572,23 @@ void CarVWID3::parseRowMerged()
     if (liveData->commandRequest.equals("22210E")) // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=12->B,YY=07->R,YY=06->N
     {
       if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 5) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 12))
-        {
-         liveData->params.forwardDriveMode = true; // D or B mode
-         liveData->params.chargerACconnected = false; // AC Kabel ur
-         liveData->params.chargerDCconnected = false; // DC Kabel ur
-         liveData->params.chargingOn = false; // Charging Off
-        }
+      {
+        liveData->params.forwardDriveMode = true;    // D or B mode
+        liveData->params.chargerACconnected = false; // AC Kabel ur
+        liveData->params.chargerDCconnected = false; // DC Kabel ur
+        liveData->params.chargingOn = false;         // Charging Off
+      }
       if (liveData->hexToDecFromResponse(8, 10, 1, false) == 7)
-        {
-        liveData->params.reverseDriveMode = true; // R mode
-         liveData->params.chargerACconnected = false; // AC Kabel ur
-         liveData->params.chargerDCconnected = false; // DC Kabel ur
-        liveData->params.chargingOn = false; // Charging Off
-        }
+      {
+        liveData->params.reverseDriveMode = true;    // R mode
+        liveData->params.chargerACconnected = false; // AC Kabel ur
+        liveData->params.chargerDCconnected = false; // DC Kabel ur
+        liveData->params.chargingOn = false;         // Charging Off
+      }
       if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 6) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 8))
+      {
         liveData->params.parkModeOrNeutral = true; // N or P mode
+      }
     }
   }
 
