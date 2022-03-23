@@ -1687,6 +1687,18 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_KIA_EV6_77:
     prefix = (liveData->settings.carType == CAR_KIA_EV6_77) ? ">" : "";
     break;
+  case VEHICLE_TYPE_AUDI_Q4_35:
+    prefix = (liveData->settings.carType == CAR_AUDI_Q4_35) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_AUDI_Q4_40:
+    prefix = (liveData->settings.carType == CAR_AUDI_Q4_40) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_AUDI_Q4_45:
+    prefix = (liveData->settings.carType == CAR_AUDI_Q4_45) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_AUDI_Q4_50:
+    prefix = (liveData->settings.carType == CAR_AUDI_Q4_50) ? ">" : "";
+    break;
   case VEHICLE_TYPE_SKODA_ENYAQ_55:
     prefix = (liveData->settings.carType == CAR_SKODA_ENYAQ_55) ? ">" : "";
     break;
@@ -2246,6 +2258,26 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_KIA_EV6_77:
       liveData->settings.carType = CAR_KIA_EV6_77;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_AUDI_Q4_35:
+      liveData->settings.carType = CAR_AUDI_Q4_35;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_AUDI_Q4_40:
+      liveData->settings.carType = CAR_AUDI_Q4_40;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_AUDI_Q4_45:
+      liveData->settings.carType = CAR_AUDI_Q4_45;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_AUDI_Q4_50:
+      liveData->settings.carType = CAR_AUDI_Q4_50;
       showMenu();
       return;
       break;
@@ -3942,6 +3974,18 @@ bool Board320_240::netSendData()
       break;
     case CAR_KIA_EV6_77:
       jsonData["car_model"] = "kia:ev6:22:77:lr";
+      break;
+    case CAR_AUDI_Q4_35:
+      jsonData["car_model"] = "audi:q4:21:52:meb";
+      break;
+    case CAR_AUDI_Q4_40:
+      jsonData["car_model"] = "audi:q4:21:77:meb";
+      break;
+    case CAR_AUDI_Q4_45:
+      jsonData["car_model"] = "audi:q4:21:77:meb";
+      break;
+    case CAR_AUDI_Q4_50:
+      jsonData["car_model"] = "audi:q4:21:77:meb";
       break;
     case CAR_SKODA_ENYAQ_55:
       jsonData["car_model"] = "skoda:enyaq:21:52:meb";
