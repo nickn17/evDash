@@ -114,6 +114,10 @@ void setup(void)
   case CAR_BMW_I3_2014:
     car = new CarBmwI3();
     break;
+  case CAR_AUDI_Q4_35:
+  case CAR_AUDI_Q4_40:
+  case CAR_AUDI_Q4_45:
+  case CAR_AUDI_Q4_50:
   case CAR_SKODA_ENYAQ_55:
   case CAR_SKODA_ENYAQ_62:
   case CAR_SKODA_ENYAQ_82:

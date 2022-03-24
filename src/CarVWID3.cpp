@@ -250,6 +250,14 @@ void CarVWID3::activateCommandQueue()
   liveData->params.batteryTotalAvailableKWh = 58; // defines that Pro trim is the standard guess
   liveData->params.cellCount = 108;
 
+  if (liveData->settings.carType == CAR_AUDI_Q4_35)
+    liveData->params.batteryTotalAvailableKWh = 52;
+  if (liveData->settings.carType == CAR_AUDI_Q4_40)
+    liveData->params.batteryTotalAvailableKWh = 77;
+  if (liveData->settings.carType == CAR_AUDI_Q4_45)
+    liveData->params.batteryTotalAvailableKWh = 77;
+  if (liveData->settings.carType == CAR_AUDI_Q4_50)
+    liveData->params.batteryTotalAvailableKWh = 77;
   if (liveData->settings.carType == CAR_SKODA_ENYAQ_55)
     liveData->params.batteryTotalAvailableKWh = 45;
   if (liveData->settings.carType == CAR_SKODA_ENYAQ_62)

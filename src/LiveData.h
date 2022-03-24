@@ -24,6 +24,11 @@
 #define CAR_KIA_EV6_58 16
 #define CAR_KIA_EV6_77 17
 
+#define CAR_AUDI_Q4_35 24
+#define CAR_AUDI_Q4_40 25
+#define CAR_AUDI_Q4_45 26
+#define CAR_AUDI_Q4_50 27
+
 #define CAR_SKODA_ENYAQ_55 18
 #define CAR_SKODA_ENYAQ_62 19
 #define CAR_SKODA_ENYAQ_82 20
