@@ -1,6 +1,9 @@
 # RELEASE NOTES
 
 ### Next version
+
+
+### v2.6.4 2022-03-24
 - SD card usage in %
 - new confirm message dialog
 - Memory usage menu item
@@ -13,6 +16,7 @@
 - MEB cell voltages - refactoring, 77kWh (96 cells) support
 - added car submenus (by manufacturer)
 - added support for Kia EV6, Skoda Enyaq iV, VW ID.4
+- added support for Audi Q4 (patrick)
 
 ### v2.6.0 2021-12-27
 - FIX added PSRAM option for M5 Core2 and TTGO T4 (BLE4+SD+Wifi is now working)
