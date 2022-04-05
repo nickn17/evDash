@@ -1,5 +1,6 @@
 #define ARDUINOJSON_USE_LONG_LONG 1
 
+#include <WiFi.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
 #include <BLEDevice.h>
@@ -356,7 +357,9 @@ void BoardInterface::customConsoleCommand(String cmd)
     showTime();
   if (cmd.equals("ntpSync"))
     ntpSync();
-  // CAN comparer
+  if (cmd.equals("ipconfig"))
+    showNet();
+    // CAN comparer
   if (cmd.equals("compare"))
     commInterface->compareCanRecords();
 
@@ -428,7 +431,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 
   jsonData["carType"] = liveData->settings.carType;
   jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
-  jsonData["currTime"] = liveData->params.currentTime;
+  jsonData["currTime"] = liveData->params.currentTime + (liveData->settings.timezone * 3600) + (liveData->settings.daylightSaving *3600);
   jsonData["opTime"] = liveData->params.operationTimeSec;
 
   jsonData["gpsSat"] = liveData->params.gpsSat;
@@ -515,6 +518,42 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   serializeJson(jsonData, file);
 
   return true;
+}
+
+/**
+ * Show Network Settings
+ */
+void BoardInterface::showNet()
+{
+
+  String prefix = "", suffix = "";
+
+  syslog->print("wifiSsid:  ");
+  syslog->println(liveData->settings.wifiSsid);
+  
+  if (liveData->settings.backupWifiEnabled == 1)
+  {
+    syslog->println("Backup wifi exists");
+    syslog->print("wifiSsid2: ");
+    syslog->println(liveData->settings.wifiSsidb);
+  }
+  else
+  {
+    syslog->println("No wifi backup configured");
+  }
+  if (liveData->params.isWifiBackupLive == true)
+  {
+      suffix = "backup";
+  }
+  else
+  {
+      suffix = "main";
+  }
+  syslog->print("Active: ");
+  syslog->println(suffix);
+  syslog->print("IP-Address: ");
+  syslog->println(WiFi.localIP().toString());
+  showTime();
 }
 
 /**

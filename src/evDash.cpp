@@ -163,6 +163,7 @@ void setup(void)
   syslog->println(".-[ HELP: Console commands ]-_.");
   syslog->println("reboot   ... reboot device");
   syslog->println("saveSettings   ... save current settings");
+  syslog->println("ipconfig   ... print network settings");
   syslog->println("debugLevel=n   [n = 0..3]  ... set debug level all, gps, comm, ...");
   syslog->println("wifiSsid=x     ... set primary AP ssid");
   syslog->println("wifiPassword=x     ... set primary AP password");
@@ -176,6 +177,7 @@ void setup(void)
   syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
   syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");
   syslog->println("time   ... print current time");
+  syslog->println("ntpSync   ... sync Time with de.pool.ntp.org");
   syslog->println("setTime=2022-12-30 05:00:00  ... set current time");
   syslog->println("record=n   [n = 1..4]  ... record can response to buffer 1..4");
   syslog->println("compare      ... compare buffers");
