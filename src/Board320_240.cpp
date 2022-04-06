@@ -152,19 +152,20 @@ void Board320_240::afterSetup()
     loadTestData();
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
-
-  // Wifi
+// Wifi
   // Starting Wifi after BLE prevents reboot loop
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-
-    if (WiFi.status() != WL_CONNECTED)
+    if (liveData->settings.backupWifiEnabled == 1)
     {
-      syslog->println("WIFI not connected to the network");
-      wifiFallback();
+        delay(4000);
+        if (WiFi.status() != WL_CONNECTED)
+        {
+          syslog->println("Wifi not connected to the network");
+          wifiFallback();
+        }
     }
-
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
@@ -3623,8 +3624,11 @@ void Board320_240::wifiFallback()
     {
       wifiSwitchToMain();
     }
-
     liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+  }
+  else
+  {
+       syslog->println("no backup WiFi configured");
   }
 }
 
