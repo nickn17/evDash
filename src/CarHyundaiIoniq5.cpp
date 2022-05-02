@@ -10,6 +10,8 @@
 
 #define commandQueueLoopFromHyundaiIoniq5 8
 
+// https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
+
 /**
    activateCommandQueue
 */
@@ -326,6 +328,18 @@ void CarHyundaiIoniq5::parseRowMerged()
         liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
         liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
       }
+
+      // Charging ON, AC/DC
+      liveData->params.getValidResponse = true;
+      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
+      liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
+      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
+                                    (bitRead(tempByte, 7) == 1); // 000_HV_Charging
+      if (liveData->params.chargingOn)
+      {
+        liveData->params.lastChargingOnTime = liveData->params.currentTime;
+      }
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
@@ -411,17 +425,6 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
       liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
       liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
-
-      // Charging ON, AC/DC
-      liveData->params.getValidResponse = true;
-      tempByte = liveData->hexToDecFromResponse(48, 50, 1, false); // bit 5 = DC; bit 6 = AC;
-      liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
-      liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
-      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && ((tempByte & 0xf) >= 5) && ((tempByte & 0xf) <= 9);
-      if (liveData->params.chargingOn)
-      {
-        liveData->params.lastChargingOnTime = liveData->params.currentTime;
-      }
 
       // log 220105 to sdcard
       tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
@@ -884,7 +887,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
         syslog->println(" POSITIVE ANSWER");
       }
     }
-  }   
+  }
   // ONE COMMAND
   else
   {
