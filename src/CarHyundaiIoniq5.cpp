@@ -330,16 +330,12 @@ void CarHyundaiIoniq5::parseRowMerged()
       }
 
       // Charging ON, AC/DC
-      liveData->params.getValidResponse = true;
+      // 2022-05 NOT WORKING value is still 0x00, found chargingOn in 220106 pos 28/Y
       tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
       liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
       liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
-      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
-                                    (bitRead(tempByte, 7) == 1); // 000_HV_Charging
-      if (liveData->params.chargingOn)
-      {
-        liveData->params.lastChargingOnTime = liveData->params.currentTime;
-      }
+      // liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
+      //                              (bitRead(tempByte, 7) == 1); // 000_HV_Charging
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
@@ -433,6 +429,13 @@ void CarHyundaiIoniq5::parseRowMerged()
     // BMS 7e4
     if (liveData->commandRequest.equals("220106"))
     {
+      liveData->params.getValidResponse = true;
+      tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
+      liveData->params.chargingOn = (bitRead(tempByte, 0) == 1);
+      if (liveData->params.chargingOn)
+      {
+        liveData->params.lastChargingOnTime = liveData->params.currentTime;
+      }
       //
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
@@ -649,7 +652,7 @@ void CarHyundaiIoniq5::loadTestData()
   parseRowMerged();
   // 220106
   liveData->commandRequest = "220106";
-  liveData->responseRowMerged = "62010617F8110016001400000000001E540000000000001200EA000000000000000000000000AAAAAA";
+  liveData->responseRowMerged = "62010617F811001A001A00004B4A0047000000000000000E00EA003100000000000000000000AAAAAA";
   parseRowMerged();
 
   // BCM / TPMS ATSH7A0
