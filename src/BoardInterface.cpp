@@ -131,7 +131,7 @@ void BoardInterface::loadSettings()
   liveData->settings.defaultScreen = 1;
   liveData->settings.lcdBrightness = 0;
   liveData->settings.predrawnChargingGraphs = 1;
-  liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
+  liveData->settings.commType = COMM_TYPE_OBD2CAN; // CAN
   liveData->settings.wifiEnabled = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
@@ -383,7 +383,14 @@ void BoardInterface::customConsoleCommand(String cmd)
   if (key == "wifiSsid2")
   {
     value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
-    liveData->settings.backupWifiEnabled = 111;
+    if (strcmp(liveData->settings.wifiSsidb, "empty") == 0)
+      {
+        liveData->settings.backupWifiEnabled = 0;
+      }
+    else
+      {
+        liveData->settings.backupWifiEnabled = 1;
+      }
   }
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
@@ -553,7 +560,6 @@ void BoardInterface::showNet()
   syslog->println(suffix);
   syslog->print("IP-Address: ");
   syslog->println(WiFi.localIP().toString());
-  showTime();
 }
 
 /**

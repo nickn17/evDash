@@ -153,18 +153,20 @@ void Board320_240::afterSetup()
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 // Wifi
-  // Starting Wifi after BLE prevents reboot loop
-  if (liveData->settings.wifiEnabled == 1)
+// Starting Wifi after BLE prevents reboot loop
+    
+    if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    if (liveData->settings.backupWifiEnabled == 1)
+    delay(4000);
+    if (WiFi.status() != WL_CONNECTED)
     {
-        delay(4000);
-        if (WiFi.status() != WL_CONNECTED)
-        {
-          syslog->println("Wifi not connected to the network");
-          wifiFallback();
-        }
+        syslog->println("Wifi not connected");
+        wifiFallback();
+    }
+    else
+    {
+        syslog->println("Wifi connected");
     }
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
