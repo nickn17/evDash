@@ -383,7 +383,7 @@ void BoardInterface::customConsoleCommand(String cmd)
   if (key == "wifiSsid2")
   {
     value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
-    liveData->settings.backupWifiEnabled = 1;
+    liveData->settings.backupWifiEnabled = 111;
   }
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
