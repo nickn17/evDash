@@ -158,7 +158,7 @@ void Board320_240::afterSetup()
 if (liveData->settings.wifiEnabled == 1)
  {
     wifiSetup();
-    if (liveData->settings.backupWifiEnabled ==1)
+    if (liveData->settings.backupWifiEnabled == 1)
     {
       delay(4000);
       if (WiFi.status() != WL_CONNECTED)
