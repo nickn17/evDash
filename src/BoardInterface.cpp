@@ -132,6 +132,7 @@ void BoardInterface::loadSettings()
   liveData->settings.lcdBrightness = 0;
   liveData->settings.predrawnChargingGraphs = 1;
   liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
+  //liveData->settings.commType = COMM_TYPE_OBD2CAN; // CAN
   liveData->settings.wifiEnabled = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
