@@ -2,6 +2,9 @@
 
 ### Next version
 
+### v2.6.5 2022-08-30
+- improved wake up from screen only sleep mode.
+- automatic clear stats between drive / charge mode (avg.kwh/100km, charging graph, etc.)
 
 ### v2.6.4 2022-03-24
 - SD card usage in %

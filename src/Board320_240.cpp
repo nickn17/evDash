@@ -152,19 +152,19 @@ void Board320_240::afterSetup()
     loadTestData();
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
-// Wifi
+  // Wifi
   // Starting Wifi after BLE prevents reboot loop
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
     if (liveData->settings.backupWifiEnabled == 1)
     {
-        delay(4000);
-        if (WiFi.status() != WL_CONNECTED)
-        {
-          syslog->println("Wifi not connected to the network");
-          wifiFallback();
-        }
+      delay(4000);
+      if (WiFi.status() != WL_CONNECTED)
+      {
+        syslog->println("Wifi not connected to the network");
+        wifiFallback();
+      }
     }
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
@@ -2844,7 +2844,7 @@ void Board320_240::redrawScreen()
         liveData->params.displayScreenAutoMode = SCREEN_CELLS;
       drawSceneBatteryCells();
     }
-    else if (liveData->params.speedKmh > 5)
+    else if (liveData->params.speedKmh > 15)
     {
       if (liveData->params.displayScreenAutoMode != SCREEN_SPEED)
         liveData->params.displayScreenAutoMode = SCREEN_SPEED;
@@ -3370,6 +3370,18 @@ void Board320_240::mainLoop()
     liveData->params.avgSpeedKmh = (double)(liveData->params.odoKm - forwardDriveOdoKmStart) /
                                    ((double)liveData->params.timeInForwardDriveMode / 3600.0);
   }
+
+  // Automatic reset charging or drive data after switch between drive / charging
+  if (liveData->params.chargingOn && liveData->params.carMode != CAR_MODE_CHARGING)
+  {
+    liveData->params.carMode = CAR_MODE_CHARGING;
+    liveData->clearDrivingAndChargingStats();
+  }
+  else if (liveData->params.forwardDriveMode && liveData->params.speedKmh > 15 && liveData->params.carMode != CAR_MODE_DRIVE)
+  {
+    liveData->params.carMode = CAR_MODE_DRIVE;
+    liveData->clearDrivingAndChargingStats();
+  }
 }
 
 /**
@@ -3628,7 +3640,7 @@ void Board320_240::wifiFallback()
   }
   else
   {
-       syslog->println("no backup WiFi configured");
+    syslog->println("no backup WiFi configured");
   }
 }
 

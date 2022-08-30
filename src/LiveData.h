@@ -65,6 +65,11 @@
 #define SCREEN_SOC10 6
 #define SCREEN_HUD 7
 
+// CAR MODE
+#define CAR_MODE_NONE 0
+#define CAR_MODE_DRIVE 1
+#define CAR_MODE_CHARGING 2
+
 // Battery management mode (liquid)
 #define BAT_MAN_MODE_NOT_IMPLEMENTED -1
 #define BAT_MAN_MODE_UNKNOWN 0
@@ -120,6 +125,7 @@ typedef struct
   time_t lastVoltageReadTime;
   time_t lastVoltageOkTime;
   // Car params
+  uint8_t carMode;
   bool sleepModeQueue;
   bool getValidResponse;
   time_t wakeUpTime;
@@ -395,5 +401,6 @@ public:
   float km2distance(float inKm);
   float celsius2temperature(float inCelsius);
   float bar2pressure(float inBar);
-  String getBatteryManagementModeStr(int8_t mode);
+  String getBatteryManagementModeStr(int8_t mode);  
+  void clearDrivingAndChargingStats();
 };

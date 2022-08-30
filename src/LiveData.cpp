@@ -52,6 +52,7 @@ void LiveData::initParams()
   params.lastVoltageReadTime = 0;
   params.lastVoltageOkTime = 0;
   // Car data
+  params.carMode = CAR_MODE_NONE;
   params.sleepModeQueue = false;
   params.getValidResponse = false;
   params.wakeUpTime = 0;
@@ -254,5 +255,25 @@ String LiveData::getBatteryManagementModeStr(int8_t mode)
     return "UNK";
   default:
     return "";
+  }
+}
+
+/**
+ * Automatic clear of driving/charging data
+ */
+void LiveData:: clearDrivingAndChargingStats()
+{
+  params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
+  params.cumulativeEnergyChargedKWhStart = params.cumulativeEnergyChargedKWh;
+  params.odoKmStart = params.odoKm;
+
+  for (int i = 0; i <= 100; i++)
+  {
+    params.chargingGraphMinKw[i] = -1;
+    params.chargingGraphMaxKw[i] = -1;
+    params.chargingGraphBatMinTempC[i] = -100;
+    params.chargingGraphBatMaxTempC[i] = -100;
+    params.chargingGraphHeaterTempC[i] = -100;
+    params.chargingGraphWaterCoolantTempC[i] = -100;
   }
 }

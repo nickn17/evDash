@@ -93,7 +93,7 @@ uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
 
 bool BoardM5stackCore2::isButtonPressed(int button)
 {
-  //M5.update();
+  // M5.update();
 
   switch (button)
   {
@@ -154,70 +154,80 @@ void BoardM5stackCore2::boardLoop()
 void BoardM5stackCore2::mainLoop()
 {
   Board320_240::mainLoop();
- 
+
   // Touch
-  if (M5.background.pressedFor(200, 500))
+  if (M5.background.pressedFor(100, 500))
   {
     liveData->params.lastButtonPushedTime = liveData->params.currentTime; // prevent screen sleep mode
 
-    if (!liveData->menuVisible)
+    // Prevent touch handler when display is waking up
+    if (currentBrightness == 0 && liveData->params.displayScreen != SCREEN_BLANK)
     {
-      liveData->params.lastButtonPushedTime = liveData->params.currentTime;
-      tft.setRotation(liveData->settings.displayRotation);
-      if (lastTouchY > 64 && lastTouchY < 220)
-      {
-        // lastTouchX < 120
-        if (lastTouchX < 120)
-        {
-          if (liveData->params.displayScreen == 0) // rotate screens
-            liveData->params.displayScreen = displayScreenCount - 1;
-          else
-            liveData->params.displayScreen--;
-          setBrightness(); // Turn off display on screen 0
-          redrawScreen();
-        }
-        // lastTouchX >= 120 && lastTouchX <= 200
-        if (lastTouchX >= 120 && lastTouchX <= 200)
-          showMenu();
-        // lastTouchX > 200
-        if (lastTouchX > 200)
-        {
-          liveData->params.displayScreen++;
-          if (liveData->params.displayScreen > displayScreenCount - 1)
-            liveData->params.displayScreen = 0; // rotate screens
-          setBrightness();                      // Turn off display on screen 0
-          redrawScreen();
-        }
-      }
+      setBrightness();
+      redrawScreen();
+      return;
     }
     else
     {
-      // Left top corner (up menu or exit menu)
-      if (lastTouchX < 64 && lastTouchY < 64)
+      // Touch handler allower
+      if (!liveData->menuVisible)
       {
-        liveData->menuItemSelected = 0;
-        menuItemClick();
-      }
-      else // Right top corner - page up
-        if (lastTouchX > 320 - 64 && lastTouchY < 64)
+        tft.setRotation(liveData->settings.displayRotation);
+        if (lastTouchY > 64 && lastTouchY < 220)
         {
-          for (uint8_t i = 0; i < menuVisibleCount; i++)
-            menuMove(false, false);
-          showMenu();
+          // lastTouchX < 120
+          if (lastTouchX < 120)
+          {
+            if (liveData->params.displayScreen == 0) // rotate screens
+              liveData->params.displayScreen = displayScreenCount - 1;
+            else
+              liveData->params.displayScreen--;
+            setBrightness(); // Turn off display on screen 0
+            redrawScreen();
+          }
+          // lastTouchX >= 120 && lastTouchX <= 200
+          if (lastTouchX >= 120 && lastTouchX <= 200)
+            showMenu();
+          // lastTouchX > 200
+          if (lastTouchX > 200)
+          {
+            liveData->params.displayScreen++;
+            if (liveData->params.displayScreen > displayScreenCount - 1)
+              liveData->params.displayScreen = 0; // rotate screens
+            setBrightness();                      // Turn off display on screen 0
+            redrawScreen();
+          }
         }
-        else // Right bottom corne - page down
-          if (lastTouchX > 320 - 64 && lastTouchY > 240 - 64)
+      }
+      else
+      {
+        // Left top corner (up menu or exit menu)
+        if (lastTouchX < 64 && lastTouchY < 64)
+        {
+          liveData->menuItemSelected = 0;
+          menuItemClick();
+        }
+        else // Right top corner - page up
+          if (lastTouchX > 320 - 64 && lastTouchY < 64)
           {
             for (uint8_t i = 0; i < menuVisibleCount; i++)
-              menuMove(true, false);
+              menuMove(false, false);
             showMenu();
           }
-          else // Click item
-          {
-            liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
-            showMenu();
-            menuItemClick();
-          }
+          else // Right bottom corne - page down
+            if (lastTouchX > 320 - 64 && lastTouchY > 240 - 64)
+            {
+              for (uint8_t i = 0; i < menuVisibleCount; i++)
+                menuMove(true, false);
+              showMenu();
+            }
+            else // Click item
+            {
+              liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
+              showMenu();
+              menuItemClick();
+            }
+      }
     }
   }
 }
