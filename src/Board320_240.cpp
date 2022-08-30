@@ -154,6 +154,7 @@ void Board320_240::afterSetup()
   }
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
+
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
@@ -162,8 +163,12 @@ void Board320_240::afterSetup()
       delay(4000);
       if (WiFi.status() != WL_CONNECTED)
       {
-        syslog->println("Wifi not connected to the network");
+        syslog->println("Main Wifi failed, trying Backup Wifi...");
         wifiFallback();
+      }
+      else
+      {
+        syslog->println("Main Wifi connected, Backup Wifi exists");
       }
     }
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());

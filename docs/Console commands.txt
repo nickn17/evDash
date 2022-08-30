@@ -1,0 +1,21 @@
+reboot				reboot device
+saveSettings			save current settings
+ipconfig			print network settings
+debugLevel=n   [n = 0..3]	set debug level all, gps, comm, ...
+wifiSsid=x			set primary AP ssid
+wifiPassword=x			set primary AP password
+wifiSsid2=x			set backup AP ssid (replace primary wifi automatically in 1-2 minutes)
+wifiPassword2=x			set backup AP password
+abrpApiToken=x			set abrp api token for live data
+gprsApn=x			set gprs (sim800l) apn
+remoteApiUrl=x			set remote api url
+remoteApiKey=x			set remote api key
+serviceUUID=x			set device uuid for obd2 ble adapter
+charTxUUID=x			set tx uuid for obd2 ble adapter
+charRxUUID=x			set rx uuid for obd2 ble adapter
+time				print current time
+ntpSync				sync Time with de.pool.ntp.org
+setTime=2022-12-30 05:00:00	set current time
+record=n   [n = 1..4]		record can response to buffer 1..4
+compare				compare buffers
+test				test handler
