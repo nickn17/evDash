@@ -360,6 +360,8 @@ void BoardInterface::customConsoleCommand(String cmd)
     ntpSync();
   if (cmd.equals("ipconfig"))
     showNet();
+  if (cmd.equals("shutdown"))
+    enterSleepMode(0);
     // CAN comparer
   if (cmd.equals("compare"))
     commInterface->compareCanRecords();

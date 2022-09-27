@@ -5,16 +5,14 @@ wifiPassword=x			set primary AP password
 wifiSsid2=x			set backup AP ssid (replace primary wifi automatically in 1-2 minutes)
 wifiPassword2=x			set backup AP password
 
-If only one wifi network is entered, evDash starts and connects to it. Ready!
+On startup evDash connects to the main wifi.
+mainLoop() does take care of wifi. If wifi is enabled and there is no connection for more than 60 seconds it calls wififallback()
+When wififallback() is called, it checks whether main or backup wifi was active last time. It tries to connect to the other.
+If only main wifi is configured it allways tries to connect to this.
 
-If two networks are entered, an attempt is made to connect to the first on startup.
+There is no need for netSendData() to take care of wifi. It is removed.
 
-Then it waits 4 seconds and checks whether there is a connection.
-If not, it does a failover and tries to connect to the second.
-Every time data is sent, it is checked whether a connection exists.
-If not, evDash switches between the two Wifi networks.
-
-If you want to delete the second Wifi again, because you only want to use one, or you want to get rid of the 4 sec. delay, you have to enter:
+If you want to delete the second Wifi again, because you only want to use one, you have to enter:
 
 wifiSsid2=empty
 
