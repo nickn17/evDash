@@ -4,7 +4,6 @@
 #include "LiveData.h"
 #include "CarInterface.h"
 #include "CommInterface.h"
-
 class BoardInterface
 {
 

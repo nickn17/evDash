@@ -158,19 +158,6 @@ void Board320_240::afterSetup()
   if (liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    if (liveData->settings.backupWifiEnabled == 1)
-    {
-      delay(4000);
-      if (WiFi.status() != WL_CONNECTED)
-      {
-        syslog->println("Main Wifi failed, trying Backup Wifi...");
-        wifiFallback();
-      }
-      else
-      {
-        syslog->println("Main Wifi connected, Backup Wifi exists");
-      }
-    }
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
   }
 
@@ -3202,6 +3189,14 @@ void Board320_240::mainLoop()
   getLocalTime(&now);
   liveData->params.currentTime = mktime(&now);
 
+
+  // Check and eventually reconnect WIFI aconnection
+
+  if (WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
+    {
+        wifiFallback();
+    }
+  
   // SIM800L + WiFI remote upload
   netLoop();
 
@@ -3619,7 +3614,6 @@ bool Board320_240::wifiSetup()
   WiFi.enableSTA(true);
   WiFi.mode(WIFI_STA);
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
-  syslog->println("WiFi init completed...");
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
   return true;
 }
@@ -3629,10 +3623,10 @@ bool Board320_240::wifiSetup()
  **/
 void Board320_240::wifiFallback()
 {
+  WiFi.disconnect(true);
+
   if (liveData->settings.backupWifiEnabled == 1)
   {
-    WiFi.disconnect(true);
-
     if (liveData->params.isWifiBackupLive == false)
     {
       wifiSwitchToBackup();
@@ -3641,11 +3635,11 @@ void Board320_240::wifiFallback()
     {
       wifiSwitchToMain();
     }
-    liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
   }
   else
   {
-    syslog->println("no backup WiFi configured");
+      // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
+      wifiSwitchToMain();
   }
 }
 
@@ -3655,8 +3649,8 @@ void Board320_240::wifiSwitchToBackup()
   syslog->println(liveData->settings.wifiSsidb);
   WiFi.begin(liveData->settings.wifiSsidb, liveData->settings.wifiPasswordb);
   liveData->params.isWifiBackupLive = true;
-  syslog->println("WiFi init completed...");
   liveData->params.wifiBackupUptime = liveData->params.currentTime;
+  liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
 }
 
 void Board320_240::wifiSwitchToMain()
@@ -3665,7 +3659,7 @@ void Board320_240::wifiSwitchToMain()
   syslog->println(liveData->settings.wifiSsid);
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
   liveData->params.isWifiBackupLive = false;
-  syslog->println("WiFi init completed...");
+  liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
 }
 
 /**
@@ -3790,7 +3784,21 @@ void Board320_240::netLoop()
 bool Board320_240::netSendData()
 {
   uint16_t rc = 0;
-
+  /*
+  syslog->println();
+  syslog->print("liveData->params.currentTime: ");
+  syslog->println(liveData->params.currentTime);
+  syslog->print("liveData->params.wifiLastConnectedTime: ");
+  syslog->println(liveData->params.wifiLastConnectedTime);
+  syslog->print("liveData->params.wifiBackupUptime: ");
+  syslog->println(liveData->params.wifiBackupUptime);
+  syslog->print("liveData->settings.backupWifiEnabled: ");
+  syslog->println(liveData->settings.backupWifiEnabled);
+  syslog->print("liveData->params.isWifiBackupLive: ");
+  syslog->println(liveData->params.isWifiBackupLive);
+  syslog->print("WiFi.status: ");
+  syslog->println(WiFi.status());
+*/
   if (liveData->params.socPerc < 0)
   {
     syslog->println("No valid data, skipping data send");
@@ -3801,28 +3809,6 @@ bool Board320_240::netSendData()
   if (liveData->settings.remoteUploadModuleType == 1)
   {
     syslog->println("Sending data to API - via WIFI");
-
-    if (WiFi.status() != WL_CONNECTED)
-    {
-      syslog->println("WIFI not connected to the network, skipping data send");
-
-      if (liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.backupWifiEnabled == 1)
-      {
-        wifiFallback();
-      }
-      return false;
-    }
-    else if (liveData->params.isWifiBackupLive == true && liveData->params.currentTime - liveData->params.wifiBackupUptime > 600)
-    {
-      syslog->println("Trying if Main wifi is accessible - switching to main");
-      wifiSwitchToMain();
-      liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
-      return false;
-    }
-    else
-    {
-      liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
-    }
   }
 
   // SIM800L
