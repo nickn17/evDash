@@ -126,6 +126,7 @@ typedef struct
   time_t lastVoltageOkTime;
   // Car params
   uint8_t carMode;
+  time_t carModeChanged;
   bool sleepModeQueue;
   bool getValidResponse;
   time_t wakeUpTime;
@@ -402,5 +403,5 @@ public:
   float celsius2temperature(float inCelsius);
   float bar2pressure(float inBar);
   String getBatteryManagementModeStr(int8_t mode);  
-  void clearDrivingAndChargingStats();
+  void clearDrivingAndChargingStats(int newCarMode);
 };
