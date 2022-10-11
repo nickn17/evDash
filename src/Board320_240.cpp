@@ -3304,11 +3304,11 @@ void Board320_240::mainLoop()
     }
   }
   // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
-  if (liveData->settings.voltmeterEnabled == 1 &&liveData->settings.voltmeterBasedSleep == 1 &&
-      liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
+      liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0 &&
+      liveData->params.stopCommandQueue == true)
   {
       liveData->params.stopCommandQueue = false;
-      liveData->params.lastButtonPushedTime = liveData->params.currentTime;
   }
   // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
@@ -3405,7 +3405,8 @@ void Board320_240::mainLoop()
     liveData->clearDrivingAndChargingStats(CAR_MODE_DRIVE);
   }
   else if (!liveData->params.chargingOn && !liveData->params.forwardDriveMode && liveData->params.carMode != CAR_MODE_NONE &&
-           liveData->params.currentTime - liveData->params.carModeChanged > 1800)
+           liveData->params.currentTime - liveData->params.carModeChanged > 1800 &&
+           liveData->params.currentTime - liveData->params.carModeChanged < 10*24*3600)
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_NONE);
   }
