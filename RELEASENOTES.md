@@ -2,9 +2,15 @@
 
 ### Next version
 
+### v2.6.6 2022-10-11
+- speed screen - added aux voltage
+- speed screen - added trip distance in km
+- automatic clear of stats after longer standing (half hour)
+- automatic wake up from "sleep mode only" when external voltmeter (INA3221) detects DC2DC charging
+
 ### v2.6.5 2022-08-30
-- improved wake up from screen only sleep mode.
-- automatic clear stats between drive / charge mode (avg.kwh/100km, charging graph, etc.)
+- improved wake up from "sleep mode only" mode
+- automatic clear of stats between drive / charge mode (avg.kwh/100km, charging graph, etc.)
 
 ### v2.6.4 2022-03-24
 - SD card usage in %

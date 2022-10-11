@@ -974,6 +974,12 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TL_DATUM);
   sprintf(tmpStr3, (liveData->params.odoKm == -1) ? "n/a km" : ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
   spr.drawString(tmpStr3, posx, posy, GFXFF);
+  if (liveData->params.odoKm > 0 && liveData->params.odoKmStart > 0 && liveData->params.speedKmhGPS < 100)
+  {
+    sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00f" : "%01.00f"), liveData->km2distance(liveData->params.odoKm - liveData->params.odoKmStart));
+    spr.drawString(tmpStr3, posx, posy + 20, GFXFF);
+  }
+
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)
   {
@@ -985,6 +991,16 @@ void Board320_240::drawSceneSpeed()
   {
     sprintf(tmpStr3, "%01.00frpm", liveData->params.motorRpm);
     spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
+  }
+
+  // AUX voltage
+  if (liveData->params.auxVoltage > 5 && liveData->params.speedKmhGPS < 100)
+  {
+    posy = 80;
+    sprintf(tmpStr3, "%01.01f", liveData->params.auxVoltage);
+    spr.setTextDatum(TL_DATUM);
+    spr.drawString(tmpStr3, posx, posy, GFXFF);
+    spr.drawString("aux V", 0, posy + 20, 2);
   }
 
   // Avg speed
@@ -3287,6 +3303,14 @@ void Board320_240::mainLoop()
       syslog->println((liveData->params.stopCommandQueue ? "stopped" : "running"));
     }
   }
+  // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
+  if (liveData->settings.voltmeterEnabled == 1 &&liveData->settings.voltmeterBasedSleep == 1 &&
+      liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0)
+  {
+      liveData->params.stopCommandQueue = false;
+      liveData->params.lastButtonPushedTime = liveData->params.currentTime;
+  }
+  // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
       liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 &&
@@ -3371,16 +3395,19 @@ void Board320_240::mainLoop()
                                    ((double)liveData->params.timeInForwardDriveMode / 3600.0);
   }
 
-  // Automatic reset charging or drive data after switch between drive / charging
+  // Automatic reset charging or drive data after switch between drive / charging or longer standing (1800 seconds)
   if (liveData->params.chargingOn && liveData->params.carMode != CAR_MODE_CHARGING)
   {
-    liveData->params.carMode = CAR_MODE_CHARGING;
-    liveData->clearDrivingAndChargingStats();
+    liveData->clearDrivingAndChargingStats(CAR_MODE_CHARGING);
   }
   else if (liveData->params.forwardDriveMode && liveData->params.speedKmh > 15 && liveData->params.carMode != CAR_MODE_DRIVE)
   {
-    liveData->params.carMode = CAR_MODE_DRIVE;
-    liveData->clearDrivingAndChargingStats();
+    liveData->clearDrivingAndChargingStats(CAR_MODE_DRIVE);
+  }
+  else if (!liveData->params.chargingOn && !liveData->params.forwardDriveMode && liveData->params.carMode != CAR_MODE_NONE &&
+           liveData->params.currentTime - liveData->params.carModeChanged > 1800)
+  {
+    liveData->clearDrivingAndChargingStats(CAR_MODE_NONE);
   }
 }
 

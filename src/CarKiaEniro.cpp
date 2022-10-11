@@ -702,6 +702,7 @@ void CarKiaEniro::loadTestData()
   liveData->params.leftRearDoorOpen = true;
   liveData->params.rightRearDoorOpen = true;
   liveData->params.hoodDoorOpen = true;
+  liveData->params.auxVoltage = 12.7;
 }
 
 /**

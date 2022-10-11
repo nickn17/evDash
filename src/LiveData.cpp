@@ -261,8 +261,11 @@ String LiveData::getBatteryManagementModeStr(int8_t mode)
 /**
  * Automatic clear of driving/charging data
  */
-void LiveData:: clearDrivingAndChargingStats()
+void LiveData::clearDrivingAndChargingStats(int newCarMode)
 {
+  params.carMode = newCarMode;
+  params.carModeChanged = params.currentTime;
+
   params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
   params.cumulativeEnergyChargedKWhStart = params.cumulativeEnergyChargedKWh;
   params.odoKmStart = params.odoKm;
