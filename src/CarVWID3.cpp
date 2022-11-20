@@ -334,7 +334,7 @@ void CarVWID3::parseRowMerged()
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5; // SOC BMS
       //liveData->params.socPerc = liveData->params.socPercBms * 51 / 46 - 6.4;             // SOC HMI
-      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false)-140; // SOC HMI (test of new calculation)
+      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false)*0,4348 - 4,3478; // SOC HMI (test of new calculation)
        
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
