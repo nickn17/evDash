@@ -2,21 +2,28 @@
 
 [env:m5stack-core2]
 platform = espressif32
-board = m5stack-core-esp32
-board_build.partitions = default_16MB.csv
-#no_ota.csv
+board = m5stack-core2
+board_build.partitions = default_16MB.csv    ;no_ota.csv
+board_build.f_cpu = 80000000L         ;240M(WiFi OK), 160M(WiFi OK), 80M(WiFi OK), 40M, 20M, 10M
+board_build.f_flash = 80000000L       ;80M, 40M
+board_build.flash_mode = dio          ;io, qout, dio, dout
+lib_ldf_mode = deep
 framework = arduino
 build_flags = 
+;    -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
+;    -DARDUINO_RUNNING_CORE=1         ;0:Core0, 1:Core1(default)
+;    -DARDUINO_EVENT_RUNNING_CORE=1   ;0:Core0, 1:Core1(default)
 	-D BOARD_M5STACK_CORE2
 	-D BOARD_HAS_PSRAM
     -mfix-esp32-psram-cache-issue
+    -mfix-esp32-psram-cache-strategy=memw	
 	-D COMMU_CS_PIN=27
 	-D COMMU_INT_PIN=2
 	-D SERIAL2_RX=13
 	-D SERIAL2_TX=14
 	-D SIM800L_RST=26
 lib_deps = 
-;	https://github.com/m5stack/M5Core2
+	m5stack/M5Core2
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
@@ -26,9 +33,9 @@ lib_deps =
 
 ;targets = upload
 upload_protocol = esptool
-upload_port = COM12
-upload_speed = 921600
-monitor_port = COM12
+upload_port = COM6
+monitor_port = COM6
+upload_speed = 1500000		;921600
 monitor_speed = 115200
 
 ; M5Stack configuration
@@ -36,6 +43,10 @@ monitor_speed = 115200
 platform = espressif32
 board = m5stack-core-esp32
 board_build.partitions = no_ota.csv
+board_build.f_cpu = 80000000L         ;240M(WiFi OK), 160M(WiFi OK), 80M(WiFi OK), 40M, 20M, 10M
+board_build.f_flash = 80000000L       ;80M, 40M
+board_build.flash_mode = dio          ;io, qout, dio, dout
+lib_ldf_mode = deep
 framework = arduino
 build_flags = 
 	-D BOARD_M5STACK_CORE
@@ -45,13 +56,20 @@ build_flags =
 	-D SERIAL2_TX=17
 	-D SIM800L_RST=5
 lib_deps = 
-	https://github.com/m5stack/M5Stack
+	m5stack/M5Stack
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
+
+;targets = upload
+upload_protocol = esptool
+upload_port = COM10
+upload_speed = 921600
+monitor_port = COM10
+monitor_speed = 115200	
 
 ; TTGO-T4 v1.3 configuration
 [env:ttgo-t4-v13]
