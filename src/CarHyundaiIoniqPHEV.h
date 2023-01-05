@@ -2,7 +2,7 @@
 
 #include "CarInterface.h"
 
-class CarHyundaiIoniq : public CarInterface {
+class CarHyundaiIoniqPHEV : public CarInterface {
   
   protected:
     time_t lastAllowTpms;

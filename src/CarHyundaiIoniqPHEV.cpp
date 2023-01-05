@@ -1,4 +1,4 @@
-#include "CarHyundaiIoniq.h"
+#include "CarHyundaiIoniqPHEV.h"
 #include <vector>
 
 #define commandQueueLoopFromHyundaiIoniq 8
@@ -6,7 +6,7 @@
 /**
    activateliveData->commandQueue
 */
-void CarHyundaiIoniq::activateCommandQueue()
+void CarHyundaiIoniqPHEV::activateCommandQueue()
 {
 
   // Optimizer
@@ -72,9 +72,11 @@ void CarHyundaiIoniq::activateCommandQueue()
   };
 
   // 28kWh version
-  liveData->params.batteryTotalAvailableKWh = 28;
-  liveData->params.batModuleTempCount = 12;
-  liveData->params.cellCount = 98;
+  liveData->params.batteryTotalAvailableKWh = 8.9;
+  liveData->params.batModuleTempCount = 7;
+  liveData->params.cellCount = 96;
+
+// 360V and the Capacity is 24,7 Ah, so 24,7 Ah x 360 V = 8892Wh = 8,9 kWh. So with this data, 8892 Wh / 96 cells = 96 Wh per cell
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -90,7 +92,7 @@ void CarHyundaiIoniq::activateCommandQueue()
 /**
    parseRowMerged
 */
-void CarHyundaiIoniq::parseRowMerged()
+void CarHyundaiIoniqPHEV::parseRowMerged()
 {
 
   uint8_t tempByte;
@@ -174,6 +176,10 @@ void CarHyundaiIoniq::parseRowMerged()
     if (liveData->commandRequest.equals("22B002"))
     {
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
+      syslog->print("KM: ");
+      syslog->println(liveData->params.odoKm);
+      syslog->println(liveData->responseRowMerged.substring(18, 24));
+      
     }
   }
 
@@ -198,6 +204,7 @@ void CarHyundaiIoniq::parseRowMerged()
     if (liveData->commandRequest.equals("2101"))
     {
       liveData->params.socPercBms = liveData->hexToDecFromResponse(12, 14, 1, false) / 2.0;
+      syslog->print(liveData->responseRowMerged.substring(12, 14).c_str());
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(80, 88) / 10.0;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(88, 96) / 10.0;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
@@ -365,7 +372,7 @@ void CarHyundaiIoniq::parseRowMerged()
 /**
    Is command from queue allowed for execute, or continue with next
 */
-bool CarHyundaiIoniq::commandAllowed()
+bool CarHyundaiIoniqPHEV::commandAllowed()
 {
 
   /* syslog->print("Command allowed: ");
@@ -392,14 +399,14 @@ bool CarHyundaiIoniq::commandAllowed()
     return false;
   }
 
-  // TPMS (once per 29 secs.)
+  // TPMS (once per 120 secs.)
   if (liveData->commandRequest.equals("ATSH7A0"))
   {
-    return lastAllowTpms + 29 < liveData->params.currentTime;
+    return lastAllowTpms + 120 < liveData->params.currentTime;
   }
   if (liveData->currentAtshRequest.equals("ATSH7A0") && liveData->commandRequest.equals("22c00b"))
   {
-    if (lastAllowTpms + 29 < liveData->params.currentTime)
+    if (lastAllowTpms + 120 < liveData->params.currentTime)
     {
       lastAllowTpms = liveData->params.currentTime;
     }
@@ -409,14 +416,14 @@ bool CarHyundaiIoniq::commandAllowed()
     }
   }
 
-  // ODO (onec per 12 secs.)
+  // ODO (onec per 22 secs.)
   if (liveData->commandRequest.equals("ATSH7C6"))
   {
-    return lastAllowOdo + 12 < liveData->params.currentTime;
+    return lastAllowOdo + 22 < liveData->params.currentTime;
   }
   if (liveData->currentAtshRequest.equals("ATSH7C6") && liveData->commandRequest.equals("22B002"))
   {
-    if (lastAllowOdo + 12 < liveData->params.currentTime)
+    if (lastAllowOdo + 22 < liveData->params.currentTime)
     {
       lastAllowOdo = liveData->params.currentTime;
     }
@@ -483,9 +490,10 @@ bool CarHyundaiIoniq::commandAllowed()
 /**
    loadTestData
 */
-void CarHyundaiIoniq::loadTestData()
+void CarHyundaiIoniqPHEV::loadTestData()
 {
 
+ 
   // VMCU ATSH7E2
   liveData->currentAtshRequest = "ATSH7E2";
   // 2101
@@ -504,7 +512,8 @@ void CarHyundaiIoniq::loadTestData()
   liveData->currentAtshRequest = "ATSH7B3";
   // 220100
   liveData->commandRequest = "220100";
-  liveData->responseRowMerged = "6201007E5007C8FF7A665D00A981FFFF81FF10FFFFFFFFFFFFFFFFFF44CAA7AD00FFFF01FFFF000000";
+  //liveData->responseRowMerged = "6201007E5007C8FF7A665D00A981FFFF81FF10FFFFFFFFFFFFFFFFFF44CAA7AD00FFFF01FFFF000000";
+    liveData->responseRowMerged = "6201007FD0071E8FF726A6C00882EF0088EFFF10FF3FFFFFFFFFFFFFF4FF32556E6E00535FF00FFFF000000";
   parseRowMerged();
   // 220102
   liveData->commandRequest = "220102";
@@ -515,48 +524,64 @@ void CarHyundaiIoniq::loadTestData()
   liveData->currentAtshRequest = "ATSH7E4";
   // 220101
   liveData->commandRequest = "2101";
-  liveData->responseRowMerged = "6101FFFFFFFFBD136826480300220F600B0B0B0B0B0B0B000CCD05CC0A00009100012C4A00012A1800006F37000069F700346CC30D01890000000003E800";
+  //liveData->responseRowMerged = "6101FFFFFFFFBD136826480300220F600B0B0B0B0B0B0B000CCD05CC0A00009100012C4A00012A1800006F37000069F700346CC30D01890000000003E800";
+  liveData->responseRowMerged   = "6101FFFFFFFFB711B016F80300040F4B101010100F10100016CC10CB1900FF8F00038C8D00038BF0000146A500013DF000D172A46D01870000000003E800";//phev
   parseRowMerged();
   // 220102
   liveData->commandRequest = "2102";
-  liveData->responseRowMerged = "6102FFFFFFFFCDCDCDCDCDCDCDCDCDCCCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCCCDCDCD000000";
+  //liveData->responseRowMerged = "6102FFFFFFFFCDCDCDCDCDCDCDCDCDCCCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCCCDCDCD000000";
+  liveData->responseRowMerged = "6102FFFFFFFFCBCCCBCCCBCBCCCBCBCBCCCBCCCBCBCCCBCBCBCCCBCBCCCBCBCCCBCBCBCBCBCC000000";
   parseRowMerged();
   // 220103
   liveData->commandRequest = "2103";
-  liveData->responseRowMerged = "6103FFFFFFFFCDCDCDCDCDCDCCCDCDCDCDCDCDCDCDCDCCCDCDCCCDCDCDCDCDCDCDCCCDCDCDCC000000";
+  //liveData->responseRowMerged = "6103FFFFFFFFCDCDCDCDCDCDCCCDCDCDCDCDCDCDCDCDCCCDCDCCCDCDCDCDCDCDCDCCCDCDCDCC000000";
+  liveData->responseRowMerged = "6103FFFFFFFFCBCBCBCCCCCBCBCBCBCBCBCBCBCBCBCBCBCCCBCBCBCBCCCBCBCCCCCCCBCCCCCB000000";
   parseRowMerged();
   // 220104
   liveData->commandRequest = "2104";
-  liveData->responseRowMerged = "6104FFFFFFFFCDCDCDCDCDCDCDCDCDCDCCCCCDCDCCCDCDCDCDCDCDCDCDCDCDCDCDCCCCCCCDCD000000";
+  //liveData->responseRowMerged = "6104FFFFFFFFCDCDCDCDCDCDCDCDCDCDCCCCCDCDCCCDCDCDCDCDCDCDCDCDCDCDCDCCCCCCCDCD000000";
+  liveData->responseRowMerged = "6104FFFFFFFFCBCBCBCCCBCBCBCBCBCCCBCBCBCBCBCCCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCB000000";
   parseRowMerged();
   // 220105
   liveData->commandRequest = "2105";
-  liveData->responseRowMerged = "6105FFFFFFFF00000000000B0B0B0B0B0B0B136826480001500B0B03E80203E831C60031000000000000000000000000";
+  //liveData->responseRowMerged = "6105FFFFFFFF00000000000B0B0B0B0B0B0B136826480001500B0B03E80203E831C60031000000000000000000000000";
+  liveData->responseRowMerged = "6105FFFFFFFF0064010064011011BA16F800110000000000000000FF0F0000000042006A1003E852C000000000000000";
   parseRowMerged();
 
   // BCM / TPMS ATSH7A0
   liveData->currentAtshRequest = "ATSH7A0";
   // 22c00b
   liveData->commandRequest = "22c00b";
-  liveData->responseRowMerged = "62C00BFFFF0000B73D0100B63D0100B43D0100B53C0100AAAAAAAA";
+  //liveData->responseRowMerged = "62C00BFFFF0000B73D0100B63D0100B43D0100B53C0100AAAAAAAA";
+  liveData->responseRowMerged = "62C00BFFFF0000B14A0100B1450100B0450100B1470100AAAAAAAA";//phev
   parseRowMerged();
 
   // ATSH7C6
   liveData->currentAtshRequest = "ATSH7C6";
   // 22b002
   liveData->commandRequest = "22B002";
-  liveData->responseRowMerged = "62B002E000000000AA003B0B0000000000000000";
+  //liveData->responseRowMerged = "62B002E000000000AA003B0B0000000000000000";
+   //liveData->responseRowMerged =  "62B002E00010027A90113F800200000000000000";
+  liveData->responseRowMerged =     "62B002E000010027A90113F800200000000000000";
+                                
   parseRowMerged();
 
   // ATSH770
   liveData->currentAtshRequest = "ATSH770";
   liveData->commandRequest = "22BC03";
-  liveData->responseRowMerged = "62BC03FDEE3C7300600000AAAA";
+  //liveData->responseRowMerged = "62BC03FDEE3C7300600000AAAA";
+  liveData->responseRowMerged =   "62BC03FFEE3C7340600000AAAA";//phev
   parseRowMerged();
   liveData->commandRequest = "22BC06";
-  liveData->responseRowMerged = "62BC06B480000000000000AAAA";
+  //liveData->responseRowMerged = "62BC06B480000000000000AAAA";
+  liveData->responseRowMerged =   "62BC06B480000000000000AAAA";  
   parseRowMerged();
 
+  liveData->currentAtshRequest = "ATSH7D1";
+  liveData->commandRequest = "22C101";
+  liveData->responseRowMerged = "62C101FBD7E7600000001101EAFF00000000FF7FFF0030F4000000FFFF8E0307FB07FAFFFF0000FFFFFF000000000000";
+
+  parseRowMerged();
   /*  liveData->params.batModule01TempC = 28;
     liveData->params.batModule02TempC = 29;
     liveData->params.batModule03TempC = 28;

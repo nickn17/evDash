@@ -1669,6 +1669,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_IONIQ_2018_28:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
     break;
+  case VEHICLE_TYPE_IONIQ_2018_PHEV:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV) ? ">" : "";
+    break;    
   case VEHICLE_TYPE_KONA_2020_64:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) ? ">" : "";
     break;
@@ -2223,6 +2226,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_IONIQ_2018_PHEV:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ_PHEV;
+      showMenu();
+      return;
+      break;      
     case VEHICLE_TYPE_KONA_2020_64:
       liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64;
       showMenu();
@@ -3291,7 +3299,7 @@ void Board320_240::mainLoop()
 
     liveData->params.lastVoltageReadTime = liveData->params.currentTime;
 
-    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
+    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018 || liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV)
     {
       float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); // min 11.6V; max: 12.8V
 
@@ -4011,6 +4019,10 @@ bool Board320_240::netSendData()
     case CAR_HYUNDAI_IONIQ_2018:
       jsonData["car_model"] = "hyundai:ioniq:17:28:other";
       break;
+    case CAR_HYUNDAI_IONIQ_PHEV:
+      jsonData["car_model"] = "hyundai:phev:17:28:other";
+      break;
+ 
     case CAR_HYUNDAI_IONIQ5_58:
       jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
       break;

@@ -325,7 +325,7 @@ uint8_t CommObd2Can::receivePID()
     }
 
     // Filter received messages (Ioniq only)
-    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
+    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018 || liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV)
     {
       long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
 
