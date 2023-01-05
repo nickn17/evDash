@@ -79,7 +79,7 @@ void Board320_240::afterSetup()
 {
   // Check if board was sleeping
   bool afterSetup = false;
-
+  syslog->println(" START -> Board320_240::afterSetup ");
   syslog->print("Boot count: ");
   syslog->println(bootCount);
   syslog->print("SleepMode: ");
@@ -120,6 +120,8 @@ void Board320_240::afterSetup()
     // Wake or go to sleep again
     afterSleep();
     sleepCount = 0;
+    syslog->println(" END -> Board320_240::afterSetup ");
+
   }
 
   wakeupBoard();
@@ -205,6 +207,7 @@ void Board320_240::afterSetup()
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   liveData->params.booting = false;
+  syslog->println(" END -> Board320_240::afterSetup ");
 }
 
 /**
@@ -3066,6 +3069,20 @@ void Board320_240::commLoop()
 void Board320_240::boardLoop()
 {
   // touch events, m5.update
+  //   syslog->println("PASA POR AQUI");
+  M5.update(); // PONER AQUI 
+/*
+        Event& e = M5.Buttons.event;
+      if (e & (E_ALL)){
+        syslog->println();
+        syslog->printf("**** %-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
+                      e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
+                      e.to.x, e.to.y);
+        syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
+                      e.distance(), e.duration);
+     }
+     */
+   //  syslog->println("SALE DE AQUI");
 }
 
 /**
@@ -3073,6 +3090,12 @@ void Board320_240::boardLoop()
   */
 void Board320_240::mainLoop()
 {
+
+  
+ // syslog->print("START ");
+ // syslog->println("Board320_240::mainLoop");
+  
+
   boardLoop();
 
   ///////////////////////////////////////////////////////////////////////
@@ -3410,6 +3433,11 @@ void Board320_240::mainLoop()
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_NONE);
   }
+
+
+  //syslog->print("END ");
+  //syslog->println("Board320_240::mainLoop");
+
 }
 
 /**

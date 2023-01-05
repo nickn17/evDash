@@ -58,20 +58,26 @@ void BoardM5stackCore2::afterSetup()
 {
 
   Board320_240::afterSetup();
-
-  M5.background.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+  M5.begin();
+  syslog->println(" START -> BoardM5stackCore2::afterSetup ");
+  M5.background.addHandler(eventDisplay, (E_ALL) /* - E_MOVE*/);
   M5.BtnA.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
   M5.BtnB.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
   M5.BtnC.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+ // M5.Buttons.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+    syslog->println(" END -> BoardM5stackCore2::afterSetup ");  
 }
 
 void BoardM5stackCore2::wakeupBoard()
 {
+
+  syslog->println(" START -> BoardM5stackCore2::wakeupBoard ");  
   M5.Axp.SetLcdVoltage(2500);
   M5.Axp.SetLCDRSet(0);
   delay(100);
   M5.Axp.SetLCDRSet(1);
   M5.Touch.begin();
+  syslog->println(" END -> BoardM5stackCore2::wakeupBoard ");  
 }
 
 void BoardM5stackCore2::Write1Byte(uint8_t Addr, uint8_t Data)
@@ -98,13 +104,31 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   switch (button)
   {
   case BUTTON_LEFT:
-    return M5.BtnA.pressedFor(200, 500);
+    if(M5.BtnA.wasReleased() || M5.BtnA.pressedFor(200,700)){
+      syslog->println(" Button A ");  
+      return true;    
+    }else{
+      return false;
+    }
+    //return M5.BtnA.releasedFor(300);
     break;
   case BUTTON_MIDDLE:
-    return M5.BtnB.pressedFor(200, 500);
+    if(M5.BtnB.wasReleased()){
+      syslog->println(" Button B ");  
+      return true;    
+    }else{
+      return false;   
+    }
+    //return M5.BtnB.releasedFor(300);
     break;
   case BUTTON_RIGHT:
-    return M5.BtnC.pressedFor(200, 500);
+    if(M5.BtnC.wasReleased()|| M5.BtnC.pressedFor(200,700)){
+      syslog->println(" Button C ");  
+      return true;   
+    }else{
+      return false;
+    }
+    //return M5.BtnC.releasedFor(300);
     break;
   default:
     return false;
@@ -115,15 +139,17 @@ bool BoardM5stackCore2::isButtonPressed(int button)
 void BoardM5stackCore2::eventDisplay(Event &e)
 {
 
+      syslog->println(" BoardM5stackCore2::eventDisplay ");  
+
   lastTouchX = e.to.x;
   lastTouchY = e.to.y;
 
-  /*syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
+  syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
                  e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
                  e.to.x, e.to.y);
   syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
                  e.distance(), e.duration);
-                 */
+                 
 }
 
 void BoardM5stackCore2::enterSleepMode(int secs)
@@ -148,88 +174,109 @@ void BoardM5stackCore2::enterSleepMode(int secs)
 void BoardM5stackCore2::boardLoop()
 {
   Board320_240::boardLoop();
-  M5.update();
+  //M5.update(); QUITAR DE AQUÍ
 }
 
 void BoardM5stackCore2::mainLoop()
 {
   Board320_240::mainLoop();
 
-  // Touch
-  if (M5.background.pressedFor(100, 500))
-  {
-    liveData->params.lastButtonPushedTime = liveData->params.currentTime; // prevent screen sleep mode
+ // syslog->print("START ");
+ // syslog->println("BoardM5stackCore2::mainLoop");
 
-    // Prevent touch handler when display is waking up
-    if (currentBrightness == 0 && liveData->params.displayScreen != SCREEN_BLANK)
-    {
-      setBrightness();
-      redrawScreen();
-      return;
-    }
-    else
-    {
-      // Touch handler allower
-      if (!liveData->menuVisible)
+  if(1==1){
+        
+
+      // Touch
+      if ( M5.background.pressedFor(100, 500) )
       {
-        tft.setRotation(liveData->settings.displayRotation);
-        if (lastTouchY > 64 && lastTouchY < 220)
+        syslog->println("<<<<------ENTRA------>>>> ");  
+        liveData->params.lastButtonPushedTime = liveData->params.currentTime; // prevent screen sleep mode
+
+        // Prevent touch handler when display is waking up
+        if (currentBrightness == 0 && liveData->params.displayScreen != SCREEN_BLANK)
         {
-          // lastTouchX < 120
-          if (lastTouchX < 120)
-          {
-            if (liveData->params.displayScreen == 0) // rotate screens
-              liveData->params.displayScreen = displayScreenCount - 1;
-            else
-              liveData->params.displayScreen--;
-            setBrightness(); // Turn off display on screen 0
-            redrawScreen();
-          }
-          // lastTouchX >= 120 && lastTouchX <= 200
-          if (lastTouchX >= 120 && lastTouchX <= 200)
-            showMenu();
-          // lastTouchX > 200
-          if (lastTouchX > 200)
-          {
-            liveData->params.displayScreen++;
-            if (liveData->params.displayScreen > displayScreenCount - 1)
-              liveData->params.displayScreen = 0; // rotate screens
-            setBrightness();                      // Turn off display on screen 0
-            redrawScreen();
-          }
+          setBrightness();
+          redrawScreen();
+          return;
         }
-      }
-      else
-      {
-        // Left top corner (up menu or exit menu)
-        if (lastTouchX < 64 && lastTouchY < 64)
+        else
         {
-          liveData->menuItemSelected = 0;
-          menuItemClick();
-        }
-        else // Right top corner - page up
-          if (lastTouchX > 320 - 64 && lastTouchY < 64)
+          syslog->print("<<<<------ENTRA 1------>>>> "); 
+          syslog->print("X: ");
+          syslog->print(lastTouchX);
+          syslog->print("  Y: ");
+          syslog->println(lastTouchY);          
+          // Touch handler allower
+          if (!liveData->menuVisible)
           {
-            for (uint8_t i = 0; i < menuVisibleCount; i++)
-              menuMove(false, false);
-            showMenu();
-          }
-          else // Right bottom corne - page down
-            if (lastTouchX > 320 - 64 && lastTouchY > 240 - 64)
+            tft.setRotation(liveData->settings.displayRotation);
+            if (lastTouchY > 64 && lastTouchY < 220)
             {
-              for (uint8_t i = 0; i < menuVisibleCount; i++)
-                menuMove(true, false);
-              showMenu();
+            syslog->println("<<<<------ENTRA 2------>>>> "); 
+
+            
+              // lastTouchX < 120
+              if (lastTouchX < 120)
+              {
+                if (liveData->params.displayScreen == 0) // rotate screens
+                  liveData->params.displayScreen = displayScreenCount - 1;
+                else
+                  liveData->params.displayScreen--;
+                setBrightness(); // Turn off display on screen 0
+                redrawScreen();
+              }
+              // lastTouchX >= 120 && lastTouchX <= 200
+              if (lastTouchX >= 120 && lastTouchX <= 200)
+                showMenu();
+              // lastTouchX > 200
+              if (lastTouchX > 200)
+              {
+                syslog->print("<<<<------ENTRA 3------>>>> ");   
+                liveData->params.displayScreen++;
+                if (liveData->params.displayScreen > displayScreenCount - 1)
+                  liveData->params.displayScreen = 0; // rotate screens
+                setBrightness();                      // Turn off display on screen 0
+                redrawScreen();
+              }
             }
-            else // Click item
+          }
+          else
+          {
+            // Left top corner (up menu or exit menu)
+            if (lastTouchX < 64 && lastTouchY < 64)
             {
-              liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
-              showMenu();
+              liveData->menuItemSelected = 0;
               menuItemClick();
             }
+            else // Right top corner - page up
+              if (lastTouchX > 320 - 64 && lastTouchY < 64)
+              {
+                for (uint8_t i = 0; i < menuVisibleCount; i++)
+                  menuMove(false, false);
+                showMenu();
+              }
+              else // Right bottom corne - page down
+                if (lastTouchX > 320 - 64 && lastTouchY > 240 - 64)
+                {
+                  for (uint8_t i = 0; i < menuVisibleCount; i++)
+                    menuMove(true, false);
+                  showMenu();
+                }
+                else // Click item
+                {
+                  liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
+                  showMenu();
+                  menuItemClick();
+                }
+          }
+        }
       }
-    }
+
   }
+
+  //syslog->print("END ");
+  //syslog->println("BoardM5stackCore2::mainLoop");
 }
 
 /**

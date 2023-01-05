@@ -225,47 +225,53 @@ void CommObd2Ble4::scanDevices()
 void CommObd2Ble4::startBleScan()
 {
 
-  liveData->foundMyBleDevice = NULL;
-  liveData->scanningDeviceIndex = 0;
-  board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
-  syslog->printf("Total/free heap: %i/%i-%i\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  if(1==1){
 
-  // Start scanning
-  syslog->println("Scanning BLE devices...");
-  syslog->print("Looking for ");
-  syslog->println(liveData->settings.obdMacAddress);
-  BLEScanResults foundDevices = liveData->pBLEScan->start(40, false);
-  syslog->print("Devices found: ");
-  syslog->println(foundDevices.getCount());
-  syslog->println("Scan done!");
-  liveData->pBLEScan->clearResults(); // delete results fromBLEScan buffer to release memory
+      
+      liveData->foundMyBleDevice = NULL;
+      liveData->scanningDeviceIndex = 0;
+      board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
 
-  char tmpStr1[20];
-  sprintf(tmpStr1, "Found %d devices", foundDevices.getCount());
-  board->displayMessage(" > Scanning BLE4 devices", tmpStr1);
+      syslog->printf("Total/free heap: %i/%i-%i\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-  // Scan devices from menu, show list of devices
-  if (liveData->menuCurrent == 9999)
-  {
-    syslog->println("Display menu with devices");
-    liveData->menuVisible = true;
-    // liveData->menuCurrent = 9999;
-    liveData->menuItemSelected = 0;
-    board->showMenu();
-  }
-  else
-  {
-    // Redraw screen
-    if (liveData->foundMyBleDevice == NULL)
-    {
-      board->displayMessage("Device not found", "Middle button - menu");
-    }
-    else
-    {
-      board->redrawScreen();
-    }
-  }
+      // Start scanning
+      syslog->println("Scanning BLE devices...");
+      syslog->print("Looking for ");
+      syslog->println(liveData->settings.obdMacAddress);
+      BLEScanResults foundDevices = liveData->pBLEScan->start(40, false);
+      syslog->print("Devices found: ");
+      syslog->println(foundDevices.getCount());
+      syslog->println("Scan done!");
+      liveData->pBLEScan->clearResults(); // delete results fromBLEScan buffer to release memory
+
+      char tmpStr1[20];
+      sprintf(tmpStr1, "Found %d devices", foundDevices.getCount());
+      board->displayMessage(" > Scanning BLE4 devices", tmpStr1);
+
+      // Scan devices from menu, show list of devices
+      if (liveData->menuCurrent == 9999)
+      {
+        syslog->println("Display menu with devices");
+        liveData->menuVisible = true;
+        // liveData->menuCurrent = 9999;
+        liveData->menuItemSelected = 0;
+        board->showMenu();
+      }
+      else
+      {
+        // Redraw screen
+        if (liveData->foundMyBleDevice == NULL)
+        {
+          board->displayMessage("Device not found", "Middle button - menu");
+        }
+        else
+        {
+          board->redrawScreen();
+        }
+      }
+
+  }    
 }
 
 /**

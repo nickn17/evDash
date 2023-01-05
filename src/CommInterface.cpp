@@ -37,7 +37,7 @@ void CommInterface::mainLoop()
       board->customConsoleCommand(response);
       response = response + ch;
       syslog->info(DEBUG_COMM, response);
-      executeCommand(response);
+      //executeCommand(response);
       response = "";
     }
     else

@@ -124,16 +124,16 @@ void BoardInterface::loadSettings()
   tmpStr.toCharArray(liveData->settings.charTxUUID, tmpStr.length() + 1);
   tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
   tmpStr.toCharArray(liveData->settings.charRxUUID, tmpStr.length() + 1);
-  liveData->settings.displayRotation = 1; // 1,3
+  liveData->settings.displayRotation = 3; // 1,3
   liveData->settings.distanceUnit = 'k';
   liveData->settings.temperatureUnit = 'c';
   liveData->settings.pressureUnit = 'b';
-  liveData->settings.defaultScreen = 1;
+  liveData->settings.defaultScreen = 2;
   liveData->settings.lcdBrightness = 0;
   liveData->settings.predrawnChargingGraphs = 1;
   liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
   //liveData->settings.commType = COMM_TYPE_OBD2CAN; // CAN
-  liveData->settings.wifiEnabled = 0;
+  liveData->settings.wifiEnabled = 1;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
   tmpStr = "not_set";
@@ -350,6 +350,8 @@ void BoardInterface::afterSetup()
 void BoardInterface::customConsoleCommand(String cmd)
 {
 
+  syslog->println("Comando recibido en customConsoleCommand");
+
   if (cmd.equals("reboot"))
     ESP.restart();
   if (cmd.equals("saveSettings"))
@@ -381,6 +383,7 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
   if (key == "wifiSsid")
     value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
+    liveData->settings.wifiEnabled = 1;
   if (key == "wifiPassword")
     value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
   if (key == "wifiSsid2")
