@@ -13,6 +13,7 @@
 // SUPPORTED CARS
 #define CAR_HYUNDAI_KONA_2020_64 1
 #define CAR_HYUNDAI_IONIQ_2018 2
+#define CAR_HYUNDAI_IONIQ_PHEV 28
 #define CAR_HYUNDAI_KONA_2020_39 4
 #define CAR_HYUNDAI_IONIQ5_58 12
 #define CAR_HYUNDAI_IONIQ5_72 13
@@ -370,9 +371,9 @@ public:
   MENU_ITEM *menuItems;
 
   // Comm
-  boolean commConnected = true;
+  boolean commConnected = false;
   // Bluetooth4
-  boolean bleConnect = true;
+  boolean bleConnect = false;
   BLEAddress *pServerAddress;
   BLERemoteCharacteristic *pRemoteCharacteristic;
   BLERemoteCharacteristic *pRemoteCharacteristicWrite;

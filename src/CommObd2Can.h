@@ -18,7 +18,7 @@ class CommObd2Can : public CommInterface {
     const uint8_t pinCanInt = 0;
     const uint8_t pinCanCs = 0;
     #endif
-  	std::unique_ptr <MCP_CAN> CAN;
+  	std::unique_ptr <MCP_CAN> CAN; 
     long unsigned int rxId;
     unsigned char rxLen = 0;
     uint8_t rxBuf[32];
