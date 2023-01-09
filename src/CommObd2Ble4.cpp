@@ -7,6 +7,9 @@ CommObd2Ble4 *commObj;
 BoardInterface *boardObj;
 LiveData *liveDataObj;
 
+
+ 
+
 /**
   BLE callbacks
 */
@@ -17,6 +20,10 @@ class MyClientCallback : public BLEClientCallbacks
   void onConnect(BLEClient *pclient)
   {
     syslog->println("onConnect");
+    liveDataObj->commConnected = true;
+
+    boardObj->displayMessage("BLE connected", "");
+    
   }
 
   // On BLE disconnect
@@ -298,7 +305,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   liveData->pClient = BLEDevice::createClient();
   liveData->pClient->setClientCallbacks(new MyClientCallback());
   if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM))
-    syslog->println("liveData->bleConnected");
+ 
   syslog->println(" - liveData->bleConnected to server");
 
   syslog->printf("Total/free heap: %i/%i-%i\n",  ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
@@ -308,7 +315,13 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   syslog->print("serviceUUID -");
   syslog->print(liveData->settings.serviceUUID);
   syslog->println("-");
-  BLERemoteService *pRemoteService = liveData->pClient->getService(BLEUUID(liveData->settings.serviceUUID));
+      syslog->println("- PASS OK -1");
+  BLEUUID tempUID =  BLEUUID(liveData->settings.serviceUUID);
+      syslog->println("- PASS OK -2");
+      syslog->println(CONFIG_BT_BTU_TASK_STACK_SIZE); 
+      
+ BLERemoteService *pRemoteService = liveData->pClient->getService(tempUID);
+    syslog->println("- PASS OK -3");
   if (pRemoteService == nullptr)
   {
     syslog->print("Failed to find our service UUID: ");
@@ -401,6 +414,7 @@ void CommObd2Ble4::mainLoop()
     }
     else
     {
+      board->displayMessage(" >Cannt connect BLE", "");
       syslog->println("We have failed to connect to the server; there is nothing more we will do.");
     }
   }

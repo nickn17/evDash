@@ -200,7 +200,7 @@ bool CommObd2Bt3::connectToServer(BLEAddress pAddress) {
 void CommObd2Bt3::mainLoop() {
 
   // Connect BLE device
-  /*if (liveData->bleConnect == true && liveData->foundMyBleDevice != NULL) {
+  if (liveData->bleConnect == true && liveData->foundMyBleDevice != NULL) {
     liveData->pServerAddress = new BLEAddress(liveData->settings.obdMacAddress);
     if (connectToServer(*liveData->pServerAddress)) {
 
@@ -218,7 +218,7 @@ void CommObd2Bt3::mainLoop() {
     } else {
       syslog->println("We have failed to connect to the server; there is nothing more we will do.");
     }
-  }*/
+  }
 
   // Parent declaration
   CommInterface::mainLoop();

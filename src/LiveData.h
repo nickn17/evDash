@@ -373,7 +373,7 @@ public:
   // Comm
   boolean commConnected = false;
   // Bluetooth4
-  boolean bleConnect = false;
+  boolean bleConnect = true;
   BLEAddress *pServerAddress;
   BLERemoteCharacteristic *pRemoteCharacteristic;
   BLERemoteCharacteristic *pRemoteCharacteristicWrite;
