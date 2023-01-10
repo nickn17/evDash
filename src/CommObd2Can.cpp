@@ -2,7 +2,7 @@
 #include "BoardInterface.h"
 #include "LiveData.h"
 #include <mcp_can.h> 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 //#include <string.h>
 
 /**
@@ -21,7 +21,7 @@ void CommObd2Can::connectDevice()
   CAN.reset(new MCP_CAN(&SPI,pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
  
 
-  
+ 
   syslog->println("CAN reset");
 
   if (CAN == nullptr)
@@ -35,7 +35,7 @@ void CommObd2Can::connectDevice()
  
   // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
  // if (CAN->begin((MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK))
-  if((CAN->begin(MCP_ANY, CAN_500KBPS, MCP_16MHZ) == CAN_OK) )
+    if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK)
   {
     syslog->println("MCP2515 Initialized Successfully!");
     board->displayMessage(" > CAN init OK", "");
@@ -149,9 +149,12 @@ void CommObd2Can::mainLoop()
           }
           if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
           {
+           
             syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
-              board->displayMessage("CAN execution timeout.", " Continue with next command.");
+            board->displayMessage("CAN execution timeout.", "Next command.");
             liveData->canSendNextAtCommand = true;
+ 
+
             return;
           }
   }
