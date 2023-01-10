@@ -39,6 +39,7 @@
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
 #include "CarHyundaiIoniq.h"
+#include "CarHyundaiIoniqPHEV.h"
 #include "CarHyundaiIoniq5.h"
 #include "CarRenaultZoe.h"
 #include "CarKiaDebugObd2.h"
@@ -75,17 +76,19 @@ void setup(void)
 #ifdef BOARD_M5STACK_CORE2
   board = new BoardM5stackCore2();
 #endif // BOARD_M5STACK_CORE2
-
+syslog->println("board->setLiveData(liveData);");
   board->setLiveData(liveData);
+syslog->println("board->loadSettings()");
   board->loadSettings();
-  board->initBoard();
+
 
   // Turn on serial console
   if (liveData->settings.serialConsolePort != 255 && liveData->settings.gpsHwSerialPort != liveData->settings.serialConsolePort && liveData->settings.gprsHwSerialPort != liveData->settings.serialConsolePort)
   {
     syslog->begin(115200);
   }
-
+syslog->println("board->initBoard()");
+  board->initBoard();
   syslog->println("\nBooting device...");
 
   // Init selected car interface
@@ -108,6 +111,9 @@ void setup(void)
   case CAR_HYUNDAI_IONIQ_2018:
     car = new CarHyundaiIoniq();
     break;
+  case CAR_HYUNDAI_IONIQ_PHEV:
+    car = new CarHyundaiIoniqPHEV();
+    break;    
   case CAR_RENAULT_ZOE:
     car = new CarRenaultZoe();
     break;

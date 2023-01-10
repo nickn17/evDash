@@ -78,11 +78,12 @@ void CommInterface::mainLoop()
 */
 bool CommInterface::doNextQueueCommand()
 {
-
+syslog->println("init doNextQueueCommand");
   // Send AT command to obd
   bool commandAllowed = false;
   do
   {
+    syslog->println("init doNextQueueCommand -> do");
     liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex].request;
     liveData->commandStartChar = liveData->commandQueue[liveData->commandQueueIndex].startChar; // TODO: add to struct?
     if (liveData->commandRequest.startsWith("ATSH"))
@@ -219,6 +220,7 @@ void CommInterface::recordLoop(int8_t dataIndex)
 void CommInterface::compareCanRecords()
 {
   syslog->println(canComparerData[0]);
+
   uint16_t maxLen = canComparerData[0].length();
   for (uint16_t i = 0; i < maxLen; i++)
   {

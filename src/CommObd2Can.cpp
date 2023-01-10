@@ -18,7 +18,7 @@ void CommObd2Can::connectDevice()
   syslog->print("liveData->commConnected");
   syslog->println(liveData->commConnected); 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
-  CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  CAN.reset(new MCP_CAN(&SPI,pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
  
 
   
@@ -150,6 +150,7 @@ void CommObd2Can::mainLoop()
           if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
           {
             syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
+              board->displayMessage("CAN execution timeout.", " Continue with next command.");
             liveData->canSendNextAtCommand = true;
             return;
           }

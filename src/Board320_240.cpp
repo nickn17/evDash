@@ -70,6 +70,8 @@ void Board320_240::initBoard()
 
   // Boot counter
   ++bootCount;
+
+    syslog->println("320_240 init board completed ");
 }
 
 /**
@@ -2214,6 +2216,7 @@ void Board320_240::menuItemClick()
       strlcpy((char *)liveData->settings.obdMacAddress, (char *)tmpMenuItem->obdMacAddress, 20);
       syslog->print("Selected adapter MAC address ");
       syslog->println(liveData->settings.obdMacAddress);
+      
       saveSettings();
       ESP.restart();
     }
@@ -2369,16 +2372,19 @@ void Board320_240::menuItemClick()
     // Comm type
     case MENU_ADAPTER_BLE4:
       liveData->settings.commType = COMM_TYPE_OBD2BLE4;
+      displayMessage("COMM_TYPE_OBD2BLE4", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
     case MENU_ADAPTER_CAN:
       liveData->settings.commType = COMM_TYPE_OBD2CAN;
+      displayMessage("COMM_TYPE_OBD2CAN", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
     case MENU_ADAPTER_BT3:
       liveData->settings.commType = COMM_TYPE_OBD2BT3;
+      displayMessage("COMM_TYPE_OBD2BT3", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
@@ -2966,7 +2972,7 @@ void Board320_240::redrawScreen()
   }
 
   // WiFi Status
-  if (liveData->settings.wifiEnabled == 1 && liveData->settings.remoteUploadModuleType == 1)
+  if (liveData->settings.wifiEnabled == 1)// && liveData->settings.remoteUploadModuleType == 1)
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
@@ -3025,7 +3031,7 @@ void Board320_240::redrawScreen()
     spr.setTextSize(1);
     spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
+    spr.drawString("BLE4 OBDII not connected...", 0, 220, 2);
     spr.drawString("Press middle button to menu.", 0, 200, 2);
     spr.drawString(APP_VERSION, 0, 220, 2);
   }

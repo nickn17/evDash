@@ -124,7 +124,7 @@ void BoardInterface::loadSettings()
   tmpStr.toCharArray(liveData->settings.charTxUUID, tmpStr.length() + 1);
   tmpStr = "00002af1-0000-1000-8000-00805f9b34fb";
   tmpStr.toCharArray(liveData->settings.charRxUUID, tmpStr.length() + 1);
-  liveData->settings.displayRotation = 3; // 1,3
+  liveData->settings.displayRotation = 1; // 1,3
   liveData->settings.distanceUnit = 'k';
   liveData->settings.temperatureUnit = 'c';
   liveData->settings.pressureUnit = 'b';

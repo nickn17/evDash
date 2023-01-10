@@ -204,7 +204,6 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
     if (liveData->commandRequest.equals("2101"))
     {
       liveData->params.socPercBms = liveData->hexToDecFromResponse(12, 14, 1, false) / 2.0;
-      syslog->print(liveData->responseRowMerged.substring(12, 14).c_str());
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(80, 88) / 10.0;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(88, 96) / 10.0;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
@@ -298,13 +297,14 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
       {
         liveData->params.cellVoltage[64 + i] = liveData->hexToDecFromResponse(12 + (i * 2), 12 + (i * 2) + 2, 1, false) / 50;
       }
+     
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("2105"))
     {
       liveData->params.socPercPrevious = liveData->params.socPerc;
-      liveData->params.sohPerc = liveData->hexToDecFromResponse(54, 58, 2, false) / 10.0;
-      liveData->params.socPerc = liveData->hexToDecFromResponse(66, 68, 1, false) / 2.0;
+      liveData->params.sohPerc = liveData->hexToDecFromResponse(74, 78, 2, false) / 10.0;//PHEV
+      liveData->params.socPerc = liveData->hexToDecFromResponse(80, 82, 1, false) / 2.0;//PHEV
 
       // Remaining battery modules (tempC)
       liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(22, 24, 1, true);

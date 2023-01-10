@@ -11,7 +11,7 @@ Gesture swipeLeft("swipe left", 160, DIR_LEFT, 30, true);
 Gesture swipeUp("swipe up", 120, DIR_UP, 30, true);
 
 int16_t lastTouchX, lastTouchY;
-
+bool lastLeftFrontDoorOpen = true, lastRightFrontDoorOpen = true, lastLeftRearDoorOpen = true, lastRightRearDoorOpen  = true ;
 /**
   Init board
 */
@@ -61,11 +61,13 @@ void BoardM5stackCore2::afterSetup()
   M5.begin();
   syslog->println(" START -> BoardM5stackCore2::afterSetup ");
   M5.background.addHandler(eventDisplay, (E_ALL) /* - E_MOVE*/);
-  M5.BtnA.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
-  M5.BtnB.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
-  M5.BtnC.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+  //M5.BtnA.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+  //M5.BtnB.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+  //M5.BtnC.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
  // M5.Buttons.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
     syslog->println(" END -> BoardM5stackCore2::afterSetup ");  
+  M5.Spk.begin();     // Initialize the speaker.  初始化扬声器
+  M5.Spk.DingDong();  //
 }
 
 void BoardM5stackCore2::wakeupBoard()
@@ -104,7 +106,7 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   switch (button)
   {
   case BUTTON_LEFT:
-    if(M5.BtnA.wasReleased() || M5.BtnA.pressedFor(200,700)){
+    if(M5.BtnA.wasReleased() || M5.BtnA.pressedFor(200,350)){
       syslog->println(" Button A ");  
       return true;    
     }else{
@@ -122,7 +124,7 @@ bool BoardM5stackCore2::isButtonPressed(int button)
     //return M5.BtnB.releasedFor(300);
     break;
   case BUTTON_RIGHT:
-    if(M5.BtnC.wasReleased()|| M5.BtnC.pressedFor(200,700)){
+    if(M5.BtnC.wasReleased()|| M5.BtnC.pressedFor(200,350)){
       syslog->println(" Button C ");  
       return true;   
     }else{
@@ -211,7 +213,7 @@ void BoardM5stackCore2::mainLoop()
           if (!liveData->menuVisible)
           {
             tft.setRotation(liveData->settings.displayRotation);
-            if (lastTouchY > 64 && lastTouchY < 220)
+            if (lastTouchY > 64 && lastTouchY < 150)
             {
             syslog->println("<<<<------ENTRA 2------>>>> "); 
 
@@ -273,6 +275,18 @@ void BoardM5stackCore2::mainLoop()
         }
       }
 
+
+        if (lastLeftFrontDoorOpen !=  liveData->params.leftFrontDoorOpen 	||
+            lastRightFrontDoorOpen !=  liveData->params.rightFrontDoorOpen	||
+            lastLeftRearDoorOpen   !=  liveData->params.leftRearDoorOpen	  ||
+            lastRightRearDoorOpen  !=  liveData->params.rightRearDoorOpen	){
+              M5.Spk.DingDong();
+              lastLeftFrontDoorOpen  =  liveData->params.leftFrontDoorOpen ;
+              lastRightFrontDoorOpen =  liveData->params.rightFrontDoorOpen;
+              lastLeftRearDoorOpen   =  liveData->params.leftRearDoorOpen	;
+              lastRightRearDoorOpen  =  liveData->params.rightRearDoorOpen;	            
+       
+    }
   }
 
   //syslog->print("END ");
