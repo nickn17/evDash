@@ -1,4 +1,7 @@
+
+#include "LiveData.h"
 #include "CarHyundaiIoniqPHEV.h"
+#include "CommInterface.h"
 #include <vector>
 
 #define commandQueueLoopFromHyundaiIoniq 8
@@ -14,6 +17,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
   lastAllowOdo = 0;
   lastAllowAircon = 0;
   lastAllowDriveMode = 0;
+  
 
   // Command queue
   std::vector<String> commandQueueHyundaiIoniq = {
@@ -73,7 +77,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
 
   // 28kWh version
   liveData->params.batteryTotalAvailableKWh = 8.9;
-  liveData->params.batModuleTempCount = 7;
+  liveData->params.batModuleTempCount = 4;
   liveData->params.cellCount = 96;
 
 // 360V and the Capacity is 24,7 Ah, so 24,7 Ah x 360 V = 8892Wh = 8,9 kWh. So with this data, 8892 Wh / 96 cells = 96 Wh per cell
@@ -85,8 +89,17 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
     liveData->commandQueue.push_back({0, cmd});
   }
 
+
+  //
   liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq;
   liveData->commandQueueCount = commandQueueHyundaiIoniq.size();
+    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV)
+  {
+    liveData->rxTimeoutMs = 500;            // timeout for receiving of CAN response
+    liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed
+  }
+
+
 }
 
 /**
@@ -525,22 +538,22 @@ void CarHyundaiIoniqPHEV::loadTestData()
   // 220101
   liveData->commandRequest = "2101";
   //liveData->responseRowMerged = "6101FFFFFFFFBD136826480300220F600B0B0B0B0B0B0B000CCD05CC0A00009100012C4A00012A1800006F37000069F700346CC30D01890000000003E800";
-  liveData->responseRowMerged   = "6101FFFFFFFFB711B016F80300040F4B101010100F10100016CC10CB1900FF8F00038C8D00038BF0000146A500013DF000D172A46D01870000000003E800";//phev
+  liveData->responseRowMerged   = "6101FFFFFFFF24125C16F883FFD10D481C191A1919191C0017B101B11100FF9000038F4100038F5C0001479F00013F2300D2714F4901540000000003E800";//phev
   parseRowMerged();
   // 220102
   liveData->commandRequest = "2102";
   //liveData->responseRowMerged = "6102FFFFFFFFCDCDCDCDCDCDCDCDCDCCCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCCCDCDCD000000";
-  liveData->responseRowMerged = "6102FFFFFFFFCBCCCBCCCBCBCCCBCBCBCCCBCCCBCBCCCBCBCBCCCBCBCCCBCBCCCBCBCBCBCBCC000000";
+  liveData->responseRowMerged = "6102FFFFFFFFB2B2B2B2B2B2B2B2B1B2B2B2B2B2B2B1B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2000000";
   parseRowMerged();
   // 220103
   liveData->commandRequest = "2103";
   //liveData->responseRowMerged = "6103FFFFFFFFCDCDCDCDCDCDCCCDCDCDCDCDCDCDCDCDCCCDCDCCCDCDCDCDCDCDCDCCCDCDCDCC000000";
-  liveData->responseRowMerged = "6103FFFFFFFFCBCBCBCCCCCBCBCBCBCBCBCBCBCBCBCBCBCCCBCBCBCBCCCBCBCCCCCCCBCCCCCB000000";
+  liveData->responseRowMerged = "6103FFFFFFFFB2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2000000";
   parseRowMerged();
   // 220104
   liveData->commandRequest = "2104";
   //liveData->responseRowMerged = "6104FFFFFFFFCDCDCDCDCDCDCDCDCDCDCCCCCDCDCCCDCDCDCDCDCDCDCDCDCDCDCDCCCCCCCDCD000000";
-  liveData->responseRowMerged = "6104FFFFFFFFCBCBCBCCCBCBCBCBCBCCCBCBCBCBCBCCCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCB000000";
+  liveData->responseRowMerged = "6104FFFFFFFFB2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2000000";
   parseRowMerged();
   // 220105
   liveData->commandRequest = "2105";
@@ -646,4 +659,245 @@ void CarHyundaiIoniqPHEV::loadTestData()
     liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
     liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
   */
+}
+std::vector<String> CarHyundaiIoniqPHEV::customMenu(int16_t menuId)
+{
+  if (menuId == MENU_CAR_COMMANDS)
+    return {
+        "vessOn=VESS 5sec.",
+        "doorsUnlock=Unlock doors",
+        "doorsLock=Lock doors",
+        "chargeCableLockOff=Charge cable lock off",
+        "chargeCableLockOn=Charge cable lock on",
+        "roomLampOff=Room lamp off",
+        "roomLampOn=Room lamp on",
+        "luggageLampOff=Luggage lamp off",
+        "luggageLampOn=Luggage lamp on",
+        "mirrorsUnfold=Unfold mirrors",
+        "mirrorsFold=Fold mirrors",
+        "heatSteeringWheelOff=Heat steering wheel off",
+        "heatSteeringWheelOn=Heat steering wheel on",
+        "clusterIndicatorsOff=Cluster indicators off",
+        "clusterIndicatorsOn=Cluster indicators on",
+        "turnSignalLeftOff=Turn signal left off",
+        "turnSignalLeftOn=Turn signal left on",
+        "turnSignalRightOff=Turn signal right off",
+        "turnSignalRightOn=Turn signal right on",
+        "headLightLowOff=Head light low off",
+        "headLightLowOn=Head light low on",
+        "headLightHighOff=Head light high off",
+        "headLightHighOn=Head light high on",
+        "frontFogLightOff=Front fog light off",
+        "frontFogLightOn=Front fog light on",
+        "rearLightOff=Rear light off",
+        "rearLightOn=Rear light on",
+        "rearFogLightOff=Rear fog light off",
+        "rearFogLightOn=Rear fog light on",
+        "rearDefoggerOff=Rear deffoger off",
+        "rearDefoggerOn=Rear deffoger on",
+        "rearLeftBrakeLightOff=Left brake light off",
+        "rearLeftBrakeLightOn=Left brake light on",
+        "rearRightBrakeLightOff=Right brake light off",
+        "rearRightBrakeLightOn=Right brake light on",
+    };
+
+  return {};
+}
+
+/**
+ * Execute custom command
+ */
+     
+void CarHyundaiIoniqPHEV::carCommand(const String &cmd)
+{
+  if (cmd.equals("vessOn"))
+  {
+    ioniqPhevCarControl(0x736, "2FF01103");
+  }
+  if (cmd.equals("doorsUnlock"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1103");
+  }
+  if (cmd.equals("doorsLock"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1003");
+  }
+  if (cmd.equals("chargeCableLockOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC4103");
+  }
+  if (cmd.equals("chargeCableLockOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC3F03");
+  }
+  if (cmd.equals("roomLampOff"))
+  {
+    ioniqPhevCarControl(0x7A0, "2FB01900");
+  }
+  if (cmd.equals("roomLampOn"))
+  {
+    ioniqPhevCarControl(0x7A0, "2FB01903");
+  }
+  if (cmd.equals("luggageLampOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1C00");
+  }
+  if (cmd.equals("luggageLampOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1C03");
+  }
+  if (cmd.equals("mirrorsUnfold"))
+  {
+    ioniqPhevCarControl(0x7A0, "2FB05C03");
+  }
+  if (cmd.equals("mirrorsFold"))
+  {
+    ioniqPhevCarControl(0x7A0, "2FB05B03");
+  }
+  if (cmd.equals("heatSteeringWheelOff"))
+  {
+    ioniqPhevCarControl(0x7A0, "2FB05900"); // heat power
+    ioniqPhevCarControl(0x7A0, "2FB05A00"); // LED indicator
+  }
+  if (cmd.equals("heatSteeringWheelOn"))
+  {
+    ioniqPhevCarControl(0x7A0, "2FB05903"); // heat power
+    ioniqPhevCarControl(0x7A0, "2FB05A03"); // LED indicator
+  }
+  if (cmd.equals("clusterIndicatorsOff"))
+  {
+    ioniqPhevCarControl(0x7C6, "2FB00100");
+  }
+  if (cmd.equals("clusterIndicatorsOn"))
+  {
+    ioniqPhevCarControl(0x7C6, "2FB00103");
+  }
+  if (cmd.equals("turnSignalLeftOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1500");
+  }
+  if (cmd.equals("turnSignalLeftOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1503");
+  }
+  if (cmd.equals("turnSignalRightOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1600");
+  }
+  if (cmd.equals("turnSignalRightOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC1603");
+  }
+  if (cmd.equals("headLightLowOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0100");
+  }
+  if (cmd.equals("headLightLowOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0103");
+  }
+  if (cmd.equals("headLightHighOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0200");
+  }
+  if (cmd.equals("headLightHighOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0203");
+  }
+  if (cmd.equals("frontFogLightOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0300");
+  }
+  if (cmd.equals("frontFogLightOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0303");
+  }
+  if (cmd.equals("rearLightOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0400");
+  }
+  if (cmd.equals("rearLightOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0403");
+  }
+  if (cmd.equals("rearFogLightOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0800");
+  }
+  if (cmd.equals("rearFogLightOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0803");
+  }
+  if (cmd.equals("rearDefoggerOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0C00");
+  }
+  if (cmd.equals("rearDefoggerOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC0C03");
+  }
+  if (cmd.equals("rearLeftBrakeLightOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC2B00");
+  }
+  if (cmd.equals("rearLeftBrakeLightOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC2B03");
+  }
+  if (cmd.equals("rearRightBrakeLightOff"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC2C00");
+  }
+  if (cmd.equals("rearRightBrakeLightOn"))
+  {
+    ioniqPhevCarControl(0x770, "2FBC2C03");
+  }
+}
+
+/**
+ * Eniro cmds
+ */
+void CarHyundaiIoniqPHEV::ioniqPhevCarControl(const uint16_t pid, const String &cmd)
+{
+  // syslog->println("EXECUTING COMMAND");
+  // syslog->println(cmd);
+  commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
+  delay(10);
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  delay(liveData->delayBetweenCommandsMs);
+
+  commInterface->sendPID(pid, "1003"); // CHANGE SESSION
+  delay(10);
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+    {
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("5003"))
+      {
+        break;
+      }
+    }
+    delay(20);
+  }
+  delay(liveData->delayBetweenCommandsMs);
+
+  // EXECUTE COMMAND
+  commInterface->sendPID(pid, cmd);
+  syslog->setDebugLevel(DEBUG_COMM);
+  delay(10);
+  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+  {
+    if (commInterface->receivePID() != 0xff)
+      break;
+    delay(20);
+  }
+  delay(liveData->delayBetweenCommandsMs);
+
+  syslog->setDebugLevel(liveData->settings.debugLevel);
 }

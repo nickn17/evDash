@@ -66,8 +66,9 @@ void BoardM5stackCore2::afterSetup()
   //M5.BtnC.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
  // M5.Buttons.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
     syslog->println(" END -> BoardM5stackCore2::afterSetup ");  
-  M5.Spk.begin();     // Initialize the speaker.  初始化扬声器
-  M5.Spk.DingDong();  //
+
+  //M5.Spk.begin();     // Initialize the speaker.  初始化扬声器
+  //M5.Spk.DingDong();  //
 }
 
 void BoardM5stackCore2::wakeupBoard()
@@ -280,7 +281,7 @@ void BoardM5stackCore2::mainLoop()
             lastRightFrontDoorOpen !=  liveData->params.rightFrontDoorOpen	||
             lastLeftRearDoorOpen   !=  liveData->params.leftRearDoorOpen	  ||
             lastRightRearDoorOpen  !=  liveData->params.rightRearDoorOpen	){
-              M5.Spk.DingDong();
+              //M5.Spk.DingDong();
               lastLeftFrontDoorOpen  =  liveData->params.leftFrontDoorOpen ;
               lastRightFrontDoorOpen =  liveData->params.rightFrontDoorOpen;
               lastLeftRearDoorOpen   =  liveData->params.leftRearDoorOpen	;

@@ -3384,7 +3384,9 @@ void Board320_240::mainLoop()
   // Reconnect CAN bus if no response for 5s
   if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 && commInterface->checkConnectAttempts())
   {
-    syslog->println("No response from CANbus for 5 seconds, reconnecting");
+    syslog->println("No response from CANbus for 5 seconds, reconnecting");    
+    displayMessage("No response CAN", "RECONNECTING");
+    delay(1500);
     commInterface->connectDevice();
     liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   }

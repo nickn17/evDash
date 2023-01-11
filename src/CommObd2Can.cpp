@@ -1,8 +1,8 @@
 #include "CommObd2Can.h"
 #include "BoardInterface.h"
 #include "LiveData.h"
-#include <mcp_can.h> 
-#define DEBUG_MODE 0
+#include <mcp_can.h>
+
 //#include <string.h>
 
 /**
@@ -10,35 +10,25 @@
 */
 void CommObd2Can::connectDevice()
 {
-
   connectAttempts--;
-  syslog->println(connectAttempts);
+
   syslog->println("CAN connectDevice");
 
-  syslog->print("liveData->commConnected");
-  syslog->println(liveData->commConnected); 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
   CAN.reset(new MCP_CAN(&SPI,pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
- 
-
- 
-  syslog->println("CAN reset");
-
   if (CAN == nullptr)
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
     syslog->println("init_can() failed");
     return;
   }
- 
-  syslog->println("CAN init begin");
- 
+
   // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
- // if (CAN->begin((MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK))
-    if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK)
+  if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK)
   {
     syslog->println("MCP2515 Initialized Successfully!");
     board->displayMessage(" > CAN init OK", "");
+    connectAttempts = 3;
   }
   else
   {
@@ -46,8 +36,6 @@ void CommObd2Can::connectDevice()
     board->displayMessage(" > CAN init failed", "");
     return;
   }
-  syslog->println("CAN init begin");
-
 
   if (liveData->settings.carType == CAR_BMW_I3_2014)
   {
@@ -66,7 +54,7 @@ void CommObd2Can::connectDevice()
     board->displayMessage(" > CAN init failed", "");
     return;
   }
-  syslog->println("CAN pinCanInt");
+
   pinMode(pinCanInt, INPUT); // Configuring pin for /INT input
 
   // Serve first command (ATZ)
@@ -75,7 +63,6 @@ void CommObd2Can::connectDevice()
   doNextQueueCommand();
 
   syslog->println("init_can() done");
- 
 }
 
 /**
@@ -107,56 +94,49 @@ void CommObd2Can::mainLoop()
 
   if (liveData->params.stopCommandQueue)
     return;
-  if (liveData->commConnected=!true){
+
+  // if delay between commands is defined, check if this delay is not expired
+  if (liveData->delayBetweenCommandsMs != 0)
+  {
+    if (bResponseProcessed && (unsigned long)(millis() - lastDataSent) > liveData->delayBetweenCommandsMs)
+    {
+      bResponseProcessed = false;
+      liveData->canSendNextAtCommand = true;
+      return;
+    }
+  }
+
+  // Read data
+  const uint8_t firstByte = receivePID();
+  if ((firstByte & 0xf0) == 0x10)
+  { // First frame, request another
+    sendFlowControlFrame();
+    delay(10);
+    for (uint16_t i = 0; i < 1000; i++)
+    {
+      receivePID();
+      if (rxRemaining <= 2)
+        break;
+      delay(1);
+      // apply timeout for next frames loop too
+      if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
+      {
+        syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
+        break;
+      }
+    }
+    // Process incomplette messages
+    if (liveData->responseRowMerged.length() > 7)
+    {
+      processMergedResponse();
+      return;
+    }
+  }
+  if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
+  {
+    syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
+    liveData->canSendNextAtCommand = true;
     return;
-  }else{
-          // if delay between commands is defined, check if this delay is not expired
-          if (liveData->delayBetweenCommandsMs != 0)
-          {
-            if (bResponseProcessed && (unsigned long)(millis() - lastDataSent) > liveData->delayBetweenCommandsMs)
-            {
-              bResponseProcessed = false;
-              liveData->canSendNextAtCommand = true;
-              return;
-            }
-          }
-
-          // Read data
-          const uint8_t firstByte = receivePID();
-          if ((firstByte & 0xf0) == 0x10)
-          { // First frame, request another
-            sendFlowControlFrame();
-            delay(10);
-            for (uint16_t i = 0; i < 1000; i++)
-            {
-              receivePID();
-              if (rxRemaining <= 2)
-                break;
-              delay(1);
-              // apply timeout for next frames loop too
-              if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
-              {
-                syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
-                break;
-              }
-            }
-            // Process incomplette messages
-            if (liveData->responseRowMerged.length() > 7)
-            {
-              processMergedResponse();
-              return;
-            }
-          }
-          if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
-          {
-           
-            syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
-            board->displayMessage("CAN execution timeout.", "Next command.");
-            liveData->canSendNextAtCommand = true;
- 
-
-            return;
-          }
   }
 }
 
@@ -310,8 +290,7 @@ void CommObd2Can::sendFlowControlFrame()
 uint8_t CommObd2Can::receivePID()
 {
 
- 
-  if (!digitalRead(pinCanInt) && liveData->commConnected==true) // If CAN0_INT pin is low, read receive buffer
+  if (!digitalRead(pinCanInt)) // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
     syslog->infoNolf(DEBUG_COMM, " CAN READ ");
@@ -347,7 +326,7 @@ uint8_t CommObd2Can::receivePID()
     }
 
     // Filter received messages (Ioniq only)
-    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018 || liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV)
+    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
     {
       long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
 

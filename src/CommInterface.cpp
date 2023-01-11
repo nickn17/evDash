@@ -78,12 +78,12 @@ void CommInterface::mainLoop()
 */
 bool CommInterface::doNextQueueCommand()
 {
-syslog->println("init doNextQueueCommand");
+
   // Send AT command to obd
   bool commandAllowed = false;
   do
   {
-    syslog->println("init doNextQueueCommand -> do");
+
     liveData->commandRequest = liveData->commandQueue[liveData->commandQueueIndex].request;
     liveData->commandStartChar = liveData->commandQueue[liveData->commandQueueIndex].startChar; // TODO: add to struct?
     if (liveData->commandRequest.startsWith("ATSH"))
