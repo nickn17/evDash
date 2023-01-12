@@ -132,7 +132,7 @@ void BoardInterface::loadSettings()
   liveData->settings.lcdBrightness = 0;
   liveData->settings.predrawnChargingGraphs = 1;
   liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
-  //liveData->settings.commType = COMM_TYPE_OBD2CAN; // CAN
+  // liveData->settings.commType = COMM_TYPE_OBD2CAN; // CAN
   liveData->settings.wifiEnabled = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
@@ -362,7 +362,7 @@ void BoardInterface::customConsoleCommand(String cmd)
     showNet();
   if (cmd.equals("shutdown"))
     enterSleepMode(0);
-    // CAN comparer
+  // CAN comparer
   if (cmd.equals("compare"))
     commInterface->compareCanRecords();
 
@@ -387,13 +387,13 @@ void BoardInterface::customConsoleCommand(String cmd)
   {
     value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
     if (strcmp(liveData->settings.wifiSsidb, "empty") == 0)
-      {
-        liveData->settings.backupWifiEnabled = 0;
-      }
+    {
+      liveData->settings.backupWifiEnabled = 0;
+    }
     else
-      {
-        liveData->settings.backupWifiEnabled = 1;
-      }
+    {
+      liveData->settings.backupWifiEnabled = 1;
+    }
   }
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
@@ -411,12 +411,18 @@ void BoardInterface::customConsoleCommand(String cmd)
     syslog->setDebugLevel(liveData->settings.debugLevel);
   }
   if (key == "setTime")
+  {
     setTime(value);
+  }
   // CAN comparer
   if (key == "record")
+  {
     commInterface->recordLoop(value.toInt());
+  }
   if (key == "test")
+  {
     carInterface->testHandler(value);
+  }
 }
 
 /**
@@ -441,7 +447,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 
   jsonData["carType"] = liveData->settings.carType;
   jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
-  jsonData["currTime"] = liveData->params.currentTime + (liveData->settings.timezone * 3600) + (liveData->settings.daylightSaving *3600);
+  jsonData["currTime"] = liveData->params.currentTime + (liveData->settings.timezone * 3600) + (liveData->settings.daylightSaving * 3600);
   jsonData["opTime"] = liveData->params.operationTimeSec;
 
   jsonData["gpsSat"] = liveData->params.gpsSat;
@@ -540,7 +546,7 @@ void BoardInterface::showNet()
 
   syslog->print("wifiSsid:  ");
   syslog->println(liveData->settings.wifiSsid);
-  
+
   if (liveData->settings.backupWifiEnabled == 1)
   {
     syslog->println("Backup wifi exists");
@@ -553,11 +559,11 @@ void BoardInterface::showNet()
   }
   if (liveData->params.isWifiBackupLive == true)
   {
-      suffix = "backup";
+    suffix = "backup";
   }
   else
   {
-      suffix = "main";
+    suffix = "main";
   }
   syslog->print("Active: ");
   syslog->println(suffix);

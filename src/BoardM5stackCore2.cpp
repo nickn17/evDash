@@ -59,10 +59,9 @@ void BoardM5stackCore2::afterSetup()
 
   Board320_240::afterSetup();
 
-  M5.background.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
-  M5.BtnA.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
-  M5.BtnB.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
-  M5.BtnC.addHandler(eventDisplay, E_ALL /* - E_MOVE*/);
+  M5.begin();
+  syslog->println(" START -> BoardM5stackCore2::afterSetup ");
+  M5.background.addHandler(eventDisplay, (E_ALL) /* - E_MOVE*/);
 }
 
 void BoardM5stackCore2::wakeupBoard()
@@ -98,13 +97,40 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   switch (button)
   {
   case BUTTON_LEFT:
-    return M5.BtnA.pressedFor(200, 500);
+    if (M5.BtnA.wasReleased() || M5.BtnA.pressedFor(200, 350))
+    {
+      syslog->println(" Button A ");
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+    // return M5.BtnA.releasedFor(300);
     break;
   case BUTTON_MIDDLE:
-    return M5.BtnB.pressedFor(200, 500);
+    if (M5.BtnB.wasReleased())
+    {
+      syslog->println(" Button B ");
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+    // return M5.BtnB.releasedFor(300);
     break;
   case BUTTON_RIGHT:
-    return M5.BtnC.pressedFor(200, 500);
+    if (M5.BtnC.wasReleased() || M5.BtnC.pressedFor(200, 350))
+    {
+      syslog->println(" Button C ");
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+    // return M5.BtnC.releasedFor(300);
     break;
   default:
     return false;
@@ -147,8 +173,8 @@ void BoardM5stackCore2::enterSleepMode(int secs)
 
 void BoardM5stackCore2::boardLoop()
 {
-  Board320_240::boardLoop();
   M5.update();
+  Board320_240::boardLoop();
 }
 
 void BoardM5stackCore2::mainLoop()
@@ -173,7 +199,7 @@ void BoardM5stackCore2::mainLoop()
       if (!liveData->menuVisible)
       {
         tft.setRotation(liveData->settings.displayRotation);
-        if (lastTouchY > 64 && lastTouchY < 220)
+        if (lastTouchY > 64 && lastTouchY < 150)
         {
           // lastTouchX < 120
           if (lastTouchX < 120)
