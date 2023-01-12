@@ -23,17 +23,18 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
   std::vector<String> commandQueueHyundaiIoniq = {
       "AT Z",    // Reset all
       "AT I",    // Print the version ID
+      "AT S0",   // Printing of spaces on
       "AT E0",   // Echo off
       "AT L0",   // Linefeeds off
-      "AT S0",   // Printing of spaces on
       "AT SP 6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
       //"AT AL",     // Allow Long (>7 byte) messages
       //"AT AR",     // Automatically receive
       //"AT H1",     // Headers on (debug only)
       //"AT D1",     // Display of the DLC on
       //"AT CAF0",   // Automatic formatting off
+      ////"AT AT0",     // disabled adaptive timing
       "AT DP",
-      "AT ST16",
+      "AT ST16", // reduced timeout to 1, orig.16
 
       // Loop from (HYUNDAI IONIQ)
       // BMS
@@ -93,12 +94,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
   //
   liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq;
   liveData->commandQueueCount = commandQueueHyundaiIoniq.size();
-    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV)
-  {
-    liveData->rxTimeoutMs = 500;            // timeout for receiving of CAN response
-    liveData->delayBetweenCommandsMs = 100; // delay between commands, set to 0 if no delay is needed
-  }
-
+  
 
 }
 
@@ -659,6 +655,144 @@ void CarHyundaiIoniqPHEV::loadTestData()
     liveData->params.soc10odo[0] = liveData->params.soc10odo[1] + 15;
     liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
   */
+}
+
+void CarHyundaiIoniqPHEV::testHandler(const String &cmd)
+{
+  int8_t idx = cmd.indexOf("/");
+  if (idx == -1)
+    return;
+  String key = cmd.substring(0, idx);
+  String value = cmd.substring(idx + 1);
+
+  // AIRCON SCANNER
+  if (key.equals("bms"))
+  {
+    syslog->println("Scanning...");
+
+    // SET TESTER PRESENT
+    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "3E");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+        break;
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
+
+    // CHANGE SESSION
+    commInterface->sendPID(liveData->hexToDec("0770", 2, false), "1003");
+    delay(10);
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+      {
+        // WAIT FOR POSITIVE ANSWER
+        if (liveData->responseRowMerged.equals("5003"))
+        {
+          syslog->println("POSITIVE ANSWER");
+          break;
+        }
+      }
+      delay(20);
+    }
+    delay(liveData->delayBetweenCommandsMs);
+
+    // test=bms/1
+    for (uint16_t a = 188; a < 255; a++)
+    {
+      syslog->print("NEW CYCLE: ");
+      syslog->println(a);
+      for (uint16_t b = 0; b < 255; b++)
+      // for (uint16_t c = 0; c < 255; c++)
+      {
+        String command = "2F";
+        if (a < 16)
+          command += "0";
+        command += String(a, HEX);
+        if (b < 16)
+          command += "0";
+        command += String(b, HEX);
+        /*if (c < 16)
+            command += "0";
+          command += String(c, HEX);
+        */
+        command.toUpperCase();
+        command += "00";
+
+        // EXECUTE COMMAND
+        // syslog->print(".");
+        commInterface->sendPID(liveData->hexToDec("0770", 2, false), command);
+        //      syslog->setDebugLevel(DEBUG_COMM);
+        delay(10);
+        for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+        {
+          if (commInterface->receivePID() != 0xff)
+          {
+            if (!liveData->prevResponseRowMerged.equals("7F2F31") /*&& !liveData->prevResponseRowMerged.equals("")*/)
+            {
+              syslog->print("### \t");
+              syslog->print(command);
+              syslog->print(" \t");
+              syslog->println(liveData->prevResponseRowMerged);
+            }
+            break;
+          }
+          delay(10);
+        }
+        delay(liveData->delayBetweenCommandsMs);
+        //      syslog->setDebugLevel(liveData->settings.debugLevel);
+      }
+    }
+  }
+  // ECU SCAN
+  else if (key.equals("ecu"))
+  {
+    // test=ecu/1
+    for (uint16_t unit = 1904; unit < 2047; unit++)
+    {
+      String command = "2101"; /*
+       if (i < 16)
+         command += "0";
+       command += String(i, HEX);
+       command.toUpperCase();
+       command += "01";*/
+
+      ioniqPhevCarControl(unit, command);
+      // WAIT FOR POSITIVE ANSWER
+      if (liveData->responseRowMerged.equals("7F2111"))
+      {
+        syslog->print(unit);
+        syslog->println(" POSITIVE ANSWER");
+      }
+    }
+  }
+  // BATCH SCAN
+  else if (key.equals("batch"))
+  {
+    // test=batch/1
+    for (uint16_t i = 0; i < 250; i++)
+    {
+      String command = "2F";
+      if (i < 16)
+        command += "0";
+      command += String(i, HEX);
+      command.toUpperCase();
+      command += "0100";
+
+      syslog->print(command);
+      syslog->print(" ");
+
+      ioniqPhevCarControl(liveData->hexToDec("07B3", 2, false), command);
+    }
+  }
+  // ONE COMMAND
+  else
+  {
+    // test=07C6/2FB00103
+    ioniqPhevCarControl(liveData->hexToDec(key, 2, false), value);
+  }
 }
 std::vector<String> CarHyundaiIoniqPHEV::customMenu(int16_t menuId)
 {

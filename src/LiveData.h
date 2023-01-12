@@ -371,7 +371,7 @@ public:
   MENU_ITEM *menuItems;
 
   // Comm
-  boolean commConnected = true;
+  boolean commConnected = false;//if is set to true ble chrash after connect
   // Bluetooth4
   boolean bleConnect = true;
   BLEAddress *pServerAddress;
@@ -385,7 +385,7 @@ public:
   bool bAdditionalStartingChar = false;    // some cars uses additional starting character in beginning of tx and rx messages
   uint8_t expectedMinimalPacketLength = 0; // what length of packet should be accepted. Set to 0 to accept any length
   uint16_t rxTimeoutMs = 500;              // timeout for receiving of CAN response
-  uint16_t delayBetweenCommandsMs = 150;     // delay between commands, set to 0 if no delay is needed
+  uint16_t delayBetweenCommandsMs = 0;     // delay between commands, set to 0 if no delay is 
 
   // Draw events
   bool redrawScreenRequested = true;
