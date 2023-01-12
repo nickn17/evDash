@@ -1,7 +1,7 @@
 #include "CommObd2Can.h"
 #include "BoardInterface.h"
 #include "LiveData.h"
-#include <MCP_CAN_lib/mcp_can.h>
+#include <mcp_can.h>
 
 // #include <string.h>
 

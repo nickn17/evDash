@@ -2,7 +2,7 @@
 
 #include "LiveData.h"
 #include "CommInterface.h"
-#include <MCP_CAN_lib/mcp_can.h>
+#include <mcp_can.h>
 
 #include <memory>
 #include <vector>
