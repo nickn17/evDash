@@ -16,7 +16,6 @@ build_flags =
 	-D BOARD_M5STACK_CORE2
 	-D BOARD_HAS_PSRAM
     -mfix-esp32-psram-cache-issue
-    -mfix-esp32-psram-cache-strategy=memw	
 	-D COMMU_CS_PIN=27
 	-D COMMU_INT_PIN=2
 	-D SERIAL2_RX=13
