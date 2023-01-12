@@ -1,4 +1,3 @@
-//#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
 #include <WiFi.h>
@@ -197,7 +196,12 @@ void Board320_240::afterSetup()
   // Comm via thread (ble/can)
   if (liveData->settings.threading)
   {
+    syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
     xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 4096, (void *)this, 0, NULL);
+  }
+  else
+  {
+    syslog->println("COMM without threading (ble/can)");
   }
 
   showTime();
@@ -1666,6 +1670,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_IONIQ_2018_28:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
     break;
+  case VEHICLE_TYPE_IONIQ_2018_PHEV:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV) ? ">" : "";
+    break;
   case VEHICLE_TYPE_KONA_2020_64:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) ? ">" : "";
     break;
@@ -2220,6 +2227,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_IONIQ_2018_PHEV:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ_PHEV;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_KONA_2020_64:
       liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64;
       showMenu();
@@ -2358,16 +2370,19 @@ void Board320_240::menuItemClick()
     // Comm type
     case MENU_ADAPTER_BLE4:
       liveData->settings.commType = COMM_TYPE_OBD2BLE4;
+      displayMessage("COMM_TYPE_OBD2BLE4", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
     case MENU_ADAPTER_CAN:
       liveData->settings.commType = COMM_TYPE_OBD2CAN;
+      displayMessage("COMM_TYPE_OBD2CAN", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
     case MENU_ADAPTER_BT3:
       liveData->settings.commType = COMM_TYPE_OBD2BT3;
+      displayMessage("COMM_TYPE_OBD2BT3", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
@@ -3014,7 +3029,7 @@ void Board320_240::redrawScreen()
     spr.setTextSize(1);
     spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
+    spr.drawString("BLE4 OBDII not connected...", 0, 220, 2);
     spr.drawString("Press middle button to menu.", 0, 200, 2);
     spr.drawString(APP_VERSION, 0, 220, 2);
   }
@@ -3205,14 +3220,13 @@ void Board320_240::mainLoop()
   getLocalTime(&now);
   liveData->params.currentTime = mktime(&now);
 
-
   // Check and eventually reconnect WIFI aconnection
 
   if (WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
-    {
-        wifiFallback();
-    }
-  
+  {
+    wifiFallback();
+  }
+
   // SIM800L + WiFI remote upload
   netLoop();
 
@@ -3308,7 +3322,7 @@ void Board320_240::mainLoop()
       liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0 &&
       liveData->params.stopCommandQueue == true)
   {
-      liveData->params.stopCommandQueue = false;
+    liveData->params.stopCommandQueue = false;
   }
   // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
@@ -3406,7 +3420,7 @@ void Board320_240::mainLoop()
   }
   else if (!liveData->params.chargingOn && !liveData->params.forwardDriveMode && liveData->params.carMode != CAR_MODE_NONE &&
            liveData->params.currentTime - liveData->params.carModeChanged > 1800 &&
-           liveData->params.currentTime - liveData->params.carModeChanged < 10*24*3600)
+           liveData->params.currentTime - liveData->params.carModeChanged < 10 * 24 * 3600)
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_NONE);
   }
@@ -3666,8 +3680,8 @@ void Board320_240::wifiFallback()
   }
   else
   {
-      // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
-      wifiSwitchToMain();
+    // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
+    wifiSwitchToMain();
   }
 }
 
@@ -3983,6 +3997,10 @@ bool Board320_240::netSendData()
     case CAR_HYUNDAI_IONIQ_2018:
       jsonData["car_model"] = "hyundai:ioniq:17:28:other";
       break;
+    case CAR_HYUNDAI_IONIQ_PHEV:
+      jsonData["car_model"] = "hyundai:phev:17:28:other";
+      break;
+
     case CAR_HYUNDAI_IONIQ5_58:
       jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
       break;

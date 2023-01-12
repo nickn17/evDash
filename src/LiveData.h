@@ -13,6 +13,7 @@
 // SUPPORTED CARS
 #define CAR_HYUNDAI_KONA_2020_64 1
 #define CAR_HYUNDAI_IONIQ_2018 2
+#define CAR_HYUNDAI_IONIQ_PHEV 28
 #define CAR_HYUNDAI_KONA_2020_39 4
 #define CAR_HYUNDAI_IONIQ5_58 12
 #define CAR_HYUNDAI_IONIQ5_72 13
@@ -331,7 +332,7 @@ typedef struct
   char wifiPasswordb[32];    // backup wifi Pass
   uint8_t backupWifiEnabled; // enable Backup WIFI fallback 0/1
   // == settings version 13
-  uint8_t threading;         // 0 - off, 1 - on
+  uint8_t threading;      // 0 - off, 1 - on
   int8_t speedCorrection; // -5 to +5
   //
 } SETTINGS_STRUC;
@@ -384,7 +385,7 @@ public:
   bool bAdditionalStartingChar = false;    // some cars uses additional starting character in beginning of tx and rx messages
   uint8_t expectedMinimalPacketLength = 0; // what length of packet should be accepted. Set to 0 to accept any length
   uint16_t rxTimeoutMs = 500;              // timeout for receiving of CAN response
-  uint16_t delayBetweenCommandsMs = 0;     // delay between commands, set to 0 if no delay is needed
+  uint16_t delayBetweenCommandsMs = 0;     // default delay between commands, set to 0 if no delay is needed (defined in Car.... )
 
   // Draw events
   bool redrawScreenRequested = true;
@@ -402,6 +403,6 @@ public:
   float km2distance(float inKm);
   float celsius2temperature(float inCelsius);
   float bar2pressure(float inBar);
-  String getBatteryManagementModeStr(int8_t mode);  
+  String getBatteryManagementModeStr(int8_t mode);
   void clearDrivingAndChargingStats(int newCarMode);
 };

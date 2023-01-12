@@ -1,9 +1,9 @@
 #include "CommObd2Can.h"
 #include "BoardInterface.h"
 #include "LiveData.h"
-#include <mcp_can.h>
+#include <MCP_CAN_lib/mcp_can.h>
 
-//#include <string.h>
+// #include <string.h>
 
 /**
    Connect CAN adapter
@@ -15,7 +15,7 @@ void CommObd2Can::connectDevice()
   syslog->println("CAN connectDevice");
 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
-  CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  CAN.reset(new MCP_CAN(/*&SPI, */ pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
   if (CAN == nullptr)
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
@@ -28,6 +28,7 @@ void CommObd2Can::connectDevice()
   {
     syslog->println("MCP2515 Initialized Successfully!");
     board->displayMessage(" > CAN init OK", "");
+    connectAttempts = 3;
   }
   else
   {

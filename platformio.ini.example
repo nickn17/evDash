@@ -16,14 +16,13 @@ build_flags =
 	-D BOARD_M5STACK_CORE2
 	-D BOARD_HAS_PSRAM
     -mfix-esp32-psram-cache-issue
-    -mfix-esp32-psram-cache-strategy=memw	
 	-D COMMU_CS_PIN=27
 	-D COMMU_INT_PIN=2
 	-D SERIAL2_RX=13
 	-D SERIAL2_TX=14
 	-D SIM800L_RST=26
 lib_deps = 
-	m5stack/M5Core2
+	m5stack/M5Core2@0.1.5
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
