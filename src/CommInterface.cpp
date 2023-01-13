@@ -35,9 +35,13 @@ void CommInterface::mainLoop()
     if (ch == '\r' || ch == '\n')
     {
       board->customConsoleCommand(response);
+      
+      // raise dump noo needed, work is done by customConsoleCommand method
+      // Lubos: Not exactly. This is for AT/CAN commands via serial console. 
+      // CustomConsoleCommand only process evDash command (reboot, savesetting, etd). 
       response = response + ch;
       syslog->info(DEBUG_COMM, response);
-      //executeCommand(response); //raise dump noo needed, work is done by customConsoleCommand method
+      executeCommand(response);       
       response = "";
     }
     else

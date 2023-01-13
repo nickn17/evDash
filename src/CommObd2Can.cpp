@@ -15,7 +15,7 @@ void CommObd2Can::connectDevice()
   syslog->println("CAN connectDevice");
 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
-  CAN.reset(new MCP_CAN(/*&SPI, */ pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  CAN.reset(new MCP_CAN(&SPI, pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
   if (CAN == nullptr)
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
