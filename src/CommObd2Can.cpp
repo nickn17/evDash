@@ -92,8 +92,9 @@ void CommObd2Can::mainLoop()
 {
   CommInterface::mainLoop();
 
-  if (liveData->params.stopCommandQueue)
+  if (liveData->params.stopCommandQueue || !liveData->commConnected){//Prevents error when there is no can module connected
     return;
+  }
 
   // if delay between commands is defined, check if this delay is not expired
   if (liveData->delayBetweenCommandsMs != 0)
