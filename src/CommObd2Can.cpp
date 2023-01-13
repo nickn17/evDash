@@ -110,7 +110,7 @@ void CommObd2Can::mainLoop()
 
   // Read data
   const uint8_t firstByte = receivePID();
-  if ((firstByte & 0xf0) == 0x10)
+  if (firstByte != 0xFF && (firstByte & 0xf0) == 0x10)
   { // First frame, request another
     sendFlowControlFrame();
     delay(10);
@@ -295,9 +295,15 @@ uint8_t CommObd2Can::receivePID()
   if (!digitalRead(pinCanInt)) // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
-    syslog->infoNolf(DEBUG_COMM, " CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf); // Read data: len = data length, buf = data byte(s)
 
+    // Empty response
+    if (rxId == 0x00)
+    {
+      return 0xFF;
+    }
+
+    syslog->infoNolf(DEBUG_COMM, " CAN READ ");
     if ((rxId & 0x80000000) == 0x80000000) // Determine if ID is standard (11 bits) or extended (29 bits)
       sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), rxLen);
     else
@@ -328,11 +334,10 @@ uint8_t CommObd2Can::receivePID()
     }
 
     // Filter received messages (Ioniq only)
-    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
+    // if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
+    if (lastPid <= 4095) // only for 11 bit can (exclude MEB is29bit)
     {
-      long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
-
-      if (rxId != atsh_response)
+      if (rxId != lastPid + 8)
       {
         syslog->info(DEBUG_COMM, " [Filtered packet]");
         return 0xff;
