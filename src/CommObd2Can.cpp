@@ -92,7 +92,8 @@ void CommObd2Can::mainLoop()
 {
   CommInterface::mainLoop();
 
-  if (liveData->params.stopCommandQueue || !liveData->commConnected){//Prevents error when there is no can module connected
+  if (liveData->params.stopCommandQueue || !liveData->commConnected)
+  { // Prevents error when there is no can module connected
     return;
   }
 

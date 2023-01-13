@@ -248,6 +248,5 @@ void CommInterface::sendPID(const uint32_t pid, const String &cmd)
  */
 uint8_t CommInterface::receivePID()
 {
-
   return 0;
 }

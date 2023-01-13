@@ -371,7 +371,7 @@ public:
   MENU_ITEM *menuItems;
 
   // Comm
-  boolean commConnected = true;
+  boolean commConnected = false;
   // Bluetooth4
   boolean bleConnect = true;
   BLEAddress *pServerAddress;
