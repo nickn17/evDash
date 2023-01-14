@@ -10,6 +10,10 @@
 */
 void CommObd2Can::connectDevice()
 {
+  if(millis()<12000){
+    //return;// without it messages are corrupted and we dont have noise speaker
+    return;//no corrupted message but have noise speaker
+  }
   connectAttempts--;
 
   syslog->println("CAN connectDevice");
@@ -20,6 +24,7 @@ void CommObd2Can::connectDevice()
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
     syslog->println("init_can() failed");
+    sentCanData = false;
     return;
   }
 
@@ -28,12 +33,14 @@ void CommObd2Can::connectDevice()
   {
     syslog->println("MCP2515 Initialized Successfully!");
     board->displayMessage(" > CAN init OK", "");
+    sentCanData = false;
     connectAttempts = 3;
   }
   else
   {
     syslog->println("Error Initializing MCP2515...");
     board->displayMessage(" > CAN init failed", "");
+    sentCanData = false;
     return;
   }
 
@@ -52,6 +59,7 @@ void CommObd2Can::connectDevice()
   { // Set operation mode to normal so the MCP2515 sends acks to received data.
     syslog->println("Error: CAN->setMode(MCP_NORMAL) failed");
     board->displayMessage(" > CAN init failed", "");
+    sentCanData = false;
     return;
   }
 
@@ -74,6 +82,7 @@ void CommObd2Can::disconnectDevice()
   liveData->commConnected = false;
   // CAN->setMode(MCP_SLEEP);
   syslog->println("COMM disconnectDevice");
+  sentCanData = false;
 }
 
 /**
@@ -124,6 +133,7 @@ void CommObd2Can::mainLoop()
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
       {
         syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
+        sentCanData = false;
         break;
       }
     }
@@ -137,6 +147,7 @@ void CommObd2Can::mainLoop()
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
   {
     syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
+    sentCanData = false;
     liveData->canSendNextAtCommand = true;
     return;
   }
@@ -234,11 +245,13 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
+    sentCanData = true;
     lastDataSent = millis();
   }
   else
   {
     syslog->infoNolf(DEBUG_COMM, "Error sending PID ");
+    sentCanData = false;
     lastDataSent = millis();
   }
   syslog->infoNolf(DEBUG_COMM, pid);
@@ -276,6 +289,7 @@ void CommObd2Can::sendFlowControlFrame()
   else
   {
     syslog->infoNolf(DEBUG_COMM, "Error sending flow control frame ");
+    sentCanData = false;
   }
   syslog->infoNolf(DEBUG_COMM, lastPid);
   for (auto txByte : txBuf)
@@ -292,7 +306,7 @@ void CommObd2Can::sendFlowControlFrame()
 uint8_t CommObd2Can::receivePID()
 {
 
-  if (!digitalRead(pinCanInt)) // If CAN0_INT pin is low, read receive buffer
+  if (!digitalRead(pinCanInt) && sentCanData == true) // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf); // Read data: len = data length, buf = data byte(s)
