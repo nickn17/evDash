@@ -10,12 +10,18 @@
 */
 void CommObd2Can::connectDevice()
 {
+  /*if (millis() < 12000)
+  {
+    // return;// without it messages are corrupted and we dont have noise speaker
+    return; 
+  }*/
   connectAttempts--;
 
   syslog->println("CAN connectDevice");
 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
   CAN.reset(new MCP_CAN(&SPI, pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  sentCanData = false;
   if (CAN == nullptr)
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
@@ -71,6 +77,7 @@ void CommObd2Can::connectDevice()
 void CommObd2Can::disconnectDevice()
 {
 
+  sentCanData = false;
   liveData->commConnected = false;
   // CAN->setMode(MCP_SLEEP);
   syslog->println("COMM disconnectDevice");
@@ -92,7 +99,7 @@ void CommObd2Can::mainLoop()
 {
   CommInterface::mainLoop();
 
-  /*if (digitalRead(pinCanInt)) { 
+  /*if (digitalRead(pinCanInt)) {
         syslog->println("CAN HIGH");
   } else {
         syslog->println("CAN LOW");
@@ -130,6 +137,7 @@ void CommObd2Can::mainLoop()
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
       {
         syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
+        sentCanData = false;
         break;
       }
     }
@@ -143,6 +151,7 @@ void CommObd2Can::mainLoop()
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
   {
     syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
+    sentCanData = false;
     liveData->canSendNextAtCommand = true;
     return;
   }
@@ -242,11 +251,13 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
+    sentCanData = true;
     lastDataSent = millis();
   }
   else
   {
     syslog->infoNolf(DEBUG_COMM, "Error sending PID ");
+    sentCanData = false;
     lastDataSent = millis();
   }
   syslog->infoNolf(DEBUG_COMM, pid);
@@ -283,6 +294,7 @@ void CommObd2Can::sendFlowControlFrame()
   }
   else
   {
+    sentCanData = false;
     syslog->infoNolf(DEBUG_COMM, "Error sending flow control frame ");
   }
   syslog->infoNolf(DEBUG_COMM, lastPid);
@@ -299,7 +311,7 @@ void CommObd2Can::sendFlowControlFrame()
 */
 uint8_t CommObd2Can::receivePID()
 {
-  if (!digitalRead(pinCanInt)) // If CAN0_INT pin is low, read receive buffer
+  if (!digitalRead(pinCanInt) && sentCanData == true) // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
     syslog->infoNolf(DEBUG_COMM, " CAN READ ");
@@ -344,8 +356,8 @@ uint8_t CommObd2Can::receivePID()
     // Filter received messages, all 11 bit CAN - korean cars (exclude MEB is29bit)
     if (lastPid <= 4095 && rxId != lastPid + 8)
     {
-      syslog->info(DEBUG_COMM, " [Filtered packet]");
-      return 0xff;
+        syslog->info(DEBUG_COMM, " [Filtered packet]");
+        return 0xff;
     }
 
     syslog->info(DEBUG_COMM, "");

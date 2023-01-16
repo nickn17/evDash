@@ -40,7 +40,6 @@ void BoardM5stackCore2::initBoard()
   Write1Byte(0X36, 0X4C);
   Write1Byte(0x82, 0xff);
 
-  M5.Axp.SetSpkEnable(false); 
   M5.Axp.SetESPVoltage(3350);
   M5.Axp.SetBusPowerMode(1); // 1 - Power from bus; 0 - Power from USB
   M5.Axp.SetLDOVoltage(2, 3300);
@@ -48,7 +47,7 @@ void BoardM5stackCore2::initBoard()
   M5.Axp.SetLDOEnable(2, true);
   M5.Axp.SetDCDC3(false);
   M5.Axp.SetLed(false);
-
+  M5.Axp.SetSpkEnable(false); 
   M5.Rtc.begin();
   delay(100);
 
