@@ -998,21 +998,29 @@ void Board320_240::drawSceneSpeed()
   }
 
   // AUX voltage
+  posy = 60;
   if (liveData->params.auxVoltage > 5 && liveData->params.speedKmhGPS < 100)
   {
-    posy = 80;
+    if (liveData->params.auxPerc != -1)
+    {
+      sprintf(tmpStr3, "%01.00f", liveData->params.auxPerc);
+      spr.setTextDatum(TL_DATUM);
+      spr.drawString(tmpStr3, posx, posy, GFXFF);
+      spr.drawString("aux %", 0, posy+20, 2);
+      posy += 40;
+    }
     sprintf(tmpStr3, "%01.01f", liveData->params.auxVoltage);
     spr.setTextDatum(TL_DATUM);
     spr.drawString(tmpStr3, posx, posy, GFXFF);
-    spr.drawString("aux V", 0, posy + 20, 2);
+    spr.drawString("aux V", 0, posy+20, 2);
+    posy += 40;
   }
 
   // Avg speed
-  posy = 120;
   sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
   spr.setTextDatum(TL_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
-  spr.drawString("avg.km/h", 0, posy + 20, 2);
+  spr.drawString("avg.km/h", 0, posy+20, 2);
 
   // Bottom info
   // Cummulative regen/power

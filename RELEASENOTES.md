@@ -2,8 +2,12 @@
 
 ### Next version
 
+### v2.6.9 2023-01-16
+- Speed screen: added Aux%
+
 ### v2.6.8 2023-01-12
 - m5core2 is working again (thanks to ayasystems & spot2000)
+- added Ioniq 28 PHEV (ayasystems)
 
 ### v2.6.6 2022-10-11
 - speed screen - added aux voltage
