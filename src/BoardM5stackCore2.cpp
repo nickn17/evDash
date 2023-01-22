@@ -56,10 +56,8 @@ void BoardM5stackCore2::initBoard()
 
 void BoardM5stackCore2::afterSetup()
 {
-
   Board320_240::afterSetup();
 
-  M5.begin();
   syslog->println(" START -> BoardM5stackCore2::afterSetup ");
   M5.background.addHandler(eventDisplay, (E_ALL) /* - E_MOVE*/);
 }

@@ -2,6 +2,9 @@
 
 ### Next version
 
+### v2.7.0 2023-01-22
+- m5core library 1.2.0 -> 1.5.0
+
 ### v2.6.9 2023-01-16
 - Speed screen: added Aux%
 
