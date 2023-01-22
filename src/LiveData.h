@@ -64,7 +64,8 @@
 #define SCREEN_CELLS 4
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10 6
-#define SCREEN_HUD 7
+#define SCREEN_DEBUG 7
+#define SCREEN_HUD 8
 
 // CAR MODE
 #define CAR_MODE_NONE 0
@@ -334,6 +335,8 @@ typedef struct
   // == settings version 13
   uint8_t threading;      // 0 - off, 1 - on
   int8_t speedCorrection; // -5 to +5
+  // == settings version 13
+  uint8_t disableCommandOptimizer;      // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
   //
 } SETTINGS_STRUC;
 

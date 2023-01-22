@@ -763,6 +763,11 @@ bool CarVWID3::commandAllowed()
     }
   }*/
 
+  // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
+  if (liveData->settings.disableCommandOptimizer) {
+    return true;
+  }
+
   // BMS (only for SCREEN_CELLS)
   if (liveData->currentAtshRequest.equals("ATSH17FC007B"))
   {

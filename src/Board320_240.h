@@ -65,6 +65,8 @@ protected:
   bool lastForwardDriveMode = false;
   float forwardDriveOdoKmStart = -1;
   float forwardDriveOdoKmLast = -1;
+  uint32_t mainLoopStart = 0;
+  float displayFps = 0;
 
 public:
   bool invertDisplay = false;

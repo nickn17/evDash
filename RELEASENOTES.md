@@ -2,6 +2,11 @@
 
 ### Next version
 
+### v2.7.1 2023-01-22
+- Menu Adapter type / Disable optimizer  (this log all obd2 values to sdcard, for example all cell voltages)
+- Fixed touch screen
+- Added new screen 6 (debug screen)
+
 ### v2.7.0 2023-01-22
 - m5core library 1.2.0 -> 1.5.0
 

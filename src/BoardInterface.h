@@ -15,7 +15,7 @@ protected:
 
 public:
   // Screens, buttons
-  byte displayScreenCount = 7;
+  byte displayScreenCount = 8;
   bool btnLeftPressed = true;
   bool btnMiddlePressed = true;
   bool btnRightPressed = true;

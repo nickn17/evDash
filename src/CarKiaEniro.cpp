@@ -470,6 +470,11 @@ bool CarKiaEniro::commandAllowed()
     return false;
   }
 
+  // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
+  if (liveData->settings.disableCommandOptimizer) {
+    return true;
+  }
+
   // TPMS (once per 30 secs.)
   if (liveData->commandRequest.equals("ATSH7A0"))
   {
