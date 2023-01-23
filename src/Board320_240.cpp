@@ -1721,9 +1721,9 @@ SD status*/
   }
   spr.print(" used ");
   spr.print(SD.usedBytes() / 1048576);
-  spr.print(" from ");
+  spr.print("/");
   spr.print(SD.totalBytes() / 1048576);
-  spr.print(" MB");
+  spr.println("MB");
 
   // VOLTMETER INA3221
   spr.print("VOLTMETER ");
@@ -3251,13 +3251,13 @@ void Board320_240::boardLoop()
   */
 void Board320_240::mainLoop()
 {
-  if((millis() - mainLoopStart)>0){
-    // Calculate FPS
-    displayFps = (1000 / (millis() - mainLoopStart));
-  }else{
-    displayFps = 0;
-  }
+  // Calculate FPS
+  float timeDiff = (millis() - mainLoopStart);
+  displayFps = (timeDiff == 0 ? 0 : (1000 / (millis() - mainLoopStart)));
   mainLoopStart = millis();
+
+  // board loop
+  boardLoop();
 
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
