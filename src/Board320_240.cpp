@@ -3251,12 +3251,13 @@ void Board320_240::boardLoop()
   */
 void Board320_240::mainLoop()
 {
-  // Calculate FPS
-  displayFps = (1000 / (millis() - mainLoopStart));
+  if((millis() - mainLoopStart)>0){
+    // Calculate FPS
+    displayFps = (1000 / (millis() - mainLoopStart));
+  }else{
+    displayFps = 0;
+  }
   mainLoopStart = millis();
-
-  // board loop
-  boardLoop();
 
   ///////////////////////////////////////////////////////////////////////
   // Handle buttons
