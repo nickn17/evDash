@@ -1712,13 +1712,9 @@ SD status*/
 
   // SDCARD
   spr.print("SDCARD ");
-  spr.print((liveData->settings.sdcardEnabled == 0) ? "OFF" : (strlen(liveData->params.sdcardFilename) != 0) ? liveData->params.sdcardFilename
+  spr.print((liveData->settings.sdcardEnabled == 0) ? "OFF" : (strlen(liveData->params.sdcardFilename) != 0) ? "WRITE"
                                                           : (liveData->params.sdcardInit)                    ? "READY"
                                                                                                              : "MOUNTED");
-  if (liveData->params.sdcardRecording)
-  {
-    spr.print(" REC");
-  }
   spr.print(" used ");
   spr.print(SD.usedBytes() / 1048576);
   spr.print("/");

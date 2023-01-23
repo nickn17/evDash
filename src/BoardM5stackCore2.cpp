@@ -68,7 +68,7 @@ void BoardM5stackCore2::afterSetup()
   // Touch screen zone
   M5.background.delHandlers();
   uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
-  M5.background.tapTime = 100;
+  M5.background.tapTime = 200;
   M5.background.dbltapTime = 300;
   M5.background.longPressTime = 700;
   M5.background.repeatDelay = 250;
@@ -241,7 +241,7 @@ void BoardM5stackCore2::eventDisplay(Event &e)
   if (e.type == E_RELEASE && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
   {
     //syslog->println("E_TOUCH RELEASE");
-    if (millis() - lastTouchTime > 300)
+    if (millis() - lastTouchTime > M5.background.tapTime)
     {
       //syslog->println("TOUCH SCREEN EVENT");
       lastTouchPressed = true;
