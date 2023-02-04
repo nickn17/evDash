@@ -2,6 +2,9 @@
 
 ### Next version
 
+### v2.7.2 2023-02-04
+- Fixed ABRP live data (increased timeout from 500 to 1000)
+
 ### v2.7.1 2023-01-22
 - Menu Adapter type / Disable optimizer  (this log all obd2 values to sdcard, for example all cell voltages)
 - Fixed touch screen
