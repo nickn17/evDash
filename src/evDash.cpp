@@ -35,6 +35,7 @@
 #include "BoardM5stackCore2.h"
 #endif // BOARD_M5STACK_CORE2
 
+#include "LogSerial.h"
 #include "LiveData.h"
 #include "CarInterface.h"
 #include "CarKiaEniro.h"

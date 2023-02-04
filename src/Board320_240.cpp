@@ -2785,6 +2785,15 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD:
+      if (liveData->settings.sdcardEnabled == 1 && liveData->params.sdcardInit)
+      {
+        syslog->info(DEBUG_NONE, "Save console output to sdcard started.");
+        syslog->setLogToSdcard(true);
+      }
+      showMenu();
+      return;
+      break;
     // Voltmeter INA 3221
     case MENU_VOLTMETER_ENABLED:
       liveData->settings.voltmeterEnabled = (liveData->settings.voltmeterEnabled == 1) ? 0 : 1;
@@ -3096,7 +3105,7 @@ void Board320_240::redrawScreen()
   {
     spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
     spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
-                   (liveData->params.sdcardInit == 1) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
+                   (liveData->params.sdcardInit) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
     );
   }
 
@@ -4304,7 +4313,7 @@ bool Board320_240::netSendData()
 
       // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
       http.begin(client, "http://api.iternio.com/1/tlm/send");
-      http.setConnectTimeout(500);
+      http.setConnectTimeout(1000);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       rc = http.POST(dta);
       http.end();

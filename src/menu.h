@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 142
+#define MENU_SIZE 143
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -115,6 +115,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_SDCARD_REC, MENU_SDCARD, MENU_NO_MENU, "Record"},
     {MENU_SDCARD_SETTINGS_SAVE, MENU_SDCARD, MENU_NO_MENU, "Backup settings to SDCARD"},
     {MENU_SDCARD_SETTINGS_RESTORE, MENU_SDCARD, MENU_NO_MENU, "Restore settings from SD"},
+    {MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD, MENU_SDCARD, MENU_NO_MENU, "Save console to SD card"},
     //  {MENU_SDCARD_INTERVAL,          MENU_SDCARD,        MENU_NO_MENU,     "Log interval sec."},
 
     {MENU_VOLTMETER_TOP, MENU_VOLTMETER, MENU_OTHERS, "<- parent menu"},
