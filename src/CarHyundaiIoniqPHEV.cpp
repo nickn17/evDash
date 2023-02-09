@@ -33,7 +33,8 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
       //"AT CAF0",   // Automatic formatting off
       "AT DP",
       "AT ST16",
-
+      "ATSH7DF",
+      "010D", // power kw, ...
       // Loop from (HYUNDAI IONIQ)
       // BMS
       "ATSH7E4",
@@ -41,12 +42,11 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
       "2102", // cell voltages, screen 3 only
       "2103", // cell voltages, screen 3 only
       "2104", // cell voltages, screen 3 only
-      "2105", // soh, soc, ..
-
+      "2105", // soh, soc, .. 
       // VMCU
-      "ATSH7E2",
-      "2101", // speed, ...
-      "2102", // aux, ...
+      /////////"ATSH7E2",
+      /////////"2101", // speed, ...
+      /////////"2102", // aux, ...
 
       // IGPM
       "ATSH770",
@@ -74,7 +74,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
       "22B002", // odo
   };
 
-  // 28kWh version
+  // 8.9 kWh version IONIQ PHEV 2019
   liveData->params.batteryTotalAvailableKWh = 8.9;
   liveData->params.batModuleTempCount = 4;
   liveData->params.cellCount = 96;
@@ -108,6 +108,21 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
   //  float tempFloat;
   String tmpStr;
 
+  if (liveData->currentAtshRequest.equals("ATSH7DF"))
+  {
+    if (liveData->commandRequest.equals("010D"))
+    {
+      //liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(4, 6, 1, false) ; // / 100.0 *1.609 = real to gps is 1.750
+      syslog->println("responseRowMerged: "+liveData->responseRowMerged);
+      if (liveData->params.speedKmh > 10)
+        liveData->params.speedKmh += liveData->settings.speedCorrection;
+      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+        liveData->params.speedKmh = 0;
+    }
+  }
+
+/*
   // VMCU 7E2
   if (liveData->currentAtshRequest.equals("ATSH7E2"))
   {
@@ -124,7 +139,7 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
       liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
     }
   }
-
+*/  
   // IGPM
   if (liveData->currentAtshRequest.equals("ATSH770"))
   {
@@ -185,9 +200,6 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
     if (liveData->commandRequest.equals("22B002"))
     {
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      syslog->print("KM: ");
-      syslog->println(liveData->params.odoKm);
-      syslog->println(liveData->responseRowMerged.substring(18, 24));
     }
   }
 
@@ -357,6 +369,9 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
     {
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
     }
+
+
+
   }
 
   // TPMS 7a0
@@ -504,7 +519,13 @@ bool CarHyundaiIoniqPHEV::commandAllowed()
 */
 void CarHyundaiIoniqPHEV::loadTestData()
 {
+  // "ATSH7DF",
+  liveData->currentAtshRequest = "ATSH7DF";
+  liveData->commandRequest = "010D";
+  // liveData->responseRowMerged = "6105FFFFFFFF00000000000B0B0B0B0B0B0B136826480001500B0B03E80203E831C60031000000000000000000000000";
+  liveData->responseRowMerged = "410D4F";
 
+  parseRowMerged();
   // VMCU ATSH7E2
   liveData->currentAtshRequest = "ATSH7E2";
   // 2101
@@ -516,8 +537,7 @@ void CarHyundaiIoniqPHEV::loadTestData()
   liveData->responseRowMerged = "6102FF80000001010000009522C570273A0F0D9199953900000000";
   parseRowMerged();
 
-  // "ATSH7DF",
-  liveData->currentAtshRequest = "ATSH7DF";
+
 
   // AIRCON / ACU ATSH7B3
   liveData->currentAtshRequest = "ATSH7B3";
@@ -558,6 +578,8 @@ void CarHyundaiIoniqPHEV::loadTestData()
   // liveData->responseRowMerged = "6105FFFFFFFF00000000000B0B0B0B0B0B0B136826480001500B0B03E80203E831C60031000000000000000000000000";
   liveData->responseRowMerged = "6105FFFFFFFF0064010064011011BA16F800110000000000000000FF0F0000000042006A1003E852C000000000000000";
   parseRowMerged();
+
+
 
   // BCM / TPMS ATSH7A0
   liveData->currentAtshRequest = "ATSH7A0";
