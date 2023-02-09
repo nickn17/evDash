@@ -34,7 +34,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
       "AT DP",
       "AT ST16",
       "ATSH7DF",
-      "010D", // power kw, ...
+      "010D", // speed 
       // Loop from (HYUNDAI IONIQ)
       // BMS
       "ATSH7E4",
