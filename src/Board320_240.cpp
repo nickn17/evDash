@@ -701,16 +701,18 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   spr.pushSprite(0, 0);
 
   bool res = false;
-  for (uint16_t i = 0; i < 20 * 10; i++)
+  for (uint16_t i = 0; i < 2000 * 100; i++)
   {
     boardLoop();
-    if (isButtonPressed(pinButtonLeft))
-      return true;
-    if (isButtonPressed(pinButtonRight))
-      return false;
-    delay(100);
+    if (isButtonPressed(pinButtonLeft)){
+      res = true;
+      break;
+    }  
+    if (isButtonPressed(pinButtonRight)){
+      res = false;
+      break; 
+    }
   }
-
   return res;
 }
 
@@ -2786,10 +2788,20 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD:
+ 
+      if(liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit){
+        
+        displayMessage("SDCARD", "Mounting SD...");
+        sdcardMount();        
+      }
       if (liveData->settings.sdcardEnabled == 1 && liveData->params.sdcardInit)
       {
         syslog->info(DEBUG_NONE, "Save console output to sdcard started.");
+        displayMessage("SDCARD", "Console to SD enable");
         syslog->setLogToSdcard(true);
+        hideMenu();
+        return;
+        break;
       }
       showMenu();
       return;
@@ -3260,7 +3272,7 @@ void Board320_240::mainLoop()
   float timeDiff = (millis() - mainLoopStart);
   displayFps = (timeDiff == 0 ? 0 : (1000 / (millis() - mainLoopStart)));
   mainLoopStart = millis();
-
+  
   // board loop
   boardLoop();
 
@@ -3687,6 +3699,7 @@ void Board320_240::syncTimes(time_t newTime)
 */
 bool Board320_240::skipAdapterScan()
 {
+
   return isButtonPressed(pinButtonMiddle) || isButtonPressed(pinButtonLeft) || isButtonPressed(pinButtonRight);
 }
 
