@@ -242,7 +242,10 @@ void BoardM5stackCore2::eventDisplay(Event &e)
     lastTouchY = e.to.y;
     lastTouchTime = millis();
   }
-  if (e.type == E_RELEASE && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
+  //if (e.type == E_RELEASE && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
+  //Not take button as touch event only background events
+  if (e.type == E_RELEASE && e.objName() == "background" && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
+  
   {
     //syslog->println("E_TOUCH RELEASE");
     if (millis() - lastTouchTime > M5.background.tapTime)
