@@ -70,12 +70,12 @@ void BoardM5stackCore2::afterSetup()
   uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
   M5.background.tapTime = 200;
   M5.background.dbltapTime = 300;
-  
+
   M5.background.longPressTime = 700;
   M5.background.repeatDelay = 250;
   M5.background.repeatInterval = 250;
   M5.background.addHandler(eventDisplay, events);
-   M5.Buttons.addHandler(eventDisplay, events);
+  M5.Buttons.addHandler(eventDisplay, events);
 }
 
 void BoardM5stackCore2::wakeupBoard()
@@ -107,12 +107,11 @@ uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
 bool BoardM5stackCore2::isButtonPressed(int button)
 {
 
-
   // Touch screen
   if (lastTouchPressed) // M5.background.pressedFor(100, 500))
   {
     lastTouchPressed = false;
-     lastTouchTime = millis(); // restart timer
+    lastTouchTime = millis(); // restart timer
 
     syslog->println(" Touch event ");
     liveData->params.lastButtonPushedTime = liveData->params.currentTime; // prevent screen sleep mode
@@ -237,29 +236,30 @@ void BoardM5stackCore2::eventDisplay(Event &e)
 {
   if (e.type == E_TOUCH && (lastTouchX != e.to.x || lastTouchY != e.to.y))
   {
-    //syslog->println("E_TOUCH PRESSED");
+    // syslog->println("E_TOUCH PRESSED");
     lastTouchX = e.to.x;
     lastTouchY = e.to.y;
     lastTouchTime = millis();
   }
-  //if (e.type == E_RELEASE && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
-  //Not take button as touch event only background events
-  if (e.type == E_RELEASE && e.objName() == "background" && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
-  
+  syslog->print(e.objName());
+  syslog->println("==");
+  // if (e.type == E_RELEASE && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
+  // Not take button as touch event only background events
+  if (e.type == E_RELEASE &&  strcmp(e.objName(), "background") == 0 && lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0 && lastTouchPressed == false)
   {
-    //syslog->println("E_TOUCH RELEASE");
+    // syslog->println("E_TOUCH RELEASE");
     if (millis() - lastTouchTime > M5.background.tapTime)
     {
-      //syslog->println("TOUCH SCREEN EVENT");
+      // syslog->println("TOUCH SCREEN EVENT");
       lastTouchPressed = true;
     }
   }
 
-    syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
-                   e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
-                   e.to.x, e.to.y);
-    syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
-                   e.distance(), e.duration);
+  syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",
+                 e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
+                 e.to.x, e.to.y);
+  syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
+                 e.distance(), e.duration);
 }
 
 /**
@@ -299,26 +299,25 @@ void BoardM5stackCore2::boardLoop()
 void BoardM5stackCore2::mainLoop()
 {
   Board320_240::mainLoop();
- 
-            
 }
 bool BoardM5stackCore2::skipAdapterScan()
 {
   bool pressed = false;
- 
-     M5.Lcd.clear(RED);
-    for (uint16_t i = 0; i < 2000 * 10; i++)
-  { 
-     M5.update();
-     if( M5.BtnA.isPressed() == true || M5.BtnB.isPressed() == true ||M5.BtnC.isPressed() == true ){
+
+  M5.Lcd.clear(RED);
+  for (uint16_t i = 0; i < 2000 * 10; i++)
+  {
+    M5.update();
+    if (M5.BtnA.isPressed() == true || M5.BtnB.isPressed() == true || M5.BtnC.isPressed() == true)
+    {
       pressed = true;
- 
+
       break;
-     };
+    };
   }
-  
+
   M5.Lcd.clear(BLACK);
-  
+
   return pressed;
 }
 /**
