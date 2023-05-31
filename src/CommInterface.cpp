@@ -8,7 +8,6 @@
 */
 void CommInterface::initComm(LiveData *pLiveData, BoardInterface *pBoard)
 {
-
   liveData = pLiveData;
   board = pBoard;
   response = "";
@@ -20,6 +19,22 @@ void CommInterface::initComm(LiveData *pLiveData, BoardInterface *pBoard)
 uint8_t CommInterface::checkConnectAttempts()
 {
   return connectAttempts > 0;
+}
+
+/**
+ * getConnectAttempts
+ */
+int8_t CommInterface::getConnectAttempts()
+{
+  return connectAttempts;
+}
+
+/**
+ * getConnectStatus
+ */
+String CommInterface::getConnectStatus()
+{
+  return connectStatus;
 }
 
 /**

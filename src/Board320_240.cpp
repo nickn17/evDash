@@ -704,13 +704,15 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   for (uint16_t i = 0; i < 2000 * 100; i++)
   {
     boardLoop();
-    if (isButtonPressed(pinButtonLeft)){
+    if (isButtonPressed(pinButtonLeft))
+    {
       res = true;
       break;
-    }  
-    if (isButtonPressed(pinButtonRight)){
+    }
+    if (isButtonPressed(pinButtonRight))
+    {
       res = false;
-      break; 
+      break;
     }
   }
   return res;
@@ -1650,6 +1652,145 @@ void Board320_240::drawSceneSoc10Table()
   spr.drawString(tmpStr1, 160, zeroY + (14 * 15), 2);
   sprintf(tmpStr1, "AVAIL.CAP: %01.01f kWh", -diffCed - diffCec);
   spr.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
+}
+
+/**
+  Debug screen
+*/
+void Board320_240::drawSceneDebug()
+{
+  String tmpStr;
+
+  spr.setTextFont(2);
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.setTextColor(TFT_SILVER);
+  spr.setTextDatum(TL_DATUM);
+
+  spr.setCursor(0, 0, 2);
+
+  /* Spotzify [SE]: Diagnostic values I would love to have :
+FPS, or more specific time for one total loop of program.
+COMMU stats
+GPS stats
+Time and date
+GSM status
+ABRP status
+SD status*/
+
+  // BASIC INFO
+  spr.print("APP ");
+  spr.print(APP_VERSION);
+  spr.print(" | Settings v");
+  spr.print(liveData->settings.settingsVersion);
+  spr.print(" | FPS ");
+  spr.println(displayFps);
+
+  // TODO Cartype liveData->settings.carType - translate car number to string
+  // TODO Adapter type liveData->settings.commType == COMM_TYPE_OBD2BLE4
+  // TODO data from adapter
+
+  // WIFI
+  spr.print("WIFI ");
+  spr.print(liveData->settings.wifiEnabled == 1 ? "ON" : "OFF");
+  // if (liveData->params.isWifiBackupLive == true)
+  spr.print(" IP ");
+  spr.print(WiFi.localIP().toString());
+  spr.print(" SSID ");
+  spr.println(liveData->settings.wifiSsid);
+
+  // REMOTE UPLOAD
+  spr.print("REMOTE UPLOAD ");
+  switch (liveData->settings.remoteUploadModuleType)
+  {
+  case REMOTE_UPLOAD_SIM800L:
+    spr.print("SIM800L");
+    break;
+  case REMOTE_UPLOAD_WIFI:
+    spr.print("WIFI");
+    break;
+  default:
+    spr.print("unknown");
+  }
+  // TODO sent status, ms from last sent
+  spr.println("");
+
+  // SDCARD
+  spr.print("SDCARD ");
+  spr.print((liveData->settings.sdcardEnabled == 0) ? "OFF" : (strlen(liveData->params.sdcardFilename) != 0) ? "WRITE"
+                                                          : (liveData->params.sdcardInit)                    ? "READY"
+                                                                                                             : "MOUNTED");
+  spr.print(" used ");
+  spr.print(SD.usedBytes() / 1048576);
+  spr.print("/");
+  spr.print(SD.totalBytes() / 1048576);
+  spr.println("MB");
+
+  // VOLTMETER INA3221
+  spr.print("VOLTMETER ");
+  spr.println(liveData->settings.voltmeterEnabled == 1 ? "ON" : "OFF");
+  if (liveData->settings.voltmeterEnabled == 1)
+  {
+    syslog->print("ch1:");
+    syslog->print(ina3221.getBusVoltage_V(1));
+    syslog->print("V\t ch2:");
+    syslog->print(ina3221.getBusVoltage_V(2));
+    syslog->print("V\t ch3:");
+    syslog->print(ina3221.getBusVoltage_V(3));
+    syslog->println("V");
+    syslog->print("ch1:");
+    syslog->print(ina3221.getCurrent_mA(1));
+    syslog->print("mA\t ch2:");
+    syslog->print(ina3221.getCurrent_mA(2));
+    syslog->print("mA\t ch3:");
+    syslog->print(ina3221.getCurrent_mA(3));
+    syslog->println("mA");
+  }
+
+  // SLEEP MODE
+  spr.print("SLEEP MODE ");
+  switch (liveData->settings.sleepModeLevel)
+  {
+  case SLEEP_MODE_OFF:
+    spr.print("OFF");
+    break;
+  case SLEEP_MODE_SCREEN_ONLY:
+    spr.print("SCREEN ONLY");
+    break;
+  case SLEEP_MODE_DEEP_SLEEP:
+    spr.print("DEEP SLEEP");
+    break;
+  case SLEEP_MODE_SHUTDOWN:
+    spr.print("SHUTDOWN");
+    break;
+  default:
+    spr.print("UNKNOWN");
+  }
+  spr.println("");
+
+  // GPS
+  spr.print("GPS ");
+  spr.print(liveData->params.gpsValid ? "OK" : "-");
+  if (liveData->params.gpsValid)
+  {
+    spr.print(" ");
+    spr.print(liveData->params.gpsLat);
+    spr.print("/");
+    spr.print(liveData->params.gpsLon);
+    spr.print(" alt ");
+    spr.print(liveData->params.gpsAlt);
+    spr.print("m sat ");
+    spr.print(liveData->params.gpsSat);
+  }
+  spr.println("");
+
+  // CURRENT TIME
+  spr.print("TIME ");
+  spr.print(liveData->params.ntpTimeSet == 1 ? " NTP " : "");
+  spr.print(liveData->params.currTimeSyncWithGps == 1 ? "GPS " : "");
+  struct tm now;
+  getLocalTime(&now);
+  sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  spr.println(tmpStr1);
 }
 
 /**
@@ -2831,11 +2972,12 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD:
- 
-      if(liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit){
-        
+
+      if (liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit)
+      {
+
         displayMessage("SDCARD", "Mounting SD...");
-        sdcardMount();        
+        sdcardMount();
       }
       if (liveData->settings.sdcardEnabled == 1 && liveData->params.sdcardInit)
       {
@@ -3246,15 +3388,29 @@ void Board320_240::redrawScreen()
   }
 
   // BLE not connected
-  if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4)
+  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4 && !liveData->commConnected && liveData->bleConnect)
   {
     // Print message
+    spr.fillRect(0, 185, 220, 50, TFT_BLACK);
+    spr.drawRect(0, 185, 220, 50, TFT_WHITE);
     spr.setTextSize(1);
-    spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString("BLE4 OBDII not connected...", 0, 220, 2);
-    spr.drawString("Press middle button to menu.", 0, 200, 2);
-    spr.drawString(APP_VERSION, 0, 220, 2);
+    spr.setTextColor(TFT_WHITE);
+    spr.drawString("BLE4 OBDII not connected...", 10, 190, 2);
+    spr.drawString("Middle button - menu.", 10, 210, 2);
+  }
+  // CAN not connected
+  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2CAN && commInterface->getConnectStatus() != "")
+  {
+    // Print message
+    spr.fillRect(0, 185, 160, 50, TFT_BLACK);
+    spr.drawRect(0, 185, 160, 50, TFT_WHITE);
+    spr.setTextSize(1);
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextColor(TFT_WHITE);
+    sprintf(tmpStr1, "CAN #%d", commInterface->getConnectAttempts());
+    spr.drawString(tmpStr1, 10, 190, 2);
+    spr.drawString(commInterface->getConnectStatus(), 10, 210, 2);
   }
 
   spr.pushSprite(0, 0);
@@ -3315,7 +3471,7 @@ void Board320_240::mainLoop()
   float timeDiff = (millis() - mainLoopStart);
   displayFps = (timeDiff == 0 ? 0 : (1000 / (millis() - mainLoopStart)));
   mainLoopStart = millis();
-  
+
   // board loop
   boardLoop();
 
@@ -3505,7 +3661,7 @@ void Board320_240::mainLoop()
   }
 
   // Read voltmeter INA3221 (if enabled)
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 2)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 5)
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
@@ -3534,18 +3690,19 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
+  /*if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
   {
     if (liveData->settings.voltmeterEnabled == 1)
     {
-      syslog->print("Voltmeter");
+      syslog->print("Voltmeter ");
       syslog->print(ina3221.getBusVoltage_V(1));
       syslog->print("V\t ");
       syslog->print(ina3221.getCurrent_mA(1));
       syslog->print("mA\t QUEUE:");
       syslog->println((liveData->params.stopCommandQueue ? "stopped" : "running"));
     }
-  }
+  }*/
+
   // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
   if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
       liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0 &&
@@ -3556,8 +3713,8 @@ void Board320_240::mainLoop()
   // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
-      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 &&
-      (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
+      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 30 &&
+      (liveData->params.currentTime - liveData->params.wakeUpTime > 60 || bootCount > 1))
   {
     turnOffScreen();
   }
@@ -3588,9 +3745,12 @@ void Board320_240::mainLoop()
   }
 
   // Reconnect CAN bus if no response for 5s
-  if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 && commInterface->checkConnectAttempts())
+  if (liveData->settings.commType == 1 &&
+      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
+      commInterface->checkConnectAttempts())
   {
-    syslog->println("No response from CANbus for 5 seconds, reconnecting");
+    syslog->print("No response from CANbus for 5 seconds, reconnecting ... ");
+    syslog->println(commInterface->getConnectAttempts());
     commInterface->connectDevice();
     liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   }

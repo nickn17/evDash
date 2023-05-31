@@ -148,8 +148,6 @@ void setup(void)
 
   // Finish board setup
   board->afterSetup();
-
-  // Redraw screen
   board->redrawScreen();
 
   // End

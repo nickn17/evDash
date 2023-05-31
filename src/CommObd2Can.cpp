@@ -16,8 +16,8 @@ void CommObd2Can::connectDevice()
     return; 
   }*/
   connectAttempts--;
-
   syslog->println("CAN connectDevice");
+  connectStatus = "Connecting...";
 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
   CAN.reset(new MCP_CAN(&SPI, pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
@@ -26,6 +26,7 @@ void CommObd2Can::connectDevice()
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
     syslog->println("init_can() failed");
+    connectStatus = "Not enough memory";
     return;
   }
 
@@ -33,13 +34,14 @@ void CommObd2Can::connectDevice()
   if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK)
   {
     syslog->println("MCP2515 Initialized Successfully!");
-    board->displayMessage(" > CAN init OK", "");
-    connectAttempts = 3;
+    connectStatus = "Can ready";
+    // connectAttempts = 3; neverending 3 attempts
   }
   else
   {
     syslog->println("Error Initializing MCP2515...");
-    board->displayMessage(" > CAN init failed", "");
+    connectStatus = "No MCP2515";
+    connectAttempts = 0;
     return;
   }
 
@@ -57,7 +59,7 @@ void CommObd2Can::connectDevice()
   if (MCP2515_OK != CAN->setMode(MCP_NORMAL))
   { // Set operation mode to normal so the MCP2515 sends acks to received data.
     syslog->println("Error: CAN->setMode(MCP_NORMAL) failed");
-    board->displayMessage(" > CAN init failed", "");
+    connectStatus = "MCP_NORMAL failed";
     return;
   }
 
@@ -76,11 +78,12 @@ void CommObd2Can::connectDevice()
 */
 void CommObd2Can::disconnectDevice()
 {
-
   sentCanData = false;
   liveData->commConnected = false;
+
   // CAN->setMode(MCP_SLEEP);
   syslog->println("COMM disconnectDevice");
+  connectStatus = "Disconnected";
 }
 
 /**
@@ -88,8 +91,8 @@ void CommObd2Can::disconnectDevice()
 */
 void CommObd2Can::scanDevices()
 {
-
   syslog->println("COMM scanDevices");
+  connectStatus = "Scan devices";
 }
 
 /**
@@ -99,14 +102,9 @@ void CommObd2Can::mainLoop()
 {
   CommInterface::mainLoop();
 
-  /*if (digitalRead(pinCanInt)) {
-        syslog->println("CAN HIGH");
-  } else {
-        syslog->println("CAN LOW");
-  }*/
-
+  // Prevent errors without connected module
   if (liveData->params.stopCommandQueue || !liveData->commConnected)
-  { // Prevents error when there is no can module connected
+  { 
     return;
   }
 
@@ -137,11 +135,12 @@ void CommObd2Can::mainLoop()
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
       {
         syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
+        connectStatus = "Timeout (multiframe)";
         sentCanData = false;
         break;
       }
     }
-    // Process incomplette messages
+    // Process incomplete messages
     if (liveData->responseRowMerged.length() > 7)
     {
       processMergedResponse();
@@ -151,6 +150,7 @@ void CommObd2Can::mainLoop()
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
   {
     syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
+    connectStatus = "CAN timeout";
     sentCanData = false;
     liveData->canSendNextAtCommand = true;
     return;
@@ -253,10 +253,12 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
     syslog->infoNolf(DEBUG_COMM, "SENT ");
     sentCanData = true;
     lastDataSent = millis();
+    connectAttempts = 3;
   }
   else
   {
     syslog->infoNolf(DEBUG_COMM, "Error sending PID ");
+    connectStatus = "Err sending frame";
     sentCanData = false;
     lastDataSent = millis();
   }
@@ -296,6 +298,7 @@ void CommObd2Can::sendFlowControlFrame()
   {
     sentCanData = false;
     syslog->infoNolf(DEBUG_COMM, "Error sending flow control frame ");
+    connectStatus = "Err sending flow fr.";
   }
   syslog->infoNolf(DEBUG_COMM, lastPid);
   for (auto txByte : txBuf)
@@ -350,17 +353,20 @@ uint8_t CommObd2Can::receivePID()
     if (liveData->expectedMinimalPacketLength != 0 && rxLen < liveData->expectedMinimalPacketLength)
     {
       syslog->info(DEBUG_COMM, " [Ignored packet]");
+      connectStatus = "Packet ignored";
       return 0xff;
     }
 
     // Filter received messages, all 11 bit CAN - korean cars (exclude MEB is29bit)
     if (lastPid <= 4095 && rxId != lastPid + 8)
     {
-        syslog->info(DEBUG_COMM, " [Filtered packet]");
-        return 0xff;
+      syslog->info(DEBUG_COMM, " [Filtered packet]");
+      connectStatus = "Packet filtered";
+      return 0xff;
     }
 
     syslog->info(DEBUG_COMM, "");
+    connectStatus = "";
     processFrameBytes();
     // processFrame();
   }
@@ -505,6 +511,7 @@ bool CommObd2Can::processFrameBytes()
 
   default:
     syslog->infoNolf(DEBUG_COMM, "Unknown frame type within CommObd2Can::processFrameBytes(): ");
+    connectStatus = "Unknown frame type";
     syslog->info(DEBUG_COMM, (uint8_t)frameType);
     return false;
     break;
@@ -597,7 +604,13 @@ bool CommObd2Can::processFrame()
     uint8_t rowNo = liveData->hexToDec(liveData->responseRow.substring(0, 1), 1, false);
     uint16_t startPos = (rowNo * 14) - ((rowNo > 0) ? 2 : 0);
     uint16_t endPos = ((rowNo + 1) * 14) - ((rowNo > 0) ? 2 : 0);
-    liveData->responseRowMerged = liveData->responseRowMerged.substring(0, startPos) + liveData->responseRow.substring(2) + liveData->responseRowMerged.substring(endPos);
+    
+    // Prevent buffer overflow
+    if (startPos > 512 || endPos > 512) {
+      connectStatus = "mergedrow >512";
+    } else {
+      liveData->responseRowMerged = liveData->responseRowMerged.substring(0, startPos) + liveData->responseRow.substring(2) + liveData->responseRowMerged.substring(endPos);
+    }
     syslog->info(DEBUG_COMM, liveData->responseRowMerged);
   }
 
