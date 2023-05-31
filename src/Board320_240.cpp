@@ -1,4 +1,3 @@
-//#include <SD.h>
 #include <FS.h>
 #include <analogWrite.h>
 #include <WiFi.h>
@@ -197,7 +196,12 @@ void Board320_240::afterSetup()
   // Comm via thread (ble/can)
   if (liveData->settings.threading)
   {
+    syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
     xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 4096, (void *)this, 0, NULL);
+  }
+  else
+  {
+    syslog->println("COMM without threading (ble/can)");
   }
 
   showTime();
@@ -697,16 +701,18 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   spr.pushSprite(0, 0);
 
   bool res = false;
-  for (uint16_t i = 0; i < 20 * 10; i++)
+  for (uint16_t i = 0; i < 2000 * 100; i++)
   {
     boardLoop();
-    if (isButtonPressed(pinButtonLeft))
-      return true;
-    if (isButtonPressed(pinButtonRight))
-      return false;
-    delay(100);
+    if (isButtonPressed(pinButtonLeft)){
+      res = true;
+      break;
+    }  
+    if (isButtonPressed(pinButtonRight)){
+      res = false;
+      break; 
+    }
   }
-
   return res;
 }
 
@@ -994,17 +1000,25 @@ void Board320_240::drawSceneSpeed()
   }
 
   // AUX voltage
+  posy = 60;
   if (liveData->params.auxVoltage > 5 && liveData->params.speedKmhGPS < 100)
   {
-    posy = 80;
+    if (liveData->params.auxPerc != -1)
+    {
+      sprintf(tmpStr3, "%01.00f", liveData->params.auxPerc);
+      spr.setTextDatum(TL_DATUM);
+      spr.drawString(tmpStr3, posx, posy, GFXFF);
+      spr.drawString("aux %", 0, posy + 20, 2);
+      posy += 40;
+    }
     sprintf(tmpStr3, "%01.01f", liveData->params.auxVoltage);
     spr.setTextDatum(TL_DATUM);
     spr.drawString(tmpStr3, posx, posy, GFXFF);
     spr.drawString("aux V", 0, posy + 20, 2);
+    posy += 40;
   }
 
   // Avg speed
-  posy = 120;
   sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
   spr.setTextDatum(TL_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
@@ -1639,6 +1653,188 @@ void Board320_240::drawSceneSoc10Table()
 }
 
 /**
+  Debug screen
+*/
+void Board320_240::drawSceneDebug()
+{
+  String tmpStr;
+
+  spr.setTextFont(2);
+  spr.setTextSize(1); // Size for small 5x7 font
+  spr.setTextColor(TFT_SILVER);
+  spr.setTextDatum(TL_DATUM);
+
+  spr.setCursor(0, 0, 2);
+
+  /* Spotzify [SE]: Diagnostic values I would love to have :
+FPS, or more specific time for one total loop of program.
+COMMU stats
+GPS stats
+Time and date
+GSM status
+ABRP status
+SD status*/
+
+  // BASIC INFO
+  spr.print("APP ");
+  spr.print(APP_VERSION);
+  spr.print(" | Settings v");
+  spr.print(liveData->settings.settingsVersion);
+  spr.print(" | FPS ");
+  spr.println(displayFps);
+
+  // TODO Cartype liveData->settings.carType - translate car number to string
+  // TODO Adapter type liveData->settings.commType == COMM_TYPE_OBD2BLE4
+  // TODO data from adapter
+
+  // WIFI
+  spr.print("WIFI ");
+  spr.print(liveData->settings.wifiEnabled == 1 ? "ON" : "OFF");
+  // if (liveData->params.isWifiBackupLive == true)
+  spr.print(" IP ");
+  spr.print(WiFi.localIP().toString());
+  spr.print(" SSID ");
+  spr.println(liveData->settings.wifiSsid);
+
+  // REMOTE UPLOAD
+  spr.print("REMOTE UPLOAD ");
+  switch (liveData->settings.remoteUploadModuleType)
+  {
+  case REMOTE_UPLOAD_SIM800L:
+    spr.print("SIM800L");
+    break;
+  case REMOTE_UPLOAD_WIFI:
+    spr.print("WIFI");
+    break;
+  default:
+    spr.print("unknown");
+  }
+  
+  spr.println("");
+
+  // Conny test to show ABRP diag parameters.
+  spr.print("CarMode: ");
+  spr.println(liveData->params.carMode);
+
+spr.print("Power (kW): ");
+  spr.println(liveData->params.batPowerKw * -1);
+
+  spr.print("ignitionOn: ");
+  spr.println(liveData->params.ignitionOn == 1 ? "ON" : "OFF");
+
+  spr.print("chargingOn: ");
+  spr.println(liveData->params.chargingOn == 1 ? "ON" : "OFF");
+
+  spr.print("AC charger connected: ");
+  spr.println(liveData->params.chargerACconnected == 1 ? "ON" : "OFF");
+
+  spr.print("DC charger connected: ");
+  spr.println(liveData->params.chargerDCconnected == 1 ? "ON" : "OFF");
+
+  spr.print("Forwad drive mode: : ");
+  spr.println(liveData->params.forwardDriveMode == 1 ? "ON" : "OFF");
+
+  //spr.print("Reverse drive mode: : ");
+  //spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
+
+  
+/*
+  jsonData["power"] = liveData->params.batPowerKw * -1;
+    jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
+  
+  
+  bool ignitionOn;
+  bool chargingOn;
+  bool chargerACconnected;
+  bool chargerDCconnected;
+  bool forwardDriveMode;
+  bool reverseDriveMode;
+  bool parkModeOrNeutral;
+  */
+  
+  // TODO sent status, ms from last sent
+  //spr.println("");
+
+  // SDCARD
+  spr.print("SDCARD ");
+  spr.print((liveData->settings.sdcardEnabled == 0) ? "OFF" : (strlen(liveData->params.sdcardFilename) != 0) ? "WRITE"
+                                                          : (liveData->params.sdcardInit)                    ? "READY"
+                                                                                                             : "MOUNTED");
+  spr.print(" used ");
+  spr.print(SD.usedBytes() / 1048576);
+  spr.print("/");
+  spr.print(SD.totalBytes() / 1048576);
+  spr.println("MB");
+
+  // VOLTMETER INA3221
+  spr.print("VOLTMETER ");
+  spr.println(liveData->settings.voltmeterEnabled == 1 ? "ON" : "OFF");
+  if (liveData->settings.voltmeterEnabled == 1)
+  {
+    syslog->print("ch1:");
+    syslog->print(ina3221.getBusVoltage_V(1));
+    syslog->print("V\t ch2:");
+    syslog->print(ina3221.getBusVoltage_V(2));
+    syslog->print("V\t ch3:");
+    syslog->print(ina3221.getBusVoltage_V(3));
+    syslog->println("V");
+    syslog->print("ch1:");
+    syslog->print(ina3221.getCurrent_mA(1));
+    syslog->print("mA\t ch2:");
+    syslog->print(ina3221.getCurrent_mA(2));
+    syslog->print("mA\t ch3:");
+    syslog->print(ina3221.getCurrent_mA(3));
+    syslog->println("mA");
+  }
+
+  // SLEEP MODE
+  spr.print("SLEEP MODE ");
+  switch (liveData->settings.sleepModeLevel)
+  {
+  case SLEEP_MODE_OFF:
+    spr.print("OFF");
+    break;
+  case SLEEP_MODE_SCREEN_ONLY:
+    spr.print("SCREEN ONLY");
+    break;
+  case SLEEP_MODE_DEEP_SLEEP:
+    spr.print("DEEP SLEEP");
+    break;
+  case SLEEP_MODE_SHUTDOWN:
+    spr.print("SHUTDOWN");
+    break;
+  default:
+    spr.print("UNKNOWN");
+  }
+  spr.println("");
+
+  // GPS
+  spr.print("GPS ");
+  spr.print(liveData->params.gpsValid ? "OK" : "-");
+  if (liveData->params.gpsValid)
+  {
+    spr.print(" ");
+    spr.print(liveData->params.gpsLat);
+    spr.print("/");
+    spr.print(liveData->params.gpsLon);
+    spr.print(" alt ");
+    spr.print(liveData->params.gpsAlt);
+    spr.print("m sat ");
+    spr.print(liveData->params.gpsSat);
+  }
+  spr.println("");
+
+  // CURRENT TIME
+  spr.print("TIME ");
+  spr.print(liveData->params.ntpTimeSet == 1 ? " NTP " : "");
+  spr.print(liveData->params.currTimeSyncWithGps == 1 ? "GPS " : "");
+  struct tm now;
+  getLocalTime(&now);
+  sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  spr.println(tmpStr1);
+}
+
+/**
    Modify caption
 */
 String Board320_240::menuItemCaption(int16_t menuItemId, String title)
@@ -1665,6 +1861,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   // TODO: Why is do these cases not match the vehicle type id?
   case VEHICLE_TYPE_IONIQ_2018_28:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_IONIQ_2018_PHEV:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_PHEV) ? ">" : "";
     break;
   case VEHICLE_TYPE_KONA_2020_64:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64) ? ">" : "";
@@ -1756,6 +1955,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case MENU_ADAPTER_BT3:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2BT3) ? ">" : "";
+    break;
+  case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
+    suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
   case MENU_ADAPTER_THREADING:
     suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
@@ -2220,6 +2422,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_IONIQ_2018_PHEV:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ_PHEV;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_KONA_2020_64:
       liveData->settings.carType = CAR_HYUNDAI_KONA_2020_64;
       showMenu();
@@ -2358,18 +2565,26 @@ void Board320_240::menuItemClick()
     // Comm type
     case MENU_ADAPTER_BLE4:
       liveData->settings.commType = COMM_TYPE_OBD2BLE4;
+      displayMessage("COMM_TYPE_OBD2BLE4", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
     case MENU_ADAPTER_CAN:
       liveData->settings.commType = COMM_TYPE_OBD2CAN;
+      displayMessage("COMM_TYPE_OBD2CAN", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
     case MENU_ADAPTER_BT3:
       liveData->settings.commType = COMM_TYPE_OBD2BT3;
+      displayMessage("COMM_TYPE_OBD2BT3", "Rebooting");
       saveSettings();
       ESP.restart();
+      break;
+    case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
+      liveData->settings.disableCommandOptimizer = (liveData->settings.disableCommandOptimizer == 1) ? 0 : 1;
+      showMenu();
+      return;
       break;
     case MENU_ADAPTER_THREADING:
       liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
@@ -2408,7 +2623,7 @@ void Board320_240::menuItemClick()
       showParentMenu = true;
       break;
     case DEFAULT_SCREEN_HUD:
-      liveData->settings.defaultScreen = 7;
+      liveData->settings.defaultScreen = 8;
       showParentMenu = true;
       break;
     // SleepMode off/on
@@ -2611,6 +2826,25 @@ void Board320_240::menuItemClick()
       else
       {
         displayMessage("SDCARD", "Not mounted or not exists");
+      }
+      showMenu();
+      return;
+      break;
+    case MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD:
+ 
+      if(liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit){
+        
+        displayMessage("SDCARD", "Mounting SD...");
+        sdcardMount();        
+      }
+      if (liveData->settings.sdcardEnabled == 1 && liveData->params.sdcardInit)
+      {
+        syslog->info(DEBUG_NONE, "Save console output to sdcard started.");
+        displayMessage("SDCARD", "Console to SD enable");
+        syslog->setLogToSdcard(true);
+        hideMenu();
+        return;
+        break;
       }
       showMenu();
       return;
@@ -2891,7 +3125,11 @@ void Board320_240::redrawScreen()
   case SCREEN_SOC10:
     drawSceneSoc10Table();
     break;
-  // 7. HUD
+  // 7. Debug screen
+  case SCREEN_DEBUG:
+    drawSceneDebug();
+    break;
+  // 8. HUD
   case SCREEN_HUD:
     drawSceneHud();
     break;
@@ -2922,7 +3160,7 @@ void Board320_240::redrawScreen()
   {
     spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
     spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
-                   (liveData->params.sdcardInit == 1) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
+                   (liveData->params.sdcardInit) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
     );
   }
 
@@ -3014,7 +3252,7 @@ void Board320_240::redrawScreen()
     spr.setTextSize(1);
     spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString("BLE4 OBDII not connected...", 0, 180, 2);
+    spr.drawString("BLE4 OBDII not connected...", 0, 220, 2);
     spr.drawString("Press middle button to menu.", 0, 200, 2);
     spr.drawString(APP_VERSION, 0, 220, 2);
   }
@@ -3073,6 +3311,12 @@ void Board320_240::boardLoop()
   */
 void Board320_240::mainLoop()
 {
+  // Calculate FPS
+  float timeDiff = (millis() - mainLoopStart);
+  displayFps = (timeDiff == 0 ? 0 : (1000 / (millis() - mainLoopStart)));
+  mainLoopStart = millis();
+  
+  // board loop
   boardLoop();
 
   ///////////////////////////////////////////////////////////////////////
@@ -3205,14 +3449,13 @@ void Board320_240::mainLoop()
   getLocalTime(&now);
   liveData->params.currentTime = mktime(&now);
 
-
   // Check and eventually reconnect WIFI aconnection
 
   if (WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
-    {
-        wifiFallback();
-    }
-  
+  {
+    wifiFallback();
+  }
+
   // SIM800L + WiFI remote upload
   netLoop();
 
@@ -3308,7 +3551,7 @@ void Board320_240::mainLoop()
       liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0 &&
       liveData->params.stopCommandQueue == true)
   {
-      liveData->params.stopCommandQueue = false;
+    liveData->params.stopCommandQueue = false;
   }
   // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
@@ -3406,7 +3649,7 @@ void Board320_240::mainLoop()
   }
   else if (!liveData->params.chargingOn && !liveData->params.forwardDriveMode && liveData->params.carMode != CAR_MODE_NONE &&
            liveData->params.currentTime - liveData->params.carModeChanged > 1800 &&
-           liveData->params.currentTime - liveData->params.carModeChanged < 10*24*3600)
+           liveData->params.currentTime - liveData->params.carModeChanged < 10 * 24 * 3600)
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_NONE);
   }
@@ -3499,6 +3742,7 @@ void Board320_240::syncTimes(time_t newTime)
 */
 bool Board320_240::skipAdapterScan()
 {
+
   return isButtonPressed(pinButtonMiddle) || isButtonPressed(pinButtonLeft) || isButtonPressed(pinButtonRight);
 }
 
@@ -3666,8 +3910,8 @@ void Board320_240::wifiFallback()
   }
   else
   {
-      // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
-      wifiSwitchToMain();
+    // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
+    wifiSwitchToMain();
   }
 }
 
@@ -3983,6 +4227,10 @@ bool Board320_240::netSendData()
     case CAR_HYUNDAI_IONIQ_2018:
       jsonData["car_model"] = "hyundai:ioniq:17:28:other";
       break;
+    case CAR_HYUNDAI_IONIQ_PHEV:
+      jsonData["car_model"] = "hyundai:phev:17:28:other";
+      break;
+
     case CAR_HYUNDAI_IONIQ5_58:
       jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
       break;
@@ -4121,7 +4369,7 @@ bool Board320_240::netSendData()
 
       // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
       http.begin(client, "http://api.iternio.com/1/tlm/send");
-      http.setConnectTimeout(500);
+      http.setConnectTimeout(1000);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       rc = http.POST(dta);
       http.end();

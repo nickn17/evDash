@@ -2,6 +2,24 @@
 
 ### Next version
 
+### v2.7.2 2023-02-04
+- Fixed ABRP live data (increased timeout from 500 to 1000)
+
+### v2.7.1 2023-01-22
+- Menu Adapter type / Disable optimizer  (this log all obd2 values to sdcard, for example all cell voltages)
+- Fixed touch screen
+- Added new screen 6 (debug screen)
+
+### v2.7.0 2023-01-22
+- m5core library 1.2.0 -> 1.5.0
+
+### v2.6.9 2023-01-16
+- Speed screen: added Aux%
+
+### v2.6.8 2023-01-12
+- m5core2 is working again (thanks to ayasystems & spot2000)
+- added Ioniq 28 PHEV (ayasystems)
+
 ### v2.6.6 2022-10-11
 - speed screen - added aux voltage
 - speed screen - added trip distance in km

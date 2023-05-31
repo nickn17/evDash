@@ -333,8 +333,7 @@ void CarVWID3::parseRowMerged()
       // Put code here to parse the data
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5; // SOC BMS
-      //liveData->params.socPerc = liveData->params.socPercBms * 51 / 46 - 6.4;             // SOC HMI
-      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false)*0,4348 - 4,3478; // SOC HMI (test of new calculation)
+      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false)*0,4425 - 6,1947; // SOC HMI (New calculation - 2022-12-01)
        
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
@@ -763,6 +762,11 @@ bool CarVWID3::commandAllowed()
       return false;
     }
   }*/
+
+  // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
+  if (liveData->settings.disableCommandOptimizer) {
+    return true;
+  }
 
   // BMS (only for SCREEN_CELLS)
   if (liveData->currentAtshRequest.equals("ATSH17FC007B"))

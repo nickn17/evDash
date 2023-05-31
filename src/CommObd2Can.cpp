@@ -3,19 +3,25 @@
 #include "LiveData.h"
 #include <mcp_can.h>
 
-//#include <string.h>
+// #include <string.h>
 
 /**
    Connect CAN adapter
 */
 void CommObd2Can::connectDevice()
 {
+  /*if (millis() < 12000)
+  {
+    // return;// without it messages are corrupted and we dont have noise speaker
+    return; 
+  }*/
   connectAttempts--;
 
   syslog->println("CAN connectDevice");
 
   // CAN = new MCP_CAN(pinCanCs); // todo: remove if smart pointer is ok
-  CAN.reset(new MCP_CAN(pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  CAN.reset(new MCP_CAN(&SPI, pinCanCs)); // smart pointer so it's automatically cleaned when out of context and also free to re-init
+  sentCanData = false;
   if (CAN == nullptr)
   {
     syslog->println("Error: Not enough memory to instantiate CAN class");
@@ -28,6 +34,7 @@ void CommObd2Can::connectDevice()
   {
     syslog->println("MCP2515 Initialized Successfully!");
     board->displayMessage(" > CAN init OK", "");
+    connectAttempts = 3;
   }
   else
   {
@@ -70,6 +77,7 @@ void CommObd2Can::connectDevice()
 void CommObd2Can::disconnectDevice()
 {
 
+  sentCanData = false;
   liveData->commConnected = false;
   // CAN->setMode(MCP_SLEEP);
   syslog->println("COMM disconnectDevice");
@@ -91,8 +99,16 @@ void CommObd2Can::mainLoop()
 {
   CommInterface::mainLoop();
 
-  if (liveData->params.stopCommandQueue)
+  /*if (digitalRead(pinCanInt)) {
+        syslog->println("CAN HIGH");
+  } else {
+        syslog->println("CAN LOW");
+  }*/
+
+  if (liveData->params.stopCommandQueue || !liveData->commConnected)
+  { // Prevents error when there is no can module connected
     return;
+  }
 
   // if delay between commands is defined, check if this delay is not expired
   if (liveData->delayBetweenCommandsMs != 0)
@@ -107,7 +123,7 @@ void CommObd2Can::mainLoop()
 
   // Read data
   const uint8_t firstByte = receivePID();
-  if ((firstByte & 0xf0) == 0x10)
+  if (firstByte != 0xFF && (firstByte & 0xf0) == 0x10)
   { // First frame, request another
     sendFlowControlFrame();
     delay(10);
@@ -121,6 +137,7 @@ void CommObd2Can::mainLoop()
       if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
       {
         syslog->info(DEBUG_COMM, "CAN execution timeout (multiframe message).");
+        sentCanData = false;
         break;
       }
     }
@@ -134,6 +151,7 @@ void CommObd2Can::mainLoop()
   if (lastDataSent != 0 && (unsigned long)(millis() - lastDataSent) > liveData->rxTimeoutMs)
   {
     syslog->info(DEBUG_COMM, "CAN execution timeout. Continue with next command.");
+    sentCanData = false;
     liveData->canSendNextAtCommand = true;
     return;
   }
@@ -144,9 +162,11 @@ void CommObd2Can::mainLoop()
 */
 void CommObd2Can::executeCommand(String cmd)
 {
-
   syslog->infoNolf(DEBUG_COMM, "executeCommand ");
   syslog->info(DEBUG_COMM, cmd);
+
+  liveData->responseRowMerged = "";
+  liveData->vResponseRowMerged.clear();
 
   if (cmd.equals("") || cmd.startsWith("AT"))
   { // skip AT commands as not used by direct CAN connection
@@ -231,11 +251,13 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
   if (sndStat == CAN_OK)
   {
     syslog->infoNolf(DEBUG_COMM, "SENT ");
+    sentCanData = true;
     lastDataSent = millis();
   }
   else
   {
     syslog->infoNolf(DEBUG_COMM, "Error sending PID ");
+    sentCanData = false;
     lastDataSent = millis();
   }
   syslog->infoNolf(DEBUG_COMM, pid);
@@ -272,6 +294,7 @@ void CommObd2Can::sendFlowControlFrame()
   }
   else
   {
+    sentCanData = false;
     syslog->infoNolf(DEBUG_COMM, "Error sending flow control frame ");
   }
   syslog->infoNolf(DEBUG_COMM, lastPid);
@@ -288,12 +311,18 @@ void CommObd2Can::sendFlowControlFrame()
 */
 uint8_t CommObd2Can::receivePID()
 {
-
-  if (!digitalRead(pinCanInt)) // If CAN0_INT pin is low, read receive buffer
+  if (!digitalRead(pinCanInt) && sentCanData == true) // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
     syslog->infoNolf(DEBUG_COMM, " CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf); // Read data: len = data length, buf = data byte(s)
+
+    // Empty response
+    if (rxId == 0x00)
+    {
+      syslog->info(DEBUG_COMM, " [EMPTY RESPONSE]");
+      return 0xFF;
+    }
 
     if ((rxId & 0x80000000) == 0x80000000) // Determine if ID is standard (11 bits) or extended (29 bits)
       sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), rxLen);
@@ -324,16 +353,11 @@ uint8_t CommObd2Can::receivePID()
       return 0xff;
     }
 
-    // Filter received messages (Ioniq only)
-    if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
+    // Filter received messages, all 11 bit CAN - korean cars (exclude MEB is29bit)
+    if (lastPid <= 4095 && rxId != lastPid + 8)
     {
-      long unsigned int atsh_response = liveData->hexToDec(liveData->currentAtshRequest.substring(4), 2, false) + 8;
-
-      if (rxId != atsh_response)
-      {
         syslog->info(DEBUG_COMM, " [Filtered packet]");
         return 0xff;
-      }
     }
 
     syslog->info(DEBUG_COMM, "");

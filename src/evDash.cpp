@@ -35,10 +35,12 @@
 #include "BoardM5stackCore2.h"
 #endif // BOARD_M5STACK_CORE2
 
+#include "LogSerial.h"
 #include "LiveData.h"
 #include "CarInterface.h"
 #include "CarKiaEniro.h"
 #include "CarHyundaiIoniq.h"
+#include "CarHyundaiIoniqPHEV.h"
 #include "CarHyundaiIoniq5.h"
 #include "CarRenaultZoe.h"
 #include "CarKiaDebugObd2.h"
@@ -87,6 +89,7 @@ void setup(void)
   }
 
   syslog->println("\nBooting device...");
+  // board->resetSettings();
 
   // Init selected car interface
   switch (liveData->settings.carType)
@@ -107,6 +110,9 @@ void setup(void)
     break;
   case CAR_HYUNDAI_IONIQ_2018:
     car = new CarHyundaiIoniq();
+    break;
+  case CAR_HYUNDAI_IONIQ_PHEV:
+    car = new CarHyundaiIoniqPHEV();
     break;
   case CAR_RENAULT_ZOE:
     car = new CarRenaultZoe();

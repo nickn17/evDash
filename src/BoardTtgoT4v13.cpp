@@ -7,12 +7,13 @@
 /**
   Init board
 */
-void BoardTtgoT4v13::initBoard() {
+void BoardTtgoT4v13::initBoard()
+{
 
   pinButtonLeft = BUTTON_LEFT;
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
-  //pinSpeaker = SPEAKER_PIN;
+  // pinSpeaker = SPEAKER_PIN;
   pinBrightness = TFT_BL;
   pinSdcardCs = SDCARD_CS;
   pinSdcardMosi = SDCARD_MOSI;
@@ -22,19 +23,25 @@ void BoardTtgoT4v13::initBoard() {
   Board320_240::initBoard();
 }
 
-bool BoardTtgoT4v13::isButtonPressed(int button) {
-  if(digitalRead(button) == HIGH) {
+bool BoardTtgoT4v13::isButtonPressed(int button)
+{
+  if (digitalRead(button) == HIGH)
+  {
     return false;
-  } else {
+  }
+  else
+  {
     return true;
   }
 }
 
-void BoardTtgoT4v13::wakeupBoard() {
+void BoardTtgoT4v13::wakeupBoard()
+{
   return;
 }
 
-void BoardTtgoT4v13::enterSleepMode(int secs) {
+void BoardTtgoT4v13::enterSleepMode(int secs)
+{
 
   if (secs > 0)
   {

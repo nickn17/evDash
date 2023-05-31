@@ -13,6 +13,7 @@
 // SUPPORTED CARS
 #define CAR_HYUNDAI_KONA_2020_64 1
 #define CAR_HYUNDAI_IONIQ_2018 2
+#define CAR_HYUNDAI_IONIQ_PHEV 28
 #define CAR_HYUNDAI_KONA_2020_39 4
 #define CAR_HYUNDAI_IONIQ5_58 12
 #define CAR_HYUNDAI_IONIQ5_72 13
@@ -63,7 +64,8 @@
 #define SCREEN_CELLS 4
 #define SCREEN_CHARGING 5
 #define SCREEN_SOC10 6
-#define SCREEN_HUD 7
+#define SCREEN_DEBUG 7
+#define SCREEN_HUD 8
 
 // CAR MODE
 #define CAR_MODE_NONE 0
@@ -331,8 +333,10 @@ typedef struct
   char wifiPasswordb[32];    // backup wifi Pass
   uint8_t backupWifiEnabled; // enable Backup WIFI fallback 0/1
   // == settings version 13
-  uint8_t threading;         // 0 - off, 1 - on
+  uint8_t threading;      // 0 - off, 1 - on
   int8_t speedCorrection; // -5 to +5
+  // == settings version 13
+  uint8_t disableCommandOptimizer;      // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
   //
 } SETTINGS_STRUC;
 
@@ -370,7 +374,7 @@ public:
   MENU_ITEM *menuItems;
 
   // Comm
-  boolean commConnected = true;
+  boolean commConnected = false;
   // Bluetooth4
   boolean bleConnect = true;
   BLEAddress *pServerAddress;
@@ -384,7 +388,7 @@ public:
   bool bAdditionalStartingChar = false;    // some cars uses additional starting character in beginning of tx and rx messages
   uint8_t expectedMinimalPacketLength = 0; // what length of packet should be accepted. Set to 0 to accept any length
   uint16_t rxTimeoutMs = 500;              // timeout for receiving of CAN response
-  uint16_t delayBetweenCommandsMs = 0;     // delay between commands, set to 0 if no delay is needed
+  uint16_t delayBetweenCommandsMs = 0;     // default delay between commands, set to 0 if no delay is needed (defined in Car.... )
 
   // Draw events
   bool redrawScreenRequested = true;
@@ -402,6 +406,6 @@ public:
   float km2distance(float inKm);
   float celsius2temperature(float inCelsius);
   float bar2pressure(float inBar);
-  String getBatteryManagementModeStr(int8_t mode);  
+  String getBatteryManagementModeStr(int8_t mode);
   void clearDrivingAndChargingStats(int newCarMode);
 };

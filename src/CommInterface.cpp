@@ -1,6 +1,6 @@
 #include "CommInterface.h"
 #include "BoardInterface.h"
-//#include "CarInterface.h"
+// #include "CarInterface.h"
 #include "LiveData.h"
 
 /**
@@ -35,6 +35,10 @@ void CommInterface::mainLoop()
     if (ch == '\r' || ch == '\n')
     {
       board->customConsoleCommand(response);
+
+      // raise dump noo needed, work is done by customConsoleCommand method
+      // Lubos: Not exactly. This is for AT/CAN commands via serial console.
+      // CustomConsoleCommand only process evDash command (reboot, savesetting, etd).
       response = response + ch;
       syslog->info(DEBUG_COMM, response);
       executeCommand(response);
@@ -98,7 +102,7 @@ bool CommInterface::doNextQueueCommand()
       liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
       liveData->params.queueLoopCounter++;
       liveData->redrawScreenRequested = true;
-      //board->redrawScreen();
+      // board->redrawScreen();
 
       // log every queue loop (temp) TODO rewrite to secs interval
       liveData->params.sdcardCanNotify = true;
@@ -117,6 +121,7 @@ bool CommInterface::doNextQueueCommand()
   syslog->infoNolf(DEBUG_COMM, ">>> ");
   syslog->info(DEBUG_COMM, liveData->commandRequest);
   liveData->responseRowMerged = "";
+  liveData->vResponseRowMerged.clear();
   executeCommand(liveData->commandRequest);
 
   return true;
@@ -244,6 +249,5 @@ void CommInterface::sendPID(const uint32_t pid, const String &cmd)
  */
 uint8_t CommInterface::receivePID()
 {
-
   return 0;
 }

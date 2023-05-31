@@ -11,6 +11,17 @@
 #define commandQueueLoopFromHyundaiIoniq5 8
 
 // https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
+//
+// To-do list for IONIQ5
+// ---------------------
+// D/R/P not detected - FIXED 2023-05-27 SPOT2000
+// AC or DC charging is not detected properly
+// Find a way to read power (current and voltage) during charing (when car is powered down)
+// Engine RPM is found, but not implemented
+// Find and implement GPS in car CAN messages
+// Maximum charging and discharging power is found but not implemented.
+
+
 
 /**
    activateCommandQueue
@@ -51,7 +62,8 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // ABS / ESP + AHB
       "ATSH7D1",
-      "22C101", // brake, park/drive mode
+      "220104", //gear selected (D/R/N/P)
+      "22C101", // brake
       "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
       "22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
@@ -80,11 +92,11 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // BMS
       "ATSH7E4",
-      "220101", // power kw, ...
+      "220101", // power kw, engine rpm etc
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64
       "220104", // cell voltages 65 - 96
-      "220105", // soh, soc, ..
+      "220105", // soh, soc, availabe charge and discharge, DC or AC charging
       "220106", // cooling water temp
       "22010A", // cell voltages 97 - 128
       "22010B", // cell voltages 129 - 160
@@ -174,16 +186,25 @@ void CarHyundaiIoniq5::parseRowMerged()
     }
   }
 
+
+
+
   // ABS / ESP + AHB 7D1
   // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH7D1"))
   {
+    if (liveData->commandRequest.equals("220104"))
+    {
+    uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false); //Decode gear selector status
+    liveData->params.forwardDriveMode = (driveMode == 4);
+    liveData->params.reverseDriveMode = (driveMode == 2);
+    liveData->params.parkModeOrNeutral = (driveMode == 1);  
+    }
+    
+    
+    
     if (liveData->commandRequest.equals("22C101"))
     {
-      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false);
-      liveData->params.forwardDriveMode = (driveMode == 4);
-      liveData->params.reverseDriveMode = (driveMode == 2);
-      liveData->params.parkModeOrNeutral = (driveMode == 1);
       // Speed for eniro
       if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
       {
@@ -193,6 +214,10 @@ void CarHyundaiIoniq5::parseRowMerged()
       }
     }
   }
+
+
+
+
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0"))
@@ -499,6 +524,11 @@ bool CarHyundaiIoniq5::commandAllowed()
     }
 
     return false;
+  }
+
+  // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
+  if (liveData->settings.disableCommandOptimizer) {
+    return true;
   }
 
   // TPMS (once per 30 secs.)
