@@ -704,13 +704,15 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   for (uint16_t i = 0; i < 2000 * 100; i++)
   {
     boardLoop();
-    if (isButtonPressed(pinButtonLeft)){
+    if (isButtonPressed(pinButtonLeft))
+    {
       res = true;
       break;
-    }  
-    if (isButtonPressed(pinButtonRight)){
+    }
+    if (isButtonPressed(pinButtonRight))
+    {
       res = false;
-      break; 
+      break;
     }
   }
   return res;
@@ -2788,11 +2790,12 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD:
- 
-      if(liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit){
-        
+
+      if (liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit)
+      {
+
         displayMessage("SDCARD", "Mounting SD...");
-        sdcardMount();        
+        sdcardMount();
       }
       if (liveData->settings.sdcardEnabled == 1 && liveData->params.sdcardInit)
       {
@@ -3203,15 +3206,29 @@ void Board320_240::redrawScreen()
   }
 
   // BLE not connected
-  if (!liveData->commConnected && liveData->bleConnect && liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4)
+  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4 && !liveData->commConnected && liveData->bleConnect)
   {
     // Print message
+    spr.fillRect(0, 185, 220, 50, TFT_BLACK);
+    spr.drawRect(0, 185, 220, 50, TFT_WHITE);
     spr.setTextSize(1);
-    spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString("BLE4 OBDII not connected...", 0, 220, 2);
-    spr.drawString("Press middle button to menu.", 0, 200, 2);
-    spr.drawString(APP_VERSION, 0, 220, 2);
+    spr.setTextColor(TFT_WHITE);
+    spr.drawString("BLE4 OBDII not connected...", 10, 190, 2);
+    spr.drawString("Middle button - menu.", 10, 210, 2);
+  }
+  // CAN not connected
+  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2CAN && commInterface->getConnectStatus() != "")
+  {
+    // Print message
+    spr.fillRect(0, 185, 160, 50, TFT_BLACK);
+    spr.drawRect(0, 185, 160, 50, TFT_WHITE);
+    spr.setTextSize(1);
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextColor(TFT_WHITE);
+    sprintf(tmpStr1, "CAN #%d", commInterface->getConnectAttempts());
+    spr.drawString(tmpStr1, 10, 190, 2);
+    spr.drawString(commInterface->getConnectStatus(), 10, 210, 2);
   }
 
   spr.pushSprite(0, 0);
@@ -3272,7 +3289,7 @@ void Board320_240::mainLoop()
   float timeDiff = (millis() - mainLoopStart);
   displayFps = (timeDiff == 0 ? 0 : (1000 / (millis() - mainLoopStart)));
   mainLoopStart = millis();
-  
+
   // board loop
   boardLoop();
 
@@ -3462,7 +3479,7 @@ void Board320_240::mainLoop()
   }
 
   // Read voltmeter INA3221 (if enabled)
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 2)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 5)
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
@@ -3491,18 +3508,19 @@ void Board320_240::mainLoop()
   }
 
   // Turn off display if Ignition is off for more than 10s
-  if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
+  /*if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
   {
     if (liveData->settings.voltmeterEnabled == 1)
     {
-      syslog->print("Voltmeter");
+      syslog->print("Voltmeter ");
       syslog->print(ina3221.getBusVoltage_V(1));
       syslog->print("V\t ");
       syslog->print(ina3221.getCurrent_mA(1));
       syslog->print("mA\t QUEUE:");
       syslog->println((liveData->params.stopCommandQueue ? "stopped" : "running"));
     }
-  }
+  }*/
+
   // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
   if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
       liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0 &&
@@ -3513,8 +3531,8 @@ void Board320_240::mainLoop()
   // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
-      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 15 &&
-      (liveData->params.currentTime - liveData->params.wakeUpTime > 30 || bootCount > 1))
+      liveData->params.currentTime - liveData->params.lastButtonPushedTime > 30 &&
+      (liveData->params.currentTime - liveData->params.wakeUpTime > 60 || bootCount > 1))
   {
     turnOffScreen();
   }
@@ -3545,9 +3563,12 @@ void Board320_240::mainLoop()
   }
 
   // Reconnect CAN bus if no response for 5s
-  if (liveData->settings.commType == 1 && liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 && commInterface->checkConnectAttempts())
+  if (liveData->settings.commType == 1 &&
+      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
+      commInterface->checkConnectAttempts())
   {
-    syslog->println("No response from CANbus for 5 seconds, reconnecting");
+    syslog->print("No response from CANbus for 5 seconds, reconnecting ... ");
+    syslog->println(commInterface->getConnectAttempts());
     commInterface->connectDevice();
     liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   }

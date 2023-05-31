@@ -316,7 +316,7 @@ typedef struct
   // === settings version 9
   // =================================
   uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds (0 = disabled) // will be used as mqtt upload interval in future builds
-  uint16_t sleepModeIntervalSec;    // In sleep, check CANbus / Volmeter every X seconds
+  uint16_t sleepModeIntervalSec;    // In sleep, check CANbus / Voltmeter every X seconds
   uint16_t sleepModeShutdownHrs;    // 0 - disabled # shutdown after X hours of sleep
   uint16_t remoteUploadModuleType;  // 0 (REMOTE_UPLOAD_SIM800L) - SIM800L, 1 - wifi
   // == settings version 10

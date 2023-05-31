@@ -13,7 +13,8 @@ class CommInterface {
     char ch;
     String response;
     time_t lastDataSent;
-    uint8_t connectAttempts = 3;
+    int8_t connectAttempts = 3;
+    String connectStatus = "";
     // CAN response comparer
     int8_t canComparerRecordIndex = -1; // 0..3, -1 (disabled recording) 
     uint32_t canComparerRecordQueueLoop; // Request to record specified params.queueLoopCounter
@@ -24,6 +25,8 @@ class CommInterface {
     virtual void connectDevice() = 0;
     virtual void disconnectDevice() = 0;
     uint8_t checkConnectAttempts();
+    int8_t getConnectAttempts();
+    String getConnectStatus();
     virtual void scanDevices() = 0;
     virtual void mainLoop();
     virtual void executeCommand(String cmd) = 0;
