@@ -2,6 +2,11 @@
 
 ### Next version
 
+### v2.7.3 2023-05-30
+- Touch screen, better response for single tap, long press supoort, btnA-C handling
+- Removed modal dialog for CAN initialization. Better info about errors
+- CAN max.limit (512 chars) for mergedResponse. Prevents corrupt setting variables with invalid CAN responses.
+
 ### v2.7.2 2023-02-04
 - Fixed ABRP live data (increased timeout from 500 to 1000)
 
