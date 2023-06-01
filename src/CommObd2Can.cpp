@@ -10,6 +10,11 @@
 */
 void CommObd2Can::connectDevice()
 {
+  /*if (millis() < 12000)
+  {
+    // return;// without it messages are corrupted and we dont have noise speaker
+    return; 
+  }*/
   connectAttempts--;
   syslog->println("CAN connectDevice");
   connectStatus = "Connecting...";

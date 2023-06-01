@@ -1654,6 +1654,7 @@ void Board320_240::drawSceneSoc10Table()
   spr.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
 }
 
+
 /**
   Debug screen
 */
@@ -1711,8 +1712,51 @@ SD status*/
   default:
     spr.print("unknown");
   }
-  // TODO sent status, ms from last sent
+  
   spr.println("");
+
+  // Conny test to show ABRP diag parameters.
+  spr.print("CarMode: ");
+  spr.println(liveData->params.carMode);
+
+spr.print("Power (kW): ");
+  spr.println(liveData->params.batPowerKw * -1);
+
+  spr.print("ignitionOn: ");
+  spr.println(liveData->params.ignitionOn == 1 ? "ON" : "OFF");
+
+  spr.print("chargingOn: ");
+  spr.println(liveData->params.chargingOn == 1 ? "ON" : "OFF");
+
+  spr.print("AC charger connected: ");
+  spr.println(liveData->params.chargerACconnected == 1 ? "ON" : "OFF");
+
+  spr.print("DC charger connected: ");
+  spr.println(liveData->params.chargerDCconnected == 1 ? "ON" : "OFF");
+
+  spr.print("Forwad drive mode: : ");
+  spr.println(liveData->params.forwardDriveMode == 1 ? "ON" : "OFF");
+
+  //spr.print("Reverse drive mode: : ");
+  //spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
+
+  
+/*
+  jsonData["power"] = liveData->params.batPowerKw * -1;
+    jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
+  
+  
+  bool ignitionOn;
+  bool chargingOn;
+  bool chargerACconnected;
+  bool chargerDCconnected;
+  bool forwardDriveMode;
+  bool reverseDriveMode;
+  bool parkModeOrNeutral;
+  */
+  
+  // TODO sent status, ms from last sent
+  //spr.println("");
 
   // SDCARD
   spr.print("SDCARD ");
