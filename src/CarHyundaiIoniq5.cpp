@@ -49,7 +49,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "AT DP",
       "AT ST16", // reduced timeout to 1, orig.16
 
-      // Loop from (KIA ENIRO)
+      // Loop from here
 
       // IGPM
       "ATSH770",
@@ -206,12 +206,12 @@ void CarHyundaiIoniq5::parseRowMerged()
     if (liveData->commandRequest.equals("22C101"))
     {
       // Speed for eniro
-      if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
+      /*if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
       {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
         if (liveData->params.speedKmh > 10)
-          liveData->params.speedKmh += liveData->settings.speedCorrection;
-      }
+          liveData->params.speedKmh += liveData->settings.speedCorrection; 
+      }*/
     }
   }
 
@@ -256,9 +256,9 @@ void CarHyundaiIoniq5::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22B002"))
     {
-      // tempFloat = liveData->params.odoKm;
+      
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      // if (tempFloat != liveData->params.odoKm) liveData->params.sdcardCanNotify = true;
+      
     }
   }
 
@@ -267,14 +267,14 @@ void CarHyundaiIoniq5::parseRowMerged()
   {
     if (liveData->commandRequest.equals("2101"))
     {
-      if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
+      /*if (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39)
       {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
         if (liveData->params.speedKmh > 10)
           liveData->params.speedKmh += liveData->settings.speedCorrection;
         if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
           liveData->params.speedKmh = 0;
-      }
+      } */
     }
     if (liveData->commandRequest.equals("2102"))
     {
