@@ -21,6 +21,80 @@
 // Find and implement GPS in car CAN messages
 // Maximum charging and discharging power is found but not implemented.
 
+/*
+
+This is the CAN ID that responds to UDS tester present up to 0xFFF
+
+0x05E2
+0x0607
+0x0703
+0x0705
+0x0706
+0x0707
+0x0725
+0x0730
+0x0731
+0x0732
+0x0733
+0x0736
+0x0744
+0x0770 IGMP
+0x0776
+0x0777
+0x0780
+0x0781
+0x0783
+0x0797
+0x07A0 BCM/TPM
+0x07A1
+0x07A3
+0x07A6
+0x07A7
+0x07B1
+0x07B6
+0x07B7
+0x07C4 MFC (multi function camera)
+0x07C6 Cluster module
+0x07C7
+0x07D0
+0x07D1 ABS/ESP/AHB
+0x07D2
+0x07D4 EPS (electrical power steering)
+0x07DF
+0x07E0
+0x07E1
+0x07E2 VMCU
+0x07E3 MCU
+0x07E4 BMS UDS SID 0x22 UDS DID 0x0102	0x0103	0x0104	0x0106	0x0107	0x0109	0x010B	0x010C	0x0112	0x0131	0x0132	0x0133	0x0135	0x01F4	0xF181	0xF187	0xF18B	0xF18C	0xF18E	0xF190	0xF191	0xF198	0xF199	0xF19A	0xF19B	0xF19C	0xF1A0	0xF1A1	0xF1B0	0xF1B1
+0x07E5 Onboard charger
+0x07E6
+0x07E7
+0x07E8
+0x07E9
+0x07EA
+0x07EB
+0x07EC
+0x07ED
+0x07EE
+0x07EF
+0x07F0
+0x07F1
+0x07F2
+0x07F3
+0x07F4
+0x07F5
+0x07F6
+0x07F7
+0x07F8
+0x07F9
+0x07FA
+0x07FB
+0x07FC
+0x07FD
+0x07FE
+0x07FF
+*/
+
 
 
 /**
@@ -62,6 +136,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // ABS / ESP + AHB
       "ATSH7D1",
+      "3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220104", //gear selected (D/R/N/P)
       "22C101", // brake
       "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
@@ -70,10 +145,11 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "ATSH7A0",
       "22C00B", // tire pressure/temp
 
-      // Aircondition
-      "ATSH7B3",
-      "220100", // in/out temp
-      "220102", // coolant temp1, 2
+      // Aircondition 7B3 dont exist on IONIQ5 MY3, need to look for correct one - SPOT2000
+      //"ATSH7B3",
+      //"3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      //"220100", // in/out temp
+      //"220102", // coolant temp1, 2
 
       // CLUSTER MODULE
       "ATSH7C6",
@@ -83,6 +159,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // VMCU
       "ATSH7E2",
+      "3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "2101", // speed, ...
       "2102", // aux, ...
 
@@ -92,6 +169,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // BMS
       "ATSH7E4",
+      "3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220101", // power kw, engine rpm etc
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64

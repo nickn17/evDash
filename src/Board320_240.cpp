@@ -1656,7 +1656,7 @@ void Board320_240::drawSceneSoc10Table()
 
 
 /**
-  Debug screen
+  Debug screen (screen 6)
 */
 void Board320_240::drawSceneDebug()
 {
@@ -1737,8 +1737,8 @@ spr.print("Power (kW): ");
   spr.print("Forwad drive mode: : ");
   spr.println(liveData->params.forwardDriveMode == 1 ? "ON" : "OFF");
 
-  //spr.print("Reverse drive mode: : ");
-  //spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
+  spr.print("Reverse drive mode: : ");
+  spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
 
   
 /*
