@@ -33,6 +33,7 @@ void LiveData::initParams()
   params.sdcardRecording = false;
   String tmpStr = "";
   tmpStr.toCharArray(params.sdcardFilename, tmpStr.length() + 1);
+  tmpStr.toCharArray(params.sdcardAbrpFilename, tmpStr.length() + 1);
   params.sdcardCanNotify = false;
   // Gps
   params.currTimeSyncWithGps = false;

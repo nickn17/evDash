@@ -117,7 +117,8 @@ typedef struct
   bool sdcardInit;
   bool sdcardRecording;
   char sdcardFilename[32];
-  // Display
+  char sdcardAbrpFilename[32];
+    // Display
   uint8_t displayScreen;
   uint8_t displayScreenAutoMode;
   time_t lastButtonPushedTime;
@@ -323,6 +324,7 @@ typedef struct
   // =================================
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
   char abrpApiToken[48];                // ABRP APIkey
+  uint8_t abrpSdcardLog;                // 0/1
   // == settings version 11
   // =================================
   int8_t timezone;        // 0 - default, -11 .. +14 hrs
