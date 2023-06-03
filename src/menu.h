@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 143
+#define MENU_SIZE 144
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -136,6 +136,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_REMOTE_UPLOAD_TYPE, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "Module Type"},
     {MENU_REMOTE_UPLOAD_API_INTERVAL, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "API Upload Int."},
     {MENU_REMOTE_UPLOAD_ABRP_INTERVAL, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "ABRP Upload Int."},
+    {MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "Log ABRP to SD card"},
 
     {DEFAULT_SCREEN_TOP, MENU_DEFAULT_SCREEN, MENU_OTHERS, "<- parent menu"},
     {DEFAULT_SCREEN_AUTOMODE, MENU_DEFAULT_SCREEN, MENU_NO_MENU, "Auto mode"},

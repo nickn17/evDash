@@ -2,7 +2,10 @@
 
 ### Next version
 
-### v2.7.4 2023-06-31
+### v2.7.5 2023-06-03
+- Log ABRP json to sdcard
+
+### v2.7.4 2023-06-01
 - MR from spot2000 https://github.com/nickn17/evDash/pull/74
 - Added new values to "debug" screen
 - Ioniq5/eGmp improvements

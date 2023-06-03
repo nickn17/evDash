@@ -114,7 +114,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 14;
+  liveData->settings.settingsVersion = 15;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -185,7 +185,9 @@ void BoardInterface::loadSettings()
   liveData->settings.speedCorrection = 0;
   // v14
   liveData->settings.disableCommandOptimizer = 0;
-
+  // v15
+  liveData->settings.abrpSdcardLog = 0;
+  
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
@@ -307,6 +309,11 @@ void BoardInterface::loadSettings()
       {
         liveData->tmpSettings.settingsVersion = 14;
         liveData->tmpSettings.disableCommandOptimizer = 0;
+      }
+      if (liveData->tmpSettings.settingsVersion == 14)
+      {
+        liveData->tmpSettings.settingsVersion = 15;
+        liveData->tmpSettings.abrpSdcardLog = 0;
       }
 
       // Save upgraded structure

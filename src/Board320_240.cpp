@@ -1654,7 +1654,6 @@ void Board320_240::drawSceneSoc10Table()
   spr.drawString(tmpStr1, 310, zeroY + (14 * 15), 2);
 }
 
-
 /**
   Debug screen (screen 6)
 */
@@ -1712,14 +1711,14 @@ SD status*/
   default:
     spr.print("unknown");
   }
-  
+
   spr.println("");
 
   // Conny test to show ABRP diag parameters.
   spr.print("CarMode: ");
   spr.println(liveData->params.carMode);
 
-spr.print("Power (kW): ");
+  spr.print("Power (kW): ");
   spr.println(liveData->params.batPowerKw * -1);
 
   spr.print("ignitionOn: ");
@@ -1740,23 +1739,22 @@ spr.print("Power (kW): ");
   spr.print("Reverse drive mode: : ");
   spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
 
-  
-/*
-  jsonData["power"] = liveData->params.batPowerKw * -1;
-    jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
-  
-  
-  bool ignitionOn;
-  bool chargingOn;
-  bool chargerACconnected;
-  bool chargerDCconnected;
-  bool forwardDriveMode;
-  bool reverseDriveMode;
-  bool parkModeOrNeutral;
-  */
-  
+  /*
+    jsonData["power"] = liveData->params.batPowerKw * -1;
+      jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
+
+
+    bool ignitionOn;
+    bool chargingOn;
+    bool chargerACconnected;
+    bool chargerDCconnected;
+    bool forwardDriveMode;
+    bool reverseDriveMode;
+    bool parkModeOrNeutral;
+    */
+
   // TODO sent status, ms from last sent
-  //spr.println("");
+  // spr.println("");
 
   // SDCARD
   spr.print("SDCARD ");
@@ -2020,6 +2018,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
     sprintf(tmpStr1, "[%d sec]", liveData->settings.remoteUploadAbrpIntervalSec);
     suffix = (liveData->settings.remoteUploadAbrpIntervalSec == 0) ? "[off]" : tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD:
+    suffix = (liveData->settings.abrpSdcardLog == 0) ? "[off]" : "[on]";
     break;
   case MENU_SDCARD:
     perc = 0;
@@ -2684,6 +2685,11 @@ void Board320_240::menuItemClick()
     case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
       liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec == 30) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 2; // @spot2000 Better with smaller steps and maximum 30 seconds
       liveData->settings.remoteUploadIntervalSec = 0;
+      showMenu();
+      return;
+      break;
+    case MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD:
+      liveData->settings.abrpSdcardLog = (liveData->settings.abrpSdcardLog == 1) ? 0 : 1;
       showMenu();
       return;
       break;
@@ -4367,6 +4373,45 @@ bool Board320_240::netSendData()
 
     String payload;
     serializeJson(jsonData, payload);
+
+    // Log ABRP jsonData to SD card
+    struct tm now;
+    getLocalTime(&now);
+    if (liveData->params.sdcardInit && liveData->params.sdcardRecording)
+    {
+      // create filename
+      if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardAbrpFilename) == 0)
+      {
+        sprintf(liveData->params.sdcardAbrpFilename, "/%llu.abrp.json", uint64_t(liveData->params.operationTimeSec / 60));
+      }
+      if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardAbrpFilename) < 20)
+      {
+        strftime(liveData->params.sdcardAbrpFilename, sizeof(liveData->params.sdcardAbrpFilename), "/%y%m%d%H%M.abrp.json", &now);
+      }
+
+      // append buffer, clear buffer & notify state
+      if (strlen(liveData->params.sdcardAbrpFilename) != 0)
+      {
+        File file = SD.open(liveData->params.sdcardAbrpFilename, FILE_APPEND);
+        if (!file)
+        {
+          syslog->println("Failed to open file for appending");
+          File file = SD.open(liveData->params.sdcardAbrpFilename, FILE_WRITE);
+        }
+        if (!file)
+        {
+          syslog->println("Failed to create file");
+        }
+        if (file)
+        {
+          syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
+          serializeJson(jsonData, file);
+          file.print(",\n");
+          file.close();
+        }
+      }
+    }
+    // End of ABRP SD card log
 
     String tmpStr = "api_key="; // dev ApiKey
     tmpStr.concat(ABRP_API_KEY);
