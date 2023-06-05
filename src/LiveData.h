@@ -324,7 +324,6 @@ typedef struct
   // =================================
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
   char abrpApiToken[48];                // ABRP APIkey
-  uint8_t abrpSdcardLog;                // 0/1
   // == settings version 11
   // =================================
   int8_t timezone;        // 0 - default, -11 .. +14 hrs
@@ -337,8 +336,10 @@ typedef struct
   // == settings version 13
   uint8_t threading;      // 0 - off, 1 - on
   int8_t speedCorrection; // -5 to +5
-  // == settings version 13
+  // == settings version 14
   uint8_t disableCommandOptimizer;      // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
+  // == settings version 15
+  uint8_t abrpSdcardLog;                // 0/1
   //
 } SETTINGS_STRUC;
 
