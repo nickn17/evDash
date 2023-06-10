@@ -8,6 +8,7 @@
 #include "CommObd2Bt3.h"
 #include "CommObd2Ble4.h"
 #include "CommObd2Can.h"
+#include "CommObd2Wifi.h"
 #include "LiveData.h"
 #include "Solarlib.h"
 
@@ -131,8 +132,8 @@ void BoardInterface::loadSettings()
   liveData->settings.defaultScreen = 1;
   liveData->settings.lcdBrightness = 0;
   liveData->settings.predrawnChargingGraphs = 1;
-  liveData->settings.commType = COMM_TYPE_OBD2BLE4; // BLE4
-  // liveData->settings.commType = COMM_TYPE_OBD2CAN; // CAN
+  //liveData->settings.commType = COMM_TYPE_OBD2_BLE4; // BLE4
+  liveData->settings.commType = COMM_TYPE_CAN_COMMU; // CAN
   liveData->settings.wifiEnabled = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);
@@ -221,7 +222,7 @@ void BoardInterface::loadSettings()
       if (liveData->tmpSettings.settingsVersion == 3)
       {
         liveData->tmpSettings.settingsVersion = 4;
-        liveData->tmpSettings.commType = COMM_TYPE_OBD2BLE4; // BLE4
+        liveData->tmpSettings.commType = COMM_TYPE_OBD2_BLE4; // BLE4
         liveData->tmpSettings.wifiEnabled = 0;
         tmpStr = "empty";
         tmpStr.toCharArray(liveData->tmpSettings.wifiSsid, tmpStr.length() + 1);
@@ -333,26 +334,30 @@ void BoardInterface::loadSettings()
 */
 void BoardInterface::afterSetup()
 {
-
   syslog->println("BoardInterface::afterSetup");
 
-  // Init Comm iterface
+  // Init COMM iterface
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
 
-  if (liveData->settings.commType == COMM_TYPE_OBD2BLE4)
+  if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4)
   {
     commInterface = new CommObd2Ble4();
   }
-  else if (liveData->settings.commType == COMM_TYPE_OBD2CAN)
+  else if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
   {
     commInterface = new CommObd2Can();
   }
-  else if (liveData->settings.commType == COMM_TYPE_OBD2BT3)
+  else if (liveData->settings.commType == COMM_TYPE_OBD2_BT3)
   {
     commInterface = new CommObd2Bt3();
   }
+  else if (liveData->settings.commType == COMM_TYPE_OBD2_WIFI)
+  {
+    commInterface = new CommObd2Wifi();
+  }
 
+  // Connect device
   commInterface->initComm(liveData, this);
   commInterface->connectDevice();
   carInterface->setCommInterface(commInterface);

@@ -2,6 +2,10 @@
 
 ### Next version
 
+### v2.7.6 2023-06-10
+- Wifi AP mode + web interface http://192.168.1.2
+- Removed Kia DEBUG vehicle
+
 ### v2.7.5 2023-06-03
 - Log ABRP json to sdcard
 

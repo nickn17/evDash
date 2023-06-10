@@ -45,12 +45,12 @@
 #define CAR_KIA_NIRO_PHEV 6
 #define CAR_BMW_I3_2014 7
 #define CAR_PEUGEOT_E208 15
-#define CAR_DEBUG_OBD2_KIA 999
 
 // COMM TYPE
-#define COMM_TYPE_OBD2BLE4 0
-#define COMM_TYPE_OBD2CAN 1
-#define COMM_TYPE_OBD2BT3 2
+#define COMM_TYPE_OBD2_BLE4 0
+#define COMM_TYPE_CAN_COMMU 1
+#define COMM_TYPE_OBD2_BT3 2
+#define COMM_TYPE_OBD2_WIFI 3
 
 // REMOTE_UPLOAD
 #define REMOTE_UPLOAD_SIM800L 0
@@ -105,6 +105,7 @@ typedef struct
   bool isWifiBackupLive;
   time_t wifiLastConnectedTime;
   time_t wifiBackupUptime;
+  bool wifiApMode; // hotspot
   // GPS
   bool currTimeSyncWithGps;
   bool gpsValid;
@@ -274,7 +275,7 @@ typedef struct
   uint8_t predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
-  uint8_t commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - BT3
+  uint8_t commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - OBD2 BT3, 3 - OBD2 WIFI
   // Wifi
   uint8_t wifiEnabled; // 0/1
   char wifiSsid[32];

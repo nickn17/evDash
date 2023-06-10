@@ -43,7 +43,6 @@
 #include "CarHyundaiIoniqPHEV.h"
 #include "CarHyundaiIoniq5.h"
 #include "CarRenaultZoe.h"
-#include "CarKiaDebugObd2.h"
 #include "CarBmwI3.h"
 #include "CarVWID3.h"
 #include "CarPeugeotE208.h"
@@ -139,7 +138,7 @@ void setup(void)
     car = new CarPeugeotE208();
     break;
   default:
-    car = new CarKiaDebugObd2();
+    car = new CarKiaEniro();
   }
 
   car->setLiveData(liveData);

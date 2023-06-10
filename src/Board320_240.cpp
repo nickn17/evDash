@@ -9,9 +9,12 @@
 #include "Board320_240.h"
 #include <time.h>
 #include <ArduinoJson.h>
+#include "WebInterface.h"
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
+
+WebInterface *webInterface = nullptr;
 
 /**
    Init board
@@ -154,7 +157,7 @@ void Board320_240::afterSetup()
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
 
-  if (liveData->settings.wifiEnabled == 1)
+  if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
     syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
@@ -1733,7 +1736,7 @@ SD status*/
   spr.print("DC charger connected: ");
   spr.println(liveData->params.chargerDCconnected == 1 ? "ON" : "OFF");
 
-  spr.print("Forwad drive mode: : ");
+  spr.print("Forward drive mode: : ");
   spr.println(liveData->params.forwardDriveMode == 1 ? "ON" : "OFF");
 
   spr.print("Reverse drive mode: : ");
@@ -1848,8 +1851,8 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   {
   // Set vehicle type
   case MENU_VEHICLE_TYPE:
-    sprintf(tmpStr1, "[%d]", liveData->settings.carType);
-    suffix = tmpStr1;
+    suffix = getCarModelAbrpStr();
+    suffix = String("[" + suffix.substring(0, suffix.indexOf(":", 12)) + "]");
     break;
   case MENU_SAVE_SETTINGS:
     sprintf(tmpStr1, "[v%d]", liveData->settings.settingsVersion);
@@ -1944,18 +1947,18 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case VEHICLE_TYPE_PEUGEOT_E208:
     prefix = (liveData->settings.carType == CAR_PEUGEOT_E208) ? ">" : "";
     break;
-  case VEHICLE_TYPE_DEBUG_OBD_KIA:
-    prefix = (liveData->settings.carType == CAR_DEBUG_OBD2_KIA) ? ">" : "";
-    break;
   //
-  case MENU_ADAPTER_BLE4:
-    prefix = (liveData->settings.commType == COMM_TYPE_OBD2BLE4) ? ">" : "";
+  case MENU_ADAPTER_CAN_COMMU:
+    prefix = (liveData->settings.commType == COMM_TYPE_CAN_COMMU) ? ">" : "";
     break;
-  case MENU_ADAPTER_CAN:
-    prefix = (liveData->settings.commType == COMM_TYPE_OBD2CAN) ? ">" : "";
+  case MENU_ADAPTER_OBD2_BLE4:
+    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BLE4) ? ">" : "";
     break;
-  case MENU_ADAPTER_BT3:
-    prefix = (liveData->settings.commType == COMM_TYPE_OBD2BT3) ? ">" : "";
+  case MENU_ADAPTER_OBD2_BT3:
+    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BT3) ? ">" : "";
+    break;
+  case MENU_ADAPTER_OBD2_WIFI:
+    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI) ? ">" : "";
     break;
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
@@ -2561,27 +2564,28 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_DEBUG_OBD_KIA:
-      liveData->settings.carType = CAR_DEBUG_OBD2_KIA;
-      showMenu();
-      return;
-      break;
     // Comm type
-    case MENU_ADAPTER_BLE4:
-      liveData->settings.commType = COMM_TYPE_OBD2BLE4;
-      displayMessage("COMM_TYPE_OBD2BLE4", "Rebooting");
+    case MENU_ADAPTER_OBD2_BLE4:
+      liveData->settings.commType = COMM_TYPE_OBD2_BLE4;
+      displayMessage("COMM_TYPE_OBD2_BLE4", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
-    case MENU_ADAPTER_CAN:
-      liveData->settings.commType = COMM_TYPE_OBD2CAN;
-      displayMessage("COMM_TYPE_OBD2CAN", "Rebooting");
+    case MENU_ADAPTER_CAN_COMMU:
+      liveData->settings.commType = COMM_TYPE_CAN_COMMU;
+      displayMessage("COMM_TYPE_CAN_COMMU", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
-    case MENU_ADAPTER_BT3:
-      liveData->settings.commType = COMM_TYPE_OBD2BT3;
-      displayMessage("COMM_TYPE_OBD2BT3", "Rebooting");
+    case MENU_ADAPTER_OBD2_BT3:
+      liveData->settings.commType = COMM_TYPE_OBD2_BT3;
+      displayMessage("COMM_TYPE_OBD2_BT3", "Rebooting");
+      saveSettings();
+      ESP.restart();
+      break;
+    case MENU_ADAPTER_OBD2_WIFI:
+      liveData->settings.commType = COMM_TYPE_OBD2_WIFI;
+      displayMessage("COMM_TYPE_OBD2_WIFI", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
@@ -2737,6 +2741,12 @@ void Board320_240::menuItemClick()
     case MENU_WIFI_ENABLED:
       liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1;
       showMenu();
+      return;
+      break;
+    case MENU_WIFI_HOTSPOT_WEBADMIN:
+      webInterface = new WebInterface();
+      webInterface->init(liveData, this);
+      displayMessage("ssid evdash [evaccess]", "Browse http://192.186.0.1");
       return;
       break;
     case MENU_WIFI_NTP:
@@ -2936,7 +2946,7 @@ void Board320_240::menuItemClick()
       break;
     // Pair ble device
     case MENU_ADAPTER_BLE_SELECT:
-      if (liveData->settings.commType == COMM_TYPE_OBD2CAN)
+      if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
       {
         displayMessage("Not supported", "in CAN mode");
         delay(3000);
@@ -3256,7 +3266,7 @@ void Board320_240::redrawScreen()
   }
 
   // BLE not connected
-  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2BLE4 && !liveData->commConnected && liveData->bleConnect)
+  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2_BLE4 && !liveData->commConnected && liveData->bleConnect)
   {
     // Print message
     spr.fillRect(0, 185, 220, 50, TFT_BLACK);
@@ -3268,7 +3278,7 @@ void Board320_240::redrawScreen()
     spr.drawString("Middle button - menu.", 10, 210, 2);
   }
   // CAN not connected
-  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2CAN && commInterface->getConnectStatus() != "")
+  if (liveData->tmpSettings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
   {
     // Print message
     spr.fillRect(0, 185, 160, 50, TFT_BLACK);
@@ -3328,6 +3338,8 @@ void Board320_240::commLoop()
 void Board320_240::boardLoop()
 {
   // touch events, m5.update
+  if (webInterface != nullptr)
+    webInterface->mainLoop();
 }
 
 /**
@@ -3475,7 +3487,7 @@ void Board320_240::mainLoop()
 
   // Check and eventually reconnect WIFI aconnection
 
-  if (WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
+  if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 && WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
   {
     wifiFallback();
   }
@@ -4041,8 +4053,15 @@ bool Board320_240::sim800lSetup()
   return true;
 }
 
+/**
+ * Net loop, send data over net
+ **/
 void Board320_240::netLoop()
 {
+  if (liveData->params.wifiApMode) {
+    return;
+  }
+
   // Sync NTP firsttime
   if (liveData->settings.wifiEnabled == 1 && !liveData->params.ntpTimeSet && WiFi.status() == WL_CONNECTED && liveData->settings.ntpEnabled)
   {
@@ -4081,6 +4100,9 @@ void Board320_240::netLoop()
   }
 }
 
+/**
+ * Send data
+ **/
 bool Board320_240::netSendData()
 {
   uint16_t rc = 0;
@@ -4164,7 +4186,6 @@ bool Board320_240::netSendData()
 
   if (liveData->settings.remoteUploadIntervalSec != 0)
   {
-
     StaticJsonDocument<768> jsonData;
 
     jsonData["apikey"] = liveData->settings.remoteApiKey;
@@ -4247,94 +4268,11 @@ bool Board320_240::netSendData()
 
     StaticJsonDocument<768> jsonData;
 
-    switch (liveData->settings.carType)
+    jsonData["car_model"] = getCarModelAbrpStr();
+    if (strcmp(jsonData["car_model"], "n/a") == 0)
     {
-    case CAR_HYUNDAI_KONA_2020_39:
-      jsonData["car_model"] = "hyundai:kona:19:39:other";
-      break;
-    case CAR_HYUNDAI_IONIQ_2018:
-      jsonData["car_model"] = "hyundai:ioniq:17:28:other";
-      break;
-    case CAR_HYUNDAI_IONIQ_PHEV:
-      jsonData["car_model"] = "hyundai:phev:17:28:other";
-      break;
-
-    case CAR_HYUNDAI_IONIQ5_58:
-      jsonData["car_model"] = "hyundai:ioniq5:21:58:mr";
-      break;
-    case CAR_HYUNDAI_IONIQ5_72:
-      jsonData["car_model"] = "hyundai:ioniq5:21:72:lr";
-      break;
-    case CAR_HYUNDAI_IONIQ5_77:
-      jsonData["car_model"] = "hyundai:ioniq5:21:77:lr";
-      break;
-    case CAR_KIA_ENIRO_2020_64:
-      jsonData["car_model"] = "kia:niro:19:64:other";
-      break;
-    case CAR_KIA_ESOUL_2020_64:
-      jsonData["car_model"] = "kia:soul:19:64:other";
-      break;
-    case CAR_HYUNDAI_KONA_2020_64:
-      jsonData["car_model"] = "hyundai:kona:19:64:other";
-      break;
-    case CAR_KIA_ENIRO_2020_39:
-      jsonData["car_model"] = "kia:niro:19:39:other";
-      break;
-    case CAR_KIA_EV6_58:
-      jsonData["car_model"] = "kia:ev6:22:58:mr";
-      break;
-    case CAR_KIA_EV6_77:
-      jsonData["car_model"] = "kia:ev6:22:77:lr";
-      break;
-    case CAR_AUDI_Q4_35:
-      jsonData["car_model"] = "audi:q4:21:52:meb";
-      break;
-    case CAR_AUDI_Q4_40:
-      jsonData["car_model"] = "audi:q4:21:77:meb";
-      break;
-    case CAR_AUDI_Q4_45:
-      jsonData["car_model"] = "audi:q4:21:77:meb";
-      break;
-    case CAR_AUDI_Q4_50:
-      jsonData["car_model"] = "audi:q4:21:77:meb";
-      break;
-    case CAR_SKODA_ENYAQ_55:
-      jsonData["car_model"] = "skoda:enyaq:21:52:meb";
-      break;
-    case CAR_SKODA_ENYAQ_62:
-      jsonData["car_model"] = "skoda:enyaq:21:55:meb";
-      break;
-    case CAR_SKODA_ENYAQ_82:
-      jsonData["car_model"] = "skoda:enyaq:21:77:meb";
-      break;
-    case CAR_VW_ID3_2021_45:
-      jsonData["car_model"] = "volkswagen:id3:20:45:sr";
-      break;
-    case CAR_VW_ID3_2021_58:
-      jsonData["car_model"] = "volkswagen:id3:20:58:mr";
-      break;
-    case CAR_VW_ID3_2021_77:
-      jsonData["car_model"] = "volkswagen:id3:20:77:lr";
-      break;
-    case CAR_VW_ID4_2021_45:
-      jsonData["car_model"] = "volkswagen:id4:20:45:sr"; // not valid in the iterno list of cars
-      break;
-    case CAR_VW_ID4_2021_58:
-      jsonData["car_model"] = "volkswagen:id4:21:52";
-      break;
-    case CAR_VW_ID4_2021_77:
-      jsonData["car_model"] = "volkswagen:id4:21:77";
-      break;
-    case CAR_RENAULT_ZOE:
-      jsonData["car_model"] = "renault:zoe:r240:22:other";
-      break;
-    case CAR_BMW_I3_2014:
-      jsonData["car_model"] = "bmw:i3:14:22:other";
-      break;
-    default:
       syslog->println("Car not supported by ABRP Uploader");
       return false;
-      break;
     }
 
     jsonData["utc"] = liveData->params.currentTime;
@@ -4465,6 +4403,72 @@ bool Board320_240::netSendData()
   }
 
   return true;
+}
+
+/**
+ * Get car model string for ABRP and menu
+ **/
+String Board320_240::getCarModelAbrpStr()
+{
+  switch (liveData->settings.carType)
+  {
+  case CAR_HYUNDAI_KONA_2020_39:
+    return "hyundai:kona:19:39:other";
+  case CAR_HYUNDAI_IONIQ_2018:
+    return "hyundai:ioniq:17:28:other";
+  case CAR_HYUNDAI_IONIQ_PHEV:
+    return "hyundai:phev:17:28:other";
+  case CAR_HYUNDAI_IONIQ5_58:
+    return "hyundai:ioniq5:21:58:mr";
+  case CAR_HYUNDAI_IONIQ5_72:
+    return "hyundai:ioniq5:21:72:lr";
+  case CAR_HYUNDAI_IONIQ5_77:
+    return "hyundai:ioniq5:21:77:lr";
+  case CAR_KIA_ENIRO_2020_64:
+    return "kia:niro:19:64:other";
+  case CAR_KIA_ESOUL_2020_64:
+    return "kia:soul:19:64:other";
+  case CAR_HYUNDAI_KONA_2020_64:
+    return "hyundai:kona:19:64:other";
+  case CAR_KIA_ENIRO_2020_39:
+    return "kia:niro:19:39:other";
+  case CAR_KIA_EV6_58:
+    return "kia:ev6:22:58:mr";
+  case CAR_KIA_EV6_77:
+    return "kia:ev6:22:77:lr";
+  case CAR_AUDI_Q4_35:
+    return "audi:q4:21:52:meb";
+  case CAR_AUDI_Q4_40:
+    return "audi:q4:21:77:meb";
+  case CAR_AUDI_Q4_45:
+    return "audi:q4:21:77:meb";
+  case CAR_AUDI_Q4_50:
+    return "audi:q4:21:77:meb";
+  case CAR_SKODA_ENYAQ_55:
+    return "skoda:enyaq:21:52:meb";
+  case CAR_SKODA_ENYAQ_62:
+    return "skoda:enyaq:21:55:meb";
+  case CAR_SKODA_ENYAQ_82:
+    return "skoda:enyaq:21:77:meb";
+  case CAR_VW_ID3_2021_45:
+    return "volkswagen:id3:20:45:sr";
+  case CAR_VW_ID3_2021_58:
+    return "volkswagen:id3:20:58:mr";
+  case CAR_VW_ID3_2021_77:
+    return "volkswagen:id3:20:77:lr";
+  case CAR_VW_ID4_2021_45:
+    return "volkswagen:id4:20:45:sr"; // not valid in the iterno list of cars
+  case CAR_VW_ID4_2021_58:
+    return "volkswagen:id4:21:52";
+  case CAR_VW_ID4_2021_77:
+    return "volkswagen:id4:21:77";
+  case CAR_RENAULT_ZOE:
+    return "renault:zoe:r240:22:other";
+  case CAR_BMW_I3_2014:
+    return "bmw:i3:14:22:other";
+  default:
+    return "n/a";
+  }
 }
 
 void Board320_240::initGPS()

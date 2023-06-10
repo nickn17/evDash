@@ -106,6 +106,7 @@ public:
   void wifiFallback();
   void wifiSwitchToMain();
   void wifiSwitchToBackup();
+  String getCarModelAbrpStr();
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;
