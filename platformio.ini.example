@@ -26,6 +26,7 @@ lib_deps =
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
+	Pedroalbuquerque/ESP32WebServer
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
@@ -59,6 +60,7 @@ lib_deps =
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
+	Pedroalbuquerque/ESP32WebServer
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
@@ -110,6 +112,7 @@ build_flags =
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
+	Pedroalbuquerque/ESP32WebServer
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
