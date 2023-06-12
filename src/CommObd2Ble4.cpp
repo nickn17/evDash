@@ -124,7 +124,7 @@ class MySecurity : public BLESecurityCallbacks
     else
     {
       syslog->println("Auth failure. Incorrect PIN?");
-      liveDataObj->bleConnect = false;
+      liveDataObj->obd2ready = false;
     }
   }
 };
@@ -278,7 +278,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
 
   board->displayMessage(" > Connecting device", "");
 
-  syslog->print("liveData->bleConnect ");
+  syslog->print("liveData->obd2ready ");
   syslog->println(pAddress.toString().c_str());
   board->displayMessage(" > Connecting device - init", pAddress.toString().c_str());
 
@@ -294,7 +294,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   liveData->pClient = BLEDevice::createClient();
   liveData->pClient->setClientCallbacks(new MyClientCallback());
   if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM))
-    syslog->println(" - liveData->bleConnected to server");
+    syslog->println(" - liveData->obd2readyed to server");
   syslog->printf("Total/free heap: %i/%i-%i\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   // Remote service
@@ -382,14 +382,14 @@ void CommObd2Ble4::mainLoop()
 {
 
   // Connect BLE device
-  if (liveData->bleConnect == true && liveData->foundMyBleDevice != NULL)
+  if (liveData->obd2ready == true && liveData->foundMyBleDevice != NULL)
   {
     liveData->pServerAddress = new BLEAddress(liveData->settings.obdMacAddress);
     if (connectToServer(*liveData->pServerAddress))
     {
 
       liveData->commConnected = true;
-      liveData->bleConnect = false;
+      liveData->obd2ready = false;
 
       syslog->println("We are now connected to the BLE device.");
 

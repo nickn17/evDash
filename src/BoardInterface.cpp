@@ -177,9 +177,9 @@ void BoardInterface::loadSettings()
   liveData->settings.rightHandDrive = 0;
   // v12
   tmpStr = "empty";
-  tmpStr.toCharArray(liveData->settings.wifiSsidb, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.wifiSsid2, tmpStr.length() + 1);
   tmpStr = "not_set";
-  tmpStr.toCharArray(liveData->settings.wifiPasswordb, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->settings.wifiPassword2, tmpStr.length() + 1);
   liveData->settings.backupWifiEnabled = 0;
   // v13
   liveData->settings.threading = 0;
@@ -295,9 +295,9 @@ void BoardInterface::loadSettings()
       {
         liveData->tmpSettings.settingsVersion = 12;
         tmpStr = "empty";
-        tmpStr.toCharArray(liveData->tmpSettings.wifiSsidb, tmpStr.length() + 1);
+        tmpStr.toCharArray(liveData->tmpSettings.wifiSsid2, tmpStr.length() + 1);
         tmpStr = "not_set";
-        tmpStr.toCharArray(liveData->tmpSettings.wifiPasswordb, tmpStr.length() + 1);
+        tmpStr.toCharArray(liveData->tmpSettings.wifiPassword2, tmpStr.length() + 1);
         liveData->tmpSettings.backupWifiEnabled = 0;
       }
       if (liveData->tmpSettings.settingsVersion == 12)
@@ -404,8 +404,8 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
   if (key == "wifiSsid2")
   {
-    value.toCharArray(liveData->settings.wifiSsidb, value.length() + 1);
-    if (strcmp(liveData->settings.wifiSsidb, "empty") == 0)
+    value.toCharArray(liveData->settings.wifiSsid2, value.length() + 1);
+    if (strcmp(liveData->settings.wifiSsid2, "empty") == 0)
     {
       liveData->settings.backupWifiEnabled = 0;
     }
@@ -415,7 +415,7 @@ void BoardInterface::customConsoleCommand(String cmd)
     }
   }
   if (key == "wifiPassword2")
-    value.toCharArray(liveData->settings.wifiPasswordb, value.length() + 1);
+    value.toCharArray(liveData->settings.wifiPassword2, value.length() + 1);
   if (key == "gprsApn")
     value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl")
@@ -570,7 +570,7 @@ void BoardInterface::showNet()
   {
     syslog->println("Backup wifi exists");
     syslog->print("wifiSsid2: ");
-    syslog->println(liveData->settings.wifiSsidb);
+    syslog->println(liveData->settings.wifiSsid2);
   }
   else
   {

@@ -116,7 +116,7 @@ build_flags =
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
-
+	
 ;targets = upload
 upload_protocol = esptool
 upload_port = COM6

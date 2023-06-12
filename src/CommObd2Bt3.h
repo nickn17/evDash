@@ -15,7 +15,7 @@ class CommObd2Bt3 : public CommInterface {
     void mainLoop() override;
     void executeCommand(String cmd) override;
     //
-    void startBleScan();
-    bool connectToServer(BLEAddress pAddress);
+    void startBt3Scan();
+    bool connectToServer();
     //
 };

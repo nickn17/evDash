@@ -2208,11 +2208,11 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     suffix = tmpStr1;
     break;
   case MENU_WIFI_SSID2:
-    sprintf(tmpStr1, "%s", liveData->settings.wifiSsidb);
+    sprintf(tmpStr1, "%s", liveData->settings.wifiSsid2);
     suffix = tmpStr1;
     break;
   case MENU_WIFI_PASSWORD2:
-    sprintf(tmpStr1, "%s", liveData->settings.wifiPasswordb);
+    sprintf(tmpStr1, "%s", liveData->settings.wifiPassword2);
     suffix = tmpStr1;
     break;
   case MENU_WIFI_NTP:
@@ -2746,7 +2746,7 @@ void Board320_240::menuItemClick()
     case MENU_WIFI_HOTSPOT_WEBADMIN:
       webInterface = new WebInterface();
       webInterface->init(liveData, this);
-      displayMessage("ssid evdash [evaccess]", "Browse http://192.186.0.1");
+      displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
       return;
       break;
     case MENU_WIFI_NTP:
@@ -3266,7 +3266,10 @@ void Board320_240::redrawScreen()
   }
 
   // BLE not connected
-  if (liveData->tmpSettings.commType == COMM_TYPE_OBD2_BLE4 && !liveData->commConnected && liveData->bleConnect)
+  if ((liveData->tmpSettings.commType == COMM_TYPE_OBD2_BLE4 ||
+       liveData->tmpSettings.commType == COMM_TYPE_OBD2_BT3 ||
+       liveData->tmpSettings.commType == COMM_TYPE_OBD2_WIFI) &&
+      !liveData->commConnected && liveData->obd2ready)
   {
     // Print message
     spr.fillRect(0, 185, 220, 50, TFT_BLACK);
@@ -3274,9 +3277,9 @@ void Board320_240::redrawScreen()
     spr.setTextSize(1);
     spr.setTextDatum(TL_DATUM);
     spr.setTextColor(TFT_WHITE);
-    spr.drawString("BLE4 OBDII not connected...", 10, 190, 2);
+    spr.drawString("OBDII module not connected...", 10, 190, 2);
     spr.drawString("Middle button - menu.", 10, 210, 2);
-  }
+  } else
   // CAN not connected
   if (liveData->tmpSettings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
   {
@@ -3958,8 +3961,8 @@ void Board320_240::wifiFallback()
 void Board320_240::wifiSwitchToBackup()
 {
   syslog->print("WiFi switchover to backup: ");
-  syslog->println(liveData->settings.wifiSsidb);
-  WiFi.begin(liveData->settings.wifiSsidb, liveData->settings.wifiPasswordb);
+  syslog->println(liveData->settings.wifiSsid2);
+  WiFi.begin(liveData->settings.wifiSsid2, liveData->settings.wifiPassword2);
   liveData->params.isWifiBackupLive = true;
   liveData->params.wifiBackupUptime = liveData->params.currentTime;
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
@@ -4058,7 +4061,8 @@ bool Board320_240::sim800lSetup()
  **/
 void Board320_240::netLoop()
 {
-  if (liveData->params.wifiApMode) {
+  if (liveData->params.wifiApMode)
+  {
     return;
   }
 

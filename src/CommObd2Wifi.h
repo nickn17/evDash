@@ -15,7 +15,7 @@ class CommObd2Wifi : public CommInterface {
     void mainLoop() override;
     void executeCommand(String cmd) override;
     //
-    void startBleScan();
-    bool connectToServer(BLEAddress pAddress);
+    void startWifiScan();
+    bool connectToServer();
     //
 };

@@ -331,8 +331,8 @@ typedef struct
   uint8_t daylightSaving; // 0/1
   uint8_t rightHandDrive; // 0 - default is LHD, 1 RHD (UK)
   // == settings version 12
-  char wifiSsidb[32];        // backup wifi SSID
-  char wifiPasswordb[32];    // backup wifi Pass
+  char wifiSsid2[32];        // backup wifi SSID
+  char wifiPassword2[32];    // backup wifi Pass
   uint8_t backupWifiEnabled; // enable Backup WIFI fallback 0/1
   // == settings version 13
   uint8_t threading;      // 0 - off, 1 - on
@@ -380,7 +380,7 @@ public:
   // Comm
   boolean commConnected = false;
   // Bluetooth4
-  boolean bleConnect = true;
+  boolean obd2ready = true;
   BLEAddress *pServerAddress;
   BLERemoteCharacteristic *pRemoteCharacteristic;
   BLERemoteCharacteristic *pRemoteCharacteristicWrite;

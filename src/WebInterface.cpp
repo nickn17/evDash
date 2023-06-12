@@ -38,8 +38,10 @@ void handleRoot()
   text = "<html><head><link href='https://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet'><style>body { margin:32px; background:black; color: white; font-family: 'Roboto Condensed', sans-serif; } td { padding: 0px 16px 0px 0px; text-align: left;} th { color: orange; text-align: left; padding: 16px 16px 4px 0px; } td:first-child { text-align: left; } .off { color: gray; } .on { color: lime; } .red { color: red; } .lime { color: lime; } .yellow { color: yellow; } .right {text-align:right; } h2 { margin-top: 12px; font-size: 1.1em; }</style></head>";
   text += "<body><h1>[ evDash " + String(APP_VERSION) + ", settings v" + String(liveDataWebInt->settings.settingsVersion) + " ] </h1>";
 
-  text += "<table style='min-width: 25%;'>";
+  // 1st column settings
+  text += "<div style='float:left; width:50%;'>";
 
+  text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Communication</th></tr>";
   text += "<tr><td>Type</td><td>" + String(liveDataWebInt->settings.commType == COMM_TYPE_CAN_COMMU ? "CAN COMMU module" : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BLE4 ? "OBD2 BLE4"
                                                                                                                        : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BT3    ? "OBD2 BT3"
@@ -55,9 +57,11 @@ void handleRoot()
 
   text += "<tr><th colspan='2'>Wifi client</th></tr>";
   text += "<tr><td>Enabled</td><td>" + getOffOnText(liveDataWebInt->settings.wifiEnabled) + "</td></tr>";
-  text += "<tr><td>Ssid</td><td>" + String(liveDataWebInt->settings.wifiSsid) + " / " + String(liveDataWebInt->settings.wifiPassword) + "</td></tr>";
+  text += "<tr><td>Ssid</td><td><input name='wifiSsid' value='" + String(liveDataWebInt->settings.wifiSsid) + "'></td></tr>";
+  text += "<tr><td>Wifi password</td><td><input name='wifiPassword' value='" + String(liveDataWebInt->settings.wifiPassword) + "'></td></tr>";
   text += "<tr><td>Backup wifi enabled</td><td>" + String(liveDataWebInt->settings.backupWifiEnabled) + "</td></tr>";
-  text += "<tr><td>Ssid backup</td><td>" + String(liveDataWebInt->settings.wifiSsidb) + " / " + String(liveDataWebInt->settings.wifiPasswordb) + "</td></tr>";
+  text += "<tr><td>Ssid backup</td><td><input name='wifiSsid2' value='" + String(liveDataWebInt->settings.wifiSsid2) + "'></td></tr>";
+  text += "<tr><td>Backup wifi password</td><td><input name='wifiPassword2' value='" + String(liveDataWebInt->settings.wifiPassword2) + "'></td></tr>";
   text += "<tr><td>ntpEnabled</td><td>" + getOffOnText(liveDataWebInt->settings.ntpEnabled) + "</td></tr>";
   text += "<tr><td>ntpTimezone</td><td>" + String(liveDataWebInt->settings.ntpTimezone) + "</td></tr>";
   text += "<tr><td>ntpDaySaveTime</td><td>" + getOffOnText(liveDataWebInt->settings.ntpDaySaveTime) + "</td></tr>";
@@ -121,7 +125,14 @@ void handleRoot()
   text += "<tr><td>Current time</td><td>" + String(tmpStr1) + "</td></tr>";
   text += "<tr><td>Timezone</td><td>" + String(liveDataWebInt->settings.timezone) + "</td></tr>";
   text += "<tr><td>Daylight saving</td><td>" + getOffOnText(liveDataWebInt->settings.daylightSaving) + "</td></tr>";
+  text += "</table>";
 
+  text += "</div>";
+
+  // 2nd column - car info
+  text += "<div style='float:left; width:50%;'>";
+
+  text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Car status</th></tr>";
   text += "<tr><td>Car mode</td><td>" + String(liveDataWebInt->params.carMode) + "</td></tr>";
   text += "<tr><td>Power (kW)</td><td>" + String(liveDataWebInt->params.batPowerKw * -1) + "</td></tr>";
@@ -133,6 +144,9 @@ void handleRoot()
   text += "<tr><td>Reverse drive mode</td><td>" + getOffOnText(liveDataWebInt->params.reverseDriveMode) + "</td></tr>";
 
   text += "</table>";
+
+  text += "</div>";
+  text += "<div style='clear:both;'></div>";
 
   text += "</body></html>";
 
