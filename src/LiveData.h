@@ -341,6 +341,17 @@ typedef struct
   uint8_t disableCommandOptimizer;      // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
   // == settings version 15
   uint8_t abrpSdcardLog;                // 0/1
+  // == settings version 16
+  char obd2Name[20];      // obd2 adapter name (bt3 device name)
+  char obd2WifiIp[20];    // obd2wifi ip address
+  uint16_t obd2WifiPort;  // obd2wifi port
+  /*
+    192.168.0.10 35000 - most adapters
+    192.168.1.10 35000 
+    169.254.1.10 23 - obdlink, ios?
+    192.168.0.74 23 - obdkey
+  */
+  
   //
 } SETTINGS_STRUC;
 

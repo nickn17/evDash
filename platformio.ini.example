@@ -3,8 +3,9 @@
 [env:m5stack-core2]
 platform = espressif32
 board = m5stack-core2
+board_build.mcu = esp32
 board_build.partitions = default_16MB.csv    ;no_ota.csv
-board_build.f_cpu = 80000000L         ;240M(WiFi OK), 160M(WiFi OK), 80M(WiFi OK), 40M, 20M, 10M
+board_build.f_cpu = 240000000L        ;240M(WiFi OK), 160M(WiFi OK), 80M(WiFi OK), 40M, 20M, 10M
 board_build.f_flash = 80000000L       ;80M, 40M
 board_build.flash_mode = dio          ;io, qout, dio, dout
 lib_ldf_mode = deep
@@ -116,7 +117,7 @@ build_flags =
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
-	
+
 ;targets = upload
 upload_protocol = esptool
 upload_port = COM6
