@@ -1,6 +1,10 @@
 #include "CommObd2Wifi.h"
 #include "BoardInterface.h"
 #include "LiveData.h"
+#include "Wifi.h"
+#include "WifiClient.h"
+
+WiFiClient client;
 
 /**
    Connect Wifi adapter
@@ -9,6 +13,8 @@ void CommObd2Wifi::connectDevice()
 {
   syslog->println("OBD2 Wifi connectDevice");
 
+  liveData->obd2ready = true;
+  liveData->commConnected = false;
 }
 
 /**
@@ -17,6 +23,7 @@ void CommObd2Wifi::connectDevice()
 void CommObd2Wifi::disconnectDevice()
 {
   syslog->println("COMM disconnectDevice");
+  client.stop();
 }
 
 /**
@@ -31,24 +38,38 @@ void CommObd2Wifi::scanDevices()
 ///////////////////////////////////
 
 /**
-   Start ble scan
+   Start wifi scan
 */
 void CommObd2Wifi::startWifiScan()
 {
-  String tmpStr;
-  liveData->foundMyBleDevice = NULL;
-  liveData->scanningDeviceIndex = 0;
-  board->displayMessage(" > Scanning Wifi devices", "Wait 10 seconds");
+  // todo
+  syslog->println("scan start");
 
-  // Scan devices from menu, show list of devices
-  if (liveData->menuCurrent == 9999)
+  // WiFi.scanNetworks will return the number of networks found
+  int n = WiFi.scanNetworks();
+  syslog->println("scan done");
+  if (n == 0)
   {
-    syslog->println("Display menu with devices");
-    liveData->menuVisible = true;
-    // liveData->menuCurrent = 9999;
-    liveData->menuItemSelected = 0;
-    board->showMenu();
+    syslog->println("no networks found");
   }
+  else
+  {
+    syslog->print(n);
+    syslog->println(" networks found");
+    for (int i = 0; i < n; ++i)
+    {
+      // Print SSID and RSSI for each network found
+      syslog->print(i + 1);
+      syslog->print(": ");
+      syslog->print(WiFi.SSID(i));
+      syslog->print(" (");
+      syslog->print(WiFi.RSSI(i));
+      syslog->print(")");
+      syslog->println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+      delay(10);
+    }
+  }
+  syslog->println("");
 }
 
 /**
@@ -59,43 +80,39 @@ void CommObd2Wifi::mainLoop()
   // Connect BLE device
   if (liveData->obd2ready == true)
   {
-    syslog->print("Attempting to connect to ELM327... ");
-    syslog->println(liveData->settings.obdMacAddress);
-
- /*   BTAddress address(liveData->settings.obdMacAddress);
-    if (ELM_PORT.connect("OBDII")) // *liveData->pServerAddress
+    // Check wifi ip address
+    connectStatus = "WIFI device not connected";
+    if (WiFi.localIP().toString() == "")
     {
-      syslog->print("Is bt connected ");
-      if (!ELM_PORT.connected(3000))
+      return;
+    }
+
+    // Connect stream
+    Serial.println("Connect obd2 wifi client.");
+    if (!client.connect(liveData->settings.obd2WifiIp, liveData->settings.obd2WifiPort))
+    {
+      connectStatus = "Connection failed. Ip/port?";
+      Serial.println("Connection failed. Ip/port?");
+      if (!client.connect(liveData->settings.obd2WifiIp, (liveData->settings.obd2WifiPort == 23 ? 35000 : 23)))
       {
-        ELM_PORT.println("Failed to connect. Make sure remote device is available and in range, then restart app.");
         return;
       }
-      liveData->commConnected = false;
-      liveData->obd2ready = true;
-      syslog->println("We are now connected to the Wifi device.");
-
-      // Print message
-      board->displayMessage(" > Processing init AT cmds", "");
-
-      // Serve first command (ATZ)
-      doNextQueueCommand();
     }
-    else
-    {
-      syslog->println("We have failed to connect to the server; there is nothing more we will do.");
-      connectAttempts--;
-      liveData->obd2ready = false;
-    }*/
+
+    connectStatus = "Connected...";
+    syslog->println("We are now connected to the Wifi device.");
+    liveData->commConnected = true;
+    liveData->obd2ready = false;
+
+    // Print message
+    board->displayMessage(" > Processing init AT cmds", "");
+
+    // Serve first command (ATZ)
+    doNextQueueCommand();
   }
 
   // Parent declaration
   CommInterface::mainLoop();
-
-  /*if (board->scanDevices) {
-    board->scanDevices = false;
-    startBleScan();
-  }*/
 
   // Prevent errors without connected module
   if (liveData->params.stopCommandQueue || !liveData->commConnected)
@@ -103,22 +120,31 @@ void CommObd2Wifi::mainLoop()
     return;
   }
 
-  /*if (ELM_PORT.available())
+  while (client.available())
   {
-    char c = ELM_PORT.read();
-    if (c != '\r')
+    char ch = client.read();
+    if (ch == '\r' || ch == '\n' || ch == '\0')
     {
-      liveData->responseRowMerged += c;
+      if (liveData->responseRow != "")
+        parseResponse();
+      liveData->responseRow = "";
     }
     else
     {
-      syslog->infoNolf(DEBUG_COMM, "merged:");
-      syslog->info(DEBUG_COMM, liveData->responseRowMerged);
-      parseRowMerged();
-      liveData->responseRowMerged = "";
-      liveData->canSendNextAtCommand = true;
+      liveData->responseRow += ch;
+      if (liveData->responseRow == ">")
+      {
+        if (liveData->responseRowMerged != "")
+        {
+          syslog->infoNolf(DEBUG_COMM, "merged:");
+          syslog->info(DEBUG_COMM, liveData->responseRowMerged);
+          parseRowMerged();
+        }
+        liveData->responseRowMerged = "";
+        liveData->canSendNextAtCommand = true;
+      }
     }
-  }*/
+  }
 }
 
 /**
@@ -126,10 +152,10 @@ void CommObd2Wifi::mainLoop()
  */
 void CommObd2Wifi::executeCommand(String cmd)
 {
-
-  String tmpStr = cmd + "\r";
+  cmd.replace(" ", "");
+  String tmpStr = cmd + '\r';
   if (liveData->commConnected)
   {
-//    ELM_PORT.print(tmpStr);
+    client.print(tmpStr);
   }
 }

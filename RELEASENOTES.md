@@ -2,6 +2,12 @@
 
 ### Next version
 
+### v2.7.7 2023-06-17
+- Initial code for BT3 and OBD2 WIFI adapters
+- Code cleaning
+- Switch for turn off backup wifi, additional icon indicating backup wifi
+- Setting for BT3 adapter name, OBD2 WIFI ip/port
+
 ### v2.7.6 2023-06-10
 - Wifi AP mode + web interface http://192.168.1.2
 - Removed Kia DEBUG vehicle

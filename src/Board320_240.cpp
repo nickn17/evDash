@@ -9,12 +9,18 @@
 #include "Board320_240.h"
 #include <time.h>
 #include <ArduinoJson.h>
+
+#ifndef BOARD_TTGO_T4
+// TTGO: Error: The program size (2098085 bytes) is greater than maximum allowed (2097152 bytes)
 #include "WebInterface.h"
+#endif // BOARD_TTGO_T4
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
 
+#ifndef BOARD_TTGO_T4
 WebInterface *webInterface = nullptr;
+#endif // BOARD_TTGO_T4
 
 /**
    Init board
@@ -1960,6 +1966,18 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
   case MENU_ADAPTER_OBD2_WIFI:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI) ? ">" : "";
     break;
+  case MENU_ADAPTER_OBD2_NAME:
+    sprintf(tmpStr1, "%s", liveData->settings.obd2Name);
+    suffix = tmpStr1;
+    break;
+  case MENU_ADAPTER_OBD2_IP:
+    sprintf(tmpStr1, "%s", liveData->settings.obd2WifiIp);
+    suffix = tmpStr1;
+    break;
+  case MENU_ADAPTER_OBD2_PORT:
+    sprintf(tmpStr1, "%d", liveData->settings.obd2WifiPort);
+    suffix = tmpStr1;
+    break;
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
@@ -2207,6 +2225,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     sprintf(tmpStr1, "%s", liveData->settings.wifiPassword);
     suffix = tmpStr1;
     break;
+  case MENU_WIFI_ENABLED2:
+    suffix = (liveData->settings.backupWifiEnabled == 1) ? "[on]" : "[off]";
+    break;
   case MENU_WIFI_SSID2:
     sprintf(tmpStr1, "%s", liveData->settings.wifiSsid2);
     suffix = tmpStr1;
@@ -2415,6 +2436,7 @@ void Board320_240::menuItemClick()
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
       strlcpy((char *)liveData->settings.obdMacAddress, (char *)tmpMenuItem->obdMacAddress, 20);
+      strlcpy((char *)liveData->settings.obd2Name, (char *)tmpMenuItem->title, 18);
       syslog->print("Selected adapter MAC address ");
       syslog->println(liveData->settings.obdMacAddress);
       saveSettings();
@@ -2589,6 +2611,11 @@ void Board320_240::menuItemClick()
       saveSettings();
       ESP.restart();
       break;
+    case MENU_ADAPTER_OBD2_NAME:
+    case MENU_ADAPTER_OBD2_IP:
+    case MENU_ADAPTER_OBD2_PORT:
+      return;
+      break;
     case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
       liveData->settings.disableCommandOptimizer = (liveData->settings.disableCommandOptimizer == 1) ? 0 : 1;
       showMenu();
@@ -2743,10 +2770,17 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_WIFI_ENABLED2:
+      liveData->settings.backupWifiEnabled = (liveData->settings.backupWifiEnabled == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
     case MENU_WIFI_HOTSPOT_WEBADMIN:
+#ifndef BOARD_TTGO_T4
       webInterface = new WebInterface();
       webInterface->init(liveData, this);
       displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
+#endif // BOARD_TTGO_T4
       return;
       break;
     case MENU_WIFI_NTP:
@@ -3220,6 +3254,16 @@ void Board320_240::redrawScreen()
       spr.fillRect(140, 7, 7, 7,
                    (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
+      if (liveData->params.isWifiBackupLive)
+      {
+        spr.fillRect(140, 0, 7, 3,
+                     (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >=
+                                                        liveData->params.currentTime)
+                                                           ? TFT_GREEN  /* last request was 200 OK */
+                                                           : TFT_YELLOW /* wifi connected but not send */
+                                                     : TFT_RED          /* wifi not connected */
+        );
+      }
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
@@ -3266,9 +3310,9 @@ void Board320_240::redrawScreen()
   }
 
   // BLE not connected
-  if ((liveData->tmpSettings.commType == COMM_TYPE_OBD2_BLE4 ||
-       liveData->tmpSettings.commType == COMM_TYPE_OBD2_BT3 ||
-       liveData->tmpSettings.commType == COMM_TYPE_OBD2_WIFI) &&
+  if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
+       liveData->settings.commType == COMM_TYPE_OBD2_BT3 ||
+       liveData->settings.commType == COMM_TYPE_OBD2_WIFI) &&
       !liveData->commConnected && liveData->obd2ready)
   {
     // Print message
@@ -3277,22 +3321,24 @@ void Board320_240::redrawScreen()
     spr.setTextSize(1);
     spr.setTextDatum(TL_DATUM);
     spr.setTextColor(TFT_WHITE);
-    spr.drawString("OBDII module not connected...", 10, 190, 2);
-    spr.drawString("Middle button - menu.", 10, 210, 2);
-  } else
-  // CAN not connected
-  if (liveData->tmpSettings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
-  {
-    // Print message
-    spr.fillRect(0, 185, 160, 50, TFT_BLACK);
-    spr.drawRect(0, 185, 160, 50, TFT_WHITE);
-    spr.setTextSize(1);
-    spr.setTextDatum(TL_DATUM);
-    spr.setTextColor(TFT_WHITE);
-    sprintf(tmpStr1, "CAN #%d", commInterface->getConnectAttempts());
+    sprintf(tmpStr1, "OBDII not connected #%d", commInterface->getConnectAttempts());
     spr.drawString(tmpStr1, 10, 190, 2);
     spr.drawString(commInterface->getConnectStatus(), 10, 210, 2);
   }
+  else
+    // CAN not connected
+    if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
+    {
+      // Print message
+      spr.fillRect(0, 185, 160, 50, TFT_BLACK);
+      spr.drawRect(0, 185, 160, 50, TFT_WHITE);
+      spr.setTextSize(1);
+      spr.setTextDatum(TL_DATUM);
+      spr.setTextColor(TFT_WHITE);
+      sprintf(tmpStr1, "CAN #%d", commInterface->getConnectAttempts());
+      spr.drawString(tmpStr1, 10, 190, 2);
+      spr.drawString(commInterface->getConnectStatus(), 10, 210, 2);
+    }
 
   spr.pushSprite(0, 0);
   redrawScreenIsRunning = false;
@@ -3341,8 +3387,10 @@ void Board320_240::commLoop()
 void Board320_240::boardLoop()
 {
   // touch events, m5.update
+#ifndef BOARD_TTGO_T4
   if (webInterface != nullptr)
     webInterface->mainLoop();
+#endif // BOARD_TTGO_T4
 }
 
 /**
@@ -3492,7 +3540,10 @@ void Board320_240::mainLoop()
 
   if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 && WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
   {
-    wifiFallback();
+    if (liveData->settings.commType != COMM_TYPE_OBD2_WIFI)
+    {
+      wifiFallback();
+    }
   }
 
   // SIM800L + WiFI remote upload

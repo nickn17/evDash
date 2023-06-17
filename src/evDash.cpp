@@ -180,6 +180,8 @@ void setup(void)
   syslog->println("serviceUUID=x     ... set device uuid for obd2 ble adapter");
   syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
   syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");
+  syslog->println("obd2ip=x     ... set ip for obd2 wifi adapter");
+  syslog->println("obd2port=x     ... set port for obd2 wifi adapter");
   syslog->println("time   ... print current time");
   syslog->println("ntpSync   ... sync Time with de.pool.ntp.org");
   syslog->println("setTime=2022-12-30 05:00:00  ... set current time");

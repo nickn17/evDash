@@ -115,7 +115,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 15;
+  liveData->settings.settingsVersion = 16;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -132,7 +132,7 @@ void BoardInterface::loadSettings()
   liveData->settings.defaultScreen = 1;
   liveData->settings.lcdBrightness = 0;
   liveData->settings.predrawnChargingGraphs = 1;
-  //liveData->settings.commType = COMM_TYPE_OBD2_BLE4; // BLE4
+  // liveData->settings.commType = COMM_TYPE_OBD2_BLE4; // BLE4
   liveData->settings.commType = COMM_TYPE_CAN_COMMU; // CAN
   liveData->settings.wifiEnabled = 0;
   tmpStr = "empty";
@@ -188,7 +188,13 @@ void BoardInterface::loadSettings()
   liveData->settings.disableCommandOptimizer = 0;
   // v15
   liveData->settings.abrpSdcardLog = 0;
-  
+  // v16
+  tmpStr = "OBD2"; // default bt3 obd2 adapter name
+  tmpStr.toCharArray(liveData->settings.obd2Name, tmpStr.length() + 1);
+  tmpStr = "192.168.0.10"; // obd2wifi adapter ip
+  tmpStr.toCharArray(liveData->settings.obd2WifiIp, tmpStr.length() + 1);
+  liveData->settings.obd2WifiPort = 35000;
+
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
   EEPROM.begin(sizeof(SETTINGS_STRUC));
@@ -316,6 +322,15 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.settingsVersion = 15;
         liveData->tmpSettings.abrpSdcardLog = 0;
       }
+      if (liveData->tmpSettings.settingsVersion == 15)
+      {
+        liveData->tmpSettings.settingsVersion = 16;
+        tmpStr = "OBD2"; // default bt3 obd2 adapter name
+        tmpStr.toCharArray(liveData->tmpSettings.obd2Name, tmpStr.length() + 1);
+        tmpStr = "192.168.0.10"; // obd2wifi adapter ip
+        tmpStr.toCharArray(liveData->tmpSettings.obd2WifiIp, tmpStr.length() + 1);
+        liveData->tmpSettings.obd2WifiPort = 35000;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -398,6 +413,12 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
   if (key == "charRxUUID")
     value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
+
+  if (key == "obd2ip")
+    value.toCharArray(liveData->settings.obd2WifiIp, value.length() + 1);
+  if (key == "obd2port")
+    liveData->settings.obd2WifiPort = value.toInt();
+
   if (key == "wifiSsid")
     value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
   if (key == "wifiPassword")

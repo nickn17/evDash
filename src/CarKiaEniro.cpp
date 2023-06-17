@@ -31,20 +31,20 @@ void CarKiaEniro::activateCommandQueue()
 
   // Command queue
   std::vector<String> commandQueueKiaENiro = {
-      "AT Z",    // Reset all
-      "AT I",    // Print the version ID
-      "AT S0",   // Printing of spaces on
-      "AT E0",   // Echo off
-      "AT L0",   // Linefeeds off
-      "AT SP 6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-      //"AT AL",     // Allow Long (>7 byte) messages
-      //"AT AR",     // Automatically receive
+      "ATZ",    // Reset all
+      "ATI",    // Print the version ID
+      "ATS0",   // Printing of spaces on
+      "ATE0",   // Echo off
+      "ATL0",   // Linefeeds off
+      "ATSP6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
+      //"ATAL",     // Allow Long (>7 byte) messages
+      //"ATAR",     // Automatically receive
       //"AT H1",     // Headers on (debug only)
       //"AT D1",     // Display of the DLC on
       //"AT CAF0",   // Automatic formatting off
       ////"AT AT0",     // disabled adaptive timing
-      "AT DP",
-      "AT ST16", // reduced timeout to 1, orig.16
+      "ATDP",
+      "ATST16", // reduced timeout to 1, orig.16
 
       // Loop from (KIA ENIRO)
 
