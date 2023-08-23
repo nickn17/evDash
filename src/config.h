@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v2.7.7"
-#define APP_RELEASE_DATE "2023-06-17"
+#define APP_VERSION "v2.7.8"
+#define APP_RELEASE_DATE "2023-08-23"
 
 // TFT COLORS FOR TTGO
 
@@ -79,6 +79,7 @@ typedef enum
   MENU_APP_VERSION,
   MENU_MEMORY_USAGE,
   MENU_SHUTDOWN,
+  MENU_REBOOT,
   MENU_CAR_COMMANDS,
   //
   VEHICLE_TYPE_TOP = 100,

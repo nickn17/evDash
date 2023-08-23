@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 150
+#define MENU_SIZE 151
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -17,6 +17,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_APP_VERSION, MENU_TOP_LEVEL, MENU_NO_MENU, "OTA update, curr:"},
     {MENU_MEMORY_USAGE, MENU_TOP_LEVEL, MENU_NO_MENU, "Memory usage"},
     {MENU_SHUTDOWN, MENU_TOP_LEVEL, MENU_NO_MENU, "Shutdown"},
+    {MENU_REBOOT, MENU_TOP_LEVEL, MENU_NO_MENU, "Reboot"},
     {MENU_CAR_COMMANDS, MENU_TOP_LEVEL, MENU_NO_MENU, "Car commands [CAN]"},
 
     {VEHICLE_TYPE_TOP, MENU_VEHICLE_TYPE, MENU_TOP_LEVEL, "<- parent menu"},

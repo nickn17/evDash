@@ -39,10 +39,10 @@ void LiveData::initParams()
   // Gps
   params.currTimeSyncWithGps = false;
   params.gpsValid = false;
-  params.gpsLat = -1;
-  params.gpsLon = -1;
+  params.gpsLat = -1.0;
+  params.gpsLon = -1.0;
   params.gpsSat = 0;
-  params.gpsAlt = -1;
+  params.gpsAlt = -500;
   params.setGpsTimeFromCar = 0;
   // Display
   params.displayScreen = SCREEN_AUTO;

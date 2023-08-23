@@ -3051,6 +3051,10 @@ void Board320_240::menuItemClick()
     case MENU_SHUTDOWN:
       enterSleepMode(0);
       return;
+    // Reboot
+    case MENU_REBOOT:
+      ESP.restart();
+      return;
     default:
       // Submenu
       liveData->menuCurrent = tmpMenuItem->id;
@@ -3520,7 +3524,7 @@ void Board320_240::mainLoop()
   else
   {
     // MEB CAR GPS
-    if (liveData->params.gpsValid && liveData->params.gpsLat != -1 && liveData->params.gpsLon != -1)
+    if (liveData->params.gpsValid && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0)
       calcAutomaticBrightnessLatLon();
   }
   if (liveData->params.setGpsTimeFromCar != 0)
@@ -4270,7 +4274,7 @@ bool Board320_240::netSendData()
 
     // Send GPS data via GPRS (if enabled && valid)
     if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
-        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1))
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
       jsonData["gpsLon"] = liveData->params.gpsLon;
@@ -4347,7 +4351,7 @@ bool Board320_240::netSendData()
       jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
 
     if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
-        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1))
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
     {
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;

@@ -2,6 +2,10 @@
 
 ### Next version
 
+### v2.7.8 2023-08-23
+- Added reboot menu item
+- Fixed gps 0 longitude
+
 ### v2.7.7 2023-06-17
 - Initial code for BT3 and OBD2 WIFI adapters
 - Code cleaning

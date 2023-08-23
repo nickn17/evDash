@@ -674,7 +674,7 @@ void BoardInterface::calcAutomaticBrightnessLatLon()
 {
   if (liveData->settings.lcdBrightness == 0) // only for automatic mode
   {
-    if (liveData->params.lcdBrightnessCalc == -1)
+    if (liveData->params.lcdBrightnessCalc == -1 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0)
     {
       initSolarCalc(liveData->settings.timezone, liveData->params.gpsLat, liveData->params.gpsLon);
     }
