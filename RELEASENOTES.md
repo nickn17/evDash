@@ -2,6 +2,10 @@
 
 ### Next version
 
+### v2.7.9 2023-08-30
+- fix: eGMP Ioniq6 dc2dc is sometimes not active in forward driving mode and evDash then turn off screen 
+- fix: abrp sdcard records are saved when the switch in the menu is off
+
 ### v2.7.8 2023-08-23
 - Added reboot menu item
 - Fixed gps 0 longitude

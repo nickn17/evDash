@@ -3643,7 +3643,8 @@ void Board320_240::mainLoop()
 
   // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
   if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
-      liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY && liveData->params.auxVoltage > 14.0 &&
+      liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY &&
+      liveData->params.auxVoltage > 14.0 &&
       liveData->params.stopCommandQueue == true)
   {
     liveData->params.stopCommandQueue = false;
@@ -3668,12 +3669,18 @@ void Board320_240::mainLoop()
   }
 
   // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 && liveData->params.auxVoltage > 0 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
+  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
+      liveData->params.auxVoltage > 0 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 &&
+      liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
-    if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
-      liveData->params.stopCommandQueue = true;
-    if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP)
-      goToSleep();
+    // eGMP Ioniq6 DC2DC is sometimes not active in forward driving mode and evDash then turn off screen 
+    if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
+    {
+      if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
+        liveData->params.stopCommandQueue = true;
+      if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP)
+        goToSleep();
+    }
   }
 
   // Read data from BLE/CAN
@@ -4374,7 +4381,7 @@ bool Board320_240::netSendData()
     // Log ABRP jsonData to SD card
     struct tm now;
     getLocalTime(&now);
-    if (liveData->params.sdcardInit && liveData->params.sdcardRecording)
+    if (liveData->settings.remoteUploadAbrpIntervalSec && liveData->params.sdcardInit && liveData->params.sdcardRecording)
     {
       // create filename
       if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardAbrpFilename) == 0)
