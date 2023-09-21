@@ -95,8 +95,6 @@ This is the CAN ID that responds to UDS tester present up to 0xFFF
 0x07FF
 */
 
-
-
 /**
    activateCommandQueue
 */
@@ -136,8 +134,8 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // ABS / ESP + AHB
       "ATSH7D1",
-      "3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
-      "220104", //gear selected (D/R/N/P)
+      "3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      "220104", // gear selected (D/R/N/P)
       "22C101", // brake
       "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
       "22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
@@ -146,9 +144,9 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "22C00B", // tire pressure/temp
 
       // Aircondition 7B3 dont exist on IONIQ5 MY3, need to look for correct one - SPOT2000
-      //"ATSH7B3",
+      "ATSH7B3",
       //"3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
-      //"220100", // in/out temp
+      "220100", // in/out temp
       //"220102", // coolant temp1, 2
 
       // CLUSTER MODULE
@@ -159,7 +157,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // VMCU
       "ATSH7E2",
-      "3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "2101", // speed, ...
       "2102", // aux, ...
 
@@ -169,7 +167,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // BMS
       "ATSH7E4",
-      "3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      "3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220101", // power kw, engine rpm etc
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64
@@ -264,23 +262,18 @@ void CarHyundaiIoniq5::parseRowMerged()
     }
   }
 
-
-
-
   // ABS / ESP + AHB 7D1
   // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH7D1"))
   {
     if (liveData->commandRequest.equals("220104"))
     {
-    uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false); //Decode gear selector status
-    liveData->params.forwardDriveMode = (driveMode == 4);
-    liveData->params.reverseDriveMode = (driveMode == 2);
-    liveData->params.parkModeOrNeutral = (driveMode == 1);  
+      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false); // Decode gear selector status
+      liveData->params.forwardDriveMode = (driveMode == 4);
+      liveData->params.reverseDriveMode = (driveMode == 2);
+      liveData->params.parkModeOrNeutral = (driveMode == 1);
     }
-    
-    
-    
+
     if (liveData->commandRequest.equals("22C101"))
     {
       // Speed for eniro
@@ -288,14 +281,10 @@ void CarHyundaiIoniq5::parseRowMerged()
       {
         liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
         if (liveData->params.speedKmh > 10)
-          liveData->params.speedKmh += liveData->settings.speedCorrection; 
+          liveData->params.speedKmh += liveData->settings.speedCorrection;
       }*/
     }
   }
-
-
-
-
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0"))
@@ -320,12 +309,12 @@ void CarHyundaiIoniq5::parseRowMerged()
     {
       liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
       liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
-      liveData->params.evaporatorTempC = (liveData->hexToDecFromResponse(20, 22, 1, false) / 2) - 40;
+      // liveData->params.evaporatorTempC = (liveData->hexToDecFromResponse(20, 22, 1, false) / 2) - 40;
     }
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00")
     {
-      liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
-      liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+      // liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
+      // liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
     }
   }
 
@@ -334,9 +323,7 @@ void CarHyundaiIoniq5::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22B002"))
     {
-      
       liveData->params.odoKm = liveData->decFromResponse(18, 24);
-      
     }
   }
 
@@ -605,7 +592,8 @@ bool CarHyundaiIoniq5::commandAllowed()
   }
 
   // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
-  if (liveData->settings.disableCommandOptimizer) {
+  if (liveData->settings.disableCommandOptimizer)
+  {
     return true;
   }
 
@@ -720,8 +708,15 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->currentAtshRequest = "ATSH7B3";
   // 220100
   liveData->commandRequest = "220100";
-  liveData->responseRowMerged = "6201007E5027C8FF7F765D05B95AFFFF5AFF11FFFFFFFFFFFF6AFFFF2DF0757630FFFF00FFFF000000";
-  liveData->responseRowMerged = "6201007E5027C8FF867C58121010FFFF10FF8EFFFFFFFFFFFF10FFFF0DF0617900FFFF01FFFF000000";
+  liveData->responseRowMerged = "6201007F9427C8FF8D85600A24110B14FFFF0FFF64FFFFFFFF0FFFFF1654668200FFFF01FFFFFFAAAA";
+  parseRowMerged();
+  // 220101
+  liveData->commandRequest = "220101";
+  liveData->responseRowMerged = "6201010C058000FFFFFFFF6686FFFFFFFFFFFFFF7CFF1073000000000000000000000000000000AAAA";
+  parseRowMerged();
+  // 220102
+  liveData->commandRequest = "220102";
+  liveData->responseRowMerged = "620102BBFDE000BBFF010001FF00002C0001880F00360794070000000000000000000000000000AAAA";
   parseRowMerged();
 
   // BMS ATSH7E4
@@ -852,6 +847,7 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
   // DEMO DATA
+  liveData->params.forwardDriveMode = true;
   liveData->params.brakeLights = true;
   liveData->params.headLights = true;
   liveData->settings.sdcardEnabled = 1;
@@ -962,20 +958,36 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
   else if (key.equals("batch"))
   {
     // test=batch/1
-    for (uint16_t i = 0; i < 250; i++)
+    for (uint16_t i = 0x00; i <= 0xFF; i++)
     {
-      String command = "23";
+      String command = "";
       if (i < 16)
         command += "0";
       command += String(i, HEX);
       command.toUpperCase();
-      command += "01";
 
       syslog->print(command);
       syslog->print(" ");
 
       eNiroCarControl(liveData->hexToDec("07E2", 2, false), command);
     }
+    for (uint16_t j = 0x20; j <= 0x2F; j++)
+      for (uint16_t i = 0x00; i <= 0xFF; i++)
+      {
+        String command = "";
+        if (j < 16)
+          command += "0";
+        command += String(j, HEX);
+        if (i < 16)
+          command += "0";
+        command += String(i, HEX);
+        command.toUpperCase();
+
+        syslog->print(command);
+        syslog->print(" ");
+
+        eNiroCarControl(liveData->hexToDec("07E2", 2, false), command);
+      }
   }
   // ECU SCAN
   else if (key.equals("ecu"))

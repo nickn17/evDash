@@ -229,7 +229,7 @@ void CommObd2Ble4::startBleScan()
 
   liveData->foundMyBleDevice = NULL;
   liveData->scanningDeviceIndex = 0;
-  board->displayMessage(" > Scanning BLE4 devices", "40sec.or hold middle&RST");
+  board->displayMessage(" > Scanning BLE4 devices", "10sec.or hold middle&RST");
 
   syslog->printf("Total/free heap: %i/%i-%i\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
@@ -237,7 +237,7 @@ void CommObd2Ble4::startBleScan()
   syslog->println("Scanning BLE devices...");
   syslog->print("Looking for ");
   syslog->println(liveData->settings.obdMacAddress);
-  BLEScanResults foundDevices = liveData->pBLEScan->start(40, false);
+  BLEScanResults foundDevices = liveData->pBLEScan->start(10, false);
   syslog->print("Devices found: ");
   syslog->println(foundDevices.getCount());
   syslog->println("Scan done!");
