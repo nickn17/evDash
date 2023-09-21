@@ -991,11 +991,31 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TL_DATUM);
   sprintf(tmpStr3, (liveData->params.odoKm == -1) ? "n/a km" : ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
   spr.drawString(tmpStr3, posx, posy, GFXFF);
-  if (liveData->params.odoKm > 0 && liveData->params.odoKmStart > 0 && liveData->params.speedKmhGPS < 100)
+  sprintf(tmpStr3, "N");
+  if (liveData->params.forwardDriveMode)
   {
-    sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00f" : "%01.00f"), liveData->km2distance(liveData->params.odoKm - liveData->params.odoKmStart));
-    spr.drawString(tmpStr3, posx, posy + 20, GFXFF);
+    if (liveData->params.odoKm > 0 && liveData->params.odoKmStart > 0 && (liveData->params.odoKm - liveData->params.odoKmStart) > 0 && liveData->params.speedKmhGPS < 150)
+    {
+      sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00f" : "%01.00f"), liveData->km2distance(liveData->params.odoKm - liveData->params.odoKmStart));
+    }
+    else
+    {
+      sprintf(tmpStr3, "D");
+    }
   }
+  else if (liveData->params.reverseDriveMode)
+  {
+    sprintf(tmpStr3, "R");
+  }
+  if (liveData->params.chargerACconnected)
+  {
+    sprintf(tmpStr3, "AC");
+  }
+  if (liveData->params.chargerDCconnected)
+  {
+    sprintf(tmpStr3, "DC");
+  }
+  spr.drawString(tmpStr3, posx, posy + 20, GFXFF);
 
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)
@@ -1010,8 +1030,14 @@ void Board320_240::drawSceneSpeed()
     spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
   }
 
-  // AUX voltage
+  // Avg speed
   posy = 60;
+  sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
+  spr.setTextDatum(TL_DATUM);
+  spr.drawString(tmpStr3, posx, posy, GFXFF);
+  spr.drawString("avg.km/h", 0, posy + 20, 2);
+
+  // AUX voltage
   if (liveData->params.auxVoltage > 5 && liveData->params.speedKmhGPS < 100)
   {
     if (liveData->params.auxPerc != -1)
@@ -1028,12 +1054,6 @@ void Board320_240::drawSceneSpeed()
     spr.drawString("aux V", 0, posy + 20, 2);
     posy += 40;
   }
-
-  // Avg speed
-  sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
-  spr.setTextDatum(TL_DATUM);
-  spr.drawString(tmpStr3, posx, posy, GFXFF);
-  spr.drawString("avg.km/h", 0, posy + 20, 2);
 
   // Bottom info
   // Cummulative regen/power
@@ -2933,7 +2953,6 @@ void Board320_240::menuItemClick()
         m2.concat("mA");
         displayMessage(m1.c_str(), m2.c_str());
       }
-
       return;
       break;
     case MENU_VOLTMETER_SLEEPVOL:
@@ -3339,7 +3358,7 @@ void Board320_240::redrawScreen()
       spr.setTextSize(1);
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
-      sprintf(tmpStr1, "CAN #%d", commInterface->getConnectAttempts());
+      sprintf(tmpStr1, "CAN #%d %s%d", commInterface->getConnectAttempts(), (liveData->params.stopCommandQueue ? "QS" : "QR"), liveData->params.queueLoopCounter);
       spr.drawString(tmpStr1, 10, 190, 2);
       spr.drawString(commInterface->getConnectStatus(), 10, 210, 2);
     }
@@ -3602,9 +3621,22 @@ void Board320_240::mainLoop()
   if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 5)
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
-
     liveData->params.lastVoltageReadTime = liveData->params.currentTime;
+    if (liveData->params.auxVoltage > liveData->settings.voltmeterSleep)
+    {
+      liveData->params.lastVoltageOkTime = liveData->params.currentTime;
+    }
 
+    // Protect AUX battery in screen only mode
+    if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY &&
+        liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff)
+    {
+      syslog->print("AUX voltage under cut-off voltage: ");
+      syslog->println(liveData->settings.voltmeterCutOff);
+      shutdownDevice();
+    }
+
+    // Calculate AUX perc for ioniq2018
     if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
     {
       float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); // min 11.6V; max: 12.8V
@@ -3622,24 +3654,7 @@ void Board320_240::mainLoop()
         liveData->params.auxPerc = tmpAuxPerc;
       }
     }
-
-    if (liveData->params.auxVoltage > liveData->settings.voltmeterSleep)
-      liveData->params.lastVoltageOkTime = liveData->params.currentTime;
   }
-
-  // Turn off display if Ignition is off for more than 10s
-  /*if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
-  {
-    if (liveData->settings.voltmeterEnabled == 1)
-    {
-      syslog->print("Voltmeter ");
-      syslog->print(ina3221.getBusVoltage_V(1));
-      syslog->print("V\t ");
-      syslog->print(ina3221.getCurrent_mA(1));
-      syslog->print("mA\t QUEUE:");
-      syslog->println((liveData->params.stopCommandQueue ? "stopped" : "running"));
-    }
-  }*/
 
   // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
   if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
@@ -3673,7 +3688,7 @@ void Board320_240::mainLoop()
       liveData->params.auxVoltage > 0 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 &&
       liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
   {
-    // eGMP Ioniq6 DC2DC is sometimes not active in forward driving mode and evDash then turn off screen 
+    // eGMP Ioniq6 DC2DC is sometimes not active in forward driving mode and evDash then turn off screen
     if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
     {
       if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
@@ -3847,7 +3862,6 @@ void Board320_240::syncTimes(time_t newTime)
 */
 bool Board320_240::skipAdapterScan()
 {
-
   return isButtonPressed(pinButtonMiddle) || isButtonPressed(pinButtonLeft) || isButtonPressed(pinButtonRight);
 }
 
@@ -3856,7 +3870,6 @@ bool Board320_240::skipAdapterScan()
 */
 bool Board320_240::sdcardMount()
 {
-
   if (liveData->params.sdcardInit)
   {
     syslog->println("SD card already mounted...");
@@ -3932,7 +3945,6 @@ bool Board320_240::sdcardMount()
 */
 void Board320_240::sdcardToggleRecording()
 {
-
   if (!liveData->params.sdcardInit)
     return;
 
@@ -4381,7 +4393,7 @@ bool Board320_240::netSendData()
     // Log ABRP jsonData to SD card
     struct tm now;
     getLocalTime(&now);
-    if (liveData->settings.remoteUploadAbrpIntervalSec && liveData->params.sdcardInit && liveData->params.sdcardRecording)
+    if (liveData->settings.abrpSdcardLog != 0 && liveData->settings.remoteUploadAbrpIntervalSec > 0 && liveData->params.sdcardInit && liveData->params.sdcardRecording)
     {
       // create filename
       if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardAbrpFilename) == 0)
@@ -4537,6 +4549,9 @@ String Board320_240::getCarModelAbrpStr()
   }
 }
 
+/**
+ * Init HW gps
+ **/
 void Board320_240::initGPS()
 {
   syslog->print("GPS initialization on hwUart: ");

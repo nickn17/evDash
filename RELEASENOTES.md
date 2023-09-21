@@ -2,6 +2,11 @@
 
 ### Next version
 
+### v2.7.10 2023-09-21
+- Speed screen: Show drive mode (neutral), drive, reverse, and charging type AC/DC
+- Automatic shutdown to protect AUX 12V in sleep mode / screen only
+- eGMP - In/Out temperature
+
 ### v2.7.9 2023-08-30
 - fix: eGMP Ioniq6 dc2dc is sometimes not active in forward driving mode and evDash then turn off screen 
 - fix: abrp sdcard records are saved when the switch in the menu is off
