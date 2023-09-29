@@ -2,6 +2,8 @@
 
 ### Next version
 
+- menu Clear driving & charging stats
+
 ### v2.7.10 2023-09-21
 - Speed screen: Show drive mode (neutral), drive, reverse, and charging type AC/DC
 - Automatic shutdown to protect AUX 12V in sleep mode / screen only

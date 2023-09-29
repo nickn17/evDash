@@ -2,11 +2,12 @@
 
 #include "config.h"
 
-#define MENU_SIZE 151
+#define MENU_SIZE 152
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
     {MENU_TOP_LEVEL, MENU_TOP_LEVEL, MENU_TOP_LEVEL, "<- exit menu"},
+    {MENU_CLEAR_STATS, MENU_TOP_LEVEL, MENU_NO_MENU, "Clear stats"},
     {MENU_VEHICLE_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Vehicle type"},
     {MENU_ADAPTER_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Adapter type"},
     {MENU_ADAPTER_BLE_SELECT, MENU_TOP_LEVEL, MENU_NO_MENU, "Select OBD2 adapter"},

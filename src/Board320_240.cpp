@@ -2465,6 +2465,11 @@ void Board320_240::menuItemClick()
     // Other menus
     switch (tmpMenuItem->id)
     {
+    case MENU_CLEAR_STATS:
+      liveData->clearDrivingAndChargingStats(CAR_MODE_DRIVE);
+      hideMenu();
+      return;
+      break;
     // Set vehicle type
     case VEHICLE_TYPE_IONIQ_2018_28:
       liveData->settings.carType = CAR_HYUNDAI_IONIQ_2018;

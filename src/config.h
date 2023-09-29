@@ -69,6 +69,7 @@ typedef enum
   // Top level menu
   MENU_NO_MENU = -1,
   MENU_TOP_LEVEL = 0,
+  MENU_CLEAR_STATS = 20,
   MENU_VEHICLE_TYPE = 1,
   MENU_ADAPTER_BLE_SELECT = 2,
   MENU_OTHERS,
