@@ -558,6 +558,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   jsonData["tRlBar"] = round(liveData->params.tireRearLeftPressureBar * 10) / 10;
   jsonData["tRrC"] = liveData->params.tireRearRightTempC;
   jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
+  jsonData["brakeL"] = liveData->params.brakeLights;
 
   // cell voltage
   for (int i = 0; i < liveData->params.cellCount; i++)

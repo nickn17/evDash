@@ -158,12 +158,54 @@ void CarHyundaiIoniq5::activateCommandQueue()
       // VMCU
       "ATSH7E2",
       "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
-      "2101", // speed, ...
-      "2102", // aux, ...
+      "22E003",
+      "22E004",
+      "22E005",
+      "22E006",
+      "22E007",
+      "22E008",
+      "22E009",
+
+      // ICCU
+      "ATSH7E5",
+      "3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+                /*      "22E001",
+                      "22E002",
+                      "22E003",*/
+      "22E011", // aux soc, temp, current
+                /*"22E021",
+          "22E031",
+          "22E032",
+          "22E033",
+          "22E034",
+          "22E041",*/
 
       // MCU
       "ATSH7E3",
       "2102", // motor/invertor temp
+
+      // AVN
+      /*  "ATSH780",
+        "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+        "22F013",
+        "22F102",
+        "22F104",
+        "22F112",
+        "22F188",
+        "22F18B",
+        "22F18D",
+        "22F194",
+        "22F198",
+        "22F1A0",
+        "22F1A1",
+        "22F1B1",
+        "22F1B3",
+        "22F1B5",
+        "22F1B7",
+        "22F1B9",
+        "22F1DE",
+        "22F183",
+        "22FD85",*/
 
       // BMS
       "ATSH7E4",
@@ -341,11 +383,6 @@ void CarHyundaiIoniq5::parseRowMerged()
           liveData->params.speedKmh = 0;
       } */
     }
-    if (liveData->commandRequest.equals("2102"))
-    {
-      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
-      liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
-    }
   }
 
   // MCU 7E3
@@ -355,6 +392,16 @@ void CarHyundaiIoniq5::parseRowMerged()
     {
       liveData->params.inverterTempC = liveData->hexToDecFromResponse(32, 34, 1, true);
       liveData->params.motorTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
+    }
+  }
+
+  // ICCU 7E5
+  if (liveData->currentAtshRequest.equals("ATSH7E5"))
+  {
+    if (liveData->commandRequest.equals("22E011"))
+    {
+      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(30, 34, 2, true) / 1000.0;
+      liveData->params.auxPerc = liveData->hexToDecFromResponse(46, 48, 1, false);
     }
   }
 

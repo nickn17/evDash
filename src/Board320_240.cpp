@@ -1036,6 +1036,7 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TL_DATUM);
   spr.drawString(tmpStr3, posx, posy, GFXFF);
   spr.drawString("avg.km/h", 0, posy + 20, 2);
+  posy += 40;
 
   // AUX voltage
   if (liveData->params.auxVoltage > 5 && liveData->params.speedKmhGPS < 100)
