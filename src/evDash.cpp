@@ -103,6 +103,7 @@ void setup(void)
   case CAR_HYUNDAI_IONIQ5_58:
   case CAR_HYUNDAI_IONIQ5_72:
   case CAR_HYUNDAI_IONIQ5_77:
+  case CAR_HYUNDAI_IONIQ6_77:
   case CAR_KIA_EV6_58:
   case CAR_KIA_EV6_77:
     car = new CarHyundaiIoniq5();

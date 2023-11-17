@@ -126,12 +126,13 @@ public:
   void drawSceneSoc10Table();
   void drawSceneDebug();
   // Menu
-  String menuItemCaption(int16_t menuItemId, String title);
+  String menuItemText(int16_t menuItemId, String title);
   void showMenu() override;
   void hideMenu() override;
   void menuMove(bool forward, bool rotate = true);
   void menuItemClick();
   //
   void loadTestData();
+  void printHeapMemory();
   //
 };

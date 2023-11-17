@@ -13,27 +13,26 @@
 #include "Solarlib.h"
 
 /**
-   Set live data
-*/
+ * Set live data
+ */
 void BoardInterface::setLiveData(LiveData *pLiveData)
 {
   liveData = pLiveData;
 }
 
 /**
-   Attach car interface
-*/
+ * Attach car interface
+ */
 void BoardInterface::attachCar(CarInterface *pCarInterface)
 {
   carInterface = pCarInterface;
 }
 
 /**
-  Shutdown device
-*/
+ * Shutdown device
+ */
 void BoardInterface::shutdownDevice()
 {
-
   syslog->println("Shutdown.");
 
   char msg[20];
@@ -43,23 +42,7 @@ void BoardInterface::shutdownDevice()
     displayMessage(msg, "");
     delay(1000);
   }
-  /*
-  if (liveData->params.sim800l_enabled) {
-    if (sim800l->isConnectedGPRS()) {
-      bool disconnected = sim800l->disconnectGPRS();
-      for (uint8_t i = 0; i < 5 && !disconnected; i++) {
-        delay(1000);
-        disconnected = sim800l->disconnectGPRS();
-      }
-    }
 
-    if (sim800l->getPowerMode() == NORMAL) {
-      sim800l->setPowerMode(SLEEP);
-      delay(1000);
-    }
-    sim800l->enterSleepMode();
-  }
-*/
   setCpuFrequencyMhz(80);
   turnOffScreen();
   // WiFi.disconnect(true);
@@ -76,41 +59,36 @@ void BoardInterface::shutdownDevice()
 }
 
 /**
-  Load settings from flash memory, upgrade structure if version differs
-*/
+ * Save setting to flash memory
+ */
 void BoardInterface::saveSettings()
 {
-
-  // Flash to memory
   syslog->println("Settings saved to eeprom.");
   EEPROM.put(0, liveData->settings);
   EEPROM.commit();
 }
 
 /**
-  Reset settings (factory reset)
-*/
+ * Reset settings (factory reset)
+ */
 void BoardInterface::resetSettings()
 {
-
-  // Flash to memory
   syslog->println("Factory reset.");
   liveData->settings.initFlag = 1;
   EEPROM.put(0, liveData->settings);
   EEPROM.commit();
 
-  displayMessage("Settings erased", "Restarting in 5 seconds");
+  displayMessage("Settings erased", "Restarting in 5 secs.");
 
   delay(5000);
   ESP.restart();
 }
 
 /**
-  Load setting from flash memory, upgrade structure if version differs
-*/
+ * Load setting from flash memory, upgrade structure if version differs
+ */
 void BoardInterface::loadSettings()
 {
-
   String tmpStr;
 
   // Default settings
@@ -345,8 +323,8 @@ void BoardInterface::loadSettings()
 }
 
 /**
-   After setup
-*/
+ * After setup
+ */
 void BoardInterface::afterSetup()
 {
   syslog->println("BoardInterface::afterSetup");
@@ -379,11 +357,10 @@ void BoardInterface::afterSetup()
 }
 
 /**
-   Custom commands
-*/
+ * Custom commands
+ */
 void BoardInterface::customConsoleCommand(String cmd)
 {
-
   if (cmd.equals("reboot"))
     ESP.restart();
   if (cmd.equals("saveSettings"))
@@ -466,20 +443,18 @@ void BoardInterface::customConsoleCommand(String cmd)
 }
 
 /**
-   Parser response from obd2/can
-*/
+ *  Parser response from obd2/can
+ */
 void BoardInterface::parseRowMerged()
 {
-
   carInterface->parseRowMerged();
 }
 
 /**
-   Serialize parameters
-*/
+ * Serialize parameters for abrp/remote upload/sdcard
+ */
 bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 {
-
   StaticJsonDocument<4096> jsonData;
 
   if (inclApiKey)
@@ -582,7 +557,6 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
  */
 void BoardInterface::showNet()
 {
-
   String prefix = "", suffix = "";
 
   syslog->print("wifiSsid:  ");
@@ -606,6 +580,7 @@ void BoardInterface::showNet()
   {
     suffix = "main";
   }
+
   syslog->print("Active: ");
   syslog->println(suffix);
   syslog->print("IP-Address: ");
@@ -638,22 +613,6 @@ void BoardInterface::setTime(String timestamp)
   tm_tmp.tm_hour = timestamp.substring(11, 13).toInt();
   tm_tmp.tm_min = timestamp.substring(14, 16).toInt();
   tm_tmp.tm_sec = timestamp.substring(17, 19).toInt();
-
-  /*#ifdef BOARD_M5STACK_CORE2
-      RTC_TimeTypeDef RTCtime;
-      RTC_DateTypeDef RTCdate;
-
-      RTCdate.Year = timestamp.substring(0, 4).toInt();
-      RTCdate.Month = timestamp.substring(5, 7).toInt();
-      RTCdate.Date = timestamp.substring(8, 10).toInt();
-      ;
-      RTCtime.Hours = timestamp.substring(11, 13).toInt();
-      RTCtime.Minutes = timestamp.substring(14, 16).toInt();
-      RTCtime.Seconds = timestamp.substring(17, 19).toInt();
-
-      M5.Rtc.SetTime(&RTCtime);
-      M5.Rtc.SetDate(&RTCdate);
-  #endif**/
 
   time_t t = mktime(&tm_tmp);
   tv.tv_sec = t;

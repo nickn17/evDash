@@ -907,6 +907,7 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->params.leftRearDoorOpen = true;
   liveData->params.rightRearDoorOpen = true;
   liveData->params.hoodDoorOpen = true;
+  liveData->params.auxVoltage = 13.1;
 }
 
 /**
