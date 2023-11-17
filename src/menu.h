@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 152
+#define MENU_SIZE 153
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -39,6 +39,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {VEHICLE_TYPE_HYUNDAI_IONIQ5_58, VEHICLE_TYPE_HYUNDAI, MENU_NO_MENU, "Hyundai Ioniq5 2022 58kWh"},
     {VEHICLE_TYPE_HYUNDAI_IONIQ5_72, VEHICLE_TYPE_HYUNDAI, MENU_NO_MENU, "Hyundai Ioniq5 2022 72.6kWh"},
     {VEHICLE_TYPE_HYUNDAI_IONIQ5_77, VEHICLE_TYPE_HYUNDAI, MENU_NO_MENU, "Hyundai Ioniq5 2022 77.4kWh"},
+    {VEHICLE_TYPE_HYUNDAI_IONIQ6_77, VEHICLE_TYPE_HYUNDAI, MENU_NO_MENU, "Hyundai Ioniq6 2023 77.4kWh"},
 
     {VEHICLE_TYPE_KIA_TOP, VEHICLE_TYPE_KIA, MENU_TOP_LEVEL, "<- parent menu"},
     {VEHICLE_TYPE_ENIRO_2020_64, VEHICLE_TYPE_KIA, MENU_NO_MENU, "Kia eNiro 2020 64kWh"},

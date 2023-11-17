@@ -18,6 +18,7 @@
 #define CAR_HYUNDAI_IONIQ5_58 12
 #define CAR_HYUNDAI_IONIQ5_72 13
 #define CAR_HYUNDAI_IONIQ5_77 14
+#define CAR_HYUNDAI_IONIQ6_77 29
 
 #define CAR_KIA_ENIRO_2020_64 0
 #define CAR_KIA_ENIRO_2020_39 3
@@ -128,6 +129,7 @@ typedef struct
   // voltagemeter INA3221
   time_t lastVoltageReadTime;
   time_t lastVoltageOkTime;
+  time_t stopCommandQueueTime;
   // Car params
   uint8_t carMode;
   time_t carModeChanged;
@@ -423,4 +425,6 @@ public:
   float bar2pressure(float inBar);
   String getBatteryManagementModeStr(int8_t mode);
   void clearDrivingAndChargingStats(int newCarMode);
+  void prepareForStopCommandQueue();
+  void continueWithCommandQueue();
 };

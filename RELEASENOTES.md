@@ -2,7 +2,19 @@
 
 ### Next version
 
-- menu Clear driving & charging stats
+### v2.8.0 2023-11-17
+- Menu item - Clear driving & charging stats
+- Some speedKmh / speedKmhGPS fixes
+- Sleep mode = OFF | SCREEN ONLY (prevent AUX 12V battery drain)
+  - Automatically turn off CAN scanning when 2 minute inactive 
+    - car stopped, not in D/R drive mode
+    - car is not charging
+    - voltage is under 14V (dcdc is not running)
+    - TODO: BMS state - HV battery was disconnected
+  - Wake up CAN scanning when 
+    - gps speed > 10-20kmh
+    - voltage is >= 14V (dcdc is runinng)
+    - any touch on display
 
 ### v2.7.10 2023-09-21
 - Speed screen: Show drive mode (neutral), drive, reverse, and charging type AC/DC

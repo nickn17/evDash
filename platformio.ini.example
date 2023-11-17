@@ -31,6 +31,7 @@ lib_deps =
 	https://github.com/switchdoclabs/SDL_Arduino_INA3221
 	https://github.com/coryjfowler/MCP_CAN_lib
 	https://github.com/nickn17/Solarlib
+	https://github.com/tanakamasayuki/I2C_MPU6886
 
 ;targets = upload
 upload_protocol = esptool

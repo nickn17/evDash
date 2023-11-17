@@ -67,9 +67,6 @@ void Board320_240::initBoard()
   tv.tv_sec = 1589011873;
 #endif
 
-  /*struct timezone tz;
-  tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
-  tz.tz_dsttime = 0;*/
   settimeofday(&tv, NULL);
   struct tm tm;
   getLocalTime(&tm);
@@ -138,19 +135,19 @@ void Board320_240::afterSetup()
   tft.invertDisplay(invertDisplay);
   tft.setRotation(liveData->settings.displayRotation);
   setBrightness();
-  tft.fillScreen(TFT_BLACK);
+  tft.fillScreen(TFT_RED);
 
   bool psramUsed = false; // 320x240 16bpp sprites requires psram
 #if defined(ESP32) && defined(CONFIG_SPIRAM_SUPPORT)
   if (psramFound())
     psramUsed = true;
 #endif
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+  printHeapMemory();
   syslog->println((psramUsed) ? "Sprite 16" : "Sprite 8");
   spr.setColorDepth((psramUsed) ? 16 : 8);
   spr.createSprite(320, 240);
   liveData->params.spriteInit = true;
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+  printHeapMemory();
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
@@ -158,22 +155,22 @@ void Board320_240::afterSetup()
   {
     syslog->printf("Right button pressed");
     loadTestData();
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
   }
+
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
-
   if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1)
   {
     wifiSetup();
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
   }
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2)
   {
     initGPS();
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
   }
 
   // SD card
@@ -183,7 +180,7 @@ void Board320_240::afterSetup()
     {
       syslog->println("Toggle recording on SD card");
       sdcardToggleRecording();
-      syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+      printHeapMemory();
     }
   }
 
@@ -191,14 +188,14 @@ void Board320_240::afterSetup()
   if (liveData->settings.gprsHwSerialPort <= 2)
   {
     sim800lSetup();
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
   }
 
   // Init comm device
   if (!afterSetup)
   {
     BoardInterface::afterSetup();
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
   }
 
   // Threading
@@ -227,7 +224,7 @@ void Board320_240::otaUpdate()
 {
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
-  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+  printHeapMemory();
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
 #ifdef BOARD_TTGO_T4
@@ -287,7 +284,7 @@ void Board320_240::otaUpdate()
 
   if (!client.connect(host.c_str(), port))
   {
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
     displayMessage("Connection failed.", "");
     delay(2000);
     return;
@@ -360,7 +357,7 @@ void Board320_240::otaUpdate()
   displayMessage("Installing OTA...", "");
   if (!Update.begin(contentLength))
   {
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
     syslog->printf("Error: %i, malloc %i bytes\n", Update.getError(), SPI_FLASH_SEC_SIZE);
     syslog->print("contentLength: ");
     syslog->println(contentLength);
@@ -395,8 +392,8 @@ void Board320_240::otaUpdate()
 }
 
 /**
-   Go to Sleep for TIME_TO_SLEEP seconds
-*/
+ * Go to sleep for TIME_TO_SLEEP seconds (SLEEP MODE = DEEP SLEEP)
+ */
 void Board320_240::goToSleep()
 {
   syslog->println("Going to sleep.");
@@ -444,7 +441,7 @@ void Board320_240::goToSleep()
 }
 
 /*
-  Wake up board from sleep
+  Wake up board from deep sleep
   Iterate thru commands and determine if car is charging or ignition is on
 */
 void Board320_240::afterSleep()
@@ -579,7 +576,6 @@ void Board320_240::afterSleep()
 void Board320_240::turnOffScreen()
 {
   bool debugTurnOffScreen = false;
-  // debugTurnOffScreen = true;
   if (debugTurnOffScreen)
     displayMessage("Turn off screen", (liveData->params.stopCommandQueue ? "Command queue stopped" : "Queue is running"));
   if (currentBrightness == 0)
@@ -604,13 +600,12 @@ void Board320_240::turnOffScreen()
 }
 
 /**
-   Set brightness level
-*/
+ * Set brightness level
+ */
 void Board320_240::setBrightness()
 {
   uint8_t lcdBrightnessPerc;
 
-  liveData->params.stopCommandQueue = false;
   lcdBrightnessPerc = liveData->settings.lcdBrightness;
   if (lcdBrightnessPerc == 0)
   { // automatic brightness (based on gps&and sun angle)
@@ -648,8 +643,8 @@ void Board320_240::setBrightness()
 }
 
 /**
-  Message dialog
-*/
+ * Message dialog
+ */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
   uint16_t height = tft.height();
@@ -684,8 +679,8 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
 }
 
 /**
-  Confirm message
-*/
+ * Confirm message
+ */
 bool Board320_240::confirmMessage(const char *row1, const char *row2)
 {
   uint16_t height = tft.height();
@@ -728,8 +723,8 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
 }
 
 /**
-  Draw cell on dashboard
-*/
+ * Draw cell on dashboard
+ */
 void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, uint16_t bgColor, uint16_t fgColor)
 {
 
@@ -782,11 +777,10 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
 }
 
 /**
-  Draw small rect 80x30
-*/
+ * Draw small rect 80x30
+ */
 void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, int16_t bgColor, int16_t fgColor)
 {
-
   int32_t posx, posy;
 
   posx = (x * 80) + 4;
@@ -807,12 +801,11 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
 }
 
 /**
-  Show tire pressures / temperatures
-  Custom field
-*/
+ * Show tire pressures / temperatures
+ * Custom field
+ */
 void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char *topleft, const char *topright, const char *bottomleft, const char *bottomright, uint16_t color)
 {
-
   int32_t posx, posy;
 
   spr.fillRect(x * 80, y * 60, ((w)*80) - 1, ((h)*60) - 1, color);
@@ -837,11 +830,10 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
 }
 
 /**
-   Main screen (Screen 1)
-*/
+ *  Main screen (Screen 1)
+ */
 void Board320_240::drawSceneMain()
 {
-
   // Tire pressure
   char pressureStr[4] = "bar";
   char temperatureStr[2] = "C";
@@ -876,7 +868,8 @@ void Board320_240::drawSceneMain()
   spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44, 2);
 
   // batPowerKwh100 on roads, else batPowerAmp
-  if (liveData->params.speedKmh > 20)
+  if (liveData->params.speedKmh > 20 ||
+      (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20))
   {
     sprintf(tmpStr1, (liveData->params.batPowerKwh100 == -1 ? "n/a" : "%01.01f"), liveData->km2distance(liveData->params.batPowerKwh100));
     drawBigCell(1, 1, 2, 2, tmpStr1, ((liveData->settings.distanceUnit == 'k') ? "POWER KWH/100KM" : "POWER KWH/100MI"), (liveData->params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (liveData->params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
@@ -943,14 +936,11 @@ void Board320_240::drawSceneMain()
 }
 
 /**
-   Speed + kwh/100km (Screen 2)
-*/
+ * Speed + kwh/100km (Screen 2)
+ */
 void Board320_240::drawSceneSpeed()
 {
-
   int32_t posx, posy;
-
-  // spr.fillRect(0, 34, 206, 170, TFT_BLACK); // TFT_DARKRED
 
   posx = 320 / 2;
   posy = 40;
@@ -971,7 +961,7 @@ void Board320_240::drawSceneSpeed()
   posy = 140;
   spr.setTextDatum(TR_DATUM); // Top center
   spr.setTextSize(1);
-  if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0)
+  if ((liveData->params.speedKmh > 25 || (liveData->params.speedKmhGPS > 25 && liveData->params.gpsSat >= 4)) && liveData->params.batPowerKw < 0)
   {
     sprintf(tmpStr3, (liveData->params.batPowerKwh100 == -1000) ? "n/a" : "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
     spr.drawString("kWh/100km", 200, posy + 46, 2);
@@ -994,7 +984,8 @@ void Board320_240::drawSceneSpeed()
   sprintf(tmpStr3, "N");
   if (liveData->params.forwardDriveMode)
   {
-    if (liveData->params.odoKm > 0 && liveData->params.odoKmStart > 0 && (liveData->params.odoKm - liveData->params.odoKmStart) > 0 && liveData->params.speedKmhGPS < 150)
+    if (liveData->params.odoKm > 0 && liveData->params.odoKmStart > 0 &&
+        (liveData->params.odoKm - liveData->params.odoKmStart) > 0 && liveData->params.speedKmhGPS < 150)
     {
       sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00f" : "%01.00f"), liveData->km2distance(liveData->params.odoKm - liveData->params.odoKmStart));
     }
@@ -1006,6 +997,10 @@ void Board320_240::drawSceneSpeed()
   else if (liveData->params.reverseDriveMode)
   {
     sprintf(tmpStr3, "R");
+  }
+  if (liveData->params.chargingOn)
+  {
+    sprintf(tmpStr3, "AC/DC");
   }
   if (liveData->params.chargerACconnected)
   {
@@ -1030,6 +1025,12 @@ void Board320_240::drawSceneSpeed()
     spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
   }
 
+  if (liveData->params.stopCommandQueueTime != 0)
+  {
+    sprintf(tmpStr1, "%s%d", (liveData->params.stopCommandQueue ? "QS" : "QR"), (liveData->params.currentTime - liveData->params.stopCommandQueueTime));
+    spr.drawString(tmpStr1, posx, posy + 40, 2);
+  }
+
   // Avg speed
   posy = 60;
   sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
@@ -1039,7 +1040,7 @@ void Board320_240::drawSceneSpeed()
   posy += 40;
 
   // AUX voltage
-  if (liveData->params.auxVoltage > 5 && liveData->params.speedKmhGPS < 100)
+  if (liveData->params.auxVoltage > 5 && liveData->params.speedKmh < 100 && liveData->params.speedKmhGPS < 100)
   {
     if (liveData->params.auxPerc != -1)
     {
@@ -1149,9 +1150,11 @@ void Board320_240::drawSceneSpeed()
   }
 }
 
+/**
+ * HUD screen
+ */
 void Board320_240::drawSceneHud()
 {
-
   float batColor;
 
   // Change rotation to vertical & mirror
@@ -1173,7 +1176,7 @@ void Board320_240::drawSceneHud()
   // Draw speed
   tft.setTextSize(3);
   sprintf(tmpStr3, "0");
-  if (liveData->params.speedKmhGPS > 10)
+  if (liveData->params.speedKmhGPS > 10 && liveData->params.gpsSat >= 4)
   {
     tft.fillRect(0, 210, 320, 30, TFT_BLACK);
     sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
@@ -1226,11 +1229,10 @@ void Board320_240::drawSceneHud()
 }
 
 /**
-   Battery cells (Screen 3)
-*/
+ * Battery cells (Screen 3)
+ */
 void Board320_240::drawSceneBatteryCells()
 {
-
   int32_t posx, posy, lastPosY;
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
@@ -1305,12 +1307,11 @@ void Board320_240::drawSceneBatteryCells()
 }
 
 /**
-   drawPreDrawnChargingGraphs
-   P = U.I
-*/
+ * drawPreDrawnChargingGraphs
+ * P = U.I
+ */
 void Board320_240::drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY)
 {
-
   // Rapid gate
   spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
                zeroX + (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_RAPIDGATE35);
@@ -1397,11 +1398,10 @@ void Board320_240::drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, fl
 }
 
 /**
-   Charging graph (Screen 4)
-*/
+ * Charging graph (Screen 4)
+ */
 void Board320_240::drawSceneChargingGraph()
 {
-
   int zeroX = 0;
   int zeroY = 238;
   int mulX = 3;   // 100% = 300px;
@@ -1588,11 +1588,10 @@ void Board320_240::drawSceneChargingGraph()
 }
 
 /**
-  SOC 10% table (screen 5)
-*/
+ * SOC 10% table (screen 5)
+ */
 void Board320_240::drawSceneSoc10Table()
 {
-
   int zeroY = 2;
   float diffCec, diffCed, diffOdo = -1;
   float firstCed = -1, lastCed = -1, diffCed0to5 = 0;
@@ -1685,8 +1684,8 @@ void Board320_240::drawSceneSoc10Table()
 }
 
 /**
-  Debug screen (screen 6)
-*/
+ * Debug screen (screen 6)
+ */
 void Board320_240::drawSceneDebug()
 {
   String tmpStr;
@@ -1743,8 +1742,6 @@ SD status*/
   }
 
   spr.println("");
-
-  // Conny test to show ABRP diag parameters.
   spr.print("CarMode: ");
   spr.println(liveData->params.carMode);
 
@@ -1772,7 +1769,6 @@ SD status*/
   /*
     jsonData["power"] = liveData->params.batPowerKw * -1;
       jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
-
 
     bool ignitionOn;
     bool chargingOn;
@@ -1866,11 +1862,10 @@ SD status*/
 }
 
 /**
-   Modify caption
-*/
-String Board320_240::menuItemCaption(int16_t menuItemId, String title)
+ * Modify menu item text
+ */
+String Board320_240::menuItemText(int16_t menuItemId, String title)
 {
-
   String prefix = "", suffix = "";
   uint8_t perc = 0;
 
@@ -1910,6 +1905,9 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
     break;
   case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_HYUNDAI_IONIQ6_77:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_77) ? ">" : "";
     break;
   case VEHICLE_TYPE_ENIRO_2020_64:
     prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
@@ -2291,11 +2289,10 @@ String Board320_240::menuItemCaption(int16_t menuItemId, String title)
 }
 
 /**
-  Display menu
-*/
+ * Show menu
+ */
 void Board320_240::showMenu()
 {
-
   uint16_t posY = 0, tmpCurrMenuItem = 0;
   int8_t idx, off = 2;
 
@@ -2336,7 +2333,7 @@ void Board320_240::showMenu()
           spr.fillRect(0, posY + menuItemHeight - 2, 320, 2, TFT_WHITE);
         }
         spr.setTextColor(TFT_WHITE);
-        spr.drawString(menuItemCaption(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + off, GFXFF);
+        spr.drawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + off, GFXFF);
         posY += menuItemHeight;
       }
       tmpCurrMenuItem++;
@@ -2366,8 +2363,8 @@ void Board320_240::showMenu()
 }
 
 /**
-   Hide menu
-*/
+ * Hide menu
+ */
 void Board320_240::hideMenu()
 {
   liveData->menuVisible = false;
@@ -2377,8 +2374,8 @@ void Board320_240::hideMenu()
 }
 
 /**
-  Move in menu with left/right button
-*/
+ * Move in menu with left/right button
+ */
 void Board320_240::menuMove(bool forward, bool rotate)
 {
   uint16_t tmpCount = 0 + carInterface->customMenu(liveData->menuCurrent).size();
@@ -2402,8 +2399,8 @@ void Board320_240::menuMove(bool forward, bool rotate)
 }
 
 /**
-   Enter menu item
-*/
+ * Enter menu item
+ */
 void Board320_240::menuItemClick()
 {
   // Locate menu item for meta data
@@ -2452,7 +2449,7 @@ void Board320_240::menuItemClick()
   {
     syslog->print("Menu item: ");
     syslog->println(tmpMenuItem->id);
-    syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
+    printHeapMemory();
     // Device list
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
@@ -2504,6 +2501,11 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
       liveData->settings.carType = CAR_HYUNDAI_IONIQ5_77;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ6_77:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ6_77;
       showMenu();
       return;
       break;
@@ -3169,7 +3171,7 @@ void Board320_240::redrawScreen()
         liveData->params.displayScreenAutoMode = SCREEN_CELLS;
       drawSceneBatteryCells();
     }
-    else if (liveData->params.speedKmh > 15)
+    else if (liveData->params.speedKmh > 15 || (liveData->params.speedKmhGPS > 15 && liveData->params.gpsSat >= 4))
     {
       if (liveData->params.displayScreenAutoMode != SCREEN_SPEED)
         liveData->params.displayScreenAutoMode = SCREEN_SPEED;
@@ -3374,16 +3376,23 @@ void Board320_240::redrawScreen()
 }
 
 /**
-  Parse test data
-*/
+ * Parse test data
+ */
 void Board320_240::loadTestData()
 {
-
   syslog->println("Loading test data");
 
   testDataMode = true; // skip lights off message
   carInterface->loadTestData();
   redrawScreen();
+}
+
+/**
+ * Print heap memory to serial console
+ */
+void Board320_240::printHeapMemory()
+{
+  syslog->printf("Total/free heap: %i/%i-%i, total/free PSRAM %i/%i bytes\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT), ESP.getPsramSize(), ESP.getFreePsram());
 }
 
 /**
@@ -3411,7 +3420,6 @@ void Board320_240::commLoop()
 
 /**
  * Board loop
- *
  */
 void Board320_240::boardLoop()
 {
@@ -3423,8 +3431,8 @@ void Board320_240::boardLoop()
 }
 
 /**
-  Main loop - primary thread
-  */
+ * Main loop - primary thread
+ */
 void Board320_240::mainLoop()
 {
   // Calculate FPS
@@ -3662,14 +3670,37 @@ void Board320_240::mainLoop()
     }
   }
 
-  // Wake up when engine on and SLEEP_MODE_SCREEN_ONLY and external voltmeter detects DC2DC charging
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
-      liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY &&
-      liveData->params.auxVoltage > 14.0 &&
-      liveData->params.stopCommandQueue == true)
+  // Wake up from stopped command queue
+  //  - gps speed > 10-20kmh
+  //  - power kw != 0
+  //  - voltage is >= 14V (dcdc is runinng)
+  //  - any touch on display
+  if ((liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
+      (liveData->params.auxVoltage > 14.0 ||
+       liveData->params.speedKmh > 10 || (int)liveData->params.batPowerKw != 0 ||
+       (liveData->params.speedKmhGPS > 20 || liveData->params.gpsSat >= 4)))
   {
-    liveData->params.stopCommandQueue = false;
+    liveData->continueWithCommandQueue();
   }
+  // Stop command queue
+  //  - Automatically turn off CAN scanning when 2 minute inactive
+  //  - car stopped, not in D/R drive mode, powerKw = 0
+  //  - car is not charging
+  //  - voltage is under 14V (dcdc is not running)
+  //  - TODO: BMS state - HV battery was disconnected
+  if ((liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
+      !liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode &&
+      !liveData->params.chargingOn && (int)liveData->params.batPowerKw == 0 &&
+      liveData->params.auxVoltage < 14.0)
+  {
+    liveData->prepareForStopCommandQueue();
+  }
+  if (liveData->params.stopCommandQueueTime != 0 && liveData->params.currentTime - liveData->params.stopCommandQueueTime > 60)
+  {
+    liveData->params.stopCommandQueue = true;
+    syslog->println("CAN Command queue stopped...");
+  }
+
   // Automatic sleep after inactivity
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
@@ -3697,8 +3728,6 @@ void Board320_240::mainLoop()
     // eGMP Ioniq6 DC2DC is sometimes not active in forward driving mode and evDash then turn off screen
     if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
     {
-      if (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY)
-        liveData->params.stopCommandQueue = true;
       if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP)
         goToSleep();
     }
@@ -3769,7 +3798,8 @@ void Board320_240::mainLoop()
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_CHARGING);
   }
-  else if (liveData->params.forwardDriveMode && liveData->params.speedKmh > 15 && liveData->params.carMode != CAR_MODE_DRIVE)
+  else if (liveData->params.forwardDriveMode &&
+           (liveData->params.speedKmh > 15 || (liveData->params.speedKmhGPS > 15 && liveData->params.gpsSat >= 4)) && liveData->params.carMode != CAR_MODE_DRIVE)
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_DRIVE);
   }
@@ -3821,8 +3851,8 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
 }
 
 /**
-  sync all times
-*/
+ * sync all times
+ */
 void Board320_240::syncTimes(time_t newTime)
 {
   if (liveData->params.chargingStartTime != 0)
@@ -3846,6 +3876,9 @@ void Board320_240::syncTimes(time_t newTime)
   if (liveData->params.lastIgnitionOnTime != 0)
     liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
 
+  if (liveData->params.stopCommandQueueTime != 0)
+    liveData->params.stopCommandQueueTime = newTime - (liveData->params.currentTime - liveData->params.stopCommandQueueTime);
+
   if (liveData->params.lastChargingOnTime != 0)
     liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
 
@@ -3864,16 +3897,16 @@ void Board320_240::syncTimes(time_t newTime)
 }
 
 /**
-   skipAdapterScan
-*/
+ * skipAdapterScan
+ */
 bool Board320_240::skipAdapterScan()
 {
   return isButtonPressed(pinButtonMiddle) || isButtonPressed(pinButtonLeft) || isButtonPressed(pinButtonRight);
 }
 
 /**
-   Mount sdcard
-*/
+ * Mount sdcard
+ */
 bool Board320_240::sdcardMount()
 {
   if (liveData->params.sdcardInit)
@@ -3947,8 +3980,8 @@ bool Board320_240::sdcardMount()
 }
 
 /**
-   Toggle sdcard recording
-*/
+ * Toggle sdcard recording
+ */
 void Board320_240::sdcardToggleRecording()
 {
   if (!liveData->params.sdcardInit)
@@ -3968,8 +4001,8 @@ void Board320_240::sdcardToggleRecording()
 }
 
 /**
-   Sync gps data
-*/
+ * Sync gps data
+ */
 void Board320_240::syncGPS()
 {
   liveData->params.gpsValid = gps.location.isValid();
@@ -3981,7 +4014,7 @@ void Board320_240::syncGPS()
       liveData->params.gpsAlt = gps.altitude.meters();
     calcAutomaticBrightnessLatLon();
   }
-  if (gps.speed.isValid())
+  if (gps.speed.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.speedKmhGPS = gps.speed.kmph();
   }
@@ -4000,8 +4033,8 @@ void Board320_240::syncGPS()
 }
 
 /**
-   Setup WiFi
- **/
+ * Setup WiFi
+ */
 bool Board320_240::wifiSetup()
 {
   syslog->print("WiFi init: ");
@@ -4014,8 +4047,8 @@ bool Board320_240::wifiSetup()
 }
 
 /**
-  Switch Wifi network
- **/
+ * Switch Wifi network
+ */
 void Board320_240::wifiFallback()
 {
   WiFi.disconnect(true);
@@ -4038,6 +4071,9 @@ void Board320_240::wifiFallback()
   }
 }
 
+/**
+ * Switch to backup wifi
+ */
 void Board320_240::wifiSwitchToBackup()
 {
   syslog->print("WiFi switchover to backup: ");
@@ -4048,6 +4084,9 @@ void Board320_240::wifiSwitchToBackup()
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
 }
 
+/**
+ * Restore main wifi connection
+ */
 void Board320_240::wifiSwitchToMain()
 {
   syslog->print("WiFi switchover to main: ");
@@ -4058,8 +4097,8 @@ void Board320_240::wifiSwitchToMain()
 }
 
 /**
-  SIM800L
-*/
+ * SIM800L
+ */
 bool Board320_240::sim800lSetup()
 {
   syslog->print("Setting SIM800L module. HW port: ");
@@ -4138,7 +4177,7 @@ bool Board320_240::sim800lSetup()
 
 /**
  * Net loop, send data over net
- **/
+ */
 void Board320_240::netLoop()
 {
   if (liveData->params.wifiApMode)
@@ -4298,7 +4337,7 @@ bool Board320_240::netSendData()
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
     // Send GPS data via GPRS (if enabled && valid)
-    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
         (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
@@ -4491,7 +4530,7 @@ bool Board320_240::netSendData()
 
 /**
  * Get car model string for ABRP and menu
- **/
+ */
 String Board320_240::getCarModelAbrpStr()
 {
   switch (liveData->settings.carType)
@@ -4508,6 +4547,8 @@ String Board320_240::getCarModelAbrpStr()
     return "hyundai:ioniq5:21:72:lr";
   case CAR_HYUNDAI_IONIQ5_77:
     return "hyundai:ioniq5:21:77:lr";
+  case CAR_HYUNDAI_IONIQ6_77:
+    return "hyundai:ioniq6:23:77:lr";
   case CAR_KIA_ENIRO_2020_64:
     return "kia:niro:19:64:other";
   case CAR_KIA_ESOUL_2020_64:
@@ -4557,7 +4598,7 @@ String Board320_240::getCarModelAbrpStr()
 
 /**
  * Init HW gps
- **/
+ */
 void Board320_240::initGPS()
 {
   syslog->print("GPS initialization on hwUart: ");

@@ -45,7 +45,7 @@ void LiveData::initParams()
   params.gpsAlt = -500;
   params.setGpsTimeFromCar = 0;
   // Display
-  params.displayScreen = SCREEN_AUTO;
+  params.displayScreen = SCREEN_SPEED;
   params.displayScreenAutoMode = SCREEN_AUTO;
   params.lastButtonPushedTime = 0;
   params.lcdBrightnessCalc = -1; // calculated for automatic mode
@@ -53,6 +53,7 @@ void LiveData::initParams()
   // VoltageMeter INA3221
   params.lastVoltageReadTime = 0;
   params.lastVoltageOkTime = 0;
+  params.stopCommandQueueTime = 0;
   // Car data
   params.carMode = CAR_MODE_NONE;
   params.sleepModeQueue = false;
@@ -280,5 +281,33 @@ void LiveData::clearDrivingAndChargingStats(int newCarMode)
     params.chargingGraphBatMaxTempC[i] = -100;
     params.chargingGraphHeaterTempC[i] = -100;
     params.chargingGraphWaterCoolantTempC[i] = -100;
+  }
+}
+
+/**
+ * Automatically turn off CAN scanning when 2 minute inactive
+    - car stopped, not in D/R drive mode
+    - car is not charging
+    - voltage is under 14V (dcdc is not running)
+    - TODO: BMS state - HV battery was disconnected
+ */
+void LiveData::prepareForStopCommandQueue()
+{
+  if (params.stopCommandQueueTime == 0)
+  {
+    params.stopCommandQueueTime = params.currentTime;
+  }
+}
+
+/**
+ * Cancel preparation, or restore from already stopped
+ */
+void LiveData::continueWithCommandQueue()
+{
+  params.stopCommandQueueTime = 0;
+  if (params.stopCommandQueue)
+  {
+    params.stopCommandQueue = false;
+    syslog->println("CAN Command queue restored...");
   }
 }
