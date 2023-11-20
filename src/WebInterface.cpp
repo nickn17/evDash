@@ -85,6 +85,12 @@ void handleRoot()
   text += "<tr><td>Abrp API token</td><td>" + String(liveDataWebInt->settings.abrpApiToken) + "</td></tr>";
   text += "<tr><td>Abrp upload interval [sec.]</td><td>" + String(liveDataWebInt->settings.remoteUploadAbrpIntervalSec) + "</td></tr>";
   text += "<tr><td>Abrp sdcard logs</td><td>" + getOffOnText(liveDataWebInt->settings.abrpSdcardLog) + "</td></tr>";
+  text += "<tr><td>MQTT enabled</td><td>" + getOffOnText(liveDataWebInt->settings.mqttEnabled) + "</td></tr>";
+  text += "<tr><td>MQTT server</td><td>" + String(liveDataWebInt->settings.mqttServer) + "</td></tr>";
+  text += "<tr><td>MQTT ID</td><td>" + String(liveDataWebInt->settings.mqttId) + "</td></tr>";
+  text += "<tr><td>MQTT username</td><td>" + String(liveDataWebInt->settings.mqttUsername) + "</td></tr>";
+  text += "<tr><td>MQTT password</td><td>" + String(liveDataWebInt->settings.mqttPassword) + "</td></tr>";
+  text += "<tr><td>MQTT pub.topic</td><td>" + String(liveDataWebInt->settings.mqttPubTopic) + "</td></tr>";
 
   text += "<tr><th colspan='2'>GPS module</th></tr>";
   text += "<tr><td>GPS hw serial port</td><td>" + String(liveDataWebInt->settings.gpsHwSerialPort == 255 ? "off" : String(liveDataWebInt->settings.gpsHwSerialPort)) + "</td></tr>";
@@ -125,6 +131,7 @@ void handleRoot()
   text += "<tr><td>Current time</td><td>" + String(tmpStr1) + "</td></tr>";
   text += "<tr><td>Timezone</td><td>" + String(liveDataWebInt->settings.timezone) + "</td></tr>";
   text += "<tr><td>Daylight saving</td><td>" + getOffOnText(liveDataWebInt->settings.daylightSaving) + "</td></tr>";
+
   text += "</table>";
 
   text += "</div>";

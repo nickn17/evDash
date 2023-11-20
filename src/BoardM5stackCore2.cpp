@@ -3,7 +3,7 @@
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include "BoardM5stackCore2.h"
-//#include "I2C_MPU6886.h"
+// #include "I2C_MPU6886.h"
 
 // Touch screen
 int16_t lastTouchX, lastTouchY;
@@ -14,10 +14,10 @@ bool btnAPressed = false;
 bool btnBPressed = false;
 bool btnCPressed = false;
 
-//I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);
+// I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);
 
 /*float accX = 0.0F;  // Define variables for storing inertial sensor data
-float accY = 0.0F;  
+float accY = 0.0F;
 float accZ = 0.0F;
 float gyroX = 0.0F;
 float gyroY = 0.0F;
@@ -64,11 +64,11 @@ void BoardM5stackCore2::initBoard()
   M5.Axp.SetDCDC3(false);
   M5.Axp.SetLed(false);
   M5.Axp.SetSpkEnable(false);
-  
+
   M5.Touch.begin();
   M5.Rtc.begin();
-  //M5.IMU.Init(); // Gyro
-  //delay(100);
+  // M5.IMU.Init(); // Gyro
+  // delay(100);
 
   Board320_240::initBoard();
 }
@@ -154,6 +154,7 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   if (touchPressed)
   {
     syslog->println("Touch event");
+    liveData->continueWithCommandQueue();
     touchPressed = false;
 
     // Process action
@@ -327,28 +328,28 @@ void BoardM5stackCore2::boardLoop()
   M5.update();
   Board320_240::boardLoop();
 
-/*    M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
-    M5.IMU.getAccelData(
-        &accX, &accY,
-        &accZ); 
-    M5.IMU.getAhrsData(
-        &pitch, &roll,
-        &yaw);  
-    M5.IMU.getTempData(&temp);  // Stores the inertial sensor temperature to
-    if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0) {
-    syslog->printf("gyroX,  gyroY, gyroZ\n"); 
-    syslog->printf("%6.2f %6.2f%6.2f o/s\n", gyroX, gyroY, gyroZ);
-    }
-    if (accX != 0.0 || accY != 0.0 || accZ != 0.0) {
-    syslog->printf("accX,   accY,  accZ\n");
-    syslog->printf("%5.2f  %5.2f  %5.2f G\n", accX, accY, accZ);
-    }
-    if (pitch != 0.0 || roll != 0.0 || yaw != -8.5) {
-    syslog->printf("pitch,  roll,  yaw\n");
-    syslog->printf("%5.2f  %5.2f  %5.2f deg\n", pitch, roll, yaw);
-    }
-    syslog->flush();
-    */
+  /*    M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
+      M5.IMU.getAccelData(
+          &accX, &accY,
+          &accZ);
+      M5.IMU.getAhrsData(
+          &pitch, &roll,
+          &yaw);
+      M5.IMU.getTempData(&temp);  // Stores the inertial sensor temperature to
+      if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0) {
+      syslog->printf("gyroX,  gyroY, gyroZ\n");
+      syslog->printf("%6.2f %6.2f%6.2f o/s\n", gyroX, gyroY, gyroZ);
+      }
+      if (accX != 0.0 || accY != 0.0 || accZ != 0.0) {
+      syslog->printf("accX,   accY,  accZ\n");
+      syslog->printf("%5.2f  %5.2f  %5.2f G\n", accX, accY, accZ);
+      }
+      if (pitch != 0.0 || roll != 0.0 || yaw != -8.5) {
+      syslog->printf("pitch,  roll,  yaw\n");
+      syslog->printf("%5.2f  %5.2f  %5.2f deg\n", pitch, roll, yaw);
+      }
+      syslog->flush();
+      */
 }
 
 /**

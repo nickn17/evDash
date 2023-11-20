@@ -309,6 +309,24 @@ void BoardInterface::loadSettings()
         tmpStr.toCharArray(liveData->tmpSettings.obd2WifiIp, tmpStr.length() + 1);
         liveData->tmpSettings.obd2WifiPort = 35000;
       }
+      if (liveData->tmpSettings.settingsVersion == 16)
+      {
+        liveData->tmpSettings.settingsVersion = 17;
+        liveData->tmpSettings.contributeData = 1;
+        tmpStr = "\n"; 
+        tmpStr.toCharArray(liveData->tmpSettings.contributeToken, tmpStr.length() + 1);
+        liveData->tmpSettings.mqttEnabled = 0;
+        tmpStr = "192.168.0.1"; 
+        tmpStr.toCharArray(liveData->tmpSettings.mqttServer, tmpStr.length() + 1);
+        tmpStr = "evdash"; 
+        tmpStr.toCharArray(liveData->tmpSettings.mqttId, tmpStr.length() + 1);
+        tmpStr = "evuser"; 
+        tmpStr.toCharArray(liveData->tmpSettings.mqttUsername, tmpStr.length() + 1);
+        tmpStr = "evpass"; 
+        tmpStr.toCharArray(liveData->tmpSettings.mqttPassword, tmpStr.length() + 1);
+        tmpStr = "evdash/sensors"; 
+        tmpStr.toCharArray(liveData->tmpSettings.mqttPubTopic, tmpStr.length() + 1);
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -422,6 +440,20 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
   if (key == "abrpApiToken")
     value.toCharArray(liveData->settings.abrpApiToken, value.length() + 1);
+
+  // Mqtt
+  if (key == "mqttServer")
+    value.toCharArray(liveData->settings.mqttServer, value.length() + 1);
+  if (key == "mqttId")
+    value.toCharArray(liveData->settings.mqttId, value.length() + 1);
+  if (key == "mqttUsername")
+    value.toCharArray(liveData->settings.mqttUsername, value.length() + 1);
+  if (key == "mqttPassword")
+    value.toCharArray(liveData->settings.mqttPassword, value.length() + 1);
+  if (key == "mqttPubTopic")
+    value.toCharArray(liveData->settings.mqttPubTopic, value.length() + 1);
+
+  // 
   if (key == "debugLevel")
   {
     liveData->settings.debugLevel = value.toInt();

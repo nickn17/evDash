@@ -10,6 +10,9 @@
 #include <time.h>
 #include <ArduinoJson.h>
 
+#ifdef BOARD_M5STACK_CORE2
+#include <PubSubClient.h>
+#endif
 #ifndef BOARD_TTGO_T4
 // TTGO: Error: The program size (2098085 bytes) is greater than maximum allowed (2097152 bytes)
 #include "WebInterface.h"
@@ -733,9 +736,9 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
   posx = (x * 80) + 4;
   posy = (y * 60) + 1;
 
-  spr.fillRect(x * 80, y * 60, ((w)*80) - 1, ((h)*60) - 1, bgColor);
-  spr.drawFastVLine(((x + w) * 80) - 1, ((y)*60) - 1, h * 60, TFT_BLACK);
-  spr.drawFastHLine(((x)*80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
+  spr.fillRect(x * 80, y * 60, ((w) * 80) - 1, ((h) * 60) - 1, bgColor);
+  spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
+  spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
   spr.setTextDatum(TL_DATUM);   // Topleft
   spr.setTextColor(TFT_SILVER); // Bk, fg color
   spr.setTextSize(1);           // Size for small 5x7 font
@@ -786,9 +789,9 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
   posx = (x * 80) + 4;
   posy = (y * 32) + 1;
 
-  spr.fillRect(x * 80, y * 32, ((w)*80), ((h)*32), bgColor);
-  spr.drawFastVLine(((x + w) * 80) - 1, ((y)*32) - 1, h * 32, TFT_BLACK);
-  spr.drawFastHLine(((x)*80) - 1, ((y + h) * 32) - 1, w * 80, TFT_BLACK);
+  spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32), bgColor);
+  spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 32) - 1, h * 32, TFT_BLACK);
+  spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 32) - 1, w * 80, TFT_BLACK);
   spr.setTextDatum(TL_DATUM);   // Topleft
   spr.setTextColor(TFT_SILVER); // Bk, fg bgColor
   spr.setTextSize(1);           // Size for small 5x7 font
@@ -808,9 +811,9 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
 {
   int32_t posx, posy;
 
-  spr.fillRect(x * 80, y * 60, ((w)*80) - 1, ((h)*60) - 1, color);
-  spr.drawFastVLine(((x + w) * 80) - 1, ((y)*60) - 1, h * 60, TFT_BLACK);
-  spr.drawFastHLine(((x)*80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
+  spr.fillRect(x * 80, y * 60, ((w) * 80) - 1, ((h) * 60) - 1, color);
+  spr.drawFastVLine(((x + w) * 80) - 1, ((y) * 60) - 1, h * 60, TFT_BLACK);
+  spr.drawFastHLine(((x) * 80) - 1, ((y + h) * 60) - 1, w * 80, TFT_BLACK);
 
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_SILVER);
@@ -869,7 +872,7 @@ void Board320_240::drawSceneMain()
 
   // batPowerKwh100 on roads, else batPowerAmp
   if (liveData->params.speedKmh > 20 ||
-      (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20))
+      (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20 && liveData->params.gpsSat >= 4))
   {
     sprintf(tmpStr1, (liveData->params.batPowerKwh100 == -1 ? "n/a" : "%01.01f"), liveData->km2distance(liveData->params.batPowerKwh100));
     drawBigCell(1, 1, 2, 2, tmpStr1, ((liveData->settings.distanceUnit == 'k') ? "POWER KWH/100KM" : "POWER KWH/100MI"), (liveData->params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (liveData->params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
@@ -2061,6 +2064,28 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     break;
   case MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD:
     suffix = (liveData->settings.abrpSdcardLog == 0) ? "[off]" : "[on]";
+    break;
+  case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
+    suffix = (liveData->settings.mqttEnabled == 0) ? "[off]" : "[on]";
+    break;
+  case MENU_REMOTE_UPLOAD_MQTT_ID:
+    sprintf(tmpStr1, "%s", liveData->settings.mqttId);
+    suffix = tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_MQTT_USERNAME:
+    sprintf(tmpStr1, "%s", liveData->settings.mqttUsername);
+    suffix = tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_MQTT_PASSWORD:
+    sprintf(tmpStr1, "%s", liveData->settings.mqttPassword);
+    suffix = tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_MQTT_TOPIC:
+    sprintf(tmpStr1, "%s", liveData->settings.mqttPubTopic);
+    suffix = tmpStr1;
+    break;
+  case MENU_REMOTE_UPLOAD_CONTRIBUTE_ANONYMOUS_DATA_TO_EVDASH_DEV_TEAM:
+    suffix = (liveData->settings.contributeData == 0) ? "[off]" : "[on]";
     break;
   case MENU_SDCARD:
     perc = 0;
@@ -3583,14 +3608,13 @@ void Board320_240::mainLoop()
     }
   }
 
-  // SIM800L + WiFI remote upload
+  // SIM800L, WiFI remote upload, ABRP remote upload, MQTT
   netLoop();
 
   // SD card recording
   if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
   {
-
     // syslog->println(&now, "%y%m%d%H%M");
 
     // create filename
@@ -3677,8 +3701,8 @@ void Board320_240::mainLoop()
   //  - any touch on display
   if ((liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
       (liveData->params.auxVoltage > 14.0 ||
-       liveData->params.speedKmh > 10 || (int)liveData->params.batPowerKw != 0 ||
-       (liveData->params.speedKmhGPS > 20 || liveData->params.gpsSat >= 4)))
+       liveData->params.speedKmh > 10 || (int)(liveData->params.batPowerKw * 10) != 0 ||
+       (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8))) // 5 floor parking house, satelites 5, speed gps 274kmh :/
   {
     liveData->continueWithCommandQueue();
   }
@@ -3690,7 +3714,7 @@ void Board320_240::mainLoop()
   //  - TODO: BMS state - HV battery was disconnected
   if ((liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
       !liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode &&
-      !liveData->params.chargingOn && (int)liveData->params.batPowerKw == 0 &&
+      !liveData->params.chargingOn && (int)(liveData->params.batPowerKw * 10) == 0 &&
       liveData->params.auxVoltage < 14.0)
   {
     liveData->prepareForStopCommandQueue();
@@ -4355,18 +4379,84 @@ bool Board320_240::netSendData()
     syslog->print("Remote API server: ");
     syslog->println(liveData->settings.remoteApiUrl);
 
-    // WIFI
+    // WIFI remote upload
     rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
-      WiFiClient client;
-      HTTPClient http;
+      // MQTT
+      WiFiClient wClient;
+      if (liveData->settings.mqttEnabled == 1)
+      {
+#ifdef BOARD_M5STACK_CORE2
+        PubSubClient client(wClient);
+        client.setServer(liveData->settings.mqttServer, 1883);
+        if (client.connect(liveData->settings.mqttId, liveData->settings.mqttUsername, liveData->settings.mqttPassword))
+        {
+          char topic[80];
+          char tmpVal[20];
+          strcpy(topic, liveData->settings.mqttPubTopic);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "socPerc");
+          dtostrf(liveData->params.socPerc, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "chargingOn");
+          dtostrf(liveData->params.chargingOn, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batPowerKw");
+          dtostrf(liveData->params.batPowerKw, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batPowerAmp");
+          dtostrf(liveData->params.batPowerAmp, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batVoltage");
+          dtostrf(liveData->params.batVoltage, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "auxVoltage");
+          dtostrf(liveData->params.auxVoltage, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batMinC");
+          dtostrf(liveData->params.batMinC, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batMaxC");
+          dtostrf(liveData->params.batMaxC, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "extTemp");
+          dtostrf(liveData->params.outdoorTemperature, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "speedKmh");
+          dtostrf(liveData->params.speedKmh, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "odoKm");
+          dtostrf(liveData->params.odoKm, 1, 2, tmpVal);
+          client.publish(topic, tmpVal);
+          // Send GPS data via GPRS (if enabled && valid)
+          if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
+              (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+          {
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsLat");
+            dtostrf(liveData->params.gpsLat, 1, 2, tmpVal);
+            client.publish(topic, tmpVal);
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsLon");
+            dtostrf(liveData->params.gpsLon, 1, 2, tmpVal);
+            client.publish(topic, tmpVal);
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsSpeed");
+            dtostrf(liveData->params.speedKmhGPS, 1, 2, tmpVal);
+            client.publish(topic, tmpVal);
+          }
+          rc = 200;
+        }
+#endif
+      }
+      else
+      {
+        // Standard http post
+        HTTPClient http;
 
-      http.begin(client, liveData->settings.remoteApiUrl);
-      http.setConnectTimeout(500);
-      http.addHeader("Content-Type", "application/json");
-      rc = http.POST(payload);
-      http.end();
+        http.begin(wClient, liveData->settings.remoteApiUrl);
+        http.setConnectTimeout(500);
+        http.addHeader("Content-Type", "application/json");
+        rc = http.POST(payload);
+        http.end();
+      }
     }
     else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
     {

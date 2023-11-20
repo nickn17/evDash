@@ -2,6 +2,9 @@
 
 ### Next version
 
+### v2.8.1 2023-11-20
+- MQTT client (remote upload)
+
 ### v2.8.0 2023-11-17
 - Menu item - Clear driving & charging stats
 - Some speedKmh / speedKmhGPS fixes
