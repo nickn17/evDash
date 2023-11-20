@@ -423,7 +423,18 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
-      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      if (liveData->params.speedKmh > 20)
+      {
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      }
+      else if (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20 && liveData->params.gpsSat >= 4)
+      {
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmhGPS * 100;
+      }
+      else
+      {
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
+      }
       if (liveData->settings.voltmeterEnabled == 0)
       {
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;

@@ -178,6 +178,11 @@ void setup(void)
   syslog->println("gprsApn=x     ... set gprs (sim800l) apn");
   syslog->println("remoteApiUrl=x     ... set remote api url");
   syslog->println("remoteApiKey=x     ... set remote api key");
+  syslog->println("mqttServer=x     ... set Mqtt server");
+  syslog->println("mqttId=x     ... set Mqtt id");
+  syslog->println("mqttUsername=x     ... set Mqtt username");
+  syslog->println("mqttPassword=x     ... set Mqtt password");
+  syslog->println("mqttPubToken=x     ... set Mqtt publish token");
   syslog->println("serviceUUID=x     ... set device uuid for obd2 ble adapter");
   syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
   syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");

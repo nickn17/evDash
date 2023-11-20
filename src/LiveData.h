@@ -353,6 +353,15 @@ typedef struct
     169.254.1.10 23 - obdlink, ios?
     192.168.0.74 23 - obdkey
   */
+   // == settings version 17
+  uint8_t contributeData; // Contribute anonymous data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
+  char contributeToken[32];  // Unique token for device
+  uint8_t mqttEnabled;    // Enabled mqtt connection
+  char mqttServer[64];    // Mqtt server
+  char mqttId[32];        // Mqtt device id
+  char mqttUsername[32];  // Mqtt username
+  char mqttPassword[32];  // Mqtt password
+  char mqttPubTopic[64];  // Mqtt topic
   
   //
 } SETTINGS_STRUC;
