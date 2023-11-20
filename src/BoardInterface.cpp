@@ -93,7 +93,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 16;
+  liveData->settings.settingsVersion = 17;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -172,6 +172,22 @@ void BoardInterface::loadSettings()
   tmpStr = "192.168.0.10"; // obd2wifi adapter ip
   tmpStr.toCharArray(liveData->settings.obd2WifiIp, tmpStr.length() + 1);
   liveData->settings.obd2WifiPort = 35000;
+  // v17
+  liveData->settings.settingsVersion = 17;
+  liveData->settings.contributeData = 1;
+  tmpStr = "\n"; 
+  tmpStr.toCharArray(liveData->settings.contributeToken, tmpStr.length() + 1);
+  liveData->settings.mqttEnabled = 0;
+  tmpStr = "192.168.0.1"; 
+  tmpStr.toCharArray(liveData->settings.mqttServer, tmpStr.length() + 1);
+  tmpStr = "evdash"; 
+  tmpStr.toCharArray(liveData->settings.mqttId, tmpStr.length() + 1);
+  tmpStr = "evuser"; 
+  tmpStr.toCharArray(liveData->settings.mqttUsername, tmpStr.length() + 1);
+  tmpStr = "evpass"; 
+  tmpStr.toCharArray(liveData->settings.mqttPassword, tmpStr.length() + 1);
+  tmpStr = "evdash/sensors"; 
+  tmpStr.toCharArray(liveData->settings.mqttPubTopic, tmpStr.length() + 1);
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");

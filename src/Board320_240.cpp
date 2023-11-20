@@ -2068,6 +2068,10 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
     suffix = (liveData->settings.mqttEnabled == 0) ? "[off]" : "[on]";
     break;
+  case MENU_REMOTE_UPLOAD_MQTT_SERVER:
+    sprintf(tmpStr1, "%s", liveData->settings.mqttServer);
+    suffix = tmpStr1;
+    break;
   case MENU_REMOTE_UPLOAD_MQTT_ID:
     sprintf(tmpStr1, "%s", liveData->settings.mqttId);
     suffix = tmpStr1;
@@ -4395,37 +4399,37 @@ bool Board320_240::netSendData()
           char topic[80];
           char tmpVal[20];
           strcpy(topic, liveData->settings.mqttPubTopic);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "socPerc");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/socPerc");
           dtostrf(liveData->params.socPerc, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "chargingOn");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/chargingOn");
           dtostrf(liveData->params.chargingOn, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batPowerKw");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/batPowerKw");
           dtostrf(liveData->params.batPowerKw, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batPowerAmp");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/batPowerAmp");
           dtostrf(liveData->params.batPowerAmp, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batVoltage");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/batVoltage");
           dtostrf(liveData->params.batVoltage, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "auxVoltage");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/auxVoltage");
           dtostrf(liveData->params.auxVoltage, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batMinC");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/batMinC");
           dtostrf(liveData->params.batMinC, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "batMaxC");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/batMaxC");
           dtostrf(liveData->params.batMaxC, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "extTemp");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/extTemp");
           dtostrf(liveData->params.outdoorTemperature, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "speedKmh");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/speedKmh");
           dtostrf(liveData->params.speedKmh, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
-          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "odoKm");
+          strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/odoKm");
           dtostrf(liveData->params.odoKm, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
           // Send GPS data via GPRS (if enabled && valid)
