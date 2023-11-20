@@ -49,7 +49,7 @@ protected:
   SIM800L *sim800l;
   SDL_Arduino_INA3221 ina3221;
   TinyGPSPlus gps;
-  char tmpStr1[20];
+  char tmpStr1[64];
   char tmpStr2[20];
   char tmpStr3[20];
   char tmpStr4[20];
