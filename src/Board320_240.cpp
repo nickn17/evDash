@@ -2781,6 +2781,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
+      liveData->settings.mqttEnabled = (liveData->settings.mqttEnabled == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
     case MENU_GPS:
       liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1;
       showMenu();
