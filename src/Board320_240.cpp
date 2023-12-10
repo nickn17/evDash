@@ -3575,18 +3575,22 @@ void Board320_240::mainLoop()
   if (gpsHwUart != NULL)
   {
     unsigned long start = millis();
-    do
-    {
+    boolean process = false;
+    //do
+    //{
       while (gpsHwUart->available())
       {
         int ch = gpsHwUart->read();
         if (ch != -1)
           syslog->infoNolf(DEBUG_GPS, char(ch));
         gps.encode(ch);
+        process = true;
       }
-    } while (millis() - start < 20);
+    //} while (millis() - start < 20);
     //
+    if (process == true){
     syncGPS();
+    }
   }
   else
   {
