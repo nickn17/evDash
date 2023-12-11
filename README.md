@@ -81,5 +81,5 @@ Screen list
 - no5. charging graph
 - no6. consumption table. Can be used to measure available battery capacity.
 
-![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2.jpg)
-![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2_m5charging2.jpg)
+![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2_ioniq6.png)
+
