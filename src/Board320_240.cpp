@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h> //To be able to use https with ABRP api server
 #include <Update.h>
 #include "config.h"
 #include "BoardInterface.h"
@@ -4445,18 +4446,15 @@ bool Board320_240::netSendData()
           if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
               (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
           {
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsLat");
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsLat");
             dtostrf(liveData->params.gpsLat, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsLon");
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsLon");
             dtostrf(liveData->params.gpsLon, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsSpeed");
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsSpeed");
             dtostrf(liveData->params.speedKmhGPS, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsAlt");
-            dtostrf(liveData->params.gpsAlt, 1, 2, tmpVal);
-            client.publish(topic, tmpVal);			
           }
           rc = 200;
         }
@@ -4541,6 +4539,7 @@ bool Board320_240::netSendData()
     String payload;
     serializeJson(jsonData, payload);
 
+    
     // Log ABRP jsonData to SD card
     struct tm now;
     getLocalTime(&now);
@@ -4580,6 +4579,9 @@ bool Board320_240::netSendData()
     }
     // End of ABRP SD card log
 
+
+
+
     String tmpStr = "api_key="; // dev ApiKey
     tmpStr.concat(ABRP_API_KEY);
     tmpStr.concat("&token=");
@@ -4593,8 +4595,73 @@ bool Board320_240::netSendData()
     tmpStr.toCharArray(dta, tmpStr.length() + 1);
 
     syslog->print("Sending data: ");
-    syslog->println(dta);
+    syslog->println(dta); //dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
 
+
+
+
+// Code for sending https data to ABRP api server
+
+  rc = 0;
+    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
+    {
+      WiFiClientSecure client;
+      HTTPClient http;
+
+      client.setInsecure();
+
+      // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
+      http.begin(client, "https://api.iternio.com/1/tlm/send");
+      // http.begin(client, "https://api.iternio.com/1/tlm/send");   // test of SSL via HTTPS to API endpoint
+      http.setConnectTimeout(1000);
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+      rc = http.POST(dta);
+
+
+if (rc == HTTP_CODE_OK) {
+    // Request successful
+    String payload = http.getString();
+    syslog->println("HTTP Response: " + payload);
+} else {
+    // Handle different HTTP status codes
+    syslog->println("HTTP Request failed with code: " + String(rc));
+}
+
+
+      http.end();
+    }
+    else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
+    {
+      // SIM800L
+      rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
+    }
+
+    if (rc == 200)
+    {
+      syslog->println("HTTP POST send successful");
+      liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+    }
+    else
+    {
+      // Failed...
+      syslog->print("HTTP POST error: ");
+      syslog->println(rc);
+    }
+  }
+  else
+  {
+    syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
+  }
+
+  return true;
+}
+  
+
+
+
+// Code for sending http data to ABRP api server
+
+/*
     rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
@@ -4603,6 +4670,7 @@ bool Board320_240::netSendData()
 
       // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
       http.begin(client, "http://api.iternio.com/1/tlm/send");
+      // http.begin(client, "https://api.iternio.com/1/tlm/send");   // test of SSL via HTTPS to API endpoint
       http.setConnectTimeout(1000);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       rc = http.POST(dta);
@@ -4633,6 +4701,12 @@ bool Board320_240::netSendData()
 
   return true;
 }
+
+*/
+
+
+
+
 
 /**
  * Get car model string for ABRP and menu
@@ -4714,7 +4788,7 @@ void Board320_240::initGPS()
 
   if (liveData->settings.gpsHwSerialPort == 2)
   {
-    gpsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    gpsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX); 
   }
   else
   {

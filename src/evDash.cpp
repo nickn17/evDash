@@ -169,6 +169,7 @@ void setup(void)
   syslog->println("shutdown ... shutdown device");
   syslog->println("saveSettings   ... save current settings");
   syslog->println("ipconfig   ... print network settings");
+  syslog->println("ABRP_debug   ... print ABRP user token");
   syslog->println("debugLevel=n   [n = 0..3]  ... set debug level all, gps, comm, ...");
   syslog->println("wifiSsid=x     ... set primary AP ssid");
   syslog->println("wifiPassword=x     ... set primary AP password");
