@@ -450,8 +450,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
       liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
       // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      // liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
-      // liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
+      liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);  // ändrat 2023-12-15 21:14 för att testa om det är rätt
+      liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);  // ändrat 2023-12-15 21:14 för att testa om det är rätt
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];

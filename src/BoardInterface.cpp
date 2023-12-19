@@ -405,6 +405,8 @@ void BoardInterface::customConsoleCommand(String cmd)
     ntpSync();
   if (cmd.equals("ipconfig"))
     showNet();
+  if (cmd.equals("ABRP_debug"))
+    syslog->println(liveData->settings.abrpApiToken);
   if (cmd.equals("shutdown"))
     enterSleepMode(0);
   // CAN comparer
