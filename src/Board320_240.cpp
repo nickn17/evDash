@@ -4446,14 +4446,19 @@ bool Board320_240::netSendData()
           if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
               (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
           {
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsLat");
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsLat");
             dtostrf(liveData->params.gpsLat, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsLon");
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsLon");
             dtostrf(liveData->params.gpsLon, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
-            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "gpsSpeed");
+
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsSpeed");
             dtostrf(liveData->params.speedKmhGPS, 1, 2, tmpVal);
+            client.publish(topic, tmpVal);
+
+            strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsAlt");
+            dtostrf(liveData->params.gpsAlt, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
           }
           rc = 200;
