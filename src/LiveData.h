@@ -86,7 +86,7 @@
 #define CONTRIBUTE_NONE 0
 #define CONTRIBUTE_WAITING 1
 #define CONTRIBUTE_COLLECTING 2
-#define CONTRIBUTE_READ_TO_SEND 3
+#define CONTRIBUTE_READY_TO_SEND 3
 
 //
 #define MONTH_SEC 2678400
@@ -104,8 +104,10 @@ typedef struct
   bool stopCommandQueue; // sleep mode/screen only & ina3221 voltmeter based
   time_t lastCanbusResponseTime;
   bool ntpTimeSet;
+  uint8_t contributeStatus; // 0 - none, 1 - ready to scan (waiting for loop begin), 2 - collecting data, 3 - ready to send
   // Network
   time_t lastDataSent;
+  time_t lastContributeSent;
   bool sim800l_enabled;
   time_t sim800l_lastOkReceiveTime;
   time_t sim800l_lastOkSendTime;
@@ -126,7 +128,7 @@ typedef struct
   bool sdcardRecording;
   char sdcardFilename[32];
   char sdcardAbrpFilename[32];
-    // Display
+  // Display
   uint8_t displayScreen;
   uint8_t displayScreenAutoMode;
   time_t lastButtonPushedTime;
@@ -247,9 +249,6 @@ typedef struct
   float soc10odo[11];   // odo history
   time_t soc10time[11]; // time for avg speed
 
-  // Contribute
-  bool contributeStatus; // 0 - none, 1 - ready to scan (waiting for loop begin), 2 - collecting data, 3 - ready to send
-
   // additional
   char debugData[256];
   char debugData2[256];
@@ -349,31 +348,31 @@ typedef struct
   uint8_t threading;      // 0 - off, 1 - on
   int8_t speedCorrection; // -5 to +5
   // == settings version 14
-  uint8_t disableCommandOptimizer;      // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
+  uint8_t disableCommandOptimizer; // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
   // == settings version 15
-  uint8_t abrpSdcardLog;                // 0/1
+  uint8_t abrpSdcardLog; // 0/1
   // == settings version 16
-  char obd2Name[20];      // obd2 adapter name (bt3 device name)
-  char obd2WifiIp[20];    // obd2wifi ip address
-  uint16_t obd2WifiPort;  // obd2wifi port
+  char obd2Name[20];     // obd2 adapter name (bt3 device name)
+  char obd2WifiIp[20];   // obd2wifi ip address
+  uint16_t obd2WifiPort; // obd2wifi port
   /*
     192.168.0.10 35000 - most adapters
-    192.168.1.10 35000 
+    192.168.1.10 35000
     169.254.1.10 23 - obdlink, ios?
     192.168.0.74 23 - obdkey
   */
   // == settings version 17
-  uint8_t contributeData; // Contribute anonymous data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
-  char contributeToken[32];  // Unique token for device
-  uint8_t mqttEnabled;    // Enabled mqtt connection
-  char mqttServer[64];    // Mqtt server
-  char mqttId[32];        // Mqtt device id
-  char mqttUsername[32];  // Mqtt username
-  char mqttPassword[32];  // Mqtt password
-  char mqttPubTopic[64];  // Mqtt topic
+  uint8_t contributeData;   // Contribute anonymous data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
+  char contributeToken[32]; // Unique token for device
+  uint8_t mqttEnabled;      // Enabled mqtt connection
+  char mqttServer[64];      // Mqtt server
+  char mqttId[32];          // Mqtt device id
+  char mqttUsername[32];    // Mqtt username
+  char mqttPassword[32];    // Mqtt password
+  char mqttPubTopic[64];    // Mqtt topic
   // == settings version 18
-  uint8_t commandQueueAutoStop; // Command queue autostop. Recommended for eGMP (Hyundai/Kia) platform
-  unsigned long gpsSerialPortSpeed; // default 9600 
+  uint8_t commandQueueAutoStop;     // Command queue autostop. Recommended for eGMP (Hyundai/Kia) platform
+  unsigned long gpsSerialPortSpeed; // default 9600
   //
 } SETTINGS_STRUC;
 
@@ -401,6 +400,7 @@ public:
   uint8_t commandStartChar;
   String commandRequest = ""; // TODO: us Command_t struct
   String currentAtshRequest = "";
+  String contributeDataJson = "";
   // Menu
   bool menuVisible = false;
   uint8_t menuItemsCount;
@@ -409,7 +409,6 @@ public:
   uint8_t menuItemOffset = 0;
   uint16_t scanningDeviceIndex = 0;
   MENU_ITEM *menuItems;
-  String contributeDataJson = "";
 
   // Comm
   boolean commConnected = false;

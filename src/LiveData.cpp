@@ -22,6 +22,7 @@ void LiveData::initParams()
   // Network
   params.ntpTimeSet = false;
   params.lastDataSent = 0;
+  params.lastContributeSent = 0;
   params.sim800l_enabled = false;
   params.sim800l_lastOkReceiveTime = 0;
   params.sim800l_lastOkSendTime = 0;

@@ -471,7 +471,7 @@ bool CarKiaEniro::commandAllowed()
   }
 
   // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
-  if (liveData->settings.disableCommandOptimizer) {
+  if (liveData->settings.disableCommandOptimizer || liveData->params.contributeStatus == CONTRIBUTE_COLLECTING) {
     return true;
   }
 
