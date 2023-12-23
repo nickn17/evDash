@@ -114,6 +114,15 @@ bool CommInterface::doNextQueueCommand()
     liveData->commandQueueIndex++;
     if (liveData->commandQueueIndex >= liveData->commandQueueCount)
     {
+      if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+      {
+        liveData->params.contributeStatus = CONTRIBUTE_READ_TO_SEND;
+      }
+      if (liveData->params.contributeStatus == CONTRIBUTE_WAITING)
+      {
+        liveData->params.contributeStatus = CONTRIBUTE_COLLECTING;
+        liveData->contributeDataJson = "";
+      }
       liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
       liveData->params.queueLoopCounter++;
       liveData->redrawScreenRequested = true;
@@ -202,6 +211,14 @@ void CommInterface::parseRowMerged()
           }
         }
       }
+    }
+    // Anonymous data
+    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+    {
+      liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
+      liveData->contributeDataJson += "_" + liveData->commandRequest;
+      liveData->contributeDataJson += "\" => \"" + liveData->responseRowMerged;
+      liveData->contributeDataJson += "\", ";
     }
   }
 

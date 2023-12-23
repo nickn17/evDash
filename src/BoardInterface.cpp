@@ -93,7 +93,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 17;
+  liveData->settings.settingsVersion = 18;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -175,19 +175,23 @@ void BoardInterface::loadSettings()
   // v17
   liveData->settings.settingsVersion = 17;
   liveData->settings.contributeData = 1;
-  tmpStr = "\n"; 
+  tmpStr = "\n";
   tmpStr.toCharArray(liveData->settings.contributeToken, tmpStr.length() + 1);
   liveData->settings.mqttEnabled = 0;
-  tmpStr = "192.168.0.1"; 
+  tmpStr = "192.168.0.1";
   tmpStr.toCharArray(liveData->settings.mqttServer, tmpStr.length() + 1);
-  tmpStr = "evdash"; 
+  tmpStr = "evdash";
   tmpStr.toCharArray(liveData->settings.mqttId, tmpStr.length() + 1);
-  tmpStr = "evuser"; 
+  tmpStr = "evuser";
   tmpStr.toCharArray(liveData->settings.mqttUsername, tmpStr.length() + 1);
-  tmpStr = "evpass"; 
+  tmpStr = "evpass";
   tmpStr.toCharArray(liveData->settings.mqttPassword, tmpStr.length() + 1);
-  tmpStr = "evdash/sensors"; 
+  tmpStr = "evdash/sensors";
   tmpStr.toCharArray(liveData->settings.mqttPubTopic, tmpStr.length() + 1);
+  // v18
+  liveData->settings.settingsVersion = 18;
+  liveData->settings.commandQueueAutoStop = 1;
+  liveData->settings.gpsSerialPortSpeed = 9600;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -329,19 +333,25 @@ void BoardInterface::loadSettings()
       {
         liveData->tmpSettings.settingsVersion = 17;
         liveData->tmpSettings.contributeData = 1;
-        tmpStr = "\n"; 
+        tmpStr = "\n";
         tmpStr.toCharArray(liveData->tmpSettings.contributeToken, tmpStr.length() + 1);
         liveData->tmpSettings.mqttEnabled = 0;
-        tmpStr = "192.168.0.1"; 
+        tmpStr = "192.168.0.1";
         tmpStr.toCharArray(liveData->tmpSettings.mqttServer, tmpStr.length() + 1);
-        tmpStr = "evdash"; 
+        tmpStr = "evdash";
         tmpStr.toCharArray(liveData->tmpSettings.mqttId, tmpStr.length() + 1);
-        tmpStr = "evuser"; 
+        tmpStr = "evuser";
         tmpStr.toCharArray(liveData->tmpSettings.mqttUsername, tmpStr.length() + 1);
-        tmpStr = "evpass"; 
+        tmpStr = "evpass";
         tmpStr.toCharArray(liveData->tmpSettings.mqttPassword, tmpStr.length() + 1);
-        tmpStr = "evdash/sensors"; 
+        tmpStr = "evdash/sensors";
         tmpStr.toCharArray(liveData->tmpSettings.mqttPubTopic, tmpStr.length() + 1);
+      }
+      if (liveData->tmpSettings.settingsVersion == 17)
+      {
+        liveData->tmpSettings.settingsVersion = 18;
+        liveData->tmpSettings.commandQueueAutoStop = 1;
+        liveData->tmpSettings.gpsSerialPortSpeed = 9600;
       }
 
       // Save upgraded structure
@@ -471,7 +481,7 @@ void BoardInterface::customConsoleCommand(String cmd)
   if (key == "mqttPubTopic")
     value.toCharArray(liveData->settings.mqttPubTopic, value.length() + 1);
 
-  // 
+  //
   if (key == "debugLevel")
   {
     liveData->settings.debugLevel = value.toInt();

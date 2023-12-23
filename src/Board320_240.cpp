@@ -2001,6 +2001,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     sprintf(tmpStr1, "%d", liveData->settings.obd2WifiPort);
     suffix = tmpStr1;
     break;
+  case MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP:
+    suffix = (liveData->settings.commandQueueAutoStop == 0) ? "[off]" : "[on]";
+    break;
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
@@ -2192,8 +2195,13 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     suffix = tmpStr1;
     break;
   case MENU_GPS:
-    sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gpsHwSerialPort);
+  case MENU_GPS_PORT:
+    sprintf(tmpStr1, "[UART=%d]", liveData->settings.gpsHwSerialPort);
     suffix = (liveData->settings.gpsHwSerialPort == 255) ? "[off]" : tmpStr1;
+    break;
+  case MENU_GPS_SPEED:
+    sprintf(tmpStr1, "[%d bps]", liveData->settings.gpsSerialPortSpeed);
+    suffix = tmpStr1;
     break;
   case MENU_CURRENT_TIME:
     struct tm now;
@@ -2674,6 +2682,11 @@ void Board320_240::menuItemClick()
     case MENU_ADAPTER_OBD2_PORT:
       return;
       break;
+    case MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP:
+      liveData->settings.commandQueueAutoStop = (liveData->settings.commandQueueAutoStop == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
     case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
       liveData->settings.disableCommandOptimizer = (liveData->settings.disableCommandOptimizer == 1) ? 0 : 1;
       showMenu();
@@ -2787,8 +2800,14 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_GPS:
-      liveData->settings.gpsHwSerialPort = (liveData->settings.gpsHwSerialPort == 2) ? 255 : liveData->settings.gpsHwSerialPort + 1;
+    case MENU_REMOTE_UPLOAD_CONTRIBUTE_ONCE:
+      liveData->params.contributeStatus = CONTRIBUTE_WAITING;
+      showMenu();
+      return;
+      break;
+    case MENU_GPS_SPEED:
+      liveData->settings.gpsSerialPortSpeed = (liveData->settings.gpsSerialPortSpeed == 9600) ? 38400 : (liveData->settings.gpsSerialPortSpeed == 38400) ? 115200
+                                                                                                                                                         : 9600;
       showMenu();
       return;
       break;
@@ -3577,20 +3596,21 @@ void Board320_240::mainLoop()
   {
     unsigned long start = millis();
     boolean process = false;
-    //do
+    // do
     //{
-      while (gpsHwUart->available())
-      {
-        int ch = gpsHwUart->read();
-        if (ch != -1)
-          syslog->infoNolf(DEBUG_GPS, char(ch));
-        gps.encode(ch);
-        process = true;
-      }
+    while (gpsHwUart->available())
+    {
+      int ch = gpsHwUart->read();
+      if (ch != -1)
+        syslog->infoNolf(DEBUG_GPS, char(ch));
+      gps.encode(ch);
+      process = true;
+    }
     //} while (millis() - start < 20);
     //
-    if (process == true){
-    syncGPS();
+    if (process == true)
+    {
+      syncGPS();
     }
   }
   else
@@ -3726,7 +3746,8 @@ void Board320_240::mainLoop()
   //  - car is not charging
   //  - voltage is under 14V (dcdc is not running)
   //  - TODO: BMS state - HV battery was disconnected
-  if ((liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
+  if (liveData->settings.commandQueueAutoStop == 1 &&
+      (liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
       !liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode &&
       !liveData->params.chargingOn && (int)(liveData->params.batPowerKw * 10) == 0 &&
       liveData->params.auxVoltage < 14.0)
@@ -4146,11 +4167,11 @@ bool Board320_240::sim800lSetup()
 
   if (liveData->settings.gprsHwSerialPort == 2)
   {
-    gprsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    gprsHwUart->begin(liveData->settings.gpsSerialPortSpeed, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
   }
   else
   {
-    gprsHwUart->begin(9600);
+    gprsHwUart->begin(liveData->settings.gpsSerialPortSpeed);
   }
 
   sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
@@ -4539,7 +4560,6 @@ bool Board320_240::netSendData()
     String payload;
     serializeJson(jsonData, payload);
 
-    
     // Log ABRP jsonData to SD card
     struct tm now;
     getLocalTime(&now);
@@ -4579,9 +4599,6 @@ bool Board320_240::netSendData()
     }
     // End of ABRP SD card log
 
-
-
-
     String tmpStr = "api_key="; // dev ApiKey
     tmpStr.concat(ABRP_API_KEY);
     tmpStr.concat("&token=");
@@ -4595,14 +4612,10 @@ bool Board320_240::netSendData()
     tmpStr.toCharArray(dta, tmpStr.length() + 1);
 
     syslog->print("Sending data: ");
-    syslog->println(dta); //dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
+    syslog->println(dta); // dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
 
-
-
-
-// Code for sending https data to ABRP api server
-
-  rc = 0;
+    // Code for sending https data to ABRP api server
+    rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
       WiFiClientSecure client;
@@ -4617,16 +4630,17 @@ bool Board320_240::netSendData()
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       rc = http.POST(dta);
 
-
-if (rc == HTTP_CODE_OK) {
-    // Request successful
-    String payload = http.getString();
-    syslog->println("HTTP Response: " + payload);
-} else {
-    // Handle different HTTP status codes
-    syslog->println("HTTP Request failed with code: " + String(rc));
-}
-
+      if (rc == HTTP_CODE_OK)
+      {
+        // Request successful
+        String payload = http.getString();
+        syslog->println("HTTP Response: " + payload);
+      }
+      else
+      {
+        // Handle different HTTP status codes
+        syslog->println("HTTP Request failed with code: " + String(rc));
+      }
 
       http.end();
     }
@@ -4653,11 +4667,30 @@ if (rc == HTTP_CODE_OK) {
     syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
   }
 
+  // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
+  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 && liveData->params.contributeStatus == CONTRIBUTE_READ_TO_SEND)
+  {
+    syslog->println("Contributing anonymous data...");    
+
+    WiFiClientSecure client;
+    HTTPClient http;
+    client.setInsecure();
+    http.begin(client, "https://evdash.next176.sk/api");
+    http.setConnectTimeout(1000);
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    rc = http.POST(liveData->contributeDataJson);
+    if (rc == HTTP_CODE_OK)
+    {
+      // Request successful
+      liveData->params.contributeStatus == CONTRIBUTE_NONE;
+      liveData->contributeDataJson = "";
+      String payload = http.getString();
+      syslog->println("HTTP Response: " + payload);
+    }
+  }
+
   return true;
 }
-  
-
-
 
 // Code for sending http data to ABRP api server
 
@@ -4703,10 +4736,6 @@ if (rc == HTTP_CODE_OK) {
 }
 
 */
-
-
-
-
 
 /**
  * Get car model string for ABRP and menu
@@ -4788,7 +4817,7 @@ void Board320_240::initGPS()
 
   if (liveData->settings.gpsHwSerialPort == 2)
   {
-    gpsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX); 
+    gpsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
   }
   else
   {

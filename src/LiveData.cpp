@@ -165,6 +165,7 @@ void LiveData::initParams()
     params.chargingGraphHeaterTempC[i] = -100;
     params.chargingGraphWaterCoolantTempC[i] = -100;
   }
+  params.contributeStatus = CONTRIBUTE_NONE;
   //
   tmpStr = "";
   tmpStr.toCharArray(params.debugData, tmpStr.length() + 1);
