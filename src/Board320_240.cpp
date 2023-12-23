@@ -2801,9 +2801,8 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_REMOTE_UPLOAD_CONTRIBUTE_ONCE:
+      syslog->println("CONTRIBUTE_WAITING");
       liveData->params.contributeStatus = CONTRIBUTE_WAITING;
-      showMenu();
-      return;
       break;
     case MENU_GPS_SPEED:
       liveData->settings.gpsSerialPortSpeed = (liveData->settings.gpsSerialPortSpeed == 9600) ? 38400 : (liveData->settings.gpsSerialPortSpeed == 38400) ? 115200
@@ -3920,6 +3919,9 @@ void Board320_240::syncTimes(time_t newTime)
   if (liveData->params.lastDataSent != 0)
     liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
 
+  if (liveData->params.lastContributeSent != 0)
+    liveData->params.lastContributeSent = newTime - (liveData->params.currentTime - liveData->params.lastContributeSent);
+
   if (liveData->params.sim800l_lastOkReceiveTime != 0)
     liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
 
@@ -4262,6 +4264,17 @@ void Board320_240::netLoop()
   {
     liveData->params.lastDataSent = liveData->params.currentTime;
     netSendData();
+  }
+
+  // Contribute anonymous data
+  if (liveData->params.currentTime - liveData->params.lastContributeSent > 300)
+  {
+    liveData->params.lastContributeSent = liveData->params.currentTime;
+    liveData->params.contributeStatus = CONTRIBUTE_WAITING;
+  }
+  if (liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
+  {
+    netContributeData();
   }
 
   // SIM800
@@ -4668,24 +4681,130 @@ bool Board320_240::netSendData()
   }
 
   // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
-  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 && liveData->params.contributeStatus == CONTRIBUTE_READ_TO_SEND)
+  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
+      liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
-    syslog->println("Contributing anonymous data...");    
+    syslog->println("Contributing anonymous data...");
 
     WiFiClientSecure client;
     HTTPClient http;
     client.setInsecure();
-    http.begin(client, "https://evdash.next176.sk/api");
+    http.begin(client, "https://evdash.next176.sk/api/index.php");
     http.setConnectTimeout(1000);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    http.addHeader("Content-Type", "application/json");
+
+    liveData->contributeDataJson += "\"apikey\" => \"" + String(liveData->settings.remoteApiKey) + "\", ";
+    liveData->contributeDataJson += "\"carType\" => \"" + String(liveData->settings.carType) + "\", ";
+    liveData->contributeDataJson += "\"ignitionOn\" => \"" + String(liveData->params.ignitionOn) + "\", ";
+    liveData->contributeDataJson += "\"chargingOn\" => \"" + String(liveData->params.chargingOn) + "\", ";
+    liveData->contributeDataJson += "\"socPerc\" => \"" + String(liveData->params.socPerc, 0) + "\", ";
+    if (liveData->params.socPercBms != -1)
+      liveData->contributeDataJson += "\"socPercBms\" => \"" + String(liveData->params.socPercBms, 0) + "\", ";
+    liveData->contributeDataJson += "\"sohPerc\" => \"" + String(liveData->params.sohPerc, 0) + "\", ";
+    liveData->contributeDataJson += "\"batPowerKw\" => \"" + String(liveData->params.batPowerKw, 3) + "\", ";
+    liveData->contributeDataJson += "\"batVoltage\" => \"" + String(liveData->params.batVoltage, 0) + "\", ";
+    liveData->contributeDataJson += "\"auxVoltage\" => \"" + String(liveData->params.auxVoltage, 0) + "\", ";
+    liveData->contributeDataJson += "\"auxCurrentAmp\" => \"" + String(liveData->params.auxCurrentAmp, 0) + "\", ";
+    liveData->contributeDataJson += "\"batMinC\" => \"" + String(liveData->params.batMinC, 0) + "\", ";
+    liveData->contributeDataJson += "\"batMaxC\" => \"" + String(liveData->params.batMaxC, 0) + "\", ";
+    liveData->contributeDataJson += "\"extTemp\" => \"" + String(liveData->params.outdoorTemperature, 0) + "\", ";
+    liveData->contributeDataJson += "\"speedKmh\" => \"" + String(liveData->params.speedKmh, 0) + "\", ";
+    liveData->contributeDataJson += "\"odoKm\" => \"" + String(liveData->params.odoKm, 0) + "\", ";
+    liveData->contributeDataJson += "\"cecKWh\" => \"" + String(liveData->params.cumulativeEnergyChargedKWh, 3) + "\", ";
+    liveData->contributeDataJson += "\"cedKWh\" => \"" + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + "\", ";
+    // Send GPS data via GPRS (if enabled && valid)
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+    {
+      liveData->contributeDataJson += "\"gpsLat\" => \"" + String(liveData->params.gpsLat, 5) + "\", ";
+      liveData->contributeDataJson += "\"gpsLon\" => \"" + String(liveData->params.gpsLon, 5) + "\", ";
+      liveData->contributeDataJson += "\"gpsAlt\" => \"" + String(liveData->params.gpsAlt, 0) + "\", ";
+      liveData->contributeDataJson += "\"gpsSpeed\" => \"" + String(liveData->params.speedKmhGPS, 0) + "\", ";
+    }
+
     rc = http.POST(liveData->contributeDataJson);
     if (rc == HTTP_CODE_OK)
     {
       // Request successful
-      liveData->params.contributeStatus == CONTRIBUTE_NONE;
+      liveData->params.contributeStatus = CONTRIBUTE_NONE;
       liveData->contributeDataJson = "";
       String payload = http.getString();
-      syslog->println("HTTP Response: " + payload);
+      syslog->println("HTTP Response (api.next176.sk): " + payload);
+    }
+    else
+    {
+      // Failed...
+      syslog->print("HTTP POST error: ");
+      syslog->println(rc);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Contribute anonymous data
+ **/
+bool Board320_240::netContributeData()
+{
+  uint16_t rc = 0;
+
+  // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
+  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
+      liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
+  {
+    syslog->println("Contributing anonymous data...");
+
+    WiFiClientSecure client;
+    HTTPClient http;
+    client.setInsecure();
+    http.begin(client, "https://evdash.next176.sk/api/index.php");
+    http.setConnectTimeout(1000);
+    http.addHeader("Content-Type", "application/json");
+
+    liveData->contributeDataJson += "\"apikey\" => \"" + String(liveData->settings.remoteApiKey) + "\", ";
+    liveData->contributeDataJson += "\"carType\" => \"" + String(liveData->settings.carType) + "\", ";
+    liveData->contributeDataJson += "\"ignitionOn\" => \"" + String(liveData->params.ignitionOn) + "\", ";
+    liveData->contributeDataJson += "\"chargingOn\" => \"" + String(liveData->params.chargingOn) + "\", ";
+    liveData->contributeDataJson += "\"socPerc\" => \"" + String(liveData->params.socPerc, 0) + "\", ";
+    if (liveData->params.socPercBms != -1)
+      liveData->contributeDataJson += "\"socPercBms\" => \"" + String(liveData->params.socPercBms, 0) + "\", ";
+    liveData->contributeDataJson += "\"sohPerc\" => \"" + String(liveData->params.sohPerc, 0) + "\", ";
+    liveData->contributeDataJson += "\"batPowerKw\" => \"" + String(liveData->params.batPowerKw, 3) + "\", ";
+    liveData->contributeDataJson += "\"batVoltage\" => \"" + String(liveData->params.batVoltage, 0) + "\", ";
+    liveData->contributeDataJson += "\"auxVoltage\" => \"" + String(liveData->params.auxVoltage, 0) + "\", ";
+    liveData->contributeDataJson += "\"auxCurrentAmp\" => \"" + String(liveData->params.auxCurrentAmp, 0) + "\", ";
+    liveData->contributeDataJson += "\"batMinC\" => \"" + String(liveData->params.batMinC, 0) + "\", ";
+    liveData->contributeDataJson += "\"batMaxC\" => \"" + String(liveData->params.batMaxC, 0) + "\", ";
+    liveData->contributeDataJson += "\"extTemp\" => \"" + String(liveData->params.outdoorTemperature, 0) + "\", ";
+    liveData->contributeDataJson += "\"speedKmh\" => \"" + String(liveData->params.speedKmh, 0) + "\", ";
+    liveData->contributeDataJson += "\"odoKm\" => \"" + String(liveData->params.odoKm, 0) + "\", ";
+    liveData->contributeDataJson += "\"cecKWh\" => \"" + String(liveData->params.cumulativeEnergyChargedKWh, 3) + "\", ";
+    liveData->contributeDataJson += "\"cedKWh\" => \"" + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + "\", ";
+    // Send GPS data via GPRS (if enabled && valid)
+    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
+        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+    {
+      liveData->contributeDataJson += "\"gpsLat\" => \"" + String(liveData->params.gpsLat, 5) + "\", ";
+      liveData->contributeDataJson += "\"gpsLon\" => \"" + String(liveData->params.gpsLon, 5) + "\", ";
+      liveData->contributeDataJson += "\"gpsAlt\" => \"" + String(liveData->params.gpsAlt, 0) + "\", ";
+      liveData->contributeDataJson += "\"gpsSpeed\" => \"" + String(liveData->params.speedKmhGPS, 0) + "\", ";
+    }
+
+    rc = http.POST(liveData->contributeDataJson);
+    if (rc == HTTP_CODE_OK)
+    {
+      // Request successful
+      liveData->params.contributeStatus = CONTRIBUTE_NONE;
+      liveData->contributeDataJson = "";
+      String payload = http.getString();
+      syslog->println("HTTP Response (api.next176.sk): " + payload);
+    }
+    else
+    {
+      // Failed...
+      syslog->print("HTTP POST error: ");
+      syslog->println(rc);
     }
   }
 

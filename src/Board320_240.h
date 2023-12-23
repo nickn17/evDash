@@ -103,6 +103,7 @@ public:
   bool wifiSetup();
   void netLoop();
   bool netSendData();
+  bool netContributeData();
   void wifiFallback();
   void wifiSwitchToMain();
   void wifiSwitchToBackup();

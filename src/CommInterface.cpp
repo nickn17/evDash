@@ -109,20 +109,28 @@ bool CommInterface::doNextQueueCommand()
       liveData->currentAtshRequest = liveData->commandRequest;
     }
 
-    // Queue optimizer
-    commandAllowed = board->carCommandAllowed();
-    liveData->commandQueueIndex++;
-    if (liveData->commandQueueIndex >= liveData->commandQueueCount)
-    {
+    // Contribute data flags
+    if (liveData->commandQueueIndex == liveData->commandQueueLoopFrom) {
       if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
       {
-        liveData->params.contributeStatus = CONTRIBUTE_READ_TO_SEND;
+        syslog->println("contributeStatus ... ready to send");
+        liveData->params.contributeStatus = CONTRIBUTE_READY_TO_SEND;
       }
       if (liveData->params.contributeStatus == CONTRIBUTE_WAITING)
       {
+        syslog->println("contributeStatus ... collecting data");
+
         liveData->params.contributeStatus = CONTRIBUTE_COLLECTING;
         liveData->contributeDataJson = "";
       }
+    }    
+
+    // Queue optimizer
+    commandAllowed = board->carCommandAllowed();
+    liveData->commandQueueIndex++;
+
+    if (liveData->commandQueueIndex >= liveData->commandQueueCount)
+    {
       liveData->commandQueueIndex = liveData->commandQueueLoopFrom;
       liveData->params.queueLoopCounter++;
       liveData->redrawScreenRequested = true;
@@ -180,6 +188,15 @@ bool CommInterface::parseResponse()
 */
 void CommInterface::parseRowMerged()
 {
+    // Anonymous data
+    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+    {
+      liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
+      liveData->contributeDataJson += "_" + liveData->commandRequest;
+      liveData->contributeDataJson += "\" => \"" + liveData->responseRowMerged;
+      liveData->contributeDataJson += "\", ";
+      syslog->println(liveData->contributeDataJson);
+    }
 
   // Record previous response
   if (canComparerRecordIndex != -1)
@@ -211,14 +228,6 @@ void CommInterface::parseRowMerged()
           }
         }
       }
-    }
-    // Anonymous data
-    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
-    {
-      liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
-      liveData->contributeDataJson += "_" + liveData->commandRequest;
-      liveData->contributeDataJson += "\" => \"" + liveData->responseRowMerged;
-      liveData->contributeDataJson += "\", ";
     }
   }
 
