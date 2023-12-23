@@ -2,6 +2,10 @@
 
 ### Next version
 
+### v2.8.2 2023-12-23
+- GPS serial speed (default 9600)
+- command queue autostop option (recommended for eGMP)
+
 ### v2.8.1 2023-11-20
 - MQTT client (remote upload)
 

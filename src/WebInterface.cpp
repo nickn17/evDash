@@ -94,6 +94,7 @@ void handleRoot()
 
   text += "<tr><th colspan='2'>GPS module</th></tr>";
   text += "<tr><td>GPS hw serial port</td><td>" + String(liveDataWebInt->settings.gpsHwSerialPort == 255 ? "off" : String(liveDataWebInt->settings.gpsHwSerialPort)) + "</td></tr>";
+  text += "<tr><td>GPS serial speed</td><td>" + String(liveDataWebInt->settings.gpsSerialPortSpeed) + "</td></tr>";
   text += "<tr><td>GPS valid data</td><td>" + String(liveDataWebInt->params.gpsValid == 1 ? "YES" : "NO") + "</td></tr>";
   if (liveDataWebInt->params.gpsValid)
   {

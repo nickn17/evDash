@@ -82,6 +82,12 @@
 #define BAT_MAN_MODE_OFF 4
 #define BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING 5
 
+// Contribute data
+#define CONTRIBUTE_NONE 0
+#define CONTRIBUTE_WAITING 1
+#define CONTRIBUTE_COLLECTING 2
+#define CONTRIBUTE_READ_TO_SEND 3
+
 //
 #define MONTH_SEC 2678400
 
@@ -241,6 +247,9 @@ typedef struct
   float soc10odo[11];   // odo history
   time_t soc10time[11]; // time for avg speed
 
+  // Contribute
+  bool contributeStatus; // 0 - none, 1 - ready to scan (waiting for loop begin), 2 - collecting data, 3 - ready to send
+
   // additional
   char debugData[256];
   char debugData2[256];
@@ -353,7 +362,7 @@ typedef struct
     169.254.1.10 23 - obdlink, ios?
     192.168.0.74 23 - obdkey
   */
-   // == settings version 17
+  // == settings version 17
   uint8_t contributeData; // Contribute anonymous data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
   char contributeToken[32];  // Unique token for device
   uint8_t mqttEnabled;    // Enabled mqtt connection
@@ -362,7 +371,9 @@ typedef struct
   char mqttUsername[32];  // Mqtt username
   char mqttPassword[32];  // Mqtt password
   char mqttPubTopic[64];  // Mqtt topic
-  
+  // == settings version 18
+  uint8_t commandQueueAutoStop; // Command queue autostop. Recommended for eGMP (Hyundai/Kia) platform
+  unsigned long gpsSerialPortSpeed; // default 9600 
   //
 } SETTINGS_STRUC;
 
@@ -398,6 +409,7 @@ public:
   uint8_t menuItemOffset = 0;
   uint16_t scanningDeviceIndex = 0;
   MENU_ITEM *menuItems;
+  String contributeDataJson = "";
 
   // Comm
   boolean commConnected = false;
