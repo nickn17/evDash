@@ -14,17 +14,17 @@
 #ifdef BOARD_M5STACK_CORE2
 #include <PubSubClient.h>
 #endif
-#ifndef BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE2
 // TTGO: Error: The program size (2098085 bytes) is greater than maximum allowed (2097152 bytes)
 #include "WebInterface.h"
-#endif // BOARD_TTGO_T4
+#endif // BOARD_M5STACK_CORE2
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
 
-#ifndef BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE2
 WebInterface *webInterface = nullptr;
-#endif // BOARD_TTGO_T4
+#endif // BOARD_M5STACK_CORE2
 
 /**
    Init board
@@ -226,17 +226,14 @@ void Board320_240::afterSetup()
  */
 void Board320_240::otaUpdate()
 {
+// Only for core2
+#ifdef BOARD_M5STACK_CORE2
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
   printHeapMemory();
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
-#ifdef BOARD_TTGO_T4
   url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/ttgo-t4-v13/evDash.ino.bin";
-#endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_CORE
-  url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core/evDash.ino.bin";
-#endif // BOARD_M5STACK_CORE
 
   if (!WiFi.isConnected())
   {
@@ -393,6 +390,8 @@ void Board320_240::otaUpdate()
   displayMessage("OTA installed.", "Reboot device.");
   delay(2000);
   ESP.restart();
+
+#endif //BOARD_M5STACK_CORE2
 }
 
 /**
@@ -2857,11 +2856,11 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_WIFI_HOTSPOT_WEBADMIN:
-#ifndef BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE2
       webInterface = new WebInterface();
       webInterface->init(liveData, this);
       displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
-#endif // BOARD_TTGO_T4
+#endif // BOARD_M5STACK_CORE2
       return;
       break;
     case MENU_WIFI_NTP:
@@ -3477,10 +3476,10 @@ void Board320_240::commLoop()
 void Board320_240::boardLoop()
 {
   // touch events, m5.update
-#ifndef BOARD_TTGO_T4
+#ifdef BOARD_M5STACK_CORE2
   if (webInterface != nullptr)
     webInterface->mainLoop();
-#endif // BOARD_TTGO_T4
+#endif // BOARD_M5STACK_CORE2
 }
 
 /**
@@ -4246,8 +4245,10 @@ void Board320_240::netLoop()
     return;
   }
 
+  bool wifiReady = (liveData->settings.wifiEnabled == 1&& WiFi.status() == WL_CONNECTED);
+
   // Sync NTP firsttime
-  if (liveData->settings.wifiEnabled == 1 && !liveData->params.ntpTimeSet && WiFi.status() == WL_CONNECTED && liveData->settings.ntpEnabled)
+  if (wifiReady && !liveData->params.ntpTimeSet  && liveData->settings.ntpEnabled)
   {
     ntpSync();
   }
@@ -4267,15 +4268,17 @@ void Board320_240::netLoop()
   }
 
   // Contribute anonymous data
-  if (liveData->params.currentTime - liveData->params.lastContributeSent > 300)
+#ifdef BOARD_M5STACK_CORE2
+  if (wifiReady && liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
     liveData->params.contributeStatus = CONTRIBUTE_WAITING;
   }
-  if (liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
+  if (wifiReady && liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
     netContributeData();
   }
+#endif //BOARD_M5STACK_CORE2
 
   // SIM800
   if (liveData->params.sim800l_enabled && liveData->settings.remoteUploadModuleType == 0)
@@ -4685,65 +4688,6 @@ bool Board320_240::netSendData()
     syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
   }
 
-  // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
-  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
-      liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
-  {
-    syslog->println("Contributing anonymous data...");
-
-    WiFiClientSecure client;
-    HTTPClient http;
-    client.setInsecure();
-    http.begin(client, "https://evdash.next176.sk/api/index.php");
-    http.setConnectTimeout(1000);
-    http.addHeader("Content-Type", "application/json");
-
-    liveData->contributeDataJson += "\"apikey\" => \"" + String(liveData->settings.remoteApiKey) + "\", ";
-    liveData->contributeDataJson += "\"carType\" => \"" + String(liveData->settings.carType) + "\", ";
-    liveData->contributeDataJson += "\"ignitionOn\" => \"" + String(liveData->params.ignitionOn) + "\", ";
-    liveData->contributeDataJson += "\"chargingOn\" => \"" + String(liveData->params.chargingOn) + "\", ";
-    liveData->contributeDataJson += "\"socPerc\" => \"" + String(liveData->params.socPerc, 0) + "\", ";
-    if (liveData->params.socPercBms != -1)
-      liveData->contributeDataJson += "\"socPercBms\" => \"" + String(liveData->params.socPercBms, 0) + "\", ";
-    liveData->contributeDataJson += "\"sohPerc\" => \"" + String(liveData->params.sohPerc, 0) + "\", ";
-    liveData->contributeDataJson += "\"batPowerKw\" => \"" + String(liveData->params.batPowerKw, 3) + "\", ";
-    liveData->contributeDataJson += "\"batVoltage\" => \"" + String(liveData->params.batVoltage, 0) + "\", ";
-    liveData->contributeDataJson += "\"auxVoltage\" => \"" + String(liveData->params.auxVoltage, 0) + "\", ";
-    liveData->contributeDataJson += "\"auxCurrentAmp\" => \"" + String(liveData->params.auxCurrentAmp, 0) + "\", ";
-    liveData->contributeDataJson += "\"batMinC\" => \"" + String(liveData->params.batMinC, 0) + "\", ";
-    liveData->contributeDataJson += "\"batMaxC\" => \"" + String(liveData->params.batMaxC, 0) + "\", ";
-    liveData->contributeDataJson += "\"extTemp\" => \"" + String(liveData->params.outdoorTemperature, 0) + "\", ";
-    liveData->contributeDataJson += "\"speedKmh\" => \"" + String(liveData->params.speedKmh, 0) + "\", ";
-    liveData->contributeDataJson += "\"odoKm\" => \"" + String(liveData->params.odoKm, 0) + "\", ";
-    liveData->contributeDataJson += "\"cecKWh\" => \"" + String(liveData->params.cumulativeEnergyChargedKWh, 3) + "\", ";
-    liveData->contributeDataJson += "\"cedKWh\" => \"" + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + "\", ";
-    // Send GPS data via GPRS (if enabled && valid)
-    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
-        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
-    {
-      liveData->contributeDataJson += "\"gpsLat\" => \"" + String(liveData->params.gpsLat, 5) + "\", ";
-      liveData->contributeDataJson += "\"gpsLon\" => \"" + String(liveData->params.gpsLon, 5) + "\", ";
-      liveData->contributeDataJson += "\"gpsAlt\" => \"" + String(liveData->params.gpsAlt, 0) + "\", ";
-      liveData->contributeDataJson += "\"gpsSpeed\" => \"" + String(liveData->params.speedKmhGPS, 0) + "\", ";
-    }
-
-    rc = http.POST(liveData->contributeDataJson);
-    if (rc == HTTP_CODE_OK)
-    {
-      // Request successful
-      liveData->params.contributeStatus = CONTRIBUTE_NONE;
-      liveData->contributeDataJson = "";
-      String payload = http.getString();
-      syslog->println("HTTP Response (api.next176.sk): " + payload);
-    }
-    else
-    {
-      // Failed...
-      syslog->print("HTTP POST error: ");
-      syslog->println(rc);
-    }
-  }
-
   return true;
 }
 
@@ -4754,6 +4698,8 @@ bool Board320_240::netContributeData()
 {
   uint16_t rc = 0;
 
+// Only for core2
+#ifdef BOARD_M5STACK_CORE2
   // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
   if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
@@ -4767,33 +4713,40 @@ bool Board320_240::netContributeData()
     http.setConnectTimeout(1000);
     http.addHeader("Content-Type", "application/json");
 
-    liveData->contributeDataJson += "\"apikey\" => \"" + String(liveData->settings.remoteApiKey) + "\", ";
-    liveData->contributeDataJson += "\"carType\" => \"" + String(liveData->settings.carType) + "\", ";
-    liveData->contributeDataJson += "\"ignitionOn\" => \"" + String(liveData->params.ignitionOn) + "\", ";
-    liveData->contributeDataJson += "\"chargingOn\" => \"" + String(liveData->params.chargingOn) + "\", ";
-    liveData->contributeDataJson += "\"socPerc\" => \"" + String(liveData->params.socPerc, 0) + "\", ";
-    if (liveData->params.socPercBms != -1)
-      liveData->contributeDataJson += "\"socPercBms\" => \"" + String(liveData->params.socPercBms, 0) + "\", ";
-    liveData->contributeDataJson += "\"sohPerc\" => \"" + String(liveData->params.sohPerc, 0) + "\", ";
-    liveData->contributeDataJson += "\"batPowerKw\" => \"" + String(liveData->params.batPowerKw, 3) + "\", ";
-    liveData->contributeDataJson += "\"batVoltage\" => \"" + String(liveData->params.batVoltage, 0) + "\", ";
-    liveData->contributeDataJson += "\"auxVoltage\" => \"" + String(liveData->params.auxVoltage, 0) + "\", ";
-    liveData->contributeDataJson += "\"auxCurrentAmp\" => \"" + String(liveData->params.auxCurrentAmp, 0) + "\", ";
-    liveData->contributeDataJson += "\"batMinC\" => \"" + String(liveData->params.batMinC, 0) + "\", ";
-    liveData->contributeDataJson += "\"batMaxC\" => \"" + String(liveData->params.batMaxC, 0) + "\", ";
-    liveData->contributeDataJson += "\"extTemp\" => \"" + String(liveData->params.outdoorTemperature, 0) + "\", ";
-    liveData->contributeDataJson += "\"speedKmh\" => \"" + String(liveData->params.speedKmh, 0) + "\", ";
-    liveData->contributeDataJson += "\"odoKm\" => \"" + String(liveData->params.odoKm, 0) + "\", ";
-    liveData->contributeDataJson += "\"cecKWh\" => \"" + String(liveData->params.cumulativeEnergyChargedKWh, 3) + "\", ";
-    liveData->contributeDataJson += "\"cedKWh\" => \"" + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + "\", ";
-    // Send GPS data via GPRS (if enabled && valid)
-    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
-        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+    if (liveData->contributeDataJson.charAt(liveData->contributeDataJson.length() - 1) != '}')
     {
-      liveData->contributeDataJson += "\"gpsLat\" => \"" + String(liveData->params.gpsLat, 5) + "\", ";
-      liveData->contributeDataJson += "\"gpsLon\" => \"" + String(liveData->params.gpsLon, 5) + "\", ";
-      liveData->contributeDataJson += "\"gpsAlt\" => \"" + String(liveData->params.gpsAlt, 0) + "\", ";
-      liveData->contributeDataJson += "\"gpsSpeed\" => \"" + String(liveData->params.speedKmhGPS, 0) + "\", ";
+
+      liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
+      liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr() + "\", ";
+      liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
+      liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
+      liveData->contributeDataJson += "\"socPerc\": " + String(liveData->params.socPerc, 0) + ", ";
+      if (liveData->params.socPercBms != -1)
+        liveData->contributeDataJson += "\"socPercBms\": " + String(liveData->params.socPercBms, 0) + ", ";
+      liveData->contributeDataJson += "\"sohPerc\": " + String(liveData->params.sohPerc, 0) + ", ";
+      liveData->contributeDataJson += "\"batPowerKw\": " + String(liveData->params.batPowerKw, 3) + ", ";
+      liveData->contributeDataJson += "\"batVoltage\": " + String(liveData->params.batVoltage, 0) + ", ";
+      liveData->contributeDataJson += "\"auxVoltage\": " + String(liveData->params.auxVoltage, 0) + ", ";
+      liveData->contributeDataJson += "\"auxCurrentAmp\": " + String(liveData->params.auxCurrentAmp, 0) + ", ";
+      liveData->contributeDataJson += "\"batMinC\": " + String(liveData->params.batMinC, 0) + ", ";
+      liveData->contributeDataJson += "\"batMaxC\": " + String(liveData->params.batMaxC, 0) + ", ";
+      liveData->contributeDataJson += "\"extTemp\": " + String(liveData->params.outdoorTemperature, 0) + ", ";
+      liveData->contributeDataJson += "\"speedKmh\": " + String(liveData->params.speedKmh, 0) + ", ";
+      liveData->contributeDataJson += "\"odoKm\": " + String(liveData->params.odoKm, 0) + ", ";
+      liveData->contributeDataJson += "\"cecKWh\": " + String(liveData->params.cumulativeEnergyChargedKWh, 3) + ", ";
+      liveData->contributeDataJson += "\"cedKWh\": " + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + ", ";
+      // Send GPS data via GPRS (if enabled && valid)
+      if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
+          (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+      {
+        liveData->contributeDataJson += "\"gpsLat\": " + String(liveData->params.gpsLat, 5) + ", ";
+        liveData->contributeDataJson += "\"gpsLon\": " + String(liveData->params.gpsLon, 5) + ", ";
+        liveData->contributeDataJson += "\"gpsAlt\": \"" + String(liveData->params.gpsAlt, 0) + "\", ";
+        liveData->contributeDataJson += "\"gpsSpeed\": " + String(liveData->params.speedKmhGPS, 0) + ", ";
+      }
+
+      liveData->contributeDataJson += "\"token\": \"" + String(liveData->settings.contributeToken) + "\"";
+      liveData->contributeDataJson += "}";
     }
 
     rc = http.POST(liveData->contributeDataJson);
@@ -4801,9 +4754,24 @@ bool Board320_240::netContributeData()
     {
       // Request successful
       liveData->params.contributeStatus = CONTRIBUTE_NONE;
-      liveData->contributeDataJson = "";
+      liveData->contributeDataJson = "{"; // begin json
       String payload = http.getString();
       syslog->println("HTTP Response (api.next176.sk): " + payload);
+
+      StaticJsonDocument<200> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+      if (!error)
+      {
+        // const char* t = root["token"];
+        const char *token = doc["token"];
+        if (strcmp(liveData->settings.contributeToken, token) != 0 && strlen(token) > 10)
+        {
+          syslog->print("Assigned token: ");
+          syslog->println(token);
+          strcpy(liveData->settings.contributeToken, doc["token"]);
+          saveSettings();
+        }
+      }
     }
     else
     {
@@ -4812,54 +4780,10 @@ bool Board320_240::netContributeData()
       syslog->println(rc);
     }
   }
+#endif //BOARD_M5STACK_CORE2
 
   return true;
 }
-
-// Code for sending http data to ABRP api server
-
-/*
-    rc = 0;
-    if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
-    {
-      WiFiClient client;
-      HTTPClient http;
-
-      // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
-      http.begin(client, "http://api.iternio.com/1/tlm/send");
-      // http.begin(client, "https://api.iternio.com/1/tlm/send");   // test of SSL via HTTPS to API endpoint
-      http.setConnectTimeout(1000);
-      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-      rc = http.POST(dta);
-      http.end();
-    }
-    else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
-    {
-      // SIM800L
-      rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
-    }
-
-    if (rc == 200)
-    {
-      syslog->println("HTTP POST send successful");
-      liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
-    }
-    else
-    {
-      // Failed...
-      syslog->print("HTTP POST error: ");
-      syslog->println(rc);
-    }
-  }
-  else
-  {
-    syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
-  }
-
-  return true;
-}
-
-*/
 
 /**
  * Get car model string for ABRP and menu

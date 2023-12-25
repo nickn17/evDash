@@ -397,10 +397,6 @@ void CarKiaEniro::parseRowMerged()
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
-
-      // log 220105 to sdcard
-      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
-      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220106"))
@@ -431,11 +427,6 @@ void CarKiaEniro::parseRowMerged()
       default:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
       }
-
-      // log 220106 to sdcard
-      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
-      tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
-      // syslog->println(liveData->params.debugData2);
     }
   }
 }

@@ -2,6 +2,12 @@
 
 ### Next version
 
+### v2.8.3 2023-12-25
+- removed debugData1/2 structures. Replaced with contribute anonymous data feature.
+- e-GMP - added bms mode (none/LTR/PTC/cooling)
+- webinterface only for Core2 (memory problems with core1)
+- ABRP switched to https (thanks to Spotzify)
+
 ### v2.8.2 2023-12-23
 - GPS serial speed (default 9600)
 - command queue autostop option (recommended for eGMP)

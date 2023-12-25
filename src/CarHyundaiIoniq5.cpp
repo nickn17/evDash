@@ -569,10 +569,6 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
       liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
       liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
-
-      // log 220105 to sdcard
-      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
-      tmpStr.toCharArray(liveData->params.debugData, tmpStr.length() + 1);
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220106"))
@@ -589,32 +585,27 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
       liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
       // Battery management mode
-      tempByte = liveData->hexToDecFromResponse(34, 36, 1, false);
-      switch (tempByte & 0xf)
+      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false);
+      switch (tempByte)
       {
-      case 1:
+      /*case 1:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING;
-        break;
-      case 3:
+        break;*/
+      case 64:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
         break;
-      case 4:
+      case 185:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING;
         break;
-      case 6:
+      case 0:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF;
         break;
-      case 0xE:
+      case 125:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_PTC_HEATER;
         break;
       default:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
       }
-
-      // log 220106 to sdcard
-      tmpStr = liveData->currentAtshRequest + '/' + liveData->commandRequest + '/' + liveData->responseRowMerged;
-      tmpStr.toCharArray(liveData->params.debugData2, tmpStr.length() + 1);
-      // syslog->println(liveData->params.debugData2);
     }
   }
 }
