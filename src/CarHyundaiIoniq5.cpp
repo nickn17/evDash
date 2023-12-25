@@ -591,16 +591,16 @@ void CarHyundaiIoniq5::parseRowMerged()
       /*case 1:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING;
         break;*/
-      case 64:
+      case 100: // 0x64 
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
         break;
-      case 185:
+      case 185: // 0xB9
         liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING;
         break;
-      case 0:
+      case 0:  // 0x00
         liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF;
         break;
-      case 125:
+      case 125: // 0x7D
         liveData->params.batteryManagementMode = BAT_MAN_MODE_PTC_HEATER;
         break;
       default:
