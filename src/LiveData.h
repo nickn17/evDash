@@ -250,8 +250,6 @@ typedef struct
   time_t soc10time[11]; // time for avg speed
 
   // additional
-  char debugData[256];
-  char debugData2[256];
   /*
     uint8_t bmsMainRelay;
     uint8_t highVoltageCharging;

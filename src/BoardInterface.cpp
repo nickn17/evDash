@@ -603,9 +603,6 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
     jsonData[String("c" + String(i) + "V")] = liveData->params.cellVoltage[i];
   }
 
-  jsonData["debug"] = liveData->params.debugData;
-  jsonData["debug2"] = liveData->params.debugData2;
-
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);
 

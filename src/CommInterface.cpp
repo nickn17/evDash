@@ -121,7 +121,7 @@ bool CommInterface::doNextQueueCommand()
         syslog->println("contributeStatus ... collecting data");
 
         liveData->params.contributeStatus = CONTRIBUTE_COLLECTING;
-        liveData->contributeDataJson = "";
+        liveData->contributeDataJson = "{";  // begin json
       }
     }    
 
@@ -193,7 +193,7 @@ void CommInterface::parseRowMerged()
     {
       liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
       liveData->contributeDataJson += "_" + liveData->commandRequest;
-      liveData->contributeDataJson += "\" => \"" + liveData->responseRowMerged;
+      liveData->contributeDataJson += "\": \"" + liveData->responseRowMerged;
       liveData->contributeDataJson += "\", ";
       syslog->println(liveData->contributeDataJson);
     }
