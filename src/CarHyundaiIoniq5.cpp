@@ -134,7 +134,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // ABS / ESP + AHB
       "ATSH7D1",
-      "3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220104", // gear selected (D/R/N/P)
       "22C101", // brake
       "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
@@ -157,7 +157,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // VMCU
       "ATSH7E2",
-      "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      //"3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "22E003",
       "22E004",
       "22E005",
@@ -168,7 +168,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // ICCU
       "ATSH7E5",
-      "3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
                 /*      "22E001",
                       "22E002",
                       "22E003",*/
@@ -184,6 +184,30 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "ATSH7E3",
       "2102", // motor/invertor temp
 
+      // GSM (looking for gps lat/lon - only for data contributing)
+      "ATSH7E6",
+      "2201A0", 
+      "22F190",
+
+      // E-CALL (looking for gps lat/lon - only for data contributing)
+      "ATSH7C7",
+      "22C006", 
+      "22C00A", 
+      "22C00B", 
+      "22F010", 
+      "22F189", 
+      "22F18B", 
+      "22F18E", 
+      "22F191", 
+      "22F193", 
+      "22F194", 
+      "22F196", 
+      "22F1A0", 
+      "22F1A1", 
+      "22F1B0", 
+      "22F1B2", 
+      "22FE07", 
+  
       // AVN
       /*  "ATSH780",
         "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
@@ -209,7 +233,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // BMS
       "ATSH7E4",
-      "3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220101", // power kw, engine rpm etc
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64
@@ -478,7 +502,7 @@ void CarHyundaiIoniq5::parseRowMerged()
       }
 
       // Charging ON, AC/DC
-      // 2022-05 NOT WORKING value is still 0x00, found chargingOn in 220106 pos 28/Y
+      // 2022-05 NOT WORKING value is still 0x00
       tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
       liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
       liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
@@ -661,6 +685,15 @@ bool CarHyundaiIoniq5::commandAllowed()
     {
       return false;
     }
+  }
+
+  // GSM // only for data-contribute
+  if (liveData->currentAtshRequest.equals("ATSH7E6")) {    
+    return false; 
+  }
+  // ECALL // only for data-contribute
+  if (liveData->currentAtshRequest.equals("ATSH7C7")) {    
+    return false; 
   }
 
   // BMS (only for SCREEN_CELLS)
