@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 165
+#define MENU_SIZE 166
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -154,6 +154,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_REMOTE_UPLOAD_MQTT_TOPIC, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "MQTT topic"},
     {MENU_REMOTE_UPLOAD_CONTRIBUTE_ANONYMOUS_DATA_TO_EVDASH_DEV_TEAM, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "Contribute anon.data"},
     {MENU_REMOTE_UPLOAD_CONTRIBUTE_ONCE, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "Contribute once"},
+    {MENU_REMOTE_UPLOAD_LOGS_TO_EVDASH_SERVER, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "Upload logs to evdash server"},
 
     {MENU_GPS_TOP, MENU_GPS, MENU_OTHERS, "<- parent menu"},
     {MENU_GPS_PORT, MENU_GPS, MENU_NO_MENU, "GPS port"},

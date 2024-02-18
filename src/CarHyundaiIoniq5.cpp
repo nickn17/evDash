@@ -317,8 +317,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       }
 
       tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
-      liveData->params.headLights = (bitRead(tempByte, 5) == 1);
-      liveData->params.autoLights = (bitRead(tempByte, 4) == 1);
+      liveData->params.headLights = (bitRead(tempByte, 3) == 1); // old 5 bit
+      liveData->params.autoLights = (bitRead(tempByte, 3) == 1); // old 4 bit
       liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
     }
     if (liveData->commandRequest.equals("22BC06"))
