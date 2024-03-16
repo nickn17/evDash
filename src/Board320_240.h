@@ -16,37 +16,29 @@
 #include "BoardInterface.h"
 #include <SD.h>
 #include <SPI.h>
-#include "SIM800L.h"
 #include "SDL_Arduino_INA3221.h"
 
-#ifdef BOARD_TTGO_T4
-#include <TFT_eSPI.h>
-#endif // BOARD_TTGO_T4
-
-#ifdef BOARD_M5STACK_CORE
-#include <M5Stack.h>
-#endif // BOARD_M5STACK_CORE
-
-#ifdef BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORE2 
 #include <M5Core2.h>
 #endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3 
+#include <M5CoreS3.h>
+#endif // BOARD_M5STACK_CORES3
 
 class Board320_240 : public BoardInterface
 {
 
 protected:
 // TFT, SD SPI
-#ifdef BOARD_TTGO_T4
-  TFT_eSPI tft = TFT_eSPI();
-  TFT_eSprite spr = TFT_eSprite(&tft);
-#endif // BOARD_TTGO_T4
-#if defined(BOARD_M5STACK_CORE) || defined(BOARD_M5STACK_CORE2)
+#if BOARD_M5STACK_CORE2
   M5Display &tft = M5.Lcd;
   TFT_eSprite spr = TFT_eSprite(&M5.Lcd);
-#endif // BOARD_M5STACK_CORE OR BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE
+#if BOARD_M5STACK_CORES3
+  M5GFX &tft = CoreS3.Display;
+  LGFX_Sprite spr = LGFX_Sprite(&CoreS3.Display);
+#endif // BOARD_M5STACK_CORE2
   HardwareSerial *gpsHwUart = NULL;
-  HardwareSerial *gprsHwUart = NULL;
-  SIM800L *sim800l;
   SDL_Arduino_INA3221 ina3221;
   TinyGPSPlus gps;
   char tmpStr1[64];
@@ -99,7 +91,6 @@ public:
   void syncTimes(time_t newTime);
   void setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t seconds);
   // Notwork
-  bool sim800lSetup();
   bool wifiSetup();
   void netLoop();
   bool netSendData();

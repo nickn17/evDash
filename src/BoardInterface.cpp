@@ -5,7 +5,6 @@
 #include <EEPROM.h>
 #include <BLEDevice.h>
 #include "BoardInterface.h"
-#include "CommObd2Bt3.h"
 #include "CommObd2Ble4.h"
 #include "CommObd2Can.h"
 #include "CommObd2Wifi.h"
@@ -145,7 +144,7 @@ void BoardInterface::loadSettings()
   liveData->settings.remoteUploadIntervalSec = 60;
   liveData->settings.sleepModeIntervalSec = 30;
   liveData->settings.sleepModeShutdownHrs = 72;
-  liveData->settings.remoteUploadModuleType = REMOTE_UPLOAD_SIM800L;
+  liveData->settings.remoteUploadModuleType = REMOTE_UPLOAD_OFF;
   liveData->settings.remoteUploadAbrpIntervalSec = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.abrpApiToken, tmpStr.length() + 1);
@@ -279,7 +278,7 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.remoteUploadIntervalSec = 60;
         liveData->tmpSettings.sleepModeIntervalSec = 30;
         liveData->tmpSettings.sleepModeShutdownHrs = 72;
-        liveData->tmpSettings.remoteUploadModuleType = REMOTE_UPLOAD_SIM800L;
+        liveData->tmpSettings.remoteUploadModuleType = REMOTE_UPLOAD_OFF;
       }
       if (liveData->tmpSettings.settingsVersion == 9)
       {
@@ -384,10 +383,6 @@ void BoardInterface::afterSetup()
   else if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
   {
     commInterface = new CommObd2Can();
-  }
-  else if (liveData->settings.commType == COMM_TYPE_OBD2_BT3)
-  {
-    commInterface = new CommObd2Bt3();
   }
   else if (liveData->settings.commType == COMM_TYPE_OBD2_WIFI)
   {

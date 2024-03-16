@@ -2,10 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v2.8.4"
-#define APP_RELEASE_DATE "2024-01-16"
-
-// TFT COLORS FOR TTGO
+#define APP_VERSION "v3.0.0"
+#define APP_RELEASE_DATE "2024-03-16"
 
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */
 #define TFT_NAVY 0x000F      /*   0,   0, 128 */
@@ -14,10 +12,6 @@
 #define TFT_MAROON 0x7800    /* 128,   0,   0 */
 #define TFT_PURPLE 0x780F    /* 128,   0, 128 */
 #define TFT_OLIVE 0x7BE0     /* 128, 128,   0 */
-
-#ifdef BOARD_TTGO_T4
-#define TFT_LIGHTGREY 0xD69A /* 211, 211, 211 */
-#endif                       // BOARD_TTGO_T4
 
 #define TFT_DARKGREY 0x7BEF                 /* 128, 128, 128 */
 #define TFT_BLUE 0x001F                     /*   0,   0, 255 */
@@ -49,12 +43,6 @@
 #define TFT_GRAPH_COLDGATE15_24 0x0008
 #define TFT_GRAPH_OPTIMAL25 0x0200
 #define TFT_GRAPH_RAPIDGATE35 0x8300
-
-// SIM800L
-#define SIM800L_SND_TIMEOUT 4  // Send data timeout in seconds
-#define SIM800L_RCV_TIMEOUT 5  // Receive data timeout in seconds
-#define SIM800L_INT_BUFFER 768 // Internal buffer
-#define SIM800L_RCV_BUFFER 128 // Receive buffer
 
 // SLEEP MODE
 #define SLEEP_MODE_OFF 0

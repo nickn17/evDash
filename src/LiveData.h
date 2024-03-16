@@ -50,11 +50,10 @@
 // COMM TYPE
 #define COMM_TYPE_OBD2_BLE4 0
 #define COMM_TYPE_CAN_COMMU 1
-#define COMM_TYPE_OBD2_BT3 2
-#define COMM_TYPE_OBD2_WIFI 3
+#define COMM_TYPE_OBD2_WIFI 2
 
 // REMOTE_UPLOAD
-#define REMOTE_UPLOAD_SIM800L 0
+#define REMOTE_UPLOAD_OFF 0
 #define REMOTE_UPLOAD_WIFI 1
 
 // SCREENS
@@ -108,9 +107,9 @@ typedef struct
   // Network
   time_t lastDataSent;
   time_t lastContributeSent;
-  bool sim800l_enabled;
-  time_t sim800l_lastOkReceiveTime;
-  time_t sim800l_lastOkSendTime;
+  bool sim800l_enabled; // UNSUPPORTED MODULE
+  time_t sim800l_lastOkReceiveTime; // UNSUPPORTED MODULE
+  time_t lastSuccessNetSendTime;
   bool isWifiBackupLive;
   time_t wifiLastConnectedTime;
   time_t wifiBackupUptime;
@@ -328,7 +327,7 @@ typedef struct
   uint16_t remoteUploadIntervalSec; // Send data to remote server every X seconds (0 = disabled) // will be used as mqtt upload interval in future builds
   uint16_t sleepModeIntervalSec;    // In sleep, check CANbus / Voltmeter every X seconds
   uint16_t sleepModeShutdownHrs;    // 0 - disabled # shutdown after X hours of sleep
-  uint16_t remoteUploadModuleType;  // 0 (REMOTE_UPLOAD_SIM800L) - SIM800L, 1 - wifi
+  uint16_t remoteUploadModuleType;  // 0 (REMOTE_UPLOAD_OFF) - OFF, 1 - WIFI
   // == settings version 10
   // =================================
   uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)

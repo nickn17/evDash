@@ -7,9 +7,16 @@
 
 Supported hardware
 
-1. M5STACK CORE2
-2. DEPRECATED! M5STACK CORE1 IOT Development Kit (limited support)
-3. DEPRECATED! LILYGO TTGO T4 v1.3 (limited support/no SDcard/GSM/GPS/CAN module)
+- Only boards M5Stack Core2 or M5Stack CoreS3
+- M5 GPS modules - GNSS NEO-M9N (38400bps), older GPS U-BLOX NEO-M8N (9600bps)
+
+Deprecated
+- INA3221A voltage meter
+
+No longer supported hardware
+- M5STACK CORE1
+- LILYGO TTGO T4 v1.3
+- SIM800L GPRS module
 
 Working only with electric vehicles
 Fully supported: Hyundai Ioniq5/6, Kia EV6
@@ -18,22 +25,25 @@ See Release notes, quick installation via flash tool bellow.
 
 ## Required hardware
 
-### Board
-
+### BOARD
 - M5STACK CORE2 IOT Development Kit (K010)
   https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit
+- older M5STACK CORE2 IOT Development Kit (K010)
+  https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit
+
+### CAN vs OBD2 adapter
 - optional CAN module COMMU (M011) - RS485, TTL and CAN
-- optional GPS module (M003) - NEO-M8N (with external atenna)
-
-### CAN connection
-
-- For nonstop use we strongly recommend to use direct CAN onnection (via OBD2 connector)). It's due to security! 
+  https://shop.m5stack.com/products/commu-module
 - OBD2 connector can provide power to the M5 stack with a 12V to 5V converter (e.g. Recom R-785.0-1.0).
-- The optional INA3221A circuit allows to auto shutdown evDash when the car is off.
 
-### OBD2 adapter
+- OBD2 adapters - supported is only Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2. We can add another BLE adapter if you provide 3x UUID (service/notify,read/write)
+- For nonstop use we strongly recommend to use direct CAN onnection (via OBD2 connector)). It's due to security! 
 
-- Only this model is supported: Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2. We can add another BLE adapter if you provide 3x UUID (service/notify,read/write)
+### GPS
+- GNSS Module with Barometric Pressure, IMU, Magnetometer Sensors (NEO-M9N, BMP280, BMI270, BMM150)
+  https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
+- older module (M003) - NEO-M8N (with external atenna)
+  https://shop.m5stack.com/products/gps-module
 
 ## Hardware configuration
 
@@ -52,13 +62,13 @@ COMMU - https://docs.m5stack.com/en/module/commu
 
 See [INSTALLATION.md](INSTALLATION.md)
 
+## Installation from sources (VS code)
+
+See [INSTALLATION.md](INSTALLATION.md)
+
 ## RELEASE NOTES
 
 see. [RELEASENOTES.md](RELEASENOTES.md) file
-
-## Installation from sources
-
-See [INSTALLATION.md](INSTALLATION.md)
 
 ## Screens and shortcuts
 

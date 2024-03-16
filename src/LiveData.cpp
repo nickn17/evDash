@@ -23,9 +23,9 @@ void LiveData::initParams()
   params.ntpTimeSet = false;
   params.lastDataSent = 0;
   params.lastContributeSent = 0;
-  params.sim800l_enabled = false;
-  params.sim800l_lastOkReceiveTime = 0;
-  params.sim800l_lastOkSendTime = 0;
+  params.sim800l_enabled = false; // UNSUPPORTED MODULE
+  params.sim800l_lastOkReceiveTime = 0; // UNSUPPORTED MODULE
+  params.lastSuccessNetSendTime = 0;
   params.isWifiBackupLive = false;
   params.wifiLastConnectedTime = 0;
   params.wifiBackupUptime = 0;

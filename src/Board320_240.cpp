@@ -11,20 +11,22 @@
 #include <time.h>
 #include <ArduinoJson.h>
 
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #include <PubSubClient.h>
-#endif
-#ifdef BOARD_M5STACK_CORE2
-// TTGO: Error: The program size (2098085 bytes) is greater than maximum allowed (2097152 bytes)
 #include "WebInterface.h"
-#endif // BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR unsigned int sleepCount = 0;
 
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 WebInterface *webInterface = nullptr;
-#endif // BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
+
+#ifdef BOARD_M5STACK_CORES3
+// SD card
+#define TFCARD_CS_PIN 4
+#endif // BOARD_M5STACK_CORES3
 
 /**
    Init board
@@ -33,23 +35,15 @@ void Board320_240::initBoard()
 {
   liveData->params.booting = true;
 
-// Set button pins for input
-#ifdef BOARD_TTGO_T4
-  pinMode(pinButtonMiddle, INPUT);
-  pinMode(pinButtonLeft, INPUT);
-  pinMode(pinButtonRight, INPUT);
-#endif // BOARD_TTGO_T4
-
   // Init time library
   struct timeval tv;
 
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #ifdef BOARD_M5STACK_CORE2
   RTC_TimeTypeDef RTCtime;
   RTC_DateTypeDef RTCdate;
-
   M5.Rtc.GetTime(&RTCtime);
   M5.Rtc.GetDate(&RTCdate);
-
   if (RTCdate.Year > 2020)
   {
     struct tm tm_tmp;
@@ -67,6 +61,27 @@ void Board320_240::initBoard()
   {
     tv.tv_sec = 1589011873;
   }
+#endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3
+  auto dt = CoreS3.Rtc.getDateTime();
+    if (dt.date.year > 2020)
+  {
+    struct tm tm_tmp;
+    tm_tmp.tm_year = dt.date.year - 1900;
+    tm_tmp.tm_mon = dt.date.month - 1;
+    tm_tmp.tm_mday = dt.date.date;
+    tm_tmp.tm_hour = dt.time.hours;
+    tm_tmp.tm_min = dt.time.minutes;
+    tm_tmp.tm_sec = dt.time.seconds;
+
+    time_t t = mktime(&tm_tmp);
+    tv.tv_sec = t;
+  }
+  else
+  {
+    tv.tv_sec = 1589011873;
+  }
+#endif // BOARD_M5STACK_CORES3
 #else
   tv.tv_sec = 1589011873;
 #endif
@@ -188,13 +203,6 @@ void Board320_240::afterSetup()
     }
   }
 
-  // Init SIM800L
-  if (liveData->settings.gprsHwSerialPort <= 2)
-  {
-    sim800lSetup();
-    printHeapMemory();
-  }
-
   // Init comm device
   if (!afterSetup)
   {
@@ -227,13 +235,13 @@ void Board320_240::afterSetup()
 void Board320_240::otaUpdate()
 {
 // Only for core2
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
 
   printHeapMemory();
 
   String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
-  url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/ttgo-t4-v13/evDash.ino.bin";
+  // url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/ttgo-t4-v13/evDash.ino.bin";
 
   if (!WiFi.isConnected())
   {
@@ -391,7 +399,7 @@ void Board320_240::otaUpdate()
   delay(2000);
   ESP.restart();
 
-#endif //BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 }
 
 /**
@@ -400,27 +408,6 @@ void Board320_240::otaUpdate()
 void Board320_240::goToSleep()
 {
   syslog->println("Going to sleep.");
-
-  // Sleep SIM800L
-  if (liveData->params.sim800l_enabled)
-  {
-    if (sim800l->isConnectedGPRS())
-    {
-      bool disconnected = sim800l->disconnectGPRS();
-      for (uint8_t i = 0; i < 5 && !disconnected; i++)
-      {
-        delay(1000);
-        disconnected = sim800l->disconnectGPRS();
-      }
-    }
-
-    if (sim800l->getPowerMode() == NORMAL)
-    {
-      sim800l->setPowerMode(SLEEP);
-      delay(1000);
-    }
-    sim800l->enterSleepMode();
-  }
 
   // Sleep GPS
   if (gpsHwUart != NULL)
@@ -484,7 +471,7 @@ void Board320_240::afterSleep()
   {
     liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
 
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
     if (liveData->settings.sdcardEnabled == 1 && bootCount % (unsigned int)(300 / liveData->settings.sleepModeIntervalSec) == 0)
     {
       tft.begin();
@@ -587,19 +574,18 @@ void Board320_240::turnOffScreen()
   syslog->println("Turn off screen");
   currentBrightness = 0;
 
-  if (debugTurnOffScreen)
+  if (debugTurnOffScreen) {
     return;
+  }
 
-#ifdef BOARD_TTGO_T4
-  analogWrite(4 /*TFT_BL*/, 0);
-#endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_CORE
-  tft.setBrightness(0);
-#endif // BOARD_M5STACK_CORE
 #ifdef BOARD_M5STACK_CORE2
   M5.Axp.SetDCDC3(false);
   M5.Axp.SetLcdVoltage(2500);
 #endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3
+  /*CoreS3.Display.setBrightness;
+  M5.Axp.SetLcdVoltage(2500);*/
+#endif // BOARD_M5STACK_CORES3
 }
 
 /**
@@ -631,13 +617,6 @@ void Board320_240::setBrightness()
   syslog->println(lcdBrightnessPerc);
   currentBrightness = lcdBrightnessPerc;
 
-#ifdef BOARD_TTGO_T4
-  analogWrite(4 /*TFT_BL*/, lcdBrightnessPerc);
-#endif // BOARD_TTGO_T4
-#ifdef BOARD_M5STACK_CORE
-  uint8_t brightnessVal = map(lcdBrightnessPerc, 0, 100, 0, 255);
-  tft.setBrightness(brightnessVal);
-#endif // BOARD_M5STACK_CORE
 #ifdef BOARD_M5STACK_CORE2
   M5.Axp.SetDCDC3(true);
   uint16_t lcdVolt = map(lcdBrightnessPerc, 0, 100, 2500, 3300);
@@ -1734,8 +1713,8 @@ SD status*/
   spr.print("REMOTE UPLOAD ");
   switch (liveData->settings.remoteUploadModuleType)
   {
-  case REMOTE_UPLOAD_SIM800L:
-    spr.print("SIM800L");
+  case REMOTE_UPLOAD_OFF:
+    spr.print("OFF");
     break;
   case REMOTE_UPLOAD_WIFI:
     spr.print("WIFI");
@@ -1982,9 +1961,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_OBD2_BLE4:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BLE4) ? ">" : "";
     break;
-  case MENU_ADAPTER_OBD2_BT3:
-    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BT3) ? ">" : "";
-    break;
   case MENU_ADAPTER_OBD2_WIFI:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI) ? ">" : "";
     break;
@@ -2047,8 +2023,8 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_REMOTE_UPLOAD_TYPE:
     switch (liveData->settings.remoteUploadModuleType)
     {
-    case REMOTE_UPLOAD_SIM800L:
-      suffix = "[SIM800L]";
+    case REMOTE_UPLOAD_OFF:
+      suffix = "[OFF]";
       break;
     case REMOTE_UPLOAD_WIFI:
       suffix = "[WIFI]";
@@ -2344,10 +2320,10 @@ void Board320_240::showMenu()
 
   // Page scroll
   menuItemHeight = spr.fontHeight();
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
   off = menuItemHeight / 4;
   menuItemHeight = menuItemHeight * 1.5;
-#endif
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
   menuVisibleCount = (int)(tft.height() / menuItemHeight);
 
   if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCount)
@@ -2664,13 +2640,7 @@ void Board320_240::menuItemClick()
       saveSettings();
       ESP.restart();
       break;
-    case MENU_ADAPTER_OBD2_BT3:
-      liveData->settings.commType = COMM_TYPE_OBD2_BT3;
-      displayMessage("COMM_TYPE_OBD2_BT3", "Rebooting");
-      saveSettings();
-      ESP.restart();
-      break;
-    case MENU_ADAPTER_OBD2_WIFI:
+     case MENU_ADAPTER_OBD2_WIFI:
       liveData->settings.commType = COMM_TYPE_OBD2_WIFI;
       displayMessage("COMM_TYPE_OBD2_WIFI", "Rebooting");
       saveSettings();
@@ -2773,7 +2743,7 @@ void Board320_240::menuItemClick()
       break;
     case MENU_REMOTE_UPLOAD_TYPE:
       // liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
-      liveData->settings.remoteUploadModuleType = (liveData->settings.remoteUploadModuleType == 1) ? REMOTE_UPLOAD_SIM800L : liveData->settings.remoteUploadModuleType + 1;
+      liveData->settings.remoteUploadModuleType = (liveData->settings.remoteUploadModuleType == 1) ? REMOTE_UPLOAD_OFF : liveData->settings.remoteUploadModuleType + 1;
       showMenu();
       return;
       break;
@@ -2856,11 +2826,11 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_WIFI_HOTSPOT_WEBADMIN:
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
       webInterface = new WebInterface();
       webInterface->init(liveData, this);
       displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
-#endif // BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
       return;
       break;
     case MENU_WIFI_NTP:
@@ -3302,7 +3272,6 @@ void Board320_240::redrawScreen()
   }
 
   int tmp_send_interval = 0;
-
   if (liveData->settings.remoteUploadIntervalSec > 0)
   {
     tmp_send_interval = liveData->settings.remoteUploadIntervalSec;
@@ -3312,35 +3281,18 @@ void Board320_240::redrawScreen()
     tmp_send_interval = liveData->settings.remoteUploadAbrpIntervalSec;
   }
 
-  // SIM800L status
-  if (liveData->params.sim800l_enabled && liveData->settings.remoteUploadModuleType == 0)
-  {
-    if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
-    {
-      spr.fillRect(140, 7, 7, 7,
-                   (sim800l->isConnectedGPRS()) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
-      );
-    }
-    else if (liveData->params.displayScreen != SCREEN_BLANK)
-    {
-      spr.fillRect(308, 0, 5, 5,
-                   (sim800l->isConnectedGPRS()) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* data sent but response timed out */ : TFT_RED /* failed to send data */
-      );
-    }
-  }
-
   // WiFi Status
   if (liveData->settings.wifiEnabled == 1 && liveData->settings.remoteUploadModuleType == 1)
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
       spr.fillRect(140, 7, 7, 7,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
       if (liveData->params.isWifiBackupLive)
       {
         spr.fillRect(140, 0, 7, 3,
-                     (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >=
+                     (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >=
                                                         liveData->params.currentTime)
                                                            ? TFT_GREEN  /* last request was 200 OK */
                                                            : TFT_YELLOW /* wifi connected but not send */
@@ -3351,7 +3303,7 @@ void Board320_240::redrawScreen()
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
       spr.fillRect(308, 0, 5, 5,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.sim800l_lastOkSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
     }
   }
@@ -3394,7 +3346,6 @@ void Board320_240::redrawScreen()
 
   // BLE not connected
   if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
-       liveData->settings.commType == COMM_TYPE_OBD2_BT3 ||
        liveData->settings.commType == COMM_TYPE_OBD2_WIFI) &&
       !liveData->commConnected && liveData->obd2ready)
   {
@@ -3476,10 +3427,10 @@ void Board320_240::commLoop()
 void Board320_240::boardLoop()
 {
   // touch events, m5.update
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
   if (webInterface != nullptr)
     webInterface->mainLoop();
-#endif // BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 }
 
 /**
@@ -3904,7 +3855,10 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
 
   M5.Rtc.SetTime(&RTCtime);
   M5.Rtc.SetDate(&RTCdate);
-#endif
+#endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3
+  CoreS3.Rtc.setDateTime(gmtime(&t));
+#endif // BOARD_M5STACK_CORES3
 }
 
 /**
@@ -3921,11 +3875,8 @@ void Board320_240::syncTimes(time_t newTime)
   if (liveData->params.lastContributeSent != 0)
     liveData->params.lastContributeSent = newTime - (liveData->params.currentTime - liveData->params.lastContributeSent);
 
-  if (liveData->params.sim800l_lastOkReceiveTime != 0)
-    liveData->params.sim800l_lastOkReceiveTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkReceiveTime);
-
-  if (liveData->params.sim800l_lastOkSendTime != 0)
-    liveData->params.sim800l_lastOkSendTime = newTime - (liveData->params.currentTime - liveData->params.sim800l_lastOkSendTime);
+  if (liveData->params.lastSuccessNetSendTime != 0)
+    liveData->params.lastSuccessNetSendTime = newTime - (liveData->params.currentTime - liveData->params.lastSuccessNetSendTime);
 
   if (liveData->params.lastButtonPushedTime != 0)
     liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
@@ -3981,11 +3932,6 @@ bool Board320_240::sdcardMount()
   while (1)
   {
     syslog->print("Initializing SD card...");
-
-    /*    syslog->print(" TTGO-T4 ");
-        SPIClass * hspi = new SPIClass(HSPI);
-        spiSD.begin(pinSdcardSclk, pinSdcardMiso, pinSdcardMosi, pinSdcardCs); //SCK,MISO,MOSI,ss
-        SdState = SD.begin(pinSdcardCs, *hspi, SPI_FREQUENCY);*/
 
     syslog->print(" M5STACK ");
     SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
@@ -4157,85 +4103,6 @@ void Board320_240::wifiSwitchToMain()
 }
 
 /**
- * SIM800L
- */
-bool Board320_240::sim800lSetup()
-{
-  syslog->print("Setting SIM800L module. HW port: ");
-  syslog->println(liveData->settings.gprsHwSerialPort);
-
-  gprsHwUart = new HardwareSerial(liveData->settings.gprsHwSerialPort);
-
-  if (liveData->settings.gprsHwSerialPort == 2)
-  {
-    gprsHwUart->begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
-  }
-  else
-  {
-    gprsHwUart->begin(9600);
-  }
-
-  sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER, SIM800L_RCV_BUFFER);
-  // SIM800L DebugMode:
-  // sim800l = new SIM800L((Stream *)gprsHwUart, SIM800L_RST, SIM800L_INT_BUFFER , SIM800L_RCV_BUFFER, syslog);
-
-  bool sim800l_ready = sim800l->isReady();
-  for (uint8_t i = 0; i < 3 && !sim800l_ready; i++)
-  {
-    syslog->println("Problem to initialize SIM800L module, retry in 0.5 sec");
-    delay(500);
-    sim800l_ready = sim800l->isReady();
-  }
-
-  if (!sim800l_ready)
-  {
-    syslog->println("Problem to initialize SIM800L module");
-  }
-  else
-  {
-    syslog->println("SIM800L module initialized");
-
-    sim800l->exitSleepMode();
-
-    if (sim800l->getPowerMode() != NORMAL)
-    {
-      syslog->println("SIM800L module in sleep mode - Waking up");
-      if (sim800l->setPowerMode(NORMAL))
-      {
-        syslog->println("SIM800L in normal power mode");
-      }
-      else
-      {
-        syslog->println("Failed to switch SIM800L to normal power mode");
-      }
-    }
-
-    syslog->print("Setting GPRS APN to: ");
-    syslog->println(liveData->settings.gprsApn);
-
-    bool sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
-    for (uint8_t i = 0; i < 5 && !sim800l_gprs; i++)
-    {
-      syslog->println("Problem to set GPRS APN, retry in 1 sec");
-      delay(1000);
-      sim800l_gprs = sim800l->setupGPRS(liveData->settings.gprsApn);
-    }
-
-    if (sim800l_gprs)
-    {
-      liveData->params.sim800l_enabled = true;
-      syslog->println("GPRS APN set OK");
-    }
-    else
-    {
-      syslog->println("Problem to set GPRS APN");
-    }
-  }
-
-  return true;
-}
-
-/**
  * Net loop, send data over net
  */
 void Board320_240::netLoop()
@@ -4245,15 +4112,15 @@ void Board320_240::netLoop()
     return;
   }
 
-  bool wifiReady = (liveData->settings.wifiEnabled == 1&& WiFi.status() == WL_CONNECTED);
+  bool wifiReady = (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED);
 
   // Sync NTP firsttime
-  if (wifiReady && !liveData->params.ntpTimeSet  && liveData->settings.ntpEnabled)
+  if (wifiReady && !liveData->params.ntpTimeSet && liveData->settings.ntpEnabled)
   {
     ntpSync();
   }
 
-  // Upload to API - SIM800L or WIFI is supported
+  // Upload to custom API
   if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
   {
     liveData->params.lastDataSent = liveData->params.currentTime;
@@ -4268,7 +4135,6 @@ void Board320_240::netLoop()
   }
 
   // Contribute anonymous data
-#ifdef BOARD_M5STACK_CORE2
   if (wifiReady && liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
@@ -4278,24 +4144,6 @@ void Board320_240::netLoop()
   {
     netContributeData();
   }
-#endif //BOARD_M5STACK_CORE2
-
-  // SIM800
-  if (liveData->params.sim800l_enabled && liveData->settings.remoteUploadModuleType == 0)
-  {
-    uint16_t rc = sim800l->readPostResponse(SIM800L_RCV_TIMEOUT * 1000);
-    if (rc == 200)
-    {
-      syslog->print("HTTP POST OK: ");
-      syslog->println(sim800l->getDataReceived());
-      liveData->params.sim800l_lastOkReceiveTime = liveData->params.currentTime;
-    }
-    else if (rc != 1 && rc != 0)
-    {
-      syslog->print("HTTP POST error: ");
-      syslog->println(rc);
-    }
-  }
 }
 
 /**
@@ -4304,21 +4152,7 @@ void Board320_240::netLoop()
 bool Board320_240::netSendData()
 {
   uint16_t rc = 0;
-  /*
-  syslog->println();
-  syslog->print("liveData->params.currentTime: ");
-  syslog->println(liveData->params.currentTime);
-  syslog->print("liveData->params.wifiLastConnectedTime: ");
-  syslog->println(liveData->params.wifiLastConnectedTime);
-  syslog->print("liveData->params.wifiBackupUptime: ");
-  syslog->println(liveData->params.wifiBackupUptime);
-  syslog->print("liveData->settings.backupWifiEnabled: ");
-  syslog->println(liveData->settings.backupWifiEnabled);
-  syslog->print("liveData->params.isWifiBackupLive: ");
-  syslog->println(liveData->params.isWifiBackupLive);
-  syslog->print("WiFi.status: ");
-  syslog->println(WiFi.status());
-*/
+
   if (liveData->params.socPerc < 0)
   {
     syslog->println("No valid data, skipping data send");
@@ -4330,53 +4164,12 @@ bool Board320_240::netSendData()
   {
     syslog->println("Sending data to API - via WIFI");
   }
-
-  // SIM800L
-  else if (liveData->settings.remoteUploadModuleType == 0)
-  {
-    if (liveData->params.sim800l_enabled)
-    {
-      syslog->println("Sending data to API - via SIM800L");
-
-      NetworkRegistration network = sim800l->getRegistrationStatus();
-      if (network != REGISTERED_HOME && network != REGISTERED_ROAMING)
-      {
-        syslog->println("SIM800L module not connected to network, skipping data send");
-        return false;
-      }
-
-      if (!sim800l->isConnectedGPRS())
-      {
-        syslog->println("GPRS not connected... Connecting");
-        bool connected = sim800l->connectGPRS();
-        for (uint8_t i = 0; i < 5 && !connected; i++)
-        {
-          syslog->println("Problem to connect GPRS, retry in 1 sec");
-          delay(1000);
-          connected = sim800l->connectGPRS();
-        }
-        if (connected)
-        {
-          syslog->println("GPRS connected!");
-        }
-        else
-        {
-          syslog->println("GPRS not connected! Reseting module...");
-          sim800l->reset();
-          sim800lSetup();
-          return false;
-        }
-      }
-    }
-    else
-    {
-      syslog->println("SIM800L module not present, skipping data send");
-      return false;
-    }
-  }
   else
   {
-    syslog->println("Unsupported module");
+    if (liveData->settings.remoteUploadModuleType != 0)
+    {
+      syslog->println("Unsupported module");
+    }
     return false;
   }
 
@@ -4406,7 +4199,6 @@ bool Board320_240::netSendData()
     jsonData["extTemp"] = liveData->params.outdoorTemperature;
     jsonData["batFanStatus"] = liveData->params.batFanStatus;
     jsonData["speedKmh"] = liveData->params.speedKmh;
-
     jsonData["odoKm"] = liveData->params.odoKm;
     jsonData["cumulativeEnergyChargedKWh"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
@@ -4438,7 +4230,6 @@ bool Board320_240::netSendData()
       WiFiClient wClient;
       if (liveData->settings.mqttEnabled == 1)
       {
-#ifdef BOARD_M5STACK_CORE2
         PubSubClient client(wClient);
         client.setServer(liveData->settings.mqttServer, 1883);
         if (client.connect(liveData->settings.mqttId, liveData->settings.mqttUsername, liveData->settings.mqttPassword))
@@ -4500,7 +4291,6 @@ bool Board320_240::netSendData()
           }
           rc = 200;
         }
-#endif
       }
       else
       {
@@ -4514,16 +4304,11 @@ bool Board320_240::netSendData()
         http.end();
       }
     }
-    else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
-    {
-      // SIM800L
-      rc = sim800l->doPost(liveData->settings.remoteApiUrl, "application/json", payload, SIM800L_SND_TIMEOUT * 1000);
-    }
 
     if (rc == 200)
     {
       syslog->println("HTTP POST send successful");
-      liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+      liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
     }
     else
     {
@@ -4534,7 +4319,6 @@ bool Board320_240::netSendData()
   }
   else if (liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
-
     StaticJsonDocument<768> jsonData;
 
     jsonData["car_model"] = getCarModelAbrpStr();
@@ -4665,16 +4449,11 @@ bool Board320_240::netSendData()
 
       http.end();
     }
-    else if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L)
-    {
-      // SIM800L
-      rc = sim800l->doPost("http://api.iternio.com/1/tlm/send", "application/x-www-form-urlencoded", dta, SIM800L_SND_TIMEOUT * 1000);
-    }
 
     if (rc == 200)
     {
       syslog->println("HTTP POST send successful");
-      liveData->params.sim800l_lastOkSendTime = liveData->params.currentTime;
+      liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
     }
     else
     {
@@ -4685,7 +4464,7 @@ bool Board320_240::netSendData()
   }
   else
   {
-    syslog->println("Well... This not gonna happen... (Board320_240::sim800lSendData();)"); // Just for debug reasons...
+    syslog->println("Well... This not gonna happen... (Board320_240::netSendData();)"); // Just for debug reasons...
   }
 
   return true;
@@ -4699,7 +4478,7 @@ bool Board320_240::netContributeData()
   uint16_t rc = 0;
 
 // Only for core2
-#ifdef BOARD_M5STACK_CORE2
+#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
   // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
   if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
@@ -4782,7 +4561,7 @@ bool Board320_240::netContributeData()
       syslog->println(rc);
     }
   }
-#endif //BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
   return true;
 }

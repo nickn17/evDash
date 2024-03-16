@@ -44,7 +44,6 @@ void handleRoot()
   text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Communication</th></tr>";
   text += "<tr><td>Type</td><td>" + String(liveDataWebInt->settings.commType == COMM_TYPE_CAN_COMMU ? "CAN COMMU module" : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BLE4 ? "OBD2 BLE4"
-                                                                                                                       : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BT3    ? "OBD2 BT3"
                                                                                                                        : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_WIFI   ? "OBD2 WIFI"
                                                                                                                                                                                     : "UNKNOWN") +
           "</td></tr>";
@@ -78,7 +77,7 @@ void handleRoot()
   text += "<tr><td>Used / Total MB</td><td>" + String(SD.usedBytes() / 1048576) + " / " + String(SD.totalBytes() / 1048576) + "</td></tr>";
 
   text += "<tr><th colspan='2'>Remote upload</th></tr>";
-  text += "<tr><td>Module</td><td>" + String(liveDataWebInt->settings.remoteUploadModuleType == REMOTE_UPLOAD_SIM800L ? "SIM800L (deprecated)" : "WIFI") + "</td></tr>";
+  text += "<tr><td>Module</td><td>" + String(liveDataWebInt->settings.remoteUploadModuleType == REMOTE_UPLOAD_OFF ? "OFF" : "WIFI") + "</td></tr>";
   text += "<tr><td>Remote API url</td><td>" + String(liveDataWebInt->settings.remoteApiUrl) + "</td></tr>";
   text += "<tr><td>Remote API key</td><td>" + String(liveDataWebInt->settings.remoteApiKey) + "</td></tr>";
   text += "<tr><td>Remote upload interval [sec.]</td><td>" + String(liveDataWebInt->settings.remoteUploadIntervalSec) + "</td></tr>";

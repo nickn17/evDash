@@ -1,8 +1,9 @@
-#ifdef BOARD_M5STACK_CORE2 
+#ifdef BOARD_M5STACK_CORES3
 
 #include "BoardInterface.h"
 #include "Board320_240.h"
-#include "BoardM5stackCore2.h"
+#include "BoardM5stackCoreS3.h"
+#include <time.h>
 // #include "I2C_MPU6886.h"
 
 // Touch screen
@@ -29,9 +30,9 @@ float temp = 0.0F;
 */
 
 /**
- * Init board
+ * Init board      
  */
-void BoardM5stackCore2::initBoard()
+void BoardM5stackCoreS3::initBoard()
 {
   invertDisplay = true;
   pinButtonLeft = BUTTON_LEFT;
@@ -56,17 +57,16 @@ void BoardM5stackCore2::initBoard()
   Write1Byte(0X36, 0X4C);
   Write1Byte(0x82, 0xff);
 
-  M5.Axp.SetESPVoltage(3350);
-  M5.Axp.SetBusPowerMode(1); // 1 - Power from bus; 0 - Power from USB
-  M5.Axp.SetLDOVoltage(2, 3300);
-  M5.Axp.SetLDOVoltage(3, 2000);
-  M5.Axp.SetLDOEnable(2, true);
-  M5.Axp.SetDCDC3(false);
-  M5.Axp.SetLed(false);
-  M5.Axp.SetSpkEnable(false);
-
-  M5.Touch.begin();
-  M5.Rtc.begin();
+  CoreS3.Power.setChargeVoltage(3350);
+  CoreS3.Power.setExtPower(true); // 1 - Power from bus; 0 - Power from USB
+  /*CoreS3.Power.SetLDOVoltage(2, 3300);
+  CoreS3.Power.SetLDOVoltage(3, 2000);
+  CoreS3.Power.SetLDOEnable(2, true);
+  CoreS3.Power.SetDCDC3(false);
+  CoreS3.Power.setLed(false);*/
+  CoreS3.Speaker.end(); //.SetSpkEnable(false);
+  // CoreS3.Touch.begin(&CoreS3.Display);
+  CoreS3.Rtc.begin();
   // M5.IMU.Init(); // Gyro
   // delay(100);
 
@@ -76,41 +76,41 @@ void BoardM5stackCore2::initBoard()
 /**
  * After setup
  */
-void BoardM5stackCore2::afterSetup()
+void BoardM5stackCoreS3::afterSetup()
 {
   Board320_240::afterSetup();
 
-  syslog->println(" START -> BoardM5stackCore2::afterSetup ");
+  syslog->println(" START -> BoardM5stackCoreS3::afterSetup ");
 
   // Touch screen zone
-  uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
+  //uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
 
-  M5.background.delHandlers();
-  M5.background.tapTime = 50;
-  M5.background.dbltapTime = 300;
-  M5.background.longPressTime = 700;
-  M5.background.repeatDelay = 250;
-  M5.background.repeatInterval = 250;
-  M5.background.addHandler(eventDisplay, events);
-  M5.Buttons.addHandler(eventDisplay, events);
+  /*  M5.background.delHandlers();
+    M5.background.tapTime = 50;
+    M5.background.dbltapTime = 300;
+    M5.background.longPressTime = 700;
+    M5.background.repeatDelay = 250;
+    M5.background.repeatInterval = 250;
+    M5.background.addHandler(eventDisplay, events);
+    M5.Buttons.addHandler(eventDisplay, events);*/
 }
 
 /**
  * Wakeup board
  */
-void BoardM5stackCore2::wakeupBoard()
+void BoardM5stackCoreS3::wakeupBoard()
 {
-  M5.Axp.SetLcdVoltage(2500);
-  M5.Axp.SetLCDRSet(0);
-  delay(100);
-  M5.Axp.SetLCDRSet(1);
-  M5.Touch.begin();
+  /*  M5.Axp.SetLcdVoltage(2500);
+    M5.Axp.SetLCDRSet(0);
+    delay(100);
+    M5.Axp.SetLCDRSet(1);
+    M5.Touch.begin();*/
 }
 
 /**
  * Write to Wire1
  */
-void BoardM5stackCore2::Write1Byte(uint8_t Addr, uint8_t Data)
+void BoardM5stackCoreS3::Write1Byte(uint8_t Addr, uint8_t Data)
 {
   Wire1.beginTransmission(0x34);
   Wire1.write(Addr);
@@ -121,7 +121,7 @@ void BoardM5stackCore2::Write1Byte(uint8_t Addr, uint8_t Data)
 /**
  * Read from Wire1
  */
-uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
+uint8_t BoardM5stackCoreS3::Read8bit(uint8_t Addr)
 {
   Wire1.beginTransmission(0x34);
   Wire1.write(Addr);
@@ -133,7 +133,7 @@ uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
 /**
  * Button pressed and touchscreen support
  */
-bool BoardM5stackCore2::isButtonPressed(int button)
+bool BoardM5stackCoreS3::isButtonPressed(int button)
 {
   // All events
   if (touchPressed || btnAPressed || btnBPressed || btnCPressed)
@@ -252,7 +252,7 @@ bool BoardM5stackCore2::isButtonPressed(int button)
 /**
  * Touch screen handler
  */
-void BoardM5stackCore2::eventDisplay(Event &e)
+/*void BoardM5stackCoreS3::eventDisplay(Event &e)
 {
   if (e.type == E_TOUCH && (lastTouchX != e.to.x || lastTouchY != e.to.y))
   {
@@ -296,34 +296,34 @@ void BoardM5stackCore2::eventDisplay(Event &e)
                    e.typeName(), e.finger, e.objName(), e.from.x, e.from.y,
                    e.to.x, e.to.y);
     syslog->printf("( dir %d deg, dist %d, %d ms )\n", e.direction(),
-                   e.distance(), e.duration);*/
-}
+                   e.distance(), e.duration);
+}*/
 
 /**
  * Enter sleep mode
  */
-void BoardM5stackCore2::enterSleepMode(int secs)
+void BoardM5stackCoreS3::enterSleepMode(int secs)
 {
   if (secs > 0)
   {
     syslog->println("Going to sleep for " + String(secs) + " seconds!");
     syslog->flush();
     delay(100);
-    M5.Axp.DeepSleep(secs * 1000000ULL);
+    CoreS3.Power.deepSleep(secs * 1000000ULL);
   }
   else
   {
     syslog->println("Shutting down...");
     syslog->flush();
     delay(100);
-    M5.Axp.PowerOff();
+    CoreS3.Power.powerOff();
   }
 }
 
 /**
  * Board loop
  */
-void BoardM5stackCore2::boardLoop()
+void BoardM5stackCoreS3::boardLoop()
 {
   M5.update();
   Board320_240::boardLoop();
@@ -355,7 +355,7 @@ void BoardM5stackCore2::boardLoop()
 /**
  * Main loop
  */
-void BoardM5stackCore2::mainLoop()
+void BoardM5stackCoreS3::mainLoop()
 {
   Board320_240::mainLoop();
 }
@@ -363,7 +363,7 @@ void BoardM5stackCore2::mainLoop()
 /**
  * Skip adapter scan
  */
-bool BoardM5stackCore2::skipAdapterScan()
+bool BoardM5stackCoreS3::skipAdapterScan()
 {
   bool pressed = false;
 
@@ -387,20 +387,17 @@ bool BoardM5stackCore2::skipAdapterScan()
 /**
  * Set time
  */
-void BoardM5stackCore2::setTime(String timestamp)
+void BoardM5stackCoreS3::setTime(String timestamp)
 {
-  RTC_TimeTypeDef RTCtime;
-  RTC_DateTypeDef RTCdate;
-
-  RTCdate.Year = timestamp.substring(0, 4).toInt();
-  RTCdate.Month = timestamp.substring(5, 7).toInt();
-  RTCdate.Date = timestamp.substring(8, 10).toInt();
-  RTCtime.Hours = timestamp.substring(11, 13).toInt();
-  RTCtime.Minutes = timestamp.substring(14, 16).toInt();
-  RTCtime.Seconds = timestamp.substring(17, 19).toInt();
-
-  M5.Rtc.SetTime(&RTCtime);
-  M5.Rtc.SetDate(&RTCdate);
+  struct tm tm;
+  tm.tm_year = timestamp.substring(0, 4).toInt() - 1900;
+  tm.tm_mon = timestamp.substring(5, 7).toInt() - 1;
+  tm.tm_mday = timestamp.substring(8, 10).toInt();
+  tm.tm_hour = timestamp.substring(11, 13).toInt();
+  tm.tm_min = timestamp.substring(14, 16).toInt();
+  tm.tm_sec = timestamp.substring(17, 19).toInt();
+  time_t t = mktime(&tm);
+  CoreS3.Rtc.setDateTime(gmtime(&t));
 
   BoardInterface::setTime(timestamp);
 }
@@ -408,7 +405,7 @@ void BoardM5stackCore2::setTime(String timestamp)
 /**
  * Sync NTP time
  */
-void BoardM5stackCore2::ntpSync()
+void BoardM5stackCoreS3::ntpSync()
 {
   syslog->println("Syncing NTP time.");
 
@@ -419,4 +416,4 @@ void BoardM5stackCore2::ntpSync()
   showTime();
 }
 
-#endif // BOARD_M5STACK_CORE2
+#endif // BOARD_M5STACK_CORES3

@@ -9,13 +9,11 @@
    wifiPassword=xxx
    wifiSsid2=xxx
    wifiPassword2=xxx
-   gprsApn=xxx
    remoteApiUrl=xxx
    remoteApiKey=xxx
    abrpApiToken=xxx
 
   Required libraries, see INSTALLATION.rd
-  SIM800L m5stack support by (https://github.com/kolaCZek)
 */
 
 #include "Arduino.h"
@@ -23,17 +21,13 @@
 #include "config.h"
 #include "BoardInterface.h"
 
-#ifdef BOARD_TTGO_T4
-#include "BoardTtgoT4v13.h"
-#endif // BOARD_TTGO_T4
-
-#ifdef BOARD_M5STACK_CORE
-#include "BoardM5stackCore.h"
-#endif // BOARD_M5STACK_CORE
-
 #ifdef BOARD_M5STACK_CORE2
 #include "BoardM5stackCore2.h"
 #endif // BOARD_M5STACK_CORE2
+
+#ifdef BOARD_M5STACK_CORES3
+#include "BoardM5stackCoreS3.h"
+#endif // BOARD_M5STACK_CORES3
 
 #include "LogSerial.h"
 #include "LiveData.h"
@@ -64,25 +58,21 @@ void setup(void)
   // Serial console
   syslog = new LogSerial();
 
-  // Init board
-#ifdef BOARD_TTGO_T4
-  board = new BoardTtgoT4v13();
-#endif // BOARD_TTGO_T4
-
-#ifdef BOARD_M5STACK_CORE
-  board = new BoardM5stackCore();
-#endif // BOARD_M5STACK_CORE
-
 #ifdef BOARD_M5STACK_CORE2
   board = new BoardM5stackCore2();
 #endif // BOARD_M5STACK_CORE2
+
+#ifdef BOARD_M5STACK_CORES3
+  board = new BoardM5stackCoreS3();
+#endif // BOARD_M5STACK_CORES3
+
 
   board->setLiveData(liveData);
   board->loadSettings();
   board->initBoard();
 
   // Turn on serial console
-  if (liveData->settings.serialConsolePort != 255 && liveData->settings.gpsHwSerialPort != liveData->settings.serialConsolePort && liveData->settings.gprsHwSerialPort != liveData->settings.serialConsolePort)
+  if (liveData->settings.serialConsolePort != 255 && liveData->settings.gpsHwSerialPort != liveData->settings.serialConsolePort)
   {
     syslog->begin(115200);
   }
@@ -176,7 +166,6 @@ void setup(void)
   syslog->println("wifiSsid2=x     ... set backup AP ssid (replace primary wifi automatically in 1-2 minutes)");
   syslog->println("wifiPassword2=x     ... set backup AP password");
   syslog->println("abrpApiToken=x     ... set abrp api token for live data");
-  syslog->println("gprsApn=x     ... set gprs (sim800l) apn");
   syslog->println("remoteApiUrl=x     ... set remote api url");
   syslog->println("remoteApiKey=x     ... set remote api key");
   syslog->println("mqttServer=x     ... set Mqtt server");
