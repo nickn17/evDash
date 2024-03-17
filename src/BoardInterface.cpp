@@ -191,6 +191,9 @@ void BoardInterface::loadSettings()
   liveData->settings.settingsVersion = 18;
   liveData->settings.commandQueueAutoStop = 1;
   liveData->settings.gpsSerialPortSpeed = 9600;
+  // v19
+  liveData->settings.settingsVersion = 19;
+  liveData->settings.boardPowerMode = 1;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -351,6 +354,11 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.settingsVersion = 18;
         liveData->tmpSettings.commandQueueAutoStop = 1;
         liveData->tmpSettings.gpsSerialPortSpeed = 9600;
+      }
+    if (liveData->tmpSettings.settingsVersion == 18)
+      {
+        liveData->tmpSettings.settingsVersion = 19;
+        liveData->tmpSettings.boardPowerMode = 1;
       }
 
       // Save upgraded structure

@@ -223,6 +223,7 @@ void Board320_240::afterSetup()
   }
 
   showTime();
+  tft.fillScreen(TFT_GREEN);
 
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
@@ -1289,97 +1290,6 @@ void Board320_240::drawSceneBatteryCells()
 }
 
 /**
- * drawPreDrawnChargingGraphs
- * P = U.I
- */
-void Board320_240::drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY)
-{
-  // Rapid gate
-  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 180 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_RAPIDGATE35);
-  // Coldgate <5C
-  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE0_5);
-  // Coldgate 5-14C
-  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
-  spr.drawLine(zeroX + (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
-  spr.drawLine(zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
-  spr.drawLine(zeroX + (/* SOC FROM */ 64 * mulX), zeroY - (/*I*/ 75 * /*U SOC*/ (64 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
-  spr.drawLine(zeroX + (/* SOC FROM */ 65 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (65 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
-  spr.drawLine(zeroX + (/* SOC FROM */ 82 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 40 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE5_14);
-  // Coldgate 15-24C
-  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
-  spr.drawLine(zeroX + (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
-  spr.drawLine(zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 110 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_COLDGATE15_24);
-  // Optimal
-  spr.drawLine(zeroX + (/* SOC FROM */ 1 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 51 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 51 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (51 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 53 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 53 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (53 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 55 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 55 * mulX), zeroY - (/*I*/ 195 * /*U SOC*/ (55 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 57 * mulX), zeroY - (/*I*/ 200 * /*U SOC*/ (57 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 58 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (58 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 71 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 71 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (71 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 73 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 73 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (73 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 75 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 75 * mulX), zeroY - (/*I*/ 145 * /*U SOC*/ (75 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 77 * mulX), zeroY - (/*I*/ 150 * /*U SOC*/ (77 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 78 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (78 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 82 * mulX), zeroY - (/*I*/ 90 * /*U SOC*/ (82 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 83 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (83 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 92 * mulX), zeroY - (/*I*/ 60 * /*U SOC*/ (92 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 95 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (95 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  spr.drawLine(zeroX + (/* SOC FROM */ 98 * mulX), zeroY - (/*I*/ 35 * /*U SOC*/ (98 * 55 / 100 + 352) /**/ / 1000 * mulY),
-               zeroX + (/* SOC TO */ 100 * mulX), zeroY - (/*I*/ 15 * /*U SOC*/ (100 * 55 / 100 + 352) /**/ / 1000 * mulY), TFT_GRAPH_OPTIMAL25);
-  // Triangles
-  int x = zeroX;
-  int y;
-  if (liveData->params.batMaxC >= 35)
-  {
-    y = zeroY - (/*I*/ 180 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
-  }
-  else if (liveData->params.batMinC >= 25)
-  {
-    y = zeroY - (/*I*/ 200 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
-  }
-  else if (liveData->params.batMinC >= 15)
-  {
-    y = zeroY - (/*I*/ 150 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
-  }
-  else if (liveData->params.batMinC >= 5)
-  {
-    y = zeroY - (/*I*/ 110 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
-  }
-  else
-  {
-    y = zeroY - (/*I*/ 60 * /*U SOC*/ (1 * 55 / 100 + 352) /**/ / 1000 * mulY);
-  }
-  spr.fillTriangle(x + 5, y, x, y - 5, x, y + 5, TFT_ORANGE);
-}
-
-/**
  * Charging graph (Screen 4)
  */
 void Board320_240::drawSceneChargingGraph()
@@ -1442,12 +1352,6 @@ void Board320_240::drawSceneChargingGraph()
         spr.drawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY), 2);
       }
     }
-  }
-
-  // Draw suggested curves
-  if (liveData->settings.predrawnChargingGraphs == 1)
-  {
-    drawPreDrawnChargingGraphs(zeroX, zeroY, mulX, mulY);
   }
 
   // Draw realtime values
@@ -2012,6 +1916,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
       break;
     }
     break;*/
+  case MENU_BOARD_POWER_MODE:
+    suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
+    break;
   case MENU_REMOTE_UPLOAD:
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);
     suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1;
@@ -2116,12 +2023,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     sprintf(tmpStr1, "[%d%%]", liveData->settings.lcdBrightness);
     sprintf(tmpStr2, "[auto/%d%%]", ((liveData->params.lcdBrightnessCalc == -1) ? 100 : liveData->params.lcdBrightnessCalc));
     suffix = ((liveData->settings.lcdBrightness == 0) ? tmpStr2 : tmpStr1);
-    break;
-  case MENU_PREDRAWN_GRAPHS:
-    suffix = (liveData->settings.predrawnChargingGraphs == 1) ? "[on]" : "[off]";
-    break;
-  case MENU_HEADLIGHTS_REMINDER:
-    suffix = (liveData->settings.headlightsReminder == 1) ? "[on]" : "[off]";
     break;
   case MENU_SLEEP_MODE:
     switch (liveData->settings.sleepModeLevel)
@@ -2669,6 +2570,11 @@ void Board320_240::menuItemClick()
     case MENU_ADAPTER_LOAD_TEST_DATA:
       loadTestData();
       break;
+    case MENU_BOARD_POWER_MODE:
+      liveData->settings.boardPowerMode = (liveData->settings.boardPowerMode == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
     // Screen orientation
     case MENU_SCREEN_ROTATION:
       liveData->settings.displayRotation = (liveData->settings.displayRotation == 1) ? 3 : 1;
@@ -2722,17 +2628,6 @@ void Board320_240::menuItemClick()
       if (liveData->settings.lcdBrightness > 100)
         liveData->settings.lcdBrightness = 0;
       setBrightness();
-      showMenu();
-      return;
-      break;
-    // Pre-drawn charg.graphs off/on
-    case MENU_PREDRAWN_GRAPHS:
-      liveData->settings.predrawnChargingGraphs = (liveData->settings.predrawnChargingGraphs == 1) ? 0 : 1;
-      showMenu();
-      return;
-      break;
-    case MENU_HEADLIGHTS_REMINDER:
-      liveData->settings.headlightsReminder = (liveData->settings.headlightsReminder == 1) ? 0 : 1;
       showMenu();
       return;
       break;
@@ -3163,20 +3058,6 @@ void Board320_240::redrawScreen()
     return;
   }
   redrawScreenIsRunning = true;
-
-  // Headlights reminders
-  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode &&
-      !liveData->params.headLights && !liveData->params.autoLights)
-  {
-    spr.fillSprite(TFT_RED);
-    spr.setFreeFont(&Orbitron_Light_32);
-    spr.setTextColor(TFT_WHITE);
-    spr.setTextDatum(MC_DATUM);
-    spr.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
-    spr.pushSprite(0, 0);
-    redrawScreenIsRunning = false;
-    return;
-  }
 
   spr.fillSprite(TFT_BLACK);
 

@@ -302,7 +302,7 @@ typedef struct
   char remoteApiUrl[64];                  // Will be used as mqtt password in future builds
   char remoteApiKey[32];                  // Will be used as mqtt username in future builds
   //
-  uint8_t headlightsReminder;
+  uint8_t headlightsReminder;     // Deprecated
   // === settings version 5
   // =================================
   uint8_t gpsHwSerialPort;  // 255-off, 0,1,2 - hw serial
@@ -370,6 +370,8 @@ typedef struct
   // == settings version 18
   uint8_t commandQueueAutoStop;     // Command queue autostop. Recommended for eGMP (Hyundai/Kia) platform
   unsigned long gpsSerialPortSpeed; // default 9600
+  // == settings version 19
+  uint8_t boardPowerMode;     // Default: 1 - external, 0 - from USB
   //
 } SETTINGS_STRUC;
 
