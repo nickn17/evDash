@@ -372,6 +372,10 @@ typedef struct
   unsigned long gpsSerialPortSpeed; // default 9600
   // == settings version 19
   uint8_t boardPowerMode;     // Default: 1 - external, 0 - from USB
+  // == settings version 20
+  uint8_t gpsModuleType;      // 0 - none, Default: 
+  // 1 - u-blox NEO-M8N https://shop.m5stack.com/products/gps-module, 
+  // 2 - GNSS Module https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
   //
 } SETTINGS_STRUC;
 

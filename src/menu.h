@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 166
+#define MENU_SIZE 167
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -159,6 +159,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_REMOTE_UPLOAD_LOGS_TO_EVDASH_SERVER, MENU_REMOTE_UPLOAD, MENU_NO_MENU, "Upload logs to evdash server"},
 
     {MENU_GPS_TOP, MENU_GPS, MENU_OTHERS, "<- parent menu"},
+    {MENU_GPS_MODULE_TYPE, MENU_GPS, MENU_NO_MENU, "GPS module"},
     {MENU_GPS_PORT, MENU_GPS, MENU_NO_MENU, "GPS port"},
     {MENU_GPS_SPEED, MENU_GPS, MENU_NO_MENU, "GPS speed"},
 

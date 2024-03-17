@@ -10,6 +10,10 @@
 - Removed feature: Headlight reminder
 - Removed feature: Pre-drawn charging.graphs
 - Menu Board/Power mode (external/USB)
+- Menu Others/Gps/Module type - init sequence (none, M5 NEO-M8N, M5 GNSS)
+- Source code comments by Spotzify and Code AI extension
+- Colored booting sequence
+- Display status - No CAN response, CAN failed
 
 ### v2.8.3 2023-12-25
 - removed debugData1/2 structures. Replaced with contribute anonymous data feature.

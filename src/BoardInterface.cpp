@@ -219,6 +219,9 @@ void BoardInterface::loadSettings()
   // v19
   liveData->settings.settingsVersion = 19;
   liveData->settings.boardPowerMode = 1;
+  // v20
+  liveData->settings.settingsVersion = 20;
+  liveData->settings.gpsModuleType = GPS_MODULE_TYPE_NEO_M8N;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -384,6 +387,11 @@ void BoardInterface::loadSettings()
       {
         liveData->tmpSettings.settingsVersion = 19;
         liveData->tmpSettings.boardPowerMode = 1;
+      }
+      if (liveData->tmpSettings.settingsVersion == 19)
+      {
+        liveData->tmpSettings.settingsVersion = 20;
+        liveData->tmpSettings.gpsModuleType = GPS_MODULE_TYPE_NEO_M8N;
       }
 
       // Save upgraded structure

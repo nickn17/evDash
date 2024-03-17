@@ -1,10 +1,14 @@
+/**
+ * BMW i3 implementation
+ */
 #include "CarBmwI3.h"
 #include <vector>
 #include <algorithm>
 
 /**
-   activateliveData->commandQueue
-*/
+ * Initializes and populates the command queue for a BMW i3.
+ * Sets various LiveData parameters specific to the BMW i3 model.
+ */
 void CarBmwI3::activateCommandQueue()
 {
   const uint16_t commandQueueLoopFrom = 18;

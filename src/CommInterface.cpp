@@ -33,6 +33,10 @@ void CommInterface::initComm(LiveData *pLiveData, BoardInterface *pBoard)
  */
 uint8_t CommInterface::checkConnectAttempts()
 {
+  if (connectAttempts == 0)
+  {
+    connectStatus = "CAN failed. 0 attempts";
+  }
   return connectAttempts > 0;
 }
 
@@ -97,11 +101,20 @@ void CommInterface::mainLoop()
   if (liveData->params.currentTime - liveData->params.lastChargingOnTime > 10 && liveData->params.chargingOn)
     liveData->params.chargingOn = false;
 
+  // No CAN response (timeout)
+  if (liveData->settings.commType == 1 &&
+      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
+      checkConnectAttempts())
+  {
+    connectStatus = "No CAN response";
+  }
+
   // Can send next command from queue to OBD
   if (liveData->canSendNextAtCommand)
   {
     if (liveData->commandQueueIndex == liveData->commandQueueCount && liveData->params.stopCommandQueue)
     {
+      connectStatus = "CAN queue paused";
       syslog->println("CAN/OBD2 command queue stopped due to sleep mode & voltage...");
     }
     else

@@ -50,6 +50,12 @@
 #define SLEEP_MODE_DEEP_SLEEP 2
 #define SLEEP_MODE_SHUTDOWN 3
 
+// GPS MODULE
+#define GPS_MODULE_TYPE_NONE 0
+#define GPS_MODULE_TYPE_NEO_M8N 1
+#define GPS_MODULE_TYPE_M5_GNSS 2
+
+// ABRP KEY
 #define ABRP_API_KEY "b8992aa2-cec6-43a9-8561-32499cf98ceb"
 
 typedef enum
@@ -214,6 +220,7 @@ typedef enum
 
   // menu gps
   MENU_GPS_TOP = 3120,
+  MENU_GPS_MODULE_TYPE,
   MENU_GPS_PORT,
   MENU_GPS_SPEED,
 
