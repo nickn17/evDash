@@ -7,7 +7,7 @@
 - new gps M5 module GNSS works with UART2 / 38400 settings
 - [DEV] added support for new board M5Stack CoreS3
 - removed SIM800L module support
-:q
+
 ### v2.8.3 2023-12-25
 - removed debugData1/2 structures. Replaced with contribute anonymous data feature.
 - e-GMP - added bms mode (none/LTR/PTC/cooling)
