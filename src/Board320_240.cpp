@@ -1056,17 +1056,43 @@ void Board320_240::drawSceneSpeed()
   posy = 40;
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor(TFT_WHITE);
-  spr.setTextSize(2); // Size for small 5cix7 font
-  sprintf(tmpStr3, "0");
-  if (liveData->params.speedKmhGPS > 10)
+
+  // Speed or charging data
+  if (liveData->params.chargingOn)
   {
-    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
+    // Charging voltage, current, time
+    posy = 40;
+    spr.setFreeFont(&Roboto_Thin_24);
+    spr.setTextDatum(TR_DATUM); // Top center
+    spr.setTextColor(TFT_WHITE);
+    time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
+    if ((diffTime / 60) > 99)
+      sprintf(tmpStr3, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
+    else
+      sprintf(tmpStr3, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
+    spr.drawString(tmpStr3, 200, posy, GFXFF);
+    posy += 24;
+    sprintf(tmpStr3, (liveData->params.batVoltage == -1000) ? "n/a V" : "%01.01f V", liveData->params.batVoltage);
+    spr.drawString(tmpStr3, 200, posy, GFXFF);
+    posy += 24;
+    sprintf(tmpStr3, (liveData->params.batPowerAmp == -1000) ? "n/a A" : "%01.01f A", liveData->params.batPowerAmp);
+    spr.drawString(tmpStr3, 200, posy, GFXFF);
   }
-  else if (liveData->params.speedKmh > 10)
+  else
   {
-    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+    // Speed
+    spr.setTextSize(2); // Size for small 5cix7 font
+    sprintf(tmpStr3, "0");
+    if (liveData->params.speedKmhGPS > 10)
+    {
+      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
+    }
+    else if (liveData->params.speedKmh > 10)
+    {
+      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
+    }
+    spr.drawString(tmpStr3, 200, posy, 7);
   }
-  spr.drawString(tmpStr3, 200, posy, 7);
 
   posy = 140;
   spr.setTextDatum(TR_DATUM); // Top center

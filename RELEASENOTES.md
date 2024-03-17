@@ -14,6 +14,7 @@
 - Source code comments by Spotzify and Code AI extension
 - Colored booting sequence
 - Display status - No CAN response, CAN failed
+- Speed screen now displays charging info (time, HV voltage/current) instead speed 0 km/h
 
 ### v2.8.3 2023-12-25
 - removed debugData1/2 structures. Replaced with contribute anonymous data feature.
