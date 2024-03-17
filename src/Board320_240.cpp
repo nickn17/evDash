@@ -157,17 +157,9 @@ void Board320_240::afterSetup()
     ina3221.begin();
     syslog->print("ch1:");
     syslog->print(ina3221.getBusVoltage_V(1));
-    syslog->print("V\t ch2:");
-    syslog->print(ina3221.getBusVoltage_V(2));
-    syslog->print("V\t ch3:");
-    syslog->print(ina3221.getBusVoltage_V(3));
     syslog->println("V");
     syslog->print("ch1:");
     syslog->print(ina3221.getCurrent_mA(1));
-    syslog->print("mA\t ch2:");
-    syslog->print(ina3221.getCurrent_mA(2));
-    syslog->print("mA\t ch3:");
-    syslog->print(ina3221.getCurrent_mA(3));
     syslog->println("mA");
   }
 
@@ -3381,6 +3373,12 @@ void Board320_240::redrawScreen()
     tmp_send_interval = liveData->settings.remoteUploadAbrpIntervalSec;
   }
 
+  // Ignition ON
+  if (liveData->params.ignitionOn) 
+  {
+    spr.fillRect(130, 0, 2, 14, TFT_GREEN);
+  }
+
   // WiFi Status
   if (liveData->settings.wifiEnabled == 1 && liveData->settings.remoteUploadModuleType == 1)
   {
@@ -3652,21 +3650,15 @@ void Board320_240::mainLoop()
   if (gpsHwUart != NULL)
   {
     unsigned long start = millis();
-    boolean process = false;
-    // do
-    //{
-    while (gpsHwUart->available())
+    if (gpsHwUart->available())
     {
-      int ch = gpsHwUart->read();
-      if (ch != -1)
-        syslog->infoNolf(DEBUG_GPS, char(ch));
-      gps.encode(ch);
-      process = true;
-    }
-    //} while (millis() - start < 20);
-    //
-    if (process == true)
-    {
+      do
+      {
+        int ch = gpsHwUart->read();
+        if (ch != -1)
+          syslog->infoNolf(DEBUG_GPS, char(ch));
+        gps.encode(ch);
+      } while (gpsHwUart->available());
       syncGPS();
     }
   }
@@ -4049,61 +4041,47 @@ bool Board320_240::sdcardMount()
     return true;
   }
 
-  int8_t countdown = 3;
   bool SdState = false;
-
-  while (1)
+  syslog->print("Initializing SD card...");
+  SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
+  if (SdState)
   {
-    syslog->print("Initializing SD card...");
 
-    syslog->print(" M5STACK ");
-    SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
-
-    if (SdState)
+    uint8_t cardType = SD.cardType();
+    if (cardType == CARD_NONE)
     {
-
-      uint8_t cardType = SD.cardType();
-      if (cardType == CARD_NONE)
-      {
-        syslog->println("No SD card attached");
-        return false;
-      }
-
-      syslog->println("SD card found.");
-      liveData->params.sdcardInit = true;
-
-      syslog->print("SD Card Type: ");
-      if (cardType == CARD_MMC)
-      {
-        syslog->println("MMC");
-      }
-      else if (cardType == CARD_SD)
-      {
-        syslog->println("SDSC");
-      }
-      else if (cardType == CARD_SDHC)
-      {
-        syslog->println("SDHC");
-      }
-      else
-      {
-        syslog->println("UNKNOWN");
-      }
-
-      uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-      syslog->printf("SD Card Size: %lluMB\n", cardSize);
-
-      return true;
+      syslog->println("No SD card attached");
+      return false;
     }
 
-    syslog->println("Initialization failed!");
-    countdown--;
-    if (countdown <= 0)
+    syslog->println("SD card found.");
+    liveData->params.sdcardInit = true;
+
+    syslog->print("SD Card Type: ");
+    if (cardType == CARD_MMC)
     {
-      break;
+      syslog->println("MMC");
     }
-    delay(500);
+    else if (cardType == CARD_SD)
+    {
+      syslog->println("SDSC");
+    }
+    else if (cardType == CARD_SDHC)
+    {
+      syslog->println("SDHC");
+    }
+    else
+    {
+      syslog->println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    syslog->printf("SD Card Size: %lluMB\n", cardSize);
+
+    return true;
   }
+
+  syslog->println("Initialization failed!");
 
   return false;
 }
@@ -4696,6 +4674,8 @@ bool Board320_240::netContributeData()
           strcpy(liveData->settings.contributeToken, doc["token"]);
           saveSettings();
         }
+  
+        liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
       }
     }
     else

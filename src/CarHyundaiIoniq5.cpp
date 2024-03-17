@@ -188,26 +188,7 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "ATSH7E6",
       "2201A0", 
       "22F190",
-
-      // E-CALL (looking for gps lat/lon - only for data contributing)
-      "ATSH7C7",
-      "22C006", 
-      "22C00A", 
-      "22C00B", 
-      "22F010", 
-      "22F189", 
-      "22F18B", 
-      "22F18E", 
-      "22F191", 
-      "22F193", 
-      "22F194", 
-      "22F196", 
-      "22F1A0", 
-      "22F1A1", 
-      "22F1B0", 
-      "22F1B2", 
-      "22FE07", 
-  
+      
       // AVN
       /*  "ATSH780",
         "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
@@ -285,12 +266,11 @@ void CarHyundaiIoniq5::parseRowMerged()
   String tmpStr;
 
   // IGPM
-  // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH770"))
   {
     if (liveData->commandRequest.equals("22BC03"))
     {
-      //
+      // Doors / hood
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
       if (liveData->settings.rightHandDrive)
@@ -307,19 +287,21 @@ void CarHyundaiIoniq5::parseRowMerged()
         liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
         liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
       }
-      //
+
+      // Trunk
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
-      liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
       liveData->params.trunkDoorOpen = (bitRead(tempByte, 0) == 1);
+      liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1); 
       if (liveData->params.ignitionOn)
       {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
 
+      // Lights
       tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
-      liveData->params.headLights = (bitRead(tempByte, 3) == 1); // old 5 bit
-      liveData->params.autoLights = (bitRead(tempByte, 3) == 1); // old 4 bit
-      liveData->params.dayLights = (bitRead(tempByte, 3) == 1);
+      liveData->params.headLights = (bitRead(tempByte, 2) == 1); 
+      liveData->params.autoLights = false; //(bitRead(tempByte, 2) == 1); 
+      liveData->params.dayLights = (bitRead(tempByte, 2) == 1);
     }
     if (liveData->commandRequest.equals("22BC06"))
     {
@@ -645,6 +627,12 @@ bool CarHyundaiIoniq5::commandAllowed()
     syslog->print(" ");
     syslog->println(liveData->commandRequest);*/
 
+  // Don't scan other ECU when ignition is off
+  if (!liveData->params.ignitionOn && 
+       (!liveData->currentAtshRequest.equals("ATSH770") || !liveData->commandRequest.equals("22BC03"))) {    
+    return false; 
+  }
+
   // SleepMode Queue Filter
   if (liveData->params.sleepModeQueue)
   {
@@ -689,10 +677,6 @@ bool CarHyundaiIoniq5::commandAllowed()
 
   // GSM // only for data-contribute
   if (liveData->currentAtshRequest.equals("ATSH7E6")) {    
-    return false; 
-  }
-  // ECALL // only for data-contribute
-  if (liveData->currentAtshRequest.equals("ATSH7C7")) {    
     return false; 
   }
 
@@ -752,12 +736,19 @@ bool CarHyundaiIoniq5::commandAllowed()
 */
 void CarHyundaiIoniq5::loadTestData()
 {
+  // ECALL
+  liveData->currentAtshRequest = "ATSH7C7";
+  // 22C006
+  liveData->commandRequest = "22C006";
+  liveData->responseRowMerged = "62B0039C";
+  parseRowMerged();
 
   // IGPM
   liveData->currentAtshRequest = "ATSH770";
   // 22BC03
   liveData->commandRequest = "22BC03";
-  liveData->responseRowMerged = "62BC03FDEE7C730A600000AAAA";
+  //liveData->responseRowMerged = "62BC03FDEE206300620400AAAA";                                 	
+  liveData->responseRowMerged = "62BC03FDEE206300620000AAAA";                                 	
   parseRowMerged();
 
   // ABS / ESP + AHB ATSH7D1
