@@ -1,4 +1,24 @@
-#ifdef BOARD_M5STACK_CORE2 
+/**
+ * Initialization and setup for M5Stack Core2 board.
+ *
+ * Initializes board hardware like display, buttons, RTC, power management.
+ * Registers touch handlers.
+ * Contains board specific implementations of interface methods.
+ *
+ *
+
+BoardM5stackCore2.cpp:
+
+This code initializes and configures the M5Stack Core2 board.
+It starts by including required header files and defining pins for the left, right and middle buttons on the device. Some variables are declared to track the touch screen status and button presses. An I2C sensor interface is created but commented out.
+- The initBoard() function is called on startup to configure the board. It initializes the I2C buses, sets power modes and voltages on the AXP192 PMIC chip, and initializes the touch screen and RTC. It calls initBoard() on the parent Board320_240 class to initialize the display.
+- afterSetup() is called after setup to configure touch and button handlers. It attaches callback functions to handle touch and button events.
+- wakeupBoard() wakes up the display by setting LCD voltage, resetting the LCD, delaying, and reinitializing the touch screen.
+- Write1Byte() and Read8bit() are helper functions to write and read a single byte from the AXP192 chip over I2C.
+- isButtonPressed() checks if a touch or button press occurred. It updates the last button press time, processes the touch or button event, and returns true if a relevant event occurred that should be handled.
+Overall, this initializes the specific hardware on the M5Stack Core2, configures power and inputs, handles touch and button events, and acts as the interface between the hardware and the rest of the application code.
+ */
+#ifdef BOARD_M5STACK_CORE2
 
 #include "BoardInterface.h"
 #include "Board320_240.h"

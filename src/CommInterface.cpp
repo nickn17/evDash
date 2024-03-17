@@ -1,11 +1,26 @@
+/**
+ * CommInterface class handles communication with the vehicle's OBD port.
+ * initComm() initializes the communication interface.
+ * checkConnectAttempts() checks if any connection attempts were made.
+ * getConnectAttempts() gets the number of connection attempts.
+ * getConnectStatus() gets the connection status string.
+ * mainLoop() runs the main communication loop, sending commands and parsing responses.
+ * doNextQueueCommand() gets the next command from the queue and sends it.
+ * parseResponse() parses response frames into a single response string.
+ * parseRowMerged() handles the merged response string.
+ * recordLoop() records a full command queue loop for later comparison.
+ * compareCanRecords() compares recorded command loop results.
+ * sendPID() sends a PID command.
+ * receivePID() receives and handles a PID response.
+ */
 #include "CommInterface.h"
 #include "BoardInterface.h"
 // #include "CarInterface.h"
 #include "LiveData.h"
 
 /**
-  init
-*/
+ * Initializes the communication interface by setting the live data and board references.
+ */
 void CommInterface::initComm(LiveData *pLiveData, BoardInterface *pBoard)
 {
   liveData = pLiveData;
@@ -38,8 +53,13 @@ String CommInterface::getConnectStatus()
 }
 
 /**
-  Main loop
-*/
+ * mainLoop() is the main loop that runs continuously to process serial input commands,
+ * update live data, send next CAN command from queue if ready, and handle starting odometer
+ * and energy counters. It reads any serial input, executes commands when newline received,
+ * checks CAN send cooldown timer, sends next queued CAN command when ready, initializes
+ * start values for odometer and energy counters if needed, and resets chargingOn flag if
+ * stale.
+ */
 void CommInterface::mainLoop()
 {
 
@@ -93,8 +113,12 @@ void CommInterface::mainLoop()
 }
 
 /**
-  Do next AT command from queue
-*/
+ * Executes the next AT command from the command queue.
+ * Checks if command is allowed based on car status.
+ * Increments command queue index and loops back to start if at end.
+ * Handles contribute data collection status.
+ * Logs and executes allowed command.
+ */
 bool CommInterface::doNextQueueCommand()
 {
 
@@ -110,7 +134,8 @@ bool CommInterface::doNextQueueCommand()
     }
 
     // Contribute data flags
-    if (liveData->commandQueueIndex == liveData->commandQueueLoopFrom) {
+    if (liveData->commandQueueIndex == liveData->commandQueueLoopFrom)
+    {
       if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
       {
         syslog->println("contributeStatus ... ready to send");
@@ -121,9 +146,9 @@ bool CommInterface::doNextQueueCommand()
         syslog->println("contributeStatus ... collecting data");
 
         liveData->params.contributeStatus = CONTRIBUTE_COLLECTING;
-        liveData->contributeDataJson = "{";  // begin json
+        liveData->contributeDataJson = "{"; // begin json
       }
-    }    
+    }
 
     // Queue optimizer
     commandAllowed = board->carCommandAllowed();
@@ -160,8 +185,10 @@ bool CommInterface::doNextQueueCommand()
 }
 
 /**
-  Parse result from OBD, merge frames to sigle response
-*/
+ * Parses response frames from OBD into a single merged response string.
+ * Handles merging multi-line responses into a single string, as well as
+ * passing through single line responses.
+ */
 bool CommInterface::parseResponse()
 {
   // 1 frame data
@@ -184,19 +211,21 @@ bool CommInterface::parseResponse()
 }
 
 /**
-   Send final response to board
-*/
+ * Parses the merged response string into individual responses.
+ * Calls the board parseRowMerged() method to handle parsing.
+ * Also handles anonymous data contribution and CAN comparer recording.
+ */
 void CommInterface::parseRowMerged()
 {
-    // Anonymous data
-    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
-    {
-      liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
-      liveData->contributeDataJson += "_" + liveData->commandRequest;
-      liveData->contributeDataJson += "\": \"" + liveData->responseRowMerged;
-      liveData->contributeDataJson += "\", ";
-      syslog->println(liveData->contributeDataJson);
-    }
+  // Anonymous data
+  if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+  {
+    liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
+    liveData->contributeDataJson += "_" + liveData->commandRequest;
+    liveData->contributeDataJson += "\": \"" + liveData->responseRowMerged;
+    liveData->contributeDataJson += "\", ";
+    syslog->println(liveData->contributeDataJson);
+  }
 
   // Record previous response
   if (canComparerRecordIndex != -1)
@@ -238,8 +267,10 @@ void CommInterface::parseRowMerged()
 }
 
 /**
-   CanComparer - record whole queue loop
-*/
+ * Records the current queue loop to the specified data index
+ * in the canComparerData array. This allows comparing the current
+ * loop data to previous loops.
+ */
 void CommInterface::recordLoop(int8_t dataIndex)
 {
 
@@ -262,8 +293,9 @@ void CommInterface::recordLoop(int8_t dataIndex)
 }
 
 /**
-   CanComparer - compare captured results (0..3) and print byte differences (0 = 2, 1 = 3, 0 <> 1)
-*/
+ * Compares previously recorded CAN bus data loops.
+ * Prints differences between loops 0 and 1 compared to 2 and 3.
+ */
 void CommInterface::compareCanRecords()
 {
   syslog->println(canComparerData[0]);

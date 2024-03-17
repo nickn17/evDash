@@ -1,3 +1,9 @@
+/**
+ * Includes header files for different boards, cars, livedata,
+ * and various components used by the evDash application.
+ * Sets up the board, car interface, livedata, and logging.
+ */
+
 /*
   evDash (older name eNiroDashboard)
 
@@ -47,8 +53,9 @@ CarInterface *car;
 LiveData *liveData;
 
 /**
-  Setup device
-*/
+ * Setup function that initializes the board, car interface, live data,
+ * and logging. Also prints some introductory text.
+ */
 void setup(void)
 {
   // Init settings/params
@@ -65,7 +72,6 @@ void setup(void)
 #ifdef BOARD_M5STACK_CORES3
   board = new BoardM5stackCoreS3();
 #endif // BOARD_M5STACK_CORES3
-
 
   board->setLiveData(liveData);
   board->loadSettings();
@@ -188,8 +194,9 @@ void setup(void)
 }
 
 /**
-  Main loop
-*/
+ * Main program loop that calls the board's mainLoop() method.
+ * This handles running the main program logic in a loop.
+ */
 void loop()
 {
   board->mainLoop();

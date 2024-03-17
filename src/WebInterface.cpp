@@ -1,3 +1,14 @@
+/*
+This C++ code is setting up a web interface for an EV dashboard application.
+It includes header files for various functionality like WiFi, HTTP, and a web server. It defines ssid and password constants for connecting to a specific WiFi network.
+An ESP32WebServer object is created to handle HTTP requests on port 80. Some IP address constants are defined for the local network configuration.
+Pointers to LiveData and BoardInterface objects are declared, which seem to represent data and hardware access classes used elsewhere in the app.
+The getOffOnText function takes a boolean state parameter and returns an HTML span tag with styling to display that state as "ON" or "off". This is likely used to neatly format boolean values on the web interface.
+The handleRoot function renders the root HTML page. It builds an HTML string with styling and layout for the page. The page title includes the app name and version.
+The page content is split into two columns. The left column renders settings from the LiveData object. It loops through and prints communication, WiFi, and other config values. Some values are printed as inputs to allow changing the setting.
+So in summary, this sets up a web server to display a dashboard page with live data and settings, retrieving data from other parts of the application. It provides an interface to view and configure the EV telemetry system over HTTP.
+*/
+
 #include "WebInterface.h"
 #include "BoardInterface.h"
 #include "LiveData.h"

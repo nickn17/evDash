@@ -1,3 +1,42 @@
+/**
+ * Initializes the board hardware and peripherals.
+ * Sets up pins, time, display, etc.
+ *
+This code initializes and configures the hardware and peripherals for a display board.
+
+@src\Board320_240.cpp:1-5124 initializes a 320x240 pixel display board.
+
+It first includes necessary libraries and header files. It gets the current date and time from the real time clock module and sets it using the time library functions.
+
+It initializes the display driver and sets the rotation, brightness and color depth based on configuration settings. It also initializes a sprite graphics buffer to hold images to display.
+
+The initBoard() function configures the input buttons, gets the current time, and increments a boot counter.
+
+afterSetup() checks if the board is waking from sleep mode, initializes the voltmeter module if enabled, and calls additional setup functions from a board interface class.
+
+It prints debug messages, checks sleep mode settings, and decides whether to go back to sleep or wake up the board.
+
+The main purpose is to initialize all the hardware like the screen, buttons, voltmeter, etc. and configure settings like brightness and rotation. It gets the current time and date and stores it.
+It also handles waking from sleep and going back to sleep.
+
+The key inputs are the real time clock data, configuration settings, and sleep mode/wakeup logic.
+
+The outputs are an initialized display, sprite buffer, time, debug messages, and sleep management.
+
+The main logic flow is:
+
+1. Include libraries
+2. Get time and date
+3. Initialize display and sprites
+4. Configure input buttons
+5. Increment boot count
+6. Check sleep mode and wake/sleep logic
+7. Initialize other devices like voltmeter
+8. Call additional setup functions
+
+So in summary, it initializes the core display and hardware functionality, retrieves time and settings, handles wake/sleep logic, and prepares the board for operation.
+
+ */
 #include <FS.h>
 #include <analogWrite.h>
 #include <WiFi.h>
@@ -64,7 +103,7 @@ void Board320_240::initBoard()
 #endif // BOARD_M5STACK_CORE2
 #ifdef BOARD_M5STACK_CORES3
   auto dt = CoreS3.Rtc.getDateTime();
-    if (dt.date.year > 2020)
+  if (dt.date.year > 2020)
   {
     struct tm tm_tmp;
     tm_tmp.tm_year = dt.date.year - 1900;
@@ -317,7 +356,11 @@ void Board320_240::otaUpdate()
     }
   }
 
-  // Process header
+  /**
+   * Processes the HTTP response from the server.
+   * Checks if the response code is 200 OK, otherwise prints the error response.
+   * Breaks out of the loop when an empty line is reached, indicating the end of the headers.
+   */
   while (client.available())
   {
     String line = client.readStringUntil('\n');
@@ -363,7 +406,10 @@ void Board320_240::otaUpdate()
     }
   }
 
-  // Process payload
+  /**
+   * Attempts to begin an OTA update, checking for errors.
+   * Displays an error message if there is not enough space to begin the update.
+   */
   displayMessage("Installing OTA...", "");
   if (!Update.begin(contentLength))
   {
@@ -404,7 +450,20 @@ void Board320_240::otaUpdate()
 }
 
 /**
- * Go to sleep for TIME_TO_SLEEP seconds (SLEEP MODE = DEEP SLEEP)
+ * Puts the board into sleep mode for a number of seconds.
+ *
+ * If SIM800L is enabled, disconnects from GPRS before sleeping.
+ * Puts SIM800L into sleep mode.
+ *
+ * If GPS is enabled, sends command to put into sleep mode.
+ *
+ * Determines sleep duration based on settings:
+ * - sleepModeLevel: SLEEP_MODE_DEEP_SLEEP to use interval from settings.
+ * - sleepModeIntervalSec: seconds to sleep.
+ * - sleepModeShutdownHrs: max hours to sleep before shutting down.
+ * Increments counter of sleep cycles.
+ *
+ * Calls enterSleepMode() with determined duration.
  */
 void Board320_240::goToSleep()
 {
@@ -431,10 +490,13 @@ void Board320_240::goToSleep()
   enterSleepMode(sleepSeconds);
 }
 
-/*
-  Wake up board from deep sleep
-  Iterate thru commands and determine if car is charging or ignition is on
-*/
+/**
+ * Wake up board from deep sleep and determine if car is charging or ignition is on.
+ * Checks wakeup reason and returns if external wakeup pin was triggered.
+ * Checks voltage and returns if above wakeup threshold.
+ * Otherwise queues commands to check for valid response indicating car is active.
+ * If no valid response after timeout, enters deep sleep again.
+ */
 void Board320_240::afterSleep()
 {
   // Wakeup reason
@@ -562,7 +624,11 @@ void Board320_240::afterSleep()
 }
 
 /**
- * Turn off screen (brightness 0)
+ * Turns off the screen by setting the brightness to 0.
+ * Checks if screen is already off before doing anything.
+ * Has debug mode to print messages.
+ * Uses hardware-specific code based on #defines to actually
+ * control the backlight/screen brightness.
  */
 void Board320_240::turnOffScreen()
 {
@@ -575,7 +641,8 @@ void Board320_240::turnOffScreen()
   syslog->println("Turn off screen");
   currentBrightness = 0;
 
-  if (debugTurnOffScreen) {
+  if (debugTurnOffScreen)
+  {
     return;
   }
 
@@ -626,7 +693,11 @@ void Board320_240::setBrightness()
 }
 
 /**
- * Message dialog
+ * Displays a message dialog on the screen.
+ *
+ * Draws a filled rectangle as the dialog background, then draws the two message
+ * strings centered vertically and horizontally. Uses direct drawing to the screen
+ * buffer instead of sprites if sprites are not initialized.
  */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
@@ -662,7 +733,15 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
 }
 
 /**
- * Confirm message
+ * Displays a confirmation dialog with Yes/No buttons and waits for user input.
+ *
+ * Draws a filled rectangle as the dialog background, displays the confirmation
+ * message strings centered vertically and horizontally, and "YES"/"NO" buttons
+ * at bottom left/right. Waits up to 2 seconds for left/right buttons to be pressed.
+ *
+ * @param row1 First message string
+ * @param row2 Second message string
+ * @return True if Yes was selected, false if No or timeout
  */
 bool Board320_240::confirmMessage(const char *row1, const char *row2)
 {
@@ -706,7 +785,21 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
 }
 
 /**
- * Draw cell on dashboard
+ * Draws a cell on the dashboard display.
+ *
+ * Cells are 80x60 pixel blocks that make up the dashboard grid.
+ * This handles drawing the cell background, border, and centered text.
+ * It handles large 2x2 cells differently, drawing kWh and amp
+ * values instead of generic text.
+ *
+ * @param x The X grid position of the cell
+ * @param y The Y grid position of the cell
+ * @param w The width of the cell in grid blocks
+ * @param h The height of the cell in grid blocks
+ * @param text The text/value to draw in the cell
+ * @param desc Small description text
+ * @param bgColor The background color of the cell
+ * @param fgColor The foreground color of the text
  */
 void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, uint16_t bgColor, uint16_t fgColor)
 {
@@ -784,8 +877,17 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
 }
 
 /**
- * Show tire pressures / temperatures
- * Custom field
+ * Draws tire pressure and temperature info in a 2x2 grid cell.
+ *
+ * @param x The x grid position
+ * @param y The y grid position
+ * @param w The width in grid cells
+ * @param h The height in grid cells
+ * @param topleft The top left text
+ * @param topright The top right text
+ * @param bottomleft The bottom left text
+ * @param bottomright The bottom right text
+ * @param color The background color
  */
 void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char *topleft, const char *topright, const char *bottomleft, const char *bottomright, uint16_t color)
 {
@@ -813,7 +915,21 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
 }
 
 /**
- *  Main screen (Screen 1)
+ * Draws the main screen (screen 1) with live vehicle data.
+ *
+ * This shows the most important live data values in a grid layout.
+ * It includes:
+ * - Tire pressures and temperatures
+ * - Battery power usage
+ * - State of charge percentage
+ * - Battery current
+ * - Battery voltage
+ * - Minimum battery cell voltage
+ * - Battery temperature
+ * - Auxiliary battery percentage
+ * - Auxiliary battery current
+ * - Auxiliary battery voltage
+ * - Indoor and outdoor temperatures
  */
 void Board320_240::drawSceneMain()
 {
@@ -919,7 +1035,12 @@ void Board320_240::drawSceneMain()
 }
 
 /**
- * Speed + kwh/100km (Screen 2)
+ * Draws the speed and energy usage related screen. (Screen 2)
+ *
+ * This displays the current speed, average speed, energy usage,
+ * odometer, trip meter, and other driving related metrics.
+ *
+ * It handles formatting and coloring based on value thresholds.
  */
 void Board320_240::drawSceneSpeed()
 {
@@ -1134,7 +1255,10 @@ void Board320_240::drawSceneSpeed()
 }
 
 /**
- * HUD screen
+ * Draws the heads-up display (HUD) scene on the board's 320x240 display.
+ *
+ * The HUD shows key driving information like speed, power, SOC. It is
+ * optimized for vertical orientation while driving.
  */
 void Board320_240::drawSceneHud()
 {
@@ -1212,7 +1336,11 @@ void Board320_240::drawSceneHud()
 }
 
 /**
- * Battery cells (Screen 3)
+ * Draws the battery cells screen. (Screen 3)
+ *
+ * Displays the heater, inlet, and module temperatures.
+ * Then displays the voltage for each cell.
+ * Cell colors indicate temperature or min/max voltage.
  */
 void Board320_240::drawSceneBatteryCells()
 {
@@ -1474,7 +1602,12 @@ void Board320_240::drawSceneChargingGraph()
 }
 
 /**
- * SOC 10% table (screen 5)
+ * Draws the SOC 10% table screen. (screen 5)
+ *
+ * Displays discharge consumption and characteristics from 100% to 4% SOC,
+ * in 10% increments. Calculates differences between SOC levels for discharge
+ * energy consumed, charge energy consumed, odometer distance, and speed.
+ * Prints totals for 0-100% and estimated available capacity.
  */
 void Board320_240::drawSceneSoc10Table()
 {
@@ -1570,7 +1703,19 @@ void Board320_240::drawSceneSoc10Table()
 }
 
 /**
- * Debug screen (screen 6)
+ * Draws debug information to the screen. (screen 6)
+ *
+ * Displays diagnostic values for debugging purposes:
+ * - App version
+ * - Settings version
+ * - Frames per second
+ * - Wifi status
+ * - Remote upload module status
+ * - SD card status
+ * - Voltmeter status
+ * - Sleep mode
+ * - GPS status
+ * - Current time
  */
 void Board320_240::drawSceneDebug()
 {
@@ -2203,7 +2348,11 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
 }
 
 /**
- * Show menu
+ * Renders the menu UI on the screen.
+ * Handles pagination/scrolling of menu items.
+ * Highlights selected menu item.
+ * Renders menu items from static menuItems array
+ * and dynamic customMenu vector.
  */
 void Board320_240::showMenu()
 {
@@ -2541,7 +2690,7 @@ void Board320_240::menuItemClick()
       saveSettings();
       ESP.restart();
       break;
-     case MENU_ADAPTER_OBD2_WIFI:
+    case MENU_ADAPTER_OBD2_WIFI:
       liveData->settings.commType = COMM_TYPE_OBD2_WIFI;
       displayMessage("COMM_TYPE_OBD2_WIFI", "Rebooting");
       saveSettings();
@@ -3042,8 +3191,9 @@ void Board320_240::menuItemClick()
 }
 
 /**
-  Redraw screen
-*/
+ * Redraws the screen based on the current display mode and parameters.
+ * Handles switching between different display screens and rendering status indicators.
+ */
 void Board320_240::redrawScreen()
 {
   lastRedrawTime = liveData->params.currentTime;
@@ -3058,6 +3208,20 @@ void Board320_240::redrawScreen()
     return;
   }
   redrawScreenIsRunning = true;
+
+  // Headlights reminders
+  if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode &&
+      !liveData->params.headLights && !liveData->params.autoLights)
+  {
+    spr.fillSprite(TFT_RED);
+    spr.setFreeFont(&Orbitron_Light_32);
+    spr.setTextColor(TFT_WHITE);
+    spr.setTextDatum(MC_DATUM);
+    spr.drawString("! LIGHTS OFF !", 160, 120, GFXFF);
+    spr.pushSprite(0, 0);
+    redrawScreenIsRunning = false;
+    return;
+  }
 
   spr.fillSprite(TFT_BLACK);
 
@@ -3280,7 +3444,10 @@ void Board320_240::printHeapMemory()
 }
 
 /**
- * void Board320_240::xTaskCommLoop(void * pvParameters) {
+ * Task that continuously calls the communication loop function.
+ * This allows the communication code to run asynchronously in the background.
+ *
+ * @param pvParameters Pointer to the BoardInterface instance.
  */
 void Board320_240::xTaskCommLoop(void *pvParameters)
 {
@@ -3294,7 +3461,10 @@ void Board320_240::xTaskCommLoop(void *pvParameters)
 }
 
 /**
- * Board loop - secondary thread
+ * commLoop function - This function runs the main communication loop.
+ * It calls the commInterface's mainLoop() method to read data from
+ * BLE and CAN interfaces. This allows the communication code to run
+ * continuously in the background.
  */
 void Board320_240::commLoop()
 {
@@ -3303,7 +3473,9 @@ void Board320_240::commLoop()
 }
 
 /**
- * Board loop
+ * Board loop function.
+ * This function runs in the main loop to handle touch events
+ * and other board specific tasks.
  */
 void Board320_240::boardLoop()
 {
@@ -3701,7 +3873,10 @@ void Board320_240::mainLoop()
 }
 
 /**
- * Set GPS time
+ * Set the RTC time using the provided GPS time.
+ * Converts the provided date/time components into a UNIX timestamp,
+ * sets the system time using settimeofday(), and syncs other times.
+ * Also sets the time on the M5Stack Core2 RTC module if being used.
  */
 void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t seconds)
 {
@@ -3743,7 +3918,11 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
 }
 
 /**
- * sync all times
+ * Syncs related timestamp variables to the provided new time.
+ * This is called after setting the system time, to update timestamp
+ * variables that are relative to the current time. It calculates the
+ * offset between the old current time and new current time, and adjusts
+ * each timestamp variable by that offset.
  */
 void Board320_240::syncTimes(time_t newTime)
 {
@@ -3797,7 +3976,13 @@ bool Board320_240::skipAdapterScan()
 }
 
 /**
- * Mount sdcard
+ * Attempts to mount the SD card.
+ *
+ * Tries initializing the SD card multiple times if needed.
+ * Checks the card type and size once mounted.
+ * Updates liveData->params.sdcardInit if successful.
+ *
+ * @returns true if the SD card was mounted successfully, false otherwise.
  */
 bool Board320_240::sdcardMount()
 {
@@ -3867,7 +4052,10 @@ bool Board320_240::sdcardMount()
 }
 
 /**
- * Toggle sdcard recording
+ * Toggles SD card recording on/off.
+ *
+ * Checks if SD card is initialized first.
+ * Updates sdcardRecording parameter and filename as needed.
  */
 void Board320_240::sdcardToggleRecording()
 {
@@ -3888,7 +4076,10 @@ void Board320_240::sdcardToggleRecording()
 }
 
 /**
- * Sync gps data
+ * Syncs GPS data from the GPS module to the live data parameters.
+ *
+ * Updates validity flags and values for GPS location, altitude, speed,
+ * satellite info. Handles syncing time from GPS if needed.
  */
 void Board320_240::syncGPS()
 {
@@ -3920,7 +4111,11 @@ void Board320_240::syncGPS()
 }
 
 /**
- * Setup WiFi
+ * Sets up the WiFi connection using the stored SSID and password.
+ * Enables STA mode, connects to the network, and records the time of
+ * the last successful connection.
+ *
+ * @returns True if the WiFi connection setup succeeded, false otherwise.
  */
 bool Board320_240::wifiSetup()
 {
@@ -3934,7 +4129,12 @@ bool Board320_240::wifiSetup()
 }
 
 /**
- * Switch Wifi network
+ * Switches between the main and backup WiFi networks.
+ *
+ * Disconnects from the current WiFi network.
+ * If a backup network is configured, switches to
+ * the other network. Otherwise, attempts to
+ * reconnect to the main network.
  */
 void Board320_240::wifiFallback()
 {
@@ -3985,6 +4185,8 @@ void Board320_240::wifiSwitchToMain()
 
 /**
  * Net loop, send data over net
+ * Checks if WiFi is connected, syncs NTP if needed, sends data to remote API if interval elapsed,
+ * sends data to ABRP if interval elapsed, contributes anonymous data if enabled.
  */
 void Board320_240::netLoop()
 {
@@ -4352,7 +4554,11 @@ bool Board320_240::netSendData()
 }
 
 /**
- * Contribute anonymous data
+ * Contributes anonymous usage data if enabled in settings.
+ * Sends data via WiFi to https://evdash.next176.sk/api/index.php.
+ * Data includes vehicle info, location, temps, voltages, etc.
+ * Receives a contribute token if successful.
+ * Only called for M5Stack Core2 boards.
  **/
 bool Board320_240::netContributeData()
 {
@@ -4448,7 +4654,13 @@ bool Board320_240::netContributeData()
 }
 
 /**
- * Get car model string for ABRP and menu
+ * Returns the ABRP car model string for the selected car type.
+ *
+ * Maps the internal car type enum to the corresponding ABRP car model string.
+ * This allows looking up the car capabilities on ABRP.
+ *
+ * @param carType The internal car type enum.
+ * @return The ABRP car model string.
  */
 String Board320_240::getCarModelAbrpStr()
 {
@@ -4516,7 +4728,10 @@ String Board320_240::getCarModelAbrpStr()
 }
 
 /**
- * Init HW gps
+ * Initializes the hardware GPS module.
+ * Configures the hardware serial port and baud rate.
+ * Sends configuration commands to the GPS module to enable desired sentences,
+ * set update rate, enable SBAS, and configure navigation model.
  */
 void Board320_240::initGPS()
 {

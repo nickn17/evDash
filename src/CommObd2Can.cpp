@@ -6,8 +6,11 @@
 // #include <string.h>
 
 /**
-   Connect CAN adapter
-*/
+ * Connects to the CAN bus adapter.
+ * Initializes the MCP2515 CAN controller, configures the bitrate, masks,
+ * and filters. Sets the controller mode to normal. Configures the interrupt
+ * pin. Sets flags to indicate the CAN bus is connected and ready.
+ */
 void CommObd2Can::connectDevice()
 {
   connectAttempts--;
@@ -69,8 +72,9 @@ void CommObd2Can::connectDevice()
 }
 
 /**
-   Disconnect device
-*/
+ * Disconnects the CAN device by setting commConnected to false and connectStatus to "Disconnected".
+ * Also prints a message to syslog.
+ */
 void CommObd2Can::disconnectDevice()
 {
   sentCanData = false;
@@ -82,8 +86,11 @@ void CommObd2Can::disconnectDevice()
 }
 
 /**
-   Scan device list, from menu
-*/
+ * Scans for available CAN devices.
+ *
+ * Prints a message to syslog and sets connectStatus
+ * to indicate a device scan is in progress.
+ */
 void CommObd2Can::scanDevices()
 {
   syslog->println("COMM scanDevices");
@@ -91,15 +98,20 @@ void CommObd2Can::scanDevices()
 }
 
 /**
-   Main loop
-*/
+ * Main loop function for CommObd2Can class.
+ *
+ * Called periodically to check for received data,
+ * send flow control frames, process responses,
+ * handle timeouts, and prevent sending new commands
+ * if delay between commands is configured.
+ */
 void CommObd2Can::mainLoop()
 {
   CommInterface::mainLoop();
 
   // Prevent errors without connected module
   if (liveData->params.stopCommandQueue || !liveData->commConnected)
-  { 
+  {
     return;
   }
 
@@ -153,8 +165,14 @@ void CommObd2Can::mainLoop()
 }
 
 /**
-   Send command to CAN bus
-*/
+ * Sends a command string to the CAN bus.
+ *
+ * Parses the command string, removes spaces,
+ * converts to proper CAN ID and data format,
+ * sends to CAN bus, waits for response.
+ *
+ * @param cmd Command string to send.
+ */
 void CommObd2Can::executeCommand(String cmd)
 {
   syslog->infoNolf(DEBUG_COMM, "executeCommand ");
@@ -181,9 +199,13 @@ void CommObd2Can::executeCommand(String cmd)
 }
 
 /**
-   Send PID
-   remark: parameter cmd as const reference to aviod copying
-*/
+ * Sends a PID request packet to the CAN bus.
+ *
+ * Converts the PID code and data string into a CAN packet structure,
+ * handles cases with and without a starting character,
+ * packs the data bytes into the packet payload,
+ * and sends the full packet to the CAN bus.
+ */
 void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 {
 
@@ -267,8 +289,13 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 }
 
 /**
-   sendFlowControlFrame
-*/
+ * Sends a flow control frame to request a certain number of frames
+ * with a specified interval between frames.
+ *
+ * The frame contains the request count and interval, along with
+ * protocol bytes for flow control. The PID and message format
+ * (11/29 bit) match the previous request.
+ */
 void CommObd2Can::sendFlowControlFrame()
 {
 
@@ -305,8 +332,13 @@ void CommObd2Can::sendFlowControlFrame()
 }
 
 /**
-   Receive PID
-*/
+ * Receives a PID response over CAN bus.
+ * Checks if data is available, reads response into buffers.
+ * Validates response length and ID.
+ * Logs details of response.
+ * Processes received bytes.
+ * Returns first data byte of response.
+ */
 uint8_t CommObd2Can::receivePID()
 {
   if (!digitalRead(pinCanInt) && sentCanData == true) // If CAN0_INT pin is low, read receive buffer
@@ -375,6 +407,16 @@ uint8_t CommObd2Can::receivePID()
   return rxBuf[0 + rxBuffOffset]; // return byte containing frame type, which requires removing offset byte
 }
 
+/**
+ * Prints the given buffer as hexadecimal bytes, with optional newline.
+ *
+ * Prints the buffer byte-by-byte as two hex digits with a leading space.
+ * After printing the full buffer, prints a newline if bAddNewLine is true.
+ *
+ * @param pData Pointer to the byte buffer to print
+ * @param length Length of the buffer in bytes
+ * @param bAddNewLine Whether to print a newline after the full buffer
+ */
 void printHexBuffer(uint8_t *pData, const uint16_t length, const bool bAddNewLine)
 {
   char str[8] = {0};
@@ -391,6 +433,17 @@ void printHexBuffer(uint8_t *pData, const uint16_t length, const bool bAddNewLin
   }
 }
 
+/**
+ * Converts a byte buffer to a hexadecimal string representation.
+ *
+ * Takes a byte buffer and length, iterates through each byte,
+ * converts it to a two-character hexadecimal string, and appends to
+ * the output string parameter.
+ *
+ * @param out_targetString String to append hexadecimal representation to.
+ * @param in_pBuffer Pointer to byte buffer to convert.
+ * @param in_length Length of the byte buffer.
+ */
 static void buffer2string(String &out_targetString, uint8_t *in_pBuffer, const uint16_t in_length)
 {
   char str[8] = {0};
@@ -402,6 +455,12 @@ static void buffer2string(String &out_targetString, uint8_t *in_pBuffer, const u
   }
 }
 
+/**
+ * Determines the frame type based on the first byte of the frame.
+ *
+ * The frame type is encoded in bits 7-4 of the first byte. This function
+ * extracts those bits, and returns the corresponding frame type enum value.
+ */
 CommObd2Can::enFrame_t CommObd2Can::getFrameType(const uint8_t firstByte)
 {
   const uint8_t frameType = (firstByte & 0xf0) >> 4; // frame type is in bits 7 to 4
@@ -419,8 +478,15 @@ CommObd2Can::enFrame_t CommObd2Can::getFrameType(const uint8_t firstByte)
 }
 
 /**
-   Process can frame on byte level
-   https://en.wikipedia.org/wiki/ISO_15765-2
+ * Processes a CAN frame on the byte level according to ISO 15765-2.
+ *
+ * Determines the frame type based on the first byte. For single frames,
+ * processes the payload directly. For first frames, stores the payload
+ * and expects consecutive frames to follow. For consecutive frames,
+ * stores the payload and keeps track of remaining bytes. When all bytes
+ * received, merges the payloads into a single buffer.
+ *
+ * Returns true if frame processed successfully, false on error.
  */
 bool CommObd2Can::processFrameBytes()
 {
@@ -535,9 +601,12 @@ bool CommObd2Can::processFrameBytes()
 }
 
 /**
-   Process can frame
-   https://en.wikipedia.org/wiki/ISO_15765-2
-*/
+ * Processes a CAN frame to extract the frame type,
+ * remaining data length, index, and payload.
+ * Handles single, first, consecutive, and unknown frame types.
+ * Merges payload data from multiple frames into a single response.
+ * Returns false when the full response is received.
+ */
 bool CommObd2Can::processFrame()
 {
 
@@ -599,11 +668,14 @@ bool CommObd2Can::processFrame()
     uint8_t rowNo = liveData->hexToDec(liveData->responseRow.substring(0, 1), 1, false);
     uint16_t startPos = (rowNo * 14) - ((rowNo > 0) ? 2 : 0);
     uint16_t endPos = ((rowNo + 1) * 14) - ((rowNo > 0) ? 2 : 0);
-    
+
     // Prevent buffer overflow
-    if (startPos > 512 || endPos > 512) {
+    if (startPos > 512 || endPos > 512)
+    {
       connectStatus = "mergedrow >512";
-    } else {
+    }
+    else
+    {
       liveData->responseRowMerged = liveData->responseRowMerged.substring(0, startPos) + liveData->responseRow.substring(2) + liveData->responseRowMerged.substring(endPos);
     }
     syslog->info(DEBUG_COMM, liveData->responseRowMerged);
@@ -620,8 +692,10 @@ bool CommObd2Can::processFrame()
 }
 
 /**
-   processMergedResponse
-*/
+ * processMergedResponse processes the merged CAN response after all response
+ * frames have been received. It parses the full merged response, clears the
+ * response buffers, and sets flags to allow sending the next command.
+ */
 void CommObd2Can::processMergedResponse()
 {
   syslog->infoNolf(DEBUG_COMM, "merged:");

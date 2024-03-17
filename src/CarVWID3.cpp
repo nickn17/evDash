@@ -1,12 +1,25 @@
 /*
-
 First start at implementing the VW ID.3 EV into evDash
 Conny Nikolaisen 2021-02-14
 
 Rev 2022-01-28 Change of code name to MEB started
 
 test of github integration in VScode
+*/
 
+/*
+CarVWID3.cpp initializes and populates a command queue for communicating with the VW ID.3 electric vehicle.
+
+The purpose of this code is to set up the commands needed to query different ECUs (Electronic Control Units) and data values from a VW ID.3 car.
+It takes no inputs. The output is a populated vector called commandQueueVWID3 that contains the UDS (Unified Diagnostic Services) request IDs to use for querying data.
+The code starts by initializing the commandQueueVWID3 vector that will hold the command strings.
+It then adds a series of "AT" commands to configure the communication interface by setting the protocol, disabling automatic formatting, etc.
+Next, it adds the main UDS request commands for different ECUs and data values in the car. Each command starts with "ATSH" to set the header bytes that identify which ECU to query.
+This is followed by hex values specifying the UDS service ID and data parameter ID to request. For example, "ATSH17FC007B" sets the header to query the Battery Management System ECU.
+"22028C" requests the state of charge percentage value from this ECU.
+The command queue populates with UDS requests to get data like speed, battery voltage/temp/current, charging status, and more.
+There are also some commands that only execute conditionally, like specific battery cell temp values that only run when on the "Battery cell" display screen.
+Overall, this code builds up the list of commands needed to query the vehicle for data to display in the EV dash application. It uses UDS services to target specific ECUs and data IDs in a VW ID.3 car. The output command queue provides the interface to keep requesting this data from the vehicle.
 */
 
 #include <Arduino.h>
@@ -22,9 +35,10 @@ test of github integration in VScode
 #define commandQueueLoopFromVWID3 9 // number of commands that are only used for init, ie loop from the one after this
 
 /**
-   activateCommandQueue
-   Need to revise all the commands
-*/
+ * Initializes the command queue for communicating with the VW ID.3 vehicle.
+ * Populates the commandQueueVWID3 vector with UDS request IDs to query different
+ * ECUs and vehicle data values. Called to set up the command queue at startup.
+ */
 void CarVWID3::activateCommandQueue()
 {
 
@@ -296,8 +310,10 @@ void CarVWID3::activateCommandQueue()
 }
 
 /**
-   parseRowMerged, from here it starts parsing all the answers from different ECU
-*/
+ * Parses rows of data from merged CAN response for VW ID.3 vehicle.
+ * Handles parsing of specific data fields from responses to requests
+ * for DC-DC converter current and voltage.
+ */
 void CarVWID3::parseRowMerged()
 {
 
@@ -332,9 +348,9 @@ void CarVWID3::parseRowMerged()
     {
       // Put code here to parse the data
       liveData->params.socPercPrevious = liveData->params.socPerc;
-      liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5; // SOC BMS
-      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false)*0,4425 - 6,1947; // SOC HMI (New calculation - 2022-12-01)
-       
+      liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5;            // SOC BMS
+      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false) * 0, 4425 - 6, 1947; // SOC HMI (New calculation - 2022-12-01)
+
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
       {
@@ -569,15 +585,15 @@ void CarVWID3::parseRowMerged()
   // ATSH17FC0076
   if (liveData->currentAtshRequest.equals("ATSH17FC0076")) // For data after this header
   {
-    if (liveData->commandRequest.equals("220364")) // HV auxilary consumer power, kW
+    if (liveData->commandRequest.equals("220364")) //  HV auxilary consumer power, kW
     {
       // Put code here to parse the data
     }
-    if (liveData->commandRequest.equals("22295A")) // ODOMETER, km
+    if (liveData->commandRequest.equals("22295A")) //  ODOMETER, km
     {
       liveData->params.odoKm = liveData->hexToDecFromResponse(6, 12, 3, false); // Total odometer in km
     }
-    if (liveData->commandRequest.equals("22210E")) // Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=12->B,YY=07->R,YY=06->N
+    if (liveData->commandRequest.equals("22210E")) //  Driving mode position (P-N-D-B), YY=08->P,YY=05->D,YY=12->B,YY=07->R,YY=06->N
     {
       if ((liveData->hexToDecFromResponse(8, 10, 1, false) == 5) || (liveData->hexToDecFromResponse(8, 10, 1, false) == 12))
       {
@@ -670,23 +686,23 @@ void CarVWID3::parseRowMerged()
   // ATSH000746
   if (liveData->currentAtshRequest.equals("ATSH746")) // For data after this header
   {
-    if (liveData->commandRequest.equals("222613")) // Inside temperature, °C
+    if (liveData->commandRequest.equals("222613")) //  Inside temperature, °C
     {
       liveData->params.indoorTemperature = liveData->hexToDecFromResponse(6, 10, 2, false) / 5 - 40; // Interior temperature
     }
-    if (liveData->commandRequest.equals("222609")) // Outdoor temperature, °C
+    if (liveData->commandRequest.equals("222609")) //  Outdoor temperature, °C
     {
       liveData->params.outdoorTemperature = liveData->hexToDecFromResponse(6, 8, 1, false) / 2 - 50; // Outdoor temperature
     }
-    if (liveData->commandRequest.equals("22263B")) // Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
+    if (liveData->commandRequest.equals("22263B")) //  Recirculation of air, XX=00 -> fresh air, XX=04 -> manual recirculation
     {
       // Put code here to parse the data
     }
-    if (liveData->commandRequest.equals("2242DB")) // CO2 content interior, ppm
+    if (liveData->commandRequest.equals("2242DB")) //  CO2 content interior, ppm
     {
       // Put code here to parse the data
     }
-    if (liveData->commandRequest.equals("22F449")) // Accelerator pedal position, %
+    if (liveData->commandRequest.equals("22F449")) //  Accelerator pedal position, %
     {
       // Put code here to parse the data
     }
@@ -695,7 +711,7 @@ void CarVWID3::parseRowMerged()
   // ATSH000710
   if (liveData->currentAtshRequest.equals("ATSH710")) // For data after this header
   {
-    if (liveData->commandRequest.equals("222AB2")) // // HV battery max energy content Wh
+    if (liveData->commandRequest.equals("222AB2")) //  // HV battery max energy content Wh
     {
       liveData->params.batMaxEnergyContent = liveData->hexToDecFromResponse(6, 14, 4, false) / 1310.77;
       // https://www.goingelectric.de/forum/viewtopic.php?f=97&t=57429&start=20
@@ -707,7 +723,7 @@ void CarVWID3::parseRowMerged()
       // syslog->println(liveData->responseRowMerged);
     }
 
-    if (liveData->commandRequest.equals("222AF7")) // // 12V multiframe
+    if (liveData->commandRequest.equals("222AF7")) //  // 12V multiframe
     {
       if (liveData->settings.voltmeterEnabled == 0)
       {
@@ -764,7 +780,8 @@ bool CarVWID3::commandAllowed()
   }*/
 
   // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
-  if (liveData->settings.disableCommandOptimizer || liveData->params.contributeStatus == CONTRIBUTE_COLLECTING) {
+  if (liveData->settings.disableCommandOptimizer || liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+  {
     return true;
   }
 

@@ -1,3 +1,9 @@
+/**
+ * Connects to the WiFi OBD2 adapter. Sets status flags and prints log messages.
+ * Scans for available WiFi networks and prints results.
+ * Main loop handles connecting to the OBD2 WiFi adapter, reading data,
+ * parsing responses, and sending next commands. Sends commands to the OBD2 adapter.
+ */
 #include "CommObd2Wifi.h"
 #include "BoardInterface.h"
 #include "LiveData.h"

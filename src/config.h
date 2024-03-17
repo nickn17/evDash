@@ -4,7 +4,7 @@
 
 #define APP_VERSION "v3.0.0"
 #define APP_RELEASE_DATE "2024-03-16"
-
+// TFT COLORS
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */
 #define TFT_NAVY 0x000F      /*   0,   0, 128 */
 #define TFT_DARKGREEN 0x03E0 /*   0, 128,   0 */
@@ -80,7 +80,7 @@ typedef enum
   VEHICLE_TYPE_ZOE_22_DEV,
   VEHICLE_TYPE_BMWI3_2014_22,
   VEHICLE_TYPE_PEUGEOT_E208,
-  
+
   VEHICLE_TYPE_HYUNDAI_TOP,
   VEHICLE_TYPE_IONIQ_2018_28,
   VEHICLE_TYPE_IONIQ_2018_PHEV,
@@ -127,7 +127,7 @@ typedef enum
   MENU_VOLTMETER,
   MENU_SPEED_CORRECTION,
   MENU_RHD,
-  
+
   // menu unit
   MENU_UNIT_TOP = 400,
   MENU_DISTANCE_UNIT,
@@ -161,7 +161,7 @@ typedef enum
   MENU_SLEEP_MODE,
   MENU_SERIAL_CONSOLE,
   MENU_DEBUG_LEVEL,
-  
+
   // menu wifi
   MENU_WIFI_TOP = 3020,
   MENU_WIFI_ENABLED,
@@ -216,7 +216,7 @@ typedef enum
   MENU_GPS_TOP = 3120,
   MENU_GPS_PORT,
   MENU_GPS_SPEED,
-  
+
   // menu sleep
   MENU_SLEEP_TOP = 3110,
   MENU_SLEEP_MODE_MODE,

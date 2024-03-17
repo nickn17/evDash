@@ -1,3 +1,28 @@
+/*
+BoardInterface.cpp provides an interface for configuring and interacting with the hardware components of a device.
+
+It allows setting a LiveData object that holds live sensor data. It allows attaching a CarInterface object that interfaces with the car's OBD port.
+
+It provides methods for:
+
+ShutdownDevice() - Shuts down the device by disconnecting communications, turning off peripherals, and putting the microcontroller into deep sleep mode.
+It displays a countdown message, reduces the CPU speed, turns off the screen, disables wifi/BT, disconnects the comm interface, and finally puts the ESP32 into deep sleep.
+
+SaveSettings() - Saves settings from the LiveData object into EEPROM flash memory. This persists settings across reboots.
+
+ResetSettings() - Resets settings to factory defaults, erases EEPROM, and restarts the device.
+
+LoadSettings() - Loads settings from EEPROM into the LiveData object on startup. It first initializes the settings struct with default values.
+Then it loads the actual values from EEPROM if they exist. It handles upgrading old format settings.
+
+attachCar() - Attaches a CarInterface object to allow communicating with the car's OBD port.
+
+setLiveData() - Sets the LiveData object that holds the live sensor data that will be displayed and logged.
+
+So in summary, this provides a hardware abstraction layer for interacting with the device's peripherals and configuration in a simple way.
+It handles attaching communications and live data objects. And provides methods for lifecycle events like shutdown, settings load/save, factory reset, etc.
+*/
+
 #define ARDUINOJSON_USE_LONG_LONG 1
 
 #include <WiFi.h>
@@ -355,7 +380,7 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.commandQueueAutoStop = 1;
         liveData->tmpSettings.gpsSerialPortSpeed = 9600;
       }
-    if (liveData->tmpSettings.settingsVersion == 18)
+      if (liveData->tmpSettings.settingsVersion == 18)
       {
         liveData->tmpSettings.settingsVersion = 19;
         liveData->tmpSettings.boardPowerMode = 1;

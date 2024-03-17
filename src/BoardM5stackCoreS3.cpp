@@ -30,7 +30,7 @@ float temp = 0.0F;
 */
 
 /**
- * Init board      
+ * Init board
  */
 void BoardM5stackCoreS3::initBoard()
 {
@@ -83,7 +83,7 @@ void BoardM5stackCoreS3::afterSetup()
   syslog->println(" START -> BoardM5stackCoreS3::afterSetup ");
 
   // Touch screen zone
-  //uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
+  // uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
 
   /*  M5.background.delHandlers();
     M5.background.tapTime = 50;

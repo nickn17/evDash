@@ -1,3 +1,8 @@
+/**
+ * LogSerial class provides logging functionality.
+ *
+ * Allows setting debug level and logging to SD card.
+ */
 #include "LogSerial.h"
 
 /**
@@ -22,7 +27,7 @@ void LogSerial::setDebugLevel(uint8_t aDebugLevel)
 void LogSerial::setLogToSdcard(bool state)
 {
   logToSdcard = state;
-  
+
   if (logToSdcard)
   {
     // code under construction

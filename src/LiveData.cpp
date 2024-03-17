@@ -1,3 +1,8 @@
+/**
+ * Initializes LiveData parameters with default values.
+ * Called on startup to initialize the LiveData params struct.
+ * Sets all params to default values.
+ */
 #include "LiveData.h"
 #include "menu.h"
 
