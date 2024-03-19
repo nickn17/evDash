@@ -252,7 +252,7 @@ void Board320_240::afterSetup()
   if (liveData->settings.threading)
   {
     syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
-    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 4096, (void *)this, 0, NULL);
+    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 32768, (void *)this, 0, NULL);
   }
   else
   {
@@ -675,6 +675,9 @@ void Board320_240::setBrightness()
   {
     lcdBrightnessPerc = 100;
   }
+  if (liveData->params.stopCommandQueue) { 
+    lcdBrightnessPerc = 20;
+  }
 
   if (currentBrightness == lcdBrightnessPerc)
     return;
@@ -1049,6 +1052,21 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor(TFT_WHITE);
 
+  // Stopped CAN command queue
+  if (liveData->params.stopCommandQueueTime != 0)
+  {
+    sprintf(tmpStr1, "%s%d", (liveData->params.stopCommandQueue ? "QS " : "QR "), (liveData->params.currentTime - liveData->params.stopCommandQueueTime));
+    spr.drawString(tmpStr1, 0, 40, 2);
+  }
+  if (liveData->params.stopCommandQueue) 
+  {
+    spr.setFreeFont(&Roboto_Thin_24);
+    spr.setTextColor(TFT_RED);
+    spr.setTextDatum(TL_DATUM);
+    spr.drawString("SENTRY ON", 90, 100, GFXFF);
+    return;
+  }
+
   // Speed or charging data
   if (liveData->params.chargingOn)
   {
@@ -1073,16 +1091,13 @@ void Board320_240::drawSceneSpeed()
   else
   {
     // Speed
-    spr.setTextSize(2); // Size for small 5cix7 font
-    sprintf(tmpStr3, "0");
-    if (liveData->params.speedKmhGPS > 10)
-    {
-      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
-    }
-    else if (liveData->params.speedKmh > 10)
-    {
-      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
-    }
+    spr.setTextSize(2);
+    sprintf(tmpStr3, "%01.00f", liveData->km2distance(
+      (((liveData->params.speedKmhGPS > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_GPS) ? 
+          liveData->params.speedKmhGPS : 
+          ((((liveData->params.speedKmh > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_CAR)) ? 
+             liveData->params.speedKmh : 0))
+      ));
     spr.drawString(tmpStr3, 200, posy, 7);
   }
 
@@ -1151,12 +1166,6 @@ void Board320_240::drawSceneSpeed()
   {
     sprintf(tmpStr3, "%01.00frpm", liveData->params.motorRpm);
     spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
-  }
-
-  if (liveData->params.stopCommandQueueTime != 0)
-  {
-    sprintf(tmpStr1, "%s%d", (liveData->params.stopCommandQueue ? "QS" : "QR"), (liveData->params.currentTime - liveData->params.stopCommandQueueTime));
-    spr.drawString(tmpStr1, posx, posy + 40, 2);
   }
 
   // Avg speed
@@ -2261,6 +2270,19 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     sprintf(tmpStr1, "[%d bps]", liveData->settings.gpsSerialPortSpeed);
     suffix = tmpStr1;
     break;
+  case MENU_CAR_SPEED_TYPE:
+    switch (liveData->settings.carSpeedType)
+    {
+    case CAR_SPEED_TYPE_CAR:
+      suffix = "[CAR]";
+      break;
+    case CAR_SPEED_TYPE_GPS:
+      suffix = "[GPS]";
+      break;
+    default:
+      suffix = "[automatic]";
+    }
+    break;
   case MENU_CURRENT_TIME:
     struct tm now;
     getLocalTime(&now);
@@ -2867,6 +2889,11 @@ void Board320_240::menuItemClick()
     case MENU_GPS_SPEED:
       liveData->settings.gpsSerialPortSpeed = (liveData->settings.gpsSerialPortSpeed == 9600) ? 38400 : (liveData->settings.gpsSerialPortSpeed == 38400) ? 115200
                                                                                                                                                          : 9600;
+      showMenu();
+      return;
+      break;
+    case MENU_CAR_SPEED_TYPE:
+      liveData->settings.carSpeedType = (liveData->settings.carSpeedType == CAR_SPEED_TYPE_GPS) ? 0 : liveData->settings.carSpeedType + 1;
       showMenu();
       return;
       break;
@@ -3682,24 +3709,19 @@ void Board320_240::mainLoop()
   liveData->params.currentTime = mktime(&now);
 
   // Check and eventually reconnect WIFI aconnection
-
-  if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 && WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
+  if (!liveData->params.stopCommandQueue && liveData->settings.commType != COMM_TYPE_OBD2_WIFI && !liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 && 
+      WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
   {
-    if (liveData->settings.commType != COMM_TYPE_OBD2_WIFI)
-    {
       wifiFallback();
-    }
   }
 
   // SIM800L, WiFI remote upload, ABRP remote upload, MQTT
   netLoop();
 
   // SD card recording
-  if (liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
+  if (!liveData->params.stopCommandQueue && liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
   {
-    // syslog->println(&now, "%y%m%d%H%M");
-
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0)
     {
@@ -3761,52 +3783,46 @@ void Board320_240::mainLoop()
     if (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018)
     {
       float tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); // min 11.6V; max: 12.8V
-
-      if (tmpAuxPerc > 100)
-      {
-        liveData->params.auxPerc = 100;
-      }
-      else if (tmpAuxPerc < 0)
-      {
-        liveData->params.auxPerc = 0;
-      }
-      else
-      {
-        liveData->params.auxPerc = tmpAuxPerc;
-      }
+      liveData->params.auxPerc = ((tmpAuxPerc > 100) ? 100 : ((tmpAuxPerc < 0) ? 0 : tmpAuxPerc));
     }
   }
 
   // Wake up from stopped command queue
-  //  - gps speed > 10-20kmh
-  //  - power kw != 0
-  //  - voltage is >= 14V (dcdc is runinng)
   //  - any touch on display
-  if ((liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
-      (liveData->params.auxVoltage > 14.0 ||
-       liveData->params.speedKmh > 10 || (int)(liveData->params.batPowerKw * 10) != 0 ||
-       (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8))) // 5 floor parking house, satelites 5, speed gps 274kmh :/
+  //  - ignitions on and aux >= 11.5v
+  //  - ina3221 & voltage is >= 14V (DCDC is running) 
+  //  - gps speed 20 - 60kmh & 8+ satellites
+  if (
+      (liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
+      (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
+      (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8) // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
+      ) 
   {
     liveData->continueWithCommandQueue();
   }
   // Stop command queue
-  //  - Automatically turn off CAN scanning when 2 minute inactive
-  //  - car stopped, not in D/R drive mode, powerKw = 0
-  //  - car is not charging
-  //  - voltage is under 14V (dcdc is not running)
-  //  - TODO: BMS state - HV battery was disconnected
+  //  - automatically turns off CAN scanning after 1-2 minutes of inactivity
+  //  - ignition is off
+  //  - AUX voltage is under 11.5V
   if (liveData->settings.commandQueueAutoStop == 1 &&
-      (liveData->settings.sleepModeLevel == SLEEP_MODE_OFF || liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) &&
-      !liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode &&
-      !liveData->params.chargingOn && (int)(liveData->params.batPowerKw * 10) == 0 &&
-      liveData->params.auxVoltage < 14.0)
+      (!liveData->params.ignitionOn || (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5))
+      )
   {
     liveData->prepareForStopCommandQueue();
   }
-  if (liveData->params.stopCommandQueueTime != 0 && liveData->params.currentTime - liveData->params.stopCommandQueueTime > 60)
+  if (!liveData->params.stopCommandQueue &&
+      (
+        (liveData->params.stopCommandQueueTime != 0 && liveData->params.currentTime - liveData->params.stopCommandQueueTime > 60) || 
+        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.0)
+      )
+     )
   {
     liveData->params.stopCommandQueue = true;
     syslog->println("CAN Command queue stopped...");
+  }
+  // Descrease loop fps
+  if (liveData->params.stopCommandQueue) {
+    delay(250);
   }
 
   // Automatic sleep after inactivity
@@ -3845,19 +3861,6 @@ void Board320_240::mainLoop()
   if (!liveData->settings.threading)
   {
     commInterface->mainLoop();
-  }
-
-  // Reconnect CAN bus if no response for 5s
-  if (liveData->settings.commType == 1 &&
-      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
-      commInterface->checkConnectAttempts())
-  {
-    syslog->print("No response from CANbus for 5 seconds, reconnecting ... ");
-    syslog->println(commInterface->getConnectAttempts());
-
-    redrawScreen();
-    commInterface->connectDevice();
-    liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   }
 
   // force redraw (min 1 sec update)
@@ -4787,49 +4790,8 @@ void Board320_240::initGPS()
 
   // M5 GPS MODULE with int.&ext. antenna (u-blox NEO-M8N)
   // https://shop.m5stack.com/products/gps-module
-  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N || liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
   {
-    // Enable static hold
-    // https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_%28UBX-13003221%29.pdf
-    // https://github.com/noerw/mobile-sensebox/blob/master/esp8266-gps/gps.h
-    // uBlox NEO-7M can't persist settings, so we update them on runtime to get a higher update rate
-    // commands extracted via u-center (https://www.youtube.com/watch?v=iWd0gCOYsdo)
-    uint8_t ubloxconfig[] = {
-        // disable sleep mode
-        0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x4C, 0x37,
-        // enable GPGGA & RMC sentences (only these are evaluated by TinyGPS++)
-        0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x05, 0x38, // GGA
-        0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x04, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x09, 0x54, // RMC
-        // disable all other NMEA sentences to save bandwith
-        0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x2B, // GLL
-        0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x32, // GSA
-        0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x39, // GSV
-        0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, // VTG
-        // setup SBAS search to EGNOS only
-        0xB5, 0x62, 0x06, 0x16, 0x08, 0x00, 0x01, 0x03, 0x03, 0x00, 0x51, 0x08, 0x00, 0x00, 0x84, 0x15,
-        // set NAV5 model to automotive, static hold on 0.5m/s, 3m
-        0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
-        0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
-        0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,
-        // 150ms update interval
-        0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x96, 0x00, 0x01, 0x00, 0x01, 0x00, 0xAC, 0x3E,
-        // 100ms update interval (needs higher baudrate, whose config doesnt work?)
-        // 0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01, 0x00, 0x7A, 0x12,
-        // uart to baud 115200 and nmea only  -> wont work?! TODO :^(
-        // 0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xD0, 0x08, 0x00, 0x00, 0x00, 0xC2,
-        // 0x01, 0x00, 0x07, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBF, 0x78,
-        // save changes
-        0xB5, 0x62, 0x06, 0x09, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x03, 0x1D, 0xAB};
-
-    gpsHwUart->write(ubloxconfig, sizeof(ubloxconfig));
-  }
-
-  // New M5 GNSS GPS MODULE with Barometric Pressure, IMU, Magnetometer Sensors (NEO-M9N, BMP280, BMI270, BMM150)
-  // https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
-  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
-  {
-    // TODO: Rewrite this part for NEO-M9N
     // Enable static hold
     // https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_%28UBX-13003221%29.pdf
     // https://github.com/noerw/mobile-sensebox/blob/master/esp8266-gps/gps.h

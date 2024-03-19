@@ -136,9 +136,16 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "ATSH7D1",
       //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220104", // gear selected (D/R/N/P)
-      "22C101", // brake
-      "22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
-      "22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
+      // temporary to check response
+      "220101",
+      "220102",
+      "220103",
+      "220105",
+      "220106",
+      // Without response on eGMP
+      //"22C101", // brake
+      //"22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
+      //"22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
       "ATSH7A0",
       "22C00B", // tire pressure/temp
@@ -169,9 +176,9 @@ void CarHyundaiIoniq5::activateCommandQueue()
       // ICCU
       "ATSH7E5",
       //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
-                /*      "22E001",
-                      "22E002",
-                      "22E003",*/
+      /*      "22E001",
+            "22E002",
+            "22E003",*/
       "22E011", // aux soc, temp, current
                 /*"22E021",
           "22E031",
@@ -186,9 +193,9 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // GSM (looking for gps lat/lon - only for data contributing)
       "ATSH7E6",
-      "2201A0", 
+      "2201A0",
       "22F190",
-      
+
       // AVN
       /*  "ATSH780",
         "3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
@@ -270,7 +277,16 @@ void CarHyundaiIoniq5::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22BC03"))
     {
-      // Doors / hood
+      // Ignition ON state / Trunk opened
+      tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
+      liveData->params.trunkDoorOpen = (bitRead(tempByte, 0) == 1);
+      liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
+      if (liveData->params.ignitionOn)
+      {
+        liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+      }
+
+      // Doors / hood opened
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
       if (liveData->settings.rightHandDrive)
@@ -288,21 +304,13 @@ void CarHyundaiIoniq5::parseRowMerged()
         liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
       }
 
-      // Trunk
-      tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
-      liveData->params.trunkDoorOpen = (bitRead(tempByte, 0) == 1);
-      liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1); 
-      if (liveData->params.ignitionOn)
-      {
-        liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
-      }
-
       // Lights
       tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
-      liveData->params.headLights = (bitRead(tempByte, 2) == 1); 
-      liveData->params.autoLights = false; //(bitRead(tempByte, 2) == 1); 
+      liveData->params.headLights = (bitRead(tempByte, 2) == 1);
+      liveData->params.autoLights = false; //(bitRead(tempByte, 2) == 1);
       liveData->params.dayLights = (bitRead(tempByte, 2) == 1);
     }
+    
     if (liveData->commandRequest.equals("22BC06"))
     {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
@@ -320,17 +328,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.forwardDriveMode = (driveMode == 4);
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral = (driveMode == 1);
-    }
-
-    if (liveData->commandRequest.equals("22C101"))
-    {
-      // Speed for eniro
-      /*if (liveData->settings.carType != CAR_HYUNDAI_KONA_2020_64 && liveData->settings.carType != CAR_HYUNDAI_KONA_2020_39)
-      {
-        liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
-        if (liveData->params.speedKmh > 10)
-          liveData->params.speedKmh += liveData->settings.speedCorrection;
-      }*/
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
+      liveData->params.speedKmh += (liveData->params.speedKmh > 10) ? liveData->settings.speedCorrection : 0;
     }
   }
 
@@ -456,8 +455,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
       liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
       // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);  // ändrat 2023-12-15 21:14 för att testa om det är rätt
-      liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);  // ändrat 2023-12-15 21:14 för att testa om det är rätt
+      liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt
+      liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
       liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
@@ -597,13 +596,13 @@ void CarHyundaiIoniq5::parseRowMerged()
       /*case 1:
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING;
         break;*/
-      case 100: // 0x64 
+      case 100: // 0x64
         liveData->params.batteryManagementMode = BAT_MAN_MODE_LOW_TEMPERATURE_RANGE;
         break;
       case 185: // 0xB9
         liveData->params.batteryManagementMode = BAT_MAN_MODE_COOLING;
         break;
-      case 0:  // 0x00
+      case 0: // 0x00
         liveData->params.batteryManagementMode = BAT_MAN_MODE_OFF;
         break;
       case 125: // 0x7D
@@ -628,9 +627,10 @@ bool CarHyundaiIoniq5::commandAllowed()
     syslog->println(liveData->commandRequest);*/
 
   // Don't scan other ECU when ignition is off
-  if (!liveData->params.ignitionOn && 
-       (!liveData->currentAtshRequest.equals("ATSH770") || !liveData->commandRequest.equals("22BC03"))) {    
-    return false; 
+  if (!liveData->params.ignitionOn &&
+      (!liveData->currentAtshRequest.equals("ATSH770") || !liveData->commandRequest.equals("22BC03")))
+  {
+    return false;
   }
 
   // SleepMode Queue Filter
@@ -676,8 +676,9 @@ bool CarHyundaiIoniq5::commandAllowed()
   }
 
   // GSM // only for data-contribute
-  if (liveData->currentAtshRequest.equals("ATSH7E6")) {    
-    return false; 
+  if (liveData->currentAtshRequest.equals("ATSH7E6"))
+  {
+    return false;
   }
 
   // BMS (only for SCREEN_CELLS)
@@ -747,15 +748,15 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->currentAtshRequest = "ATSH770";
   // 22BC03
   liveData->commandRequest = "22BC03";
-  //liveData->responseRowMerged = "62BC03FDEE206300620400AAAA";                                 	
-  liveData->responseRowMerged = "62BC03FDEE206300620000AAAA";                                 	
+  // liveData->responseRowMerged = "62BC03FDEE206300620400AAAA";
+  liveData->responseRowMerged = "62BC03FDEE206300620000AAAA";
   parseRowMerged();
 
   // ABS / ESP + AHB ATSH7D1
   liveData->currentAtshRequest = "ATSH7D1";
-  // 2101
-  liveData->commandRequest = "22C101";
-  liveData->responseRowMerged = "62C1015FD7E7D0FFFF00FF04D0D400000000FF7EFF0030F5010000FFFF7F6307F207FE05FF00FF3FFFFFAAAAAAAAAAAA";
+  // 220104
+  liveData->commandRequest = "220104";
+  liveData->responseRowMerged = "620104FFFEFFFCA65C870004B4868687870000001A7FFF00F0F0F0F0D5FC000011D0FFE7F5FFFCFFFF0000FC0004AAAA";
   parseRowMerged();
 
   // VMCU ATSH7E2
@@ -920,6 +921,7 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
   // DEMO DATA
+  liveData->params.chargingOn = false;
   liveData->params.forwardDriveMode = true;
   liveData->params.brakeLights = true;
   liveData->params.headLights = true;
@@ -927,11 +929,8 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->params.queueLoopCounter = 1;
   liveData->params.motorTempC = 4;
   liveData->params.inverterTempC = 3;
-  liveData->params.trunkDoorOpen = true;
-  liveData->params.leftFrontDoorOpen = true;
-  liveData->params.rightFrontDoorOpen = true;
-  liveData->params.leftRearDoorOpen = true;
-  liveData->params.rightRearDoorOpen = true;
+  liveData->params.trunkDoorOpen = liveData->params.leftFrontDoorOpen = liveData->params.rightFrontDoorOpen =
+      liveData->params.leftRearDoorOpen = liveData->params.rightRearDoorOpen = false;
   liveData->params.hoodDoorOpen = true;
   liveData->params.auxVoltage = 13.1;
 }

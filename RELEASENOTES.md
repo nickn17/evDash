@@ -2,13 +2,18 @@
 
 ### Next version
 
+### v3.0.1 2024-03-19
+- "stop CAN command queue" optimizations
+- "sentry ON" message when car is parked (sleep mode = off)
+- Car speed type (auto, only from car, only from gps)
+
 ### v3.0.0 2024-03-16
 - No longer supported boards - TTGO-T4 and M5Stack Core1
 - New gps M5 module GNSS works with UART2 / 38400 settings
 - [DEV] added support for new board M5Stack CoreS3
 - Removed SIM800L module support
 - Removed feature: Headlight reminder
-- Removed feature: Pre-drawn charging.graphs
+- Removed feature: Pre-drawn charging graphs
 - Menu Board/Power mode (external/USB)
 - Menu Others/Gps/Module type - init sequence (none, M5 NEO-M8N, M5 GNSS)
 - Source code comments by Spotzify and Code AI extension

@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 167
+#define MENU_SIZE 168
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -162,6 +162,7 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_GPS_MODULE_TYPE, MENU_GPS, MENU_NO_MENU, "GPS module"},
     {MENU_GPS_PORT, MENU_GPS, MENU_NO_MENU, "GPS port"},
     {MENU_GPS_SPEED, MENU_GPS, MENU_NO_MENU, "GPS speed"},
+    {MENU_CAR_SPEED_TYPE, MENU_GPS, MENU_NO_MENU, "Car speed"},
 
     {DEFAULT_SCREEN_TOP, MENU_DEFAULT_SCREEN, MENU_OTHERS, "<- parent menu"},
     {DEFAULT_SCREEN_AUTOMODE, MENU_DEFAULT_SCREEN, MENU_NO_MENU, "Auto mode"},

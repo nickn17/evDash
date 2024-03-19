@@ -107,10 +107,29 @@ void CommObd2Can::scanDevices()
  */
 void CommObd2Can::mainLoop()
 {
+  // CAN is paused
+  if (liveData->params.stopCommandQueue)
+  {
+    return;
+  }
+
+  // Reconnect CAN bus if no response for 5s
+  if (//liveData->settings.commType == 1 &&
+      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
+      checkConnectAttempts())
+  {
+    syslog->print("No response from CANbus for 5 seconds, reconnecting ... ");
+    syslog->println(getConnectAttempts());
+    liveData->redrawScreenRequested = true;
+   
+    connectDevice();
+    liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+  }
+
   CommInterface::mainLoop();
 
   // Prevent errors without connected module
-  if (liveData->params.stopCommandQueue || !liveData->commConnected)
+  if (!liveData->commConnected)
   {
     return;
   }

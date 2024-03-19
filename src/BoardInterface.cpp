@@ -222,6 +222,9 @@ void BoardInterface::loadSettings()
   // v20
   liveData->settings.settingsVersion = 20;
   liveData->settings.gpsModuleType = GPS_MODULE_TYPE_NEO_M8N;
+  // v21
+  liveData->settings.settingsVersion = 21;
+  liveData->settings.carSpeedType = CAR_SPEED_TYPE_AUTO;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -392,6 +395,11 @@ void BoardInterface::loadSettings()
       {
         liveData->tmpSettings.settingsVersion = 20;
         liveData->tmpSettings.gpsModuleType = GPS_MODULE_TYPE_NEO_M8N;
+      }
+      if (liveData->tmpSettings.settingsVersion == 20)
+      {
+        liveData->tmpSettings.settingsVersion = 21;
+        liveData->tmpSettings.carSpeedType = CAR_SPEED_TYPE_AUTO;
       }
 
       // Save upgraded structure
