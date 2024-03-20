@@ -2,6 +2,12 @@
 
 ### Next version
 
+### v3.0.2 2024-03-20
+- Improved logic for stop CAN queue - not only car off but not charging too (works with DC charger)
+- Average charging speed in kW
+- Gyro motion sensor support (orange icon), wake queue with gyro sensor motion
+  Note: Core2 contains gyro-chip on small board with battery (bottom module)
+
 ### v3.0.1 2024-03-19
 - "stop CAN command queue" optimizations
 - "sentry ON" message when car is parked (sleep mode = off)

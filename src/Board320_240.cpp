@@ -1087,6 +1087,12 @@ void Board320_240::drawSceneSpeed()
     posy += 24;
     sprintf(tmpStr3, (liveData->params.batPowerAmp == -1000) ? "n/a A" : "%01.01f A", liveData->params.batPowerAmp);
     spr.drawString(tmpStr3, 200, posy, GFXFF);
+    posy += 24;
+    if (diffTime > 5) { 
+      sprintf(tmpStr3, "~%01.01f kW", ((liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart) * (3600 / diffTime)));
+      spr.drawString(tmpStr3, 200, posy, GFXFF);
+    }
+    
   }
   else
   {
@@ -3400,10 +3406,14 @@ void Board320_240::redrawScreen()
     tmp_send_interval = liveData->settings.remoteUploadAbrpIntervalSec;
   }
 
-  // Ignition ON
+  // Ignition ON, Gyro motion
   if (liveData->params.ignitionOn) 
   {
     spr.fillRect(130, 0, 2, 14, TFT_GREEN);
+  }
+  if (liveData->params.gyroSensorMotion) 
+  {
+    spr.fillRect(120, 0, 4, 20, TFT_ORANGE);
   }
 
   // WiFi Status
@@ -3795,6 +3805,7 @@ void Board320_240::mainLoop()
   if (
       (liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
       (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
+      (liveData->params.gyroSensorMotion) ||
       (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8) // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
       ) 
   {
@@ -3805,7 +3816,7 @@ void Board320_240::mainLoop()
   //  - ignition is off
   //  - AUX voltage is under 11.5V
   if (liveData->settings.commandQueueAutoStop == 1 &&
-      (!liveData->params.ignitionOn || (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5))
+      ((!liveData->params.ignitionOn && !liveData->params.chargingOn) || (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5))
       )
   {
     liveData->prepareForStopCommandQueue();

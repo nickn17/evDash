@@ -921,7 +921,7 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
   // DEMO DATA
-  liveData->params.chargingOn = false;
+  liveData->params.chargingOn = true;
   liveData->params.forwardDriveMode = true;
   liveData->params.brakeLights = true;
   liveData->params.headLights = true;

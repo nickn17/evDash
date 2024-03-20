@@ -50,6 +50,7 @@ void LiveData::initParams()
   params.gpsSat = 0;
   params.gpsAlt = -500;
   params.setGpsTimeFromCar = 0;
+  params.gyroSensorMotion = false;
   // Display
   params.displayScreen = SCREEN_SPEED;
   params.displayScreenAutoMode = SCREEN_AUTO;
