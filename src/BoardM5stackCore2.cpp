@@ -364,16 +364,16 @@ void BoardM5stackCore2::boardLoop()
       &yaw);
   M5.IMU.getTempData(&temp);
 
-  liveData->params.gyroSensorMotion = false;
   if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0 || accX != 0.0 || accY != 0.0 || accZ != 0.0 || pitch != 0.0 || roll != 0.0 || yaw != -8.5)
   {
-    if (abs(gyroX) > 20.0 || abs(gyroY) > 20.0 || abs(gyroZ) > 20.0) 
+    liveData->params.gyroSensorMotion = false;
+    if (abs(gyroX) > 15.0 || abs(gyroY) > 15.0 || abs(gyroZ) > 15.0) 
     {
       liveData->params.gyroSensorMotion = true;
     }
     //syslog->printf("gyroX,  gyroY, gyroZ accX,   accY,  accZpitch,  roll,  yaw\n");
-    syslog->printf("%6.2f %6.2f%6.2f o/s %5.2f  %5.2f  %5.2f G %5.2f  %5.2f  %5.2f deg\n", gyroX, gyroY, gyroZ, accX, accY, accZ, pitch, roll, yaw);
-    delay(250);
+    //syslog->printf("%6.2f %6.2f%6.2f o/s %5.2f  %5.2f  %5.2f G %5.2f  %5.2f  %5.2f deg\n", gyroX, gyroY, gyroZ, accX, accY, accZ, pitch, roll, yaw);
+    //delay(250);
   }
   syslog->flush();
 }

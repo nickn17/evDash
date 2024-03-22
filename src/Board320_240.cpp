@@ -3407,13 +3407,13 @@ void Board320_240::redrawScreen()
   }
 
   // Ignition ON, Gyro motion
-  if (liveData->params.ignitionOn) 
-  {
-    spr.fillRect(130, 0, 2, 14, TFT_GREEN);
-  }
   if (liveData->params.gyroSensorMotion) 
   {
-    spr.fillRect(120, 0, 4, 20, TFT_ORANGE);
+    spr.fillRect(128, 3, 4, 18, TFT_ORANGE);
+  }
+  if (liveData->params.ignitionOn) 
+  {
+    spr.fillRect(130, 4, 2, 14, TFT_GREEN);
   }
 
   // WiFi Status
@@ -3558,8 +3558,20 @@ void Board320_240::xTaskCommLoop(void *pvParameters)
  */
 void Board320_240::commLoop()
 {
+  // Start timing
+  int64_t startTime3 = esp_timer_get_time();
+
   // Read data from BLE/CAN
   commInterface->mainLoop();
+
+  int64_t endTime3 = esp_timer_get_time();
+
+  // Calculate duration
+  int64_t duration3 = endTime3 - startTime3;
+
+  // Print the duration using syslog
+  // Use String constructor to convert int64_t to String
+  syslog->println("Time taken by function: commLoop() " + String(duration3) + " microseconds");
 }
 
 /**
@@ -3684,6 +3696,11 @@ void Board320_240::mainLoop()
   }
 
   // GPS process
+  // Start timing
+  int64_t startTime4 = esp_timer_get_time();
+  
+  
+
   if (gpsHwUart != NULL)
   {
     unsigned long start = millis();
@@ -3713,6 +3730,14 @@ void Board320_240::mainLoop()
     liveData->params.setGpsTimeFromCar = 0;
   }
 
+int64_t endTime4 = esp_timer_get_time();
+// Calculate duration
+  int64_t duration4 = endTime4 - startTime4;
+
+  // Print the duration using syslog
+  // Use String constructor to convert int64_t to String
+  syslog->println("Time taken by function: GPS loop " + String(duration4) + " microseconds");
+
   // currentTime
   struct tm now;
   getLocalTime(&now);
@@ -3729,6 +3754,7 @@ void Board320_240::mainLoop()
   netLoop();
 
   // SD card recording
+  int64_t startTime5 = esp_timer_get_time();
   if (!liveData->params.stopCommandQueue && liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
   {
@@ -3769,6 +3795,16 @@ void Board320_240::mainLoop()
       }
     }
   }
+
+int64_t endTime5 = esp_timer_get_time();
+
+  // Calculate duration
+  int64_t duration5 = endTime5 - startTime5;
+
+  // Print the duration using syslog
+  // Use String constructor to convert int64_t to String
+  syslog->println("Time taken by function: SD card write loop " + String(duration5) + " microseconds");
+
 
   // Read voltmeter INA3221 (if enabled)
   if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 5)
@@ -3816,7 +3852,13 @@ void Board320_240::mainLoop()
   //  - ignition is off
   //  - AUX voltage is under 11.5V
   if (liveData->settings.commandQueueAutoStop == 1 &&
-      ((!liveData->params.ignitionOn && !liveData->params.chargingOn) || (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5))
+      ((!liveData->params.ignitionOn && 
+        !liveData->params.leftFrontDoorOpen &&
+        !liveData->params.rightFrontDoorOpen &&
+        !liveData->params.trunkDoorOpen &&
+        !liveData->params.chargingOn) 
+        || 
+        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5))
       )
   {
     liveData->prepareForStopCommandQueue();
@@ -3913,8 +3955,8 @@ void Board320_240::mainLoop()
   if (liveData->params.odoKm != -1 && forwardDriveOdoKmLast != -1 && liveData->params.odoKm != forwardDriveOdoKmLast && liveData->params.timeInForwardDriveMode > 0)
   {
     forwardDriveOdoKmLast = liveData->params.odoKm;
-    liveData->params.avgSpeedKmh = (double)(liveData->params.odoKm - forwardDriveOdoKmStart) /
-                                   ((double)liveData->params.timeInForwardDriveMode / 3600.0);
+    liveData->params.avgSpeedKmh = /*(double)*/(liveData->params.odoKm - forwardDriveOdoKmStart) /
+                                   (/*(double)*/liveData->params.timeInForwardDriveMode / 3600.0);
   }
 
   // Automatic reset charging or drive data after switch between drive / charging or longer standing (1800 seconds)
@@ -4283,6 +4325,7 @@ void Board320_240::netLoop()
  **/
 bool Board320_240::netSendData()
 {
+  int64_t startTime2 = esp_timer_get_time();
   uint16_t rc = 0;
 
   if (liveData->params.socPerc < 0)
@@ -4598,6 +4641,10 @@ bool Board320_240::netSendData()
   {
     syslog->println("Well... This not gonna happen... (Board320_240::netSendData();)"); // Just for debug reasons...
   }
+// next three rows are for time measurement of this function
+int64_t endTime2 = esp_timer_get_time();
+int64_t duration2 = endTime2 - startTime2;
+syslog->println("Time taken by function: netSendData() " + String(duration2) + " microseconds");
 
   return true;
 }
@@ -4633,6 +4680,7 @@ bool Board320_240::netContributeData()
 
       liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
       liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr() + "\", ";
+      liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
       liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
       liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
       liveData->contributeDataJson += "\"socPerc\": " + String(liveData->params.socPerc, 0) + ", ";

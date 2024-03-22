@@ -484,11 +484,9 @@ void CarHyundaiIoniq5::parseRowMerged()
 
       // Charging ON, AC/DC
       // 2022-05 NOT WORKING value is still 0x00
-      tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
-      liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
-      liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
-      // liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
-      //                              (bitRead(tempByte, 7) == 1); // 000_HV_Charging
+      //tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
+      //liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
+      //liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
@@ -584,7 +582,10 @@ void CarHyundaiIoniq5::parseRowMerged()
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
+        liveData->params.chargerACconnected = (liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
+        liveData->params.chargerDCconnected = (liveData->params.batPowerKw >= 12);
       }
+
       //
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
       liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
@@ -627,7 +628,12 @@ bool CarHyundaiIoniq5::commandAllowed()
     syslog->println(liveData->commandRequest);*/
 
   // Don't scan other ECU when ignition is off
-  if (!liveData->params.ignitionOn &&
+  if (liveData->params.stopCommandQueue && 
+      !liveData->params.ignitionOn &&
+      !liveData->params.leftFrontDoorOpen &&
+      !liveData->params.rightFrontDoorOpen &&
+      !liveData->params.trunkDoorOpen &&
+      !liveData->params.chargingOn &&
       (!liveData->currentAtshRequest.equals("ATSH770") || !liveData->commandRequest.equals("22BC03")))
   {
     return false;
@@ -921,6 +927,7 @@ void CarHyundaiIoniq5::loadTestData()
   liveData->params.soc10time[0] = liveData->params.soc10time[1] + 900;
 
   // DEMO DATA
+  liveData->params.gyroSensorMotion = true;
   liveData->params.chargingOn = true;
   liveData->params.forwardDriveMode = true;
   liveData->params.brakeLights = true;
