@@ -310,7 +310,7 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.autoLights = false; //(bitRead(tempByte, 2) == 1);
       liveData->params.dayLights = (bitRead(tempByte, 2) == 1);
     }
-    
+
     if (liveData->commandRequest.equals("22BC06"))
     {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
@@ -484,9 +484,9 @@ void CarHyundaiIoniq5::parseRowMerged()
 
       // Charging ON, AC/DC
       // 2022-05 NOT WORKING value is still 0x00
-      //tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
-      //liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
-      //liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
+      // tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
+      // liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
+      // liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
     }
     // BMS 7e4
     if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
@@ -582,9 +582,9 @@ void CarHyundaiIoniq5::parseRowMerged()
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
-        liveData->params.chargerACconnected = (liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
-        liveData->params.chargerDCconnected = (liveData->params.batPowerKw >= 12);
       }
+      liveData->params.chargerACconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
+      liveData->params.chargerDCconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 12);
 
       //
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
@@ -628,7 +628,7 @@ bool CarHyundaiIoniq5::commandAllowed()
     syslog->println(liveData->commandRequest);*/
 
   // Don't scan other ECU when ignition is off
-  if (liveData->params.stopCommandQueue && 
+  if (liveData->params.stopCommandQueue &&
       !liveData->params.ignitionOn &&
       !liveData->params.leftFrontDoorOpen &&
       !liveData->params.rightFrontDoorOpen &&

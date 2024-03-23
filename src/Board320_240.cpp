@@ -1089,7 +1089,7 @@ void Board320_240::drawSceneSpeed()
     spr.drawString(tmpStr3, 200, posy, GFXFF);
     posy += 24;
     if (diffTime > 5) { 
-      sprintf(tmpStr3, "~%01.01f kW", ((liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart) * (3600 / diffTime)));
+      sprintf(tmpStr3, "avg.%01.01f kW", ((liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart) * (3600 / diffTime)));
       spr.drawString(tmpStr3, 200, posy, GFXFF);
     }
     
@@ -1241,7 +1241,7 @@ void Board320_240::drawSceneSpeed()
   spr.drawString(tmpStr3, 319, 92, GFXFF);
   if (liveData->params.motorTempC != -100)
   {
-    sprintf(tmpStr3, "i%01.00f / m%01.00f", liveData->celsius2temperature(liveData->params.inverterTempC), liveData->celsius2temperature(liveData->params.motorTempC));
+    sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature));//, liveData->celsius2temperature(liveData->params.motorTempC));
     spr.drawString(tmpStr3, 319, 26, GFXFF);
   }
   // Min.Cell V
@@ -3448,7 +3448,12 @@ void Board320_240::redrawScreen()
   {
     if (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen || liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen)
     {
-      spr.fillRect(40, 40, 50, 90, 0x4208);
+      spr.fillRect(40+5, 40, 50-10, 90, 0x4208);
+      spr.fillRect(40, 40+5, 50, 90-10, 0x4208);
+      spr.fillCircle(40+5, 40+5, 5, 0x4208);
+      spr.fillCircle(40+50-6, 40+5, 5, 0x4208);
+      spr.fillCircle(40+5, 40+90-6, 5, 0x4208);
+      spr.fillCircle(40+50-6, 40+90-6, 5, 0x4208);
       if (liveData->params.trunkDoorOpen)
         spr.fillRect(45, 36, 40, 20, TFT_GOLD);
       if (liveData->params.leftFrontDoorOpen)
@@ -4179,8 +4184,7 @@ void Board320_240::syncGPS()
   {
     liveData->params.gpsLat = gps.location.lat();
     liveData->params.gpsLon = gps.location.lng();
-    if (gps.altitude.isValid())
-      liveData->params.gpsAlt = gps.altitude.meters();
+    liveData->params.gpsAlt = gps.altitude.meters();
     calcAutomaticBrightnessLatLon();
   }
   if (gps.speed.isValid() && liveData->params.gpsSat >= 4)
@@ -4690,6 +4694,7 @@ bool Board320_240::netContributeData()
       liveData->contributeDataJson += "\"batPowerKw\": " + String(liveData->params.batPowerKw, 3) + ", ";
       liveData->contributeDataJson += "\"batPowerKwh100\": " + String(liveData->params.batPowerKwh100, 3) + ", ";
       liveData->contributeDataJson += "\"batVoltage\": " + String(liveData->params.batVoltage, 0) + ", ";
+      liveData->contributeDataJson += "\"batCurrentAmp\": " + String(liveData->params.batPowerAmp, 0) + ", ";
       liveData->contributeDataJson += "\"auxVoltage\": " + String(liveData->params.auxVoltage, 0) + ", ";
       liveData->contributeDataJson += "\"auxCurrentAmp\": " + String(liveData->params.auxCurrentAmp, 0) + ", ";
       liveData->contributeDataJson += "\"batMinC\": " + String(liveData->params.batMinC, 0) + ", ";
