@@ -99,6 +99,7 @@ public:
   void wifiSwitchToMain();
   void wifiSwitchToBackup();
   String getCarModelAbrpStr();
+  void uploadSdCardLogToEvDashServer();
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;
