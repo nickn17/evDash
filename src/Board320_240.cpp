@@ -675,7 +675,8 @@ void Board320_240::setBrightness()
   {
     lcdBrightnessPerc = 100;
   }
-  if (liveData->params.stopCommandQueue) { 
+  if (liveData->params.stopCommandQueue)
+  {
     lcdBrightnessPerc = 20;
   }
 
@@ -1058,7 +1059,7 @@ void Board320_240::drawSceneSpeed()
     sprintf(tmpStr1, "%s%d", (liveData->params.stopCommandQueue ? "QS " : "QR "), (liveData->params.currentTime - liveData->params.stopCommandQueueTime));
     spr.drawString(tmpStr1, 0, 40, 2);
   }
-  if (liveData->params.stopCommandQueue) 
+  if (liveData->params.stopCommandQueue)
   {
     spr.setFreeFont(&Roboto_Thin_24);
     spr.setTextColor(TFT_RED);
@@ -1088,22 +1089,17 @@ void Board320_240::drawSceneSpeed()
     sprintf(tmpStr3, (liveData->params.batPowerAmp == -1000) ? "n/a A" : "%01.01f A", liveData->params.batPowerAmp);
     spr.drawString(tmpStr3, 200, posy, GFXFF);
     posy += 24;
-    if (diffTime > 5) { 
+    if (diffTime > 5)
+    {
       sprintf(tmpStr3, "avg.%01.01f kW", ((liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart) * (3600 / diffTime)));
       spr.drawString(tmpStr3, 200, posy, GFXFF);
     }
-    
   }
   else
   {
     // Speed
     spr.setTextSize(2);
-    sprintf(tmpStr3, "%01.00f", liveData->km2distance(
-      (((liveData->params.speedKmhGPS > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_GPS) ? 
-          liveData->params.speedKmhGPS : 
-          ((((liveData->params.speedKmh > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_CAR)) ? 
-             liveData->params.speedKmh : 0))
-      ));
+    sprintf(tmpStr3, "%01.00f", liveData->km2distance((((liveData->params.speedKmhGPS > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_GPS) ? liveData->params.speedKmhGPS : ((((liveData->params.speedKmh > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_CAR)) ? liveData->params.speedKmh : 0))));
     spr.drawString(tmpStr3, 200, posy, 7);
   }
 
@@ -1241,7 +1237,7 @@ void Board320_240::drawSceneSpeed()
   spr.drawString(tmpStr3, 319, 92, GFXFF);
   if (liveData->params.motorTempC != -100)
   {
-    sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature));//, liveData->celsius2temperature(liveData->params.motorTempC));
+    sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature)); //, liveData->celsius2temperature(liveData->params.motorTempC));
     spr.drawString(tmpStr3, 319, 26, GFXFF);
   }
   // Min.Cell V
@@ -2882,6 +2878,12 @@ void Board320_240::menuItemClick()
       syslog->println("CONTRIBUTE_WAITING");
       liveData->params.contributeStatus = CONTRIBUTE_WAITING;
       break;
+    case MENU_REMOTE_UPLOAD_LOGS_TO_EVDASH_SERVER:
+      uploadSdCardLogToEvDashServer();
+      delay(2000);
+      showMenu();
+      return;
+      break;
     case MENU_GPS_MODULE_TYPE:
       liveData->settings.gpsModuleType = (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS) ? GPS_MODULE_TYPE_NONE : liveData->settings.gpsModuleType + 1;
       showMenu();
@@ -3407,11 +3409,11 @@ void Board320_240::redrawScreen()
   }
 
   // Ignition ON, Gyro motion
-  if (liveData->params.gyroSensorMotion) 
+  if (liveData->params.gyroSensorMotion)
   {
     spr.fillRect(128, 3, 4, 18, TFT_ORANGE);
   }
-  if (liveData->params.ignitionOn) 
+  if (liveData->params.ignitionOn)
   {
     spr.fillRect(130, 4, 2, 14, TFT_GREEN);
   }
@@ -3448,12 +3450,12 @@ void Board320_240::redrawScreen()
   {
     if (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen || liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen)
     {
-      spr.fillRect(40+5, 40, 50-10, 90, 0x4208);
-      spr.fillRect(40, 40+5, 50, 90-10, 0x4208);
-      spr.fillCircle(40+5, 40+5, 5, 0x4208);
-      spr.fillCircle(40+50-6, 40+5, 5, 0x4208);
-      spr.fillCircle(40+5, 40+90-6, 5, 0x4208);
-      spr.fillCircle(40+50-6, 40+90-6, 5, 0x4208);
+      spr.fillRect(40 + 5, 40, 50 - 10, 90, 0x4208);
+      spr.fillRect(40, 40 + 5, 50, 90 - 10, 0x4208);
+      spr.fillCircle(40 + 5, 40 + 5, 5, 0x4208);
+      spr.fillCircle(40 + 50 - 6, 40 + 5, 5, 0x4208);
+      spr.fillCircle(40 + 5, 40 + 90 - 6, 5, 0x4208);
+      spr.fillCircle(40 + 50 - 6, 40 + 90 - 6, 5, 0x4208);
       if (liveData->params.trunkDoorOpen)
         spr.fillRect(45, 36, 40, 20, TFT_GOLD);
       if (liveData->params.leftFrontDoorOpen)
@@ -3576,7 +3578,7 @@ void Board320_240::commLoop()
 
   // Print the duration using syslog
   // Use String constructor to convert int64_t to String
-  syslog->println("Time taken by function: commLoop() " + String(duration3) + " microseconds");
+  // syslog->println("Time taken by function: commLoop() " + String(duration3) + " microseconds");
 }
 
 /**
@@ -3703,8 +3705,6 @@ void Board320_240::mainLoop()
   // GPS process
   // Start timing
   int64_t startTime4 = esp_timer_get_time();
-  
-  
 
   if (gpsHwUart != NULL)
   {
@@ -3735,13 +3735,13 @@ void Board320_240::mainLoop()
     liveData->params.setGpsTimeFromCar = 0;
   }
 
-int64_t endTime4 = esp_timer_get_time();
-// Calculate duration
+  int64_t endTime4 = esp_timer_get_time();
+  // Calculate duration
   int64_t duration4 = endTime4 - startTime4;
 
   // Print the duration using syslog
   // Use String constructor to convert int64_t to String
-  syslog->println("Time taken by function: GPS loop " + String(duration4) + " microseconds");
+  // syslog->println("Time taken by function: GPS loop " + String(duration4) + " microseconds");
 
   // currentTime
   struct tm now;
@@ -3749,10 +3749,10 @@ int64_t endTime4 = esp_timer_get_time();
   liveData->params.currentTime = mktime(&now);
 
   // Check and eventually reconnect WIFI aconnection
-  if (!liveData->params.stopCommandQueue && liveData->settings.commType != COMM_TYPE_OBD2_WIFI && !liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 && 
+  if (!liveData->params.stopCommandQueue && liveData->settings.commType != COMM_TYPE_OBD2_WIFI && !liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 &&
       WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
   {
-      wifiFallback();
+    wifiFallback();
   }
 
   // SIM800L, WiFI remote upload, ABRP remote upload, MQTT
@@ -3801,15 +3801,14 @@ int64_t endTime4 = esp_timer_get_time();
     }
   }
 
-int64_t endTime5 = esp_timer_get_time();
+  int64_t endTime5 = esp_timer_get_time();
 
   // Calculate duration
   int64_t duration5 = endTime5 - startTime5;
 
   // Print the duration using syslog
   // Use String constructor to convert int64_t to String
-  syslog->println("Time taken by function: SD card write loop " + String(duration5) + " microseconds");
-
+  // syslog->println("Time taken by function: SD card write loop " + String(duration5) + " microseconds");
 
   // Read voltmeter INA3221 (if enabled)
   if (liveData->settings.voltmeterEnabled == 1 && liveData->params.currentTime - liveData->params.lastVoltageReadTime > 5)
@@ -3841,14 +3840,14 @@ int64_t endTime5 = esp_timer_get_time();
   // Wake up from stopped command queue
   //  - any touch on display
   //  - ignitions on and aux >= 11.5v
-  //  - ina3221 & voltage is >= 14V (DCDC is running) 
+  //  - ina3221 & voltage is >= 14V (DCDC is running)
   //  - gps speed 20 - 60kmh & 8+ satellites
   if (
       (liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
       (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
       (liveData->params.gyroSensorMotion) ||
       (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8) // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
-      ) 
+  )
   {
     liveData->continueWithCommandQueue();
   }
@@ -3857,29 +3856,25 @@ int64_t endTime5 = esp_timer_get_time();
   //  - ignition is off
   //  - AUX voltage is under 11.5V
   if (liveData->settings.commandQueueAutoStop == 1 &&
-      ((!liveData->params.ignitionOn && 
+      ((!liveData->params.ignitionOn &&
         !liveData->params.leftFrontDoorOpen &&
         !liveData->params.rightFrontDoorOpen &&
         !liveData->params.trunkDoorOpen &&
-        !liveData->params.chargingOn) 
-        || 
-        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5))
-      )
+        !liveData->params.chargingOn) ||
+       (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5)))
   {
     liveData->prepareForStopCommandQueue();
   }
   if (!liveData->params.stopCommandQueue &&
-      (
-        (liveData->params.stopCommandQueueTime != 0 && liveData->params.currentTime - liveData->params.stopCommandQueueTime > 60) || 
-        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.0)
-      )
-     )
+      ((liveData->params.stopCommandQueueTime != 0 && liveData->params.currentTime - liveData->params.stopCommandQueueTime > 60) ||
+       (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.0)))
   {
     liveData->params.stopCommandQueue = true;
     syslog->println("CAN Command queue stopped...");
   }
   // Descrease loop fps
-  if (liveData->params.stopCommandQueue) {
+  if (liveData->params.stopCommandQueue)
+  {
     delay(250);
   }
 
@@ -3960,8 +3955,8 @@ int64_t endTime5 = esp_timer_get_time();
   if (liveData->params.odoKm != -1 && forwardDriveOdoKmLast != -1 && liveData->params.odoKm != forwardDriveOdoKmLast && liveData->params.timeInForwardDriveMode > 0)
   {
     forwardDriveOdoKmLast = liveData->params.odoKm;
-    liveData->params.avgSpeedKmh = /*(double)*/(liveData->params.odoKm - forwardDriveOdoKmStart) /
-                                   (/*(double)*/liveData->params.timeInForwardDriveMode / 3600.0);
+    liveData->params.avgSpeedKmh = /*(double)*/ (liveData->params.odoKm - forwardDriveOdoKmStart) /
+                                   (/*(double)*/ liveData->params.timeInForwardDriveMode / 3600.0);
   }
 
   // Automatic reset charging or drive data after switch between drive / charging or longer standing (1800 seconds)
@@ -4215,6 +4210,11 @@ void Board320_240::syncGPS()
 bool Board320_240::wifiSetup()
 {
   syslog->print("WiFi init: ");
+
+  /*String tmpStr;
+  tmpStr = "s1";
+  tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);*/
+
   syslog->println(liveData->settings.wifiSsid);
   WiFi.enableSTA(true);
   WiFi.mode(WIFI_STA);
@@ -4645,10 +4645,10 @@ bool Board320_240::netSendData()
   {
     syslog->println("Well... This not gonna happen... (Board320_240::netSendData();)"); // Just for debug reasons...
   }
-// next three rows are for time measurement of this function
-int64_t endTime2 = esp_timer_get_time();
-int64_t duration2 = endTime2 - startTime2;
-syslog->println("Time taken by function: netSendData() " + String(duration2) + " microseconds");
+  // next three rows are for time measurement of this function
+  int64_t endTime2 = esp_timer_get_time();
+  int64_t duration2 = endTime2 - startTime2;
+  // syslog->println("Time taken by function: netSendData() " + String(duration2) + " microseconds");
 
   return true;
 }
@@ -4741,7 +4741,7 @@ bool Board320_240::netContributeData()
           strcpy(liveData->settings.contributeToken, doc["token"]);
           saveSettings();
         }
-  
+
         liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
       }
     }
@@ -4891,4 +4891,93 @@ void Board320_240::initGPS()
 
     gpsHwUart->write(ubloxconfig, sizeof(ubloxconfig));
   }
+}
+
+/**
+ * This function uploads log files from the SD card to the EvDash server.
+ */
+void Board320_240::uploadSdCardLogToEvDashServer()
+{
+  syslog->println("uploadSdCardLogToEvDashServer");
+  if (!liveData->params.sdcardInit)
+  {
+    syslog->println("SD card not initialized.");
+    displayMessage("SDCARD", "Not mounted");
+    return;
+  }
+  if (!(liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1))
+  {
+    displayMessage("Error", "Wifi not enabled");
+    return;
+  }
+
+  File dir = SD.open("/");
+  String fileName;
+  WiFiClientSecure client;
+  HTTPClient http;
+  String uploadedStr;
+  uint16_t rc = 0;
+  uint32_t part, sz, uploaded;
+  bool errorUploadFile;
+  char *buff = (char *)malloc(16384);
+
+  while (true)
+  {
+    uploaded = part = 0;
+    errorUploadFile = true;
+    File entry = dir.openNextFile(FILE_READ);
+    if (!entry)
+      break;
+    if (!entry.isDirectory())
+    {
+      fileName = "/";
+      fileName += entry.name();
+      if (fileName.indexOf(".json") != -1 && fileName.indexOf(liveData->params.sdcardFilename) != -1)
+      {
+        displayMessage(fileName.c_str(), "Uploading...");
+        memset(buff, 0, sizeof(buff));
+        while ((sz = entry.readBytes(buff, 16383)) > 0)
+        {
+          errorUploadFile = false;
+          syslog->println("Part:" + String(part) + "\tSize:" + String(sz));
+          uploadedStr = "Uploading... " + String(uploaded / 1024) + " / " + String(entry.size() / 1024) + "kB";
+          displayMessage(fileName.c_str(), uploadedStr.c_str());
+
+          client.setInsecure();
+          http.begin(client, "https://evdash.next176.sk/api/upload.php?token=" + String(liveData->settings.contributeToken) +
+                                 "&filename=" + String(entry.name()) + "&part=" + String(part));
+          http.setConnectTimeout(1000);
+          rc = http.POST((uint8_t *)buff, sz);
+          uploaded += sz;
+          if (rc == HTTP_CODE_OK)
+          {
+            String payload = http.getString();
+            syslog->println(payload);
+            if (payload.indexOf("status\":\"ok") == -1)
+            {
+              errorUploadFile = true;
+              break;
+            }
+          }
+          else
+          {
+            syslog->println("HTTP code: " + String(rc));
+            errorUploadFile = true;
+            break;
+          }
+          part++;
+          memset(buff, 0, sizeof(buff));
+        }
+
+        displayMessage(fileName.c_str(), (errorUploadFile ? "Upload error..." : "Uploaded..."));
+        if (!errorUploadFile)
+        {
+          SD.remove(fileName);
+        }
+      }
+    }
+    entry.close();
+  }
+
+  free(buff);
 }

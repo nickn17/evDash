@@ -2,6 +2,10 @@
 
 ### Next version
 
+### v3.0.4 2024-03-24
+- Menu / others / Remote upload / Upload logs to evdash server
+  - upload all recordings from the SD card to the evdash server. After successful upload, the files will be deleted.
+
 ### v3.0.3 2024-03-23
 - eGMP: detection of AC/DC based on power kw
 - contributing data: added battery current amps (for abrp support)
