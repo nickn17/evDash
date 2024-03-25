@@ -4901,7 +4901,7 @@ void Board320_240::uploadSdCardLogToEvDashServer()
   syslog->println("uploadSdCardLogToEvDashServer");
   if (!liveData->params.sdcardInit)
   {
-    syslog->println("SD card not initialized.");
+    syslog->println("SD card not initialized");
     displayMessage("SDCARD", "Not mounted");
     return;
   }
@@ -4920,6 +4920,8 @@ void Board320_240::uploadSdCardLogToEvDashServer()
   uint32_t part, sz, uploaded;
   bool errorUploadFile;
   char *buff = (char *)malloc(16384);
+
+  displayMessage("Upload logs to server", "No files found");
 
   while (true)
   {
