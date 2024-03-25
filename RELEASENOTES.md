@@ -5,6 +5,7 @@
 ### v3.0.4 2024-03-24
 - Menu / others / Remote upload / Upload logs to evdash server
   - upload all JSON files from the SD card to the evdash server. After successful upload files will be deleted.
+  - If you want to use this feature for easier downloading instead using SD card reader. Let me know (nick.n17@gmail.com). I will send you a token to your logs on the evdash server. 
 
 ### v3.0.3 2024-03-23
 - eGMP: detection of AC/DC based on power kw
