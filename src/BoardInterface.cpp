@@ -453,6 +453,8 @@ void BoardInterface::customConsoleCommand(String cmd)
     ESP.restart();
   if (cmd.equals("saveSettings"))
     saveSettings();
+  if (cmd.equals("factoryReset"))
+    resetSettings();
   if (cmd.equals("time"))
     showTime();
   if (cmd.equals("ntpSync"))

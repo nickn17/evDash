@@ -2,6 +2,10 @@
 
 ### Next version
 
+### v3.0.5 2024-04-05
+- upload logs to evdash server fixes
+- factory reset console command
+
 ### v3.0.4 2024-03-24
 - Menu / others / Remote upload / Upload logs to evdash server
   - upload all JSON files from the SD card to the evdash server. After successful upload files will be deleted.

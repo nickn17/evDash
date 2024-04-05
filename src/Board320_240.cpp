@@ -4917,11 +4917,12 @@ void Board320_240::uploadSdCardLogToEvDashServer()
   HTTPClient http;
   String uploadedStr;
   uint16_t rc = 0;
-  uint32_t part, sz, uploaded;
+  uint32_t part, sz, uploaded, cntLogs, cntUploaded;
   bool errorUploadFile;
   char *buff = (char *)malloc(16384);
 
   displayMessage("Upload logs to server", "No files found");
+  cntLogs = cntUploaded = 0;
 
   while (true)
   {
@@ -4934,8 +4935,9 @@ void Board320_240::uploadSdCardLogToEvDashServer()
     {
       fileName = "/";
       fileName += entry.name();
-      if (fileName.indexOf(".json") != -1 && fileName.indexOf(liveData->params.sdcardFilename) != -1)
+      if (fileName.indexOf(".json") != -1 && fileName.indexOf(liveData->params.sdcardFilename) == -1)
       {
+        cntLogs++;
         displayMessage(fileName.c_str(), "Uploading...");
         memset(buff, 0, sizeof(buff));
         while ((sz = entry.readBytes(buff, 16383)) > 0)
@@ -4975,11 +4977,14 @@ void Board320_240::uploadSdCardLogToEvDashServer()
         if (!errorUploadFile)
         {
           SD.remove(fileName);
+          cntUploaded++;
         }
       }
     }
     entry.close();
   }
 
+  uploadedStr = String(cntUploaded) + " of " + String(cntLogs);
+  displayMessage("Uploaded", uploadedStr.c_str());
   free(buff);
 }
