@@ -58,6 +58,8 @@ LiveData *liveData;
  */
 void setup(void)
 {
+// delay(5000);
+
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
@@ -164,6 +166,7 @@ void setup(void)
   syslog->println("reboot   ... reboot device");
   syslog->println("shutdown ... shutdown device");
   syslog->println("saveSettings   ... save current settings");
+  syslog->println("factoryReset   ... reset settings");
   syslog->println("ipconfig   ... print network settings");
   syslog->println("ABRP_debug   ... print ABRP user token");
   syslog->println("debugLevel=n   [n = 0..3]  ... set debug level all, gps, comm, ...");
