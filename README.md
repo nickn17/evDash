@@ -90,14 +90,14 @@ In the menu
 - rest of the screen - select item
 
 Screen list
-- 0. blank screen, lcd off
-- 1. automatic mode (summary info / speed kmh / charging graph)
-- 2. summary info
-- 3. speed kmh + kwh/100km, charging data (V/A/kW)
-- 4. battery cells + battery module temperatures
-- 5. charging graph
-- 6. consumption table. Can be used to measure available battery capacity.
-- 7. debug info
+- 0 blank screen, lcd off
+- 1 automatic mode (summary info / speed kmh / charging graph)
+- 2 summary info
+- 3 speed kmh + kwh/100km, charging data (V/A/kW)
+- 4 battery cells + battery module temperatures
+- 5 charging graph
+- 6 consumption table. Can be used to measure available battery capacity.
+- 7 debug info
 
 ![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2_ioniq6.png)
 
