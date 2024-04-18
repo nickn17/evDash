@@ -2,6 +2,8 @@
 
 ### Next version
 
+- motor1/2 rpm instead out temperature
+
 ### v3.0.5 2024-04-05
 - upload logs to evdash server fixes
 - factory reset console command

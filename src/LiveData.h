@@ -170,7 +170,8 @@ typedef struct
   float speedKmh;
   float speedKmhGPS;
   float avgSpeedKmh;
-  float motorRpm;
+  float motor1Rpm;
+  float motor2Rpm;
   float odoKm;
   float odoKmStart;
   float socPercBms;

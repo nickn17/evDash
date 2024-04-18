@@ -1164,11 +1164,6 @@ void Board320_240::drawSceneSpeed()
             liveData->celsius2temperature(liveData->params.coolingWaterTempC));
     spr.drawString(tmpStr1, 319 - posx, posy, GFXFF);
   }
-  else if (liveData->params.motorRpm > -1)
-  {
-    sprintf(tmpStr3, "%01.00frpm", liveData->params.motorRpm);
-    spr.drawString(tmpStr3, 319 - posx, posy, GFXFF);
-  }
 
   // Avg speed
   posy = 60;
@@ -1235,11 +1230,17 @@ void Board320_240::drawSceneSpeed()
   spr.drawString(tmpStr3, 319, 66, GFXFF);
   sprintf(tmpStr3, (liveData->params.batMinC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
   spr.drawString(tmpStr3, 319, 92, GFXFF);
-  if (liveData->params.motorTempC != -100)
+  if (liveData->params.motor1Rpm > 0 || liveData->params.motor2Rpm > 0)
+  {
+    sprintf(tmpStr3, "%01.01f/%01.01fkr", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
+    spr.drawString(tmpStr3, 319, 26, GFXFF);
+  }
+  else if (liveData->params.outdoorTemperature != -100)
   {
     sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature)); //, liveData->celsius2temperature(liveData->params.motorTempC));
     spr.drawString(tmpStr3, 319, 26, GFXFF);
   }
+
   // Min.Cell V
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);

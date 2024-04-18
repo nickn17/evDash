@@ -453,7 +453,8 @@ void CarHyundaiIoniq5::parseRowMerged()
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true); // 3
       liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true); // 4
       liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
-      liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+      liveData->params.motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+      liveData->params.motor2Rpm = liveData->hexToDecFromResponse(116, 120, 2, false);
       // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
       liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt
       liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt

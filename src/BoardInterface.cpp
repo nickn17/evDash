@@ -585,7 +585,8 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   jsonData["sohPerc"] = liveData->params.sohPerc;
   jsonData["powKwh100"] = liveData->params.batPowerKwh100;
   jsonData["speedKmh"] = liveData->params.speedKmh;
-  jsonData["motorRpm"] = liveData->params.motorRpm;
+  jsonData["motorRpm"] = liveData->params.motor1Rpm;
+  jsonData["motor2Rpm"] = liveData->params.motor2Rpm;
   jsonData["odoKm"] = liveData->params.odoKm;
 
   if (liveData->params.batEnergyContent != 1)

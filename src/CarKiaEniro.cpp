@@ -31,11 +31,11 @@ void CarKiaEniro::activateCommandQueue()
 
   // Command queue
   std::vector<String> commandQueueKiaENiro = {
-      "ATZ",    // Reset all
-      "ATI",    // Print the version ID
-      "ATS0",   // Printing of spaces on
-      "ATE0",   // Echo off
-      "ATL0",   // Linefeeds off
+      "ATZ",   // Reset all
+      "ATI",   // Print the version ID
+      "ATS0",  // Printing of spaces on
+      "ATE0",  // Echo off
+      "ATL0",  // Linefeeds off
       "ATSP6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
       //"ATAL",     // Allow Long (>7 byte) messages
       //"ATAR",     // Automatically receive
@@ -305,7 +305,7 @@ void CarKiaEniro::parseRowMerged()
       liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true);
       liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true);
       liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true);
-      liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+      liveData->params.motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
       // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
       // liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true);
       // liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true);
@@ -462,7 +462,8 @@ bool CarKiaEniro::commandAllowed()
   }
 
   // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
-  if (liveData->settings.disableCommandOptimizer || liveData->params.contributeStatus == CONTRIBUTE_COLLECTING) {
+  if (liveData->settings.disableCommandOptimizer || liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+  {
     return true;
   }
 

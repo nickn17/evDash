@@ -301,7 +301,7 @@ liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 1
 //liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
 liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
 liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
-liveData->params.motorRpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+liveData->params.motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
 // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
 liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
 liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);

@@ -90,7 +90,7 @@ void LiveData::initParams()
   params.speedKmh = -1;
   params.avgSpeedKmh = 0;
   params.speedKmhGPS = -1;
-  params.motorRpm = -1;
+  params.motor1Rpm = params.motor2Rpm = -1;
   params.inverterTempC = -100;
   params.motorTempC = -100;
   params.odoKm = -1;
