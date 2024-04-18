@@ -72,6 +72,9 @@ see. [RELEASENOTES.md](RELEASENOTES.md) file
 
 ## Screens and shortcuts
 
+Touch screen zones
+![image](https://github.com/nickn17/evDash/blob/master/docs/core2_touch_zones.jpg)
+
 - Middle button - menu
 - Left button - toggle screens
 
