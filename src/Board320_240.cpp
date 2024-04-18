@@ -182,7 +182,9 @@ void Board320_240::afterSetup()
   // Init display
   syslog->println("Init TFT display");
   tft.begin();
+#ifdef BOARD_M5STACK_CORE2
   tft.invertDisplay(invertDisplay);
+#endif // BOARD_M5STACK_CORE2
   tft.setRotation(liveData->settings.displayRotation);
   setBrightness();
   tft.fillScreen(TFT_RED);

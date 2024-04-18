@@ -41,7 +41,8 @@ void BoardM5stackCoreS3::initBoard()
 
   // Core instead M5 & AXP begin
   //////////
-  Wire.begin(32, 33);     // I2C enable
+  CoreS3.begin();
+  /*Wire.begin(32, 33);     // I2C enable
   Wire1.begin(21, 22);    // AXP begin
   Wire1.setClock(400000); // AXP
   // AXP192 30H
@@ -56,19 +57,19 @@ void BoardM5stackCoreS3::initBoard()
   Write1Byte(0X95, (Read8bit(0x95) & 0x72) | 0X84);
   Write1Byte(0X36, 0X4C);
   Write1Byte(0x82, 0xff);
-
+*/
   CoreS3.Power.setChargeVoltage(3350);
-  CoreS3.Power.setExtPower(true); // 1 - Power from bus; 0 - Power from USB
+  // true - Power from bus; false - Power from USB
+  CoreS3.Power.setExtOutput((liveData->settings.boardPowerMode == 0));
   /*CoreS3.Power.SetLDOVoltage(2, 3300);
   CoreS3.Power.SetLDOVoltage(3, 2000);
   CoreS3.Power.SetLDOEnable(2, true);
   CoreS3.Power.SetDCDC3(false);
   CoreS3.Power.setLed(false);*/
-  CoreS3.Speaker.end(); //.SetSpkEnable(false);
-  // CoreS3.Touch.begin(&CoreS3.Display);
+  CoreS3.Speaker.end();
+  CoreS3.Touch.begin(&CoreS3.Display);
   CoreS3.Rtc.begin();
-  // M5.IMU.Init(); // Gyro
-  // delay(100);
+  CoreS3.Imu.begin(); // Gyro
 
   Board320_240::initBoard();
 }
@@ -85,14 +86,14 @@ void BoardM5stackCoreS3::afterSetup()
   // Touch screen zone
   // uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
 
-  /*  M5.background.delHandlers();
-    M5.background.tapTime = 50;
-    M5.background.dbltapTime = 300;
-    M5.background.longPressTime = 700;
-    M5.background.repeatDelay = 250;
-    M5.background.repeatInterval = 250;
-    M5.background.addHandler(eventDisplay, events);
-    M5.Buttons.addHandler(eventDisplay, events);*/
+  /*M5.background.delHandlers();
+  M5.background.tapTime = 50;
+  M5.background.dbltapTime = 300;
+  M5.background.longPressTime = 700;
+  M5.background.repeatDelay = 250;
+  M5.background.repeatInterval = 250;
+  M5.background.addHandler(eventDisplay, events);
+  M5.Buttons.addHandler(eventDisplay, events);*/
 }
 
 /**

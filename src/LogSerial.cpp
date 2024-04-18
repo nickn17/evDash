@@ -8,10 +8,12 @@
 /**
  * Constructor
  */
+#ifndef BOARD_M5STACK_CORES3
 LogSerial::LogSerial() : HardwareSerial(0)
 {
   // HardwareSerial::begin(115200);  # used syslog->begin(115200); (in evDash.ino)
 }
+#endif // BOARD_M5STACK_CORES3
 
 /**
  * Set debug level

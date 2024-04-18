@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef BOARD_M5STACK_CORES3
+#include "HWCDC.h"
+#else
 #include <HardwareSerial.h>
+#endif // BOARD_M5STACK_CORES3
 #include <FS.h>
 #include <SD.h>
 
@@ -11,8 +15,11 @@
 #define DEBUG_SDCARD 3 // filter sdcard
 #define DEBUG_GPS 4    // filter gps
 
-//
+#ifdef BOARD_M5STACK_CORES3
+class LogSerial : public HWCDC
+#else
 class LogSerial : public HardwareSerial
+#endif // BOARD_M5STACK_CORES3
 {
 protected:
   uint8_t debugLevel;
@@ -20,7 +27,9 @@ protected:
   File file;
 
 public:
+#ifndef BOARD_M5STACK_CORES3
   LogSerial();
+#endif // BOARD_M5STACK_CORES3
 
   //
   void setDebugLevel(uint8_t aDebugLevel);

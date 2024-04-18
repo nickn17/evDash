@@ -2,24 +2,22 @@
 [env:m5stack-cores3]
 platform = espressif32
 board = esp32-s3-devkitc-1
-  ;m5stack-cores3
 ;board_build.mcu = esp32-s3
-board_build.partitions = default_16MB.csv
-board_build.f_cpu = 240000000L
-;board_build.f_cpu = 80000000L
-board_build.f_flash = 80000000L
-board_build.flash_mode = dio
+;board_build.partitions = default_16MB.csv
+;board_build.f_cpu = 240000000L
+;board_build.f_flash = 80000000L
+;board_build.flash_mode = dio
 framework = arduino
 build_flags = 
     -DESP32S3
-;    -D ARDUINO_M5STACK_CoreS3
+    -D ARDUINO_M5STACK_CoreS3
 	-D BOARD_M5STACK_CORES3
 ;	-D RESET_SETTINGS
 	-D BOARD_HAS_PSRAM
 	-D CORE_DEBUG_LEVEL=0
     -mfix-esp32-psram-cache-issue
-	-D COMMU_CS_PIN=27
-	-D COMMU_INT_PIN=2
+	-D COMMU_CS_PIN=6
+	-D COMMU_INT_PIN=13
 	-D SERIAL2_RX=13
 	-D SERIAL2_TX=14
 lib_deps = 

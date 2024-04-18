@@ -58,8 +58,6 @@ LiveData *liveData;
  */
 void setup(void)
 {
-// delay(5000);
-
   // Init settings/params
   liveData = new LiveData();
   liveData->initParams();
