@@ -41,7 +41,8 @@ void BoardM5stackCoreS3::initBoard()
 
   // Core instead M5 & AXP begin
   //////////
-  CoreS3.begin();
+  auto cfg = M5.config();
+  CoreS3.begin(cfg);
   /*Wire.begin(32, 33);     // I2C enable
   Wire1.begin(21, 22);    // AXP begin
   Wire1.setClock(400000); // AXP
@@ -321,12 +322,33 @@ void BoardM5stackCoreS3::enterSleepMode(int secs)
   }
 }
 
+static m5::touch_state_t prev_state;
+
 /**
  * Board loop
  */
 void BoardM5stackCoreS3::boardLoop()
 {
   M5.update();
+
+  auto t = CoreS3.Touch.getDetail();
+  if (t.wasClicked())
+  {
+    lastTouchX = t.x;
+    lastTouchY = t.y;
+    touchPressed = true;
+  }
+  if (prev_state != t.state)
+  {
+    prev_state = t.state;
+    static constexpr const char *state_name[16] = {
+        "none", "touch", "touch_end", "touch_begin",
+        "___", "hold", "hold_end", "hold_begin",
+        "___", "flick", "flick_end", "flick_begin",
+        "___", "drag", "drag_end", "drag_begin"};
+    syslog->println(state_name[t.state]);
+  }
+
   Board320_240::boardLoop();
 
   /*    M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);

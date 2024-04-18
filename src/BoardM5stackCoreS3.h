@@ -24,7 +24,7 @@ public:
   void Write1Byte(uint8_t Addr, uint8_t Data);
   bool skipAdapterScan() override;
   uint8_t Read8bit(uint8_t Addr);
-//  static void eventDisplay(Event &e);
+  //  static void eventDisplay(Event &e);
   void setTime(String timestamp) override;
   void ntpSync() override;
 };
