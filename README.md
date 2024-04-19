@@ -101,3 +101,13 @@ Screen list
 
 ![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2_ioniq6.png)
 
+TOP info
+
+- yellow - icon - upload data. 
+- circle - outer gps 
+- inner - queue loop (flashing).
+- lines under it -- headlights (still not working on egmp)
+
+![image](https://github.com/nickn17/evDash/assets/7864168/7fe50579-590c-46fa-a448-36e7a2900087)
+
+
