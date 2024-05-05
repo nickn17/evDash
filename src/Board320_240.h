@@ -1,16 +1,5 @@
 #pragma once
 
-// TFT COMMON
-#define LOAD_GLCD  // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
-#define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters
-#define LOAD_FONT4 // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
-#define LOAD_FONT6 // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm
-#define LOAD_FONT7 // Font 7. 7 segment 48 pixel font, needs ~2438 bytes in FLASH, only characters 1234567890:.
-#define LOAD_FONT8 // Font 8. Large 75 pixel font needs ~3256 bytes in FLASH, only characters 1234567890:-.
-#define LOAD_GFXFF // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
-#define SMOOTH_FONT
-#define GFXFF 1 // TFT FOnts
-
 //
 #include <TinyGPS++.h>
 #include "BoardInterface.h"
@@ -18,10 +7,11 @@
 #include <SPI.h>
 #include "SDL_Arduino_INA3221.h"
 
-#ifdef BOARD_M5STACK_CORE2 
+#ifdef BOARD_M5STACK_CORE2
 #include <M5Core2.h>
+#include <M5GFX.h>
 #endif // BOARD_M5STACK_CORE2
-#ifdef BOARD_M5STACK_CORES3 
+#ifdef BOARD_M5STACK_CORES3
 #include <M5CoreS3.h>
 #endif // BOARD_M5STACK_CORES3
 
@@ -31,12 +21,12 @@ class Board320_240 : public BoardInterface
 protected:
 // TFT, SD SPI
 #if BOARD_M5STACK_CORE2
-  M5Display &tft = M5.Lcd;
-  TFT_eSprite spr = TFT_eSprite(&M5.Lcd);
+  M5GFX tft;
+  M5Canvas spr = M5Canvas(&tft);
 #endif // BOARD_M5STACK_CORE
 #if BOARD_M5STACK_CORES3
   M5GFX &tft = CoreS3.Display;
-  LGFX_Sprite spr = LGFX_Sprite(&CoreS3.Display);
+  M5Canvas spr = M5Canvas(&CoreS3.Display);
 #endif // BOARD_M5STACK_CORE2
   HardwareSerial *gpsHwUart = NULL;
   SDL_Arduino_INA3221 ina3221;

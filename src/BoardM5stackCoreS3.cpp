@@ -61,12 +61,12 @@ void BoardM5stackCoreS3::initBoard()
 */
   CoreS3.Power.setChargeVoltage(3350);
   // true - Power from bus; false - Power from USB
-  CoreS3.Power.setExtOutput((liveData->settings.boardPowerMode == 0));
-  /*CoreS3.Power.SetLDOVoltage(2, 3300);
-  CoreS3.Power.SetLDOVoltage(3, 2000);
-  CoreS3.Power.SetLDOEnable(2, true);
-  CoreS3.Power.SetDCDC3(false);
-  CoreS3.Power.setLed(false);*/
+  CoreS3.Power.setExtOutput((liveData->settings.boardPowerMode == 1));
+  CoreS3.Power.setLed(0);
+  // CoreS3.Power.SetLDOVoltage(2, 3300);
+  // CoreS3.Power.SetLDOVoltage(3, 2000);
+  // CoreS3.Power.SetLDOEnable(2, true);
+  // CoreS3.Power.set SetDCDC3(false);
   CoreS3.Speaker.end();
   CoreS3.Touch.begin(&CoreS3.Display);
   CoreS3.Rtc.begin();

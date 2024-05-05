@@ -10,6 +10,7 @@
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include <M5Core2.h>
+#include <M5GFX.h>
 
 class BoardM5stackCore2 : public Board320_240
 {

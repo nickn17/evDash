@@ -22,6 +22,8 @@
   Required libraries, see INSTALLATION.rd
 */
 
+#define USE_M5_FONT_CREATOR
+
 #include "Arduino.h"
 
 #include "config.h"

@@ -52,7 +52,8 @@ board_build.flash_mode = dio          ;io, qout, dio, dout
 lib_ldf_mode = deep
 framework = arduino
 build_flags = 
-;    -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
+    -D ARDUINO_M5STACK_Core2
+    -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
 ;    -DARDUINO_RUNNING_CORE=1         ;0:Core0, 1:Core1(default)
 ;    -DARDUINO_EVENT_RUNNING_CORE=1   ;0:Core0, 1:Core1(default)
 	-D BOARD_M5STACK_CORE2
@@ -63,7 +64,11 @@ build_flags =
 	-D SERIAL2_RX=13
 	-D SERIAL2_TX=14
 lib_deps = 
-	m5stack/M5Core2@0.1.5
+	m5stack/M5Core2
+	m5stack/M5Unified
+	m5stack/M5GFX
+	;m5stack/M5Core2@0.1.5
+	;m5stack/M5GFX@0.1.12
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2

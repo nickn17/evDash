@@ -2,6 +2,14 @@
 
 ### Next version
 
+### v3.1.0 xxxxx
+- CoreS3 support
+  - LogSerial via HWCDC instead HardwareSerial
+  - M5GFX, M5Unified
+  - Rewritten ESprite to LGFX_Sprite, fonts::xx
+  - CAN CS/INT pins
+
+### v3.0.6 2024-04-11
 - motor1/2 rpm instead out temperature
 
 ### v3.0.5 2024-04-05
