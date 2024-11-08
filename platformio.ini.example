@@ -95,7 +95,6 @@ framework = arduino
 build_flags = 
    	-D M5STACK_CORE2
     -D LGFX_AUTODETECT
-
     -D ARDUINO_M5STACK_Core2
     -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
 	-D BOARD_M5STACK_CORE2
