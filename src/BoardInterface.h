@@ -26,7 +26,6 @@ public:
   void setLiveData(LiveData *pLiveData);
   void attachCar(CarInterface *pCarInterface);
   virtual void initBoard() = 0;
-  virtual void wakeupBoard() = 0;
   virtual void afterSetup() = 0;
   virtual void commLoop() = 0;  // ble/can -- separate thread
   virtual void boardLoop() = 0; // touch

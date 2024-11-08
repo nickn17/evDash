@@ -13,8 +13,6 @@ This code initializes and configures the M5Stack Core2 board.
 It starts by including required header files and defining pins for the left, right and middle buttons on the device. Some variables are declared to track the touch screen status and button presses. An I2C sensor interface is created but commented out.
 - The initBoard() function is called on startup to configure the board. It initializes the I2C buses, sets power modes and voltages on the AXP192 PMIC chip, and initializes the touch screen and RTC. It calls initBoard() on the parent Board320_240 class to initialize the display.
 - afterSetup() is called after setup to configure touch and button handlers. It attaches callback functions to handle touch and button events.
-- wakeupBoard() wakes up the display by setting LCD voltage, resetting the LCD, delaying, and reinitializing the touch screen.
-- Write1Byte() and Read8bit() are helper functions to write and read a single byte from the AXP192 chip over I2C.
 - isButtonPressed() checks if a touch or button press occurred. It updates the last button press time, processes the touch or button event, and returns true if a relevant event occurred that should be handled.
 Overall, this initializes the specific hardware on the M5Stack Core2, configures power and inputs, handles touch and button events, and acts as the interface between the hardware and the rest of the application code.
  */
@@ -60,14 +58,13 @@ float temp = 0.0F;
  */
 void BoardM5stackCore2::initBoard()
 {
-  invertDisplay = true;
   pinButtonLeft = BUTTON_LEFT;
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
 
   // Core instead M5 & AXP begin
   //////////
-  Wire.begin(32, 33);     // I2C enable
+  /*Wire.begin(32, 33);     // I2C enable
   Wire1.begin(21, 22);    // AXP begin
   Wire1.setClock(400000); // AXP
   // AXP192 30H
@@ -82,20 +79,43 @@ void BoardM5stackCore2::initBoard()
   Write1Byte(0X95, (Read8bit(0x95) & 0x72) | 0X84);
   Write1Byte(0X36, 0X4C);
   Write1Byte(0x82, 0xff);
+*/
+  // Set AXP192 to automatically power on when VBUS or ACIN is applied
+  uint8_t data = /*M5.Axp.*/ Read8bit(0x31);
+  data |= 0x06; // Set bits 1 and 2 to enable power-on by ACIN and VBUS rising edge
+  /*M5.Axp.*/ Write1Byte(0x31, data);
 
+  liveData->settings.boardPowerMode = 1;
+  M5.begin(true, true, true, true, (liveData->settings.boardPowerMode == 1 ? kMBusModeInput : kMBusModeOutput), false);
+
+  // Configure AXP192 PMIC
+  // Set the LCD and ESP voltages if necessary
+  M5.Axp.SetLcdVoltage(2500);
   M5.Axp.SetESPVoltage(3350);
-  M5.Axp.SetBusPowerMode((liveData->settings.boardPowerMode == 0 ? 0 : 1)); // 1 - Power from bus; 0 - Power from USB
+
+  // Enable LDO2 and set voltages
+  M5.Axp.SetLDO2(true);
   M5.Axp.SetLDOVoltage(2, 3300);
   M5.Axp.SetLDOVoltage(3, 2000);
   M5.Axp.SetLDOEnable(2, true);
-  M5.Axp.SetDCDC3(false);
-  M5.Axp.SetLed(false);
-  M5.Axp.SetSpkEnable(false);
+  M5.Axp.SetDCDC3(true);
 
+  // Set AXP192 to automatically power on when VBUS or ACIN is applied
+  data = /*M5.Axp.*/ Read8bit(0x31);
+  data |= 0x06; // Set bits 1 and 2 to enable power-on by ACIN and VBUS rising edge
+  /*M5.Axp.*/ Write1Byte(0x31, data);
+
+  // Initialize other components
   M5.Touch.begin();
   M5.Rtc.begin();
-  M5.IMU.Init(); // Gyro
+  M5.IMU.Init();
+  M5.Axp.SetLed(false);
+
+  // Wake up the device
+  M5.Axp.SetLcdVoltage(2500);
+  // M5.Axp.SetLCDRSet(0);
   // delay(100);
+  // M5.Axp.SetLCDRSet(1);
 
   Board320_240::initBoard();
 }
@@ -120,41 +140,6 @@ void BoardM5stackCore2::afterSetup()
   M5.background.repeatInterval = 250;
   M5.background.addHandler(eventDisplay, events);
   M5.Buttons.addHandler(eventDisplay, events);
-}
-
-/**
- * Wakeup board
- */
-void BoardM5stackCore2::wakeupBoard()
-{
-  M5.Axp.SetLcdVoltage(2500);
-  M5.Axp.SetLCDRSet(0);
-  delay(100);
-  M5.Axp.SetLCDRSet(1);
-  M5.Touch.begin();
-}
-
-/**
- * Write to Wire1
- */
-void BoardM5stackCore2::Write1Byte(uint8_t Addr, uint8_t Data)
-{
-  Wire1.beginTransmission(0x34);
-  Wire1.write(Addr);
-  Wire1.write(Data);
-  Wire1.endTransmission();
-}
-
-/**
- * Read from Wire1
- */
-uint8_t BoardM5stackCore2::Read8bit(uint8_t Addr)
-{
-  Wire1.beginTransmission(0x34);
-  Wire1.write(Addr);
-  Wire1.endTransmission();
-  Wire1.requestFrom(0x34, 1);
-  return Wire1.read();
 }
 
 /**
@@ -367,13 +352,13 @@ void BoardM5stackCore2::boardLoop()
   if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0 || accX != 0.0 || accY != 0.0 || accZ != 0.0 || pitch != 0.0 || roll != 0.0 || yaw != -8.5)
   {
     liveData->params.gyroSensorMotion = false;
-    if (abs(gyroX) > 15.0 || abs(gyroY) > 15.0 || abs(gyroZ) > 15.0) 
+    if (abs(gyroX) > 15.0 || abs(gyroY) > 15.0 || abs(gyroZ) > 15.0)
     {
       liveData->params.gyroSensorMotion = true;
     }
-    //syslog->printf("gyroX,  gyroY, gyroZ accX,   accY,  accZpitch,  roll,  yaw\n");
-    //syslog->printf("%6.2f %6.2f%6.2f o/s %5.2f  %5.2f  %5.2f G %5.2f  %5.2f  %5.2f deg\n", gyroX, gyroY, gyroZ, accX, accY, accZ, pitch, roll, yaw);
-    //delay(250);
+    // syslog->printf("gyroX,  gyroY, gyroZ accX,   accY,  accZpitch,  roll,  yaw\n");
+    // syslog->printf("%6.2f %6.2f%6.2f o/s %5.2f  %5.2f  %5.2f G %5.2f  %5.2f  %5.2f deg\n", gyroX, gyroY, gyroZ, accX, accY, accZ, pitch, roll, yaw);
+    // delay(250);
   }
   syslog->flush();
 }

@@ -28,7 +28,7 @@ void LiveData::initParams()
   params.ntpTimeSet = false;
   params.lastDataSent = 0;
   params.lastContributeSent = 0;
-  params.sim800l_enabled = false; // UNSUPPORTED MODULE
+  params.sim800l_enabled = false;       // UNSUPPORTED MODULE
   params.sim800l_lastOkReceiveTime = 0; // UNSUPPORTED MODULE
   params.lastSuccessNetSendTime = 0;
   params.isWifiBackupLive = false;
@@ -103,6 +103,8 @@ void LiveData::initParams()
   params.cumulativeEnergyChargedKWhStart = -1;
   params.cumulativeEnergyDischargedKWh = -1;
   params.cumulativeEnergyDischargedKWhStart = -1;
+  params.cumulativeChargeCurrentAh = -1;
+  params.cumulativeDischargeCurrentAh = -1;
   params.availableChargePower = -1;
   params.availableDischargePower = -1;
   params.isolationResistanceKOhm = -1;
@@ -163,7 +165,7 @@ void LiveData::initParams()
     params.cellVoltage[i] = -1;
   }
   params.cellCount = 0;
-  for (int i = 0; i <= 100; i++)
+  for (int i = 0; i < 100; i++)
   {
     params.chargingGraphMinKw[i] = -1;
     params.chargingGraphMaxKw[i] = -1;

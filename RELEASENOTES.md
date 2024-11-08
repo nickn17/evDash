@@ -1,7 +1,21 @@
 # RELEASE NOTES
 
-### Next version
+### V4.0.0 2024-11-08
+!! Note !! This is an initial support release. Known issues include:
+- Core2 v1.0: When powered via external CAN, the module does not start. You need to briefly connect USB power, and after disconnecting, it runs fine. Tested for a few months with this configuration.
+- Core2 v1.1, CoreS3: Support is not thoroughly tested yet. Basic USB and OBD2 functionality should work. The community will need to help complete other features.
+- CoreS3: Using COMMU CAN power with GNSS settings for C2, and connecting USB caused smoke and resulted in a burnt CoreS3. Please proceed with caution and at your own risk.
+Changelog: 
+- New: M5Stack CoreS3 support
+  - LogSerial via HWCDC instead HardwareSerial
+  - M5GFX, M5Unified
+  - Rewritten ESprite to LGFX_Sprite, fonts::xx
+  - CAN CS/INT pins
+- New: M5Stack Core2 v1.1 board 
+- Core2 v1.0 rewriten to latest m5core2 branch
+- No longer support for SLEEP MODE - deep sleep and shutdown
 
+### v3.0.6 2024-04-11
 - motor1/2 rpm instead out temperature
 
 ### v3.0.5 2024-04-05

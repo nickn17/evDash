@@ -34,7 +34,6 @@ float temp = 0.0F;
  */
 void BoardM5stackCoreS3::initBoard()
 {
-  invertDisplay = true;
   pinButtonLeft = BUTTON_LEFT;
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
@@ -43,30 +42,14 @@ void BoardM5stackCoreS3::initBoard()
   //////////
   auto cfg = M5.config();
   CoreS3.begin(cfg);
-  /*Wire.begin(32, 33);     // I2C enable
-  Wire1.begin(21, 22);    // AXP begin
-  Wire1.setClock(400000); // AXP
-  // AXP192 30H
-  Write1Byte(0x30, (Read8bit(0x30) & 0x04) | 0X02);
-  // AXP192 GPIO1:OD OUTPUT
-  Write1Byte(0x92, Read8bit(0x92) & 0xf8);
-  // AXP192 GPIO2:OD OUTPUT
-  Write1Byte(0x93, Read8bit(0x93) & 0xf8);
-  // AXP192 RTC CHG
-  Write1Byte(0x35, (Read8bit(0x35) & 0x1c) | 0xa2);
-  // AXP192 GPIO4
-  Write1Byte(0X95, (Read8bit(0x95) & 0x72) | 0X84);
-  Write1Byte(0X36, 0X4C);
-  Write1Byte(0x82, 0xff);
-*/
   CoreS3.Power.setChargeVoltage(3350);
   // true - Power from bus; false - Power from USB
-  CoreS3.Power.setExtOutput((liveData->settings.boardPowerMode == 0));
-  /*CoreS3.Power.SetLDOVoltage(2, 3300);
-  CoreS3.Power.SetLDOVoltage(3, 2000);
-  CoreS3.Power.SetLDOEnable(2, true);
-  CoreS3.Power.SetDCDC3(false);
-  CoreS3.Power.setLed(false);*/
+  CoreS3.Power.setExtOutput((liveData->settings.boardPowerMode == 1));
+  CoreS3.Power.setLed(0);
+  // CoreS3.Power.SetLDOVoltage(2, 3300);
+  // CoreS3.Power.SetLDOVoltage(3, 2000);
+  // CoreS3.Power.SetLDOEnable(2, true);
+  // CoreS3.Power.set SetDCDC3(false);
   CoreS3.Speaker.end();
   CoreS3.Touch.begin(&CoreS3.Display);
   CoreS3.Rtc.begin();
@@ -95,41 +78,6 @@ void BoardM5stackCoreS3::afterSetup()
   M5.background.repeatInterval = 250;
   M5.background.addHandler(eventDisplay, events);
   M5.Buttons.addHandler(eventDisplay, events);*/
-}
-
-/**
- * Wakeup board
- */
-void BoardM5stackCoreS3::wakeupBoard()
-{
-  /*  M5.Axp.SetLcdVoltage(2500);
-    M5.Axp.SetLCDRSet(0);
-    delay(100);
-    M5.Axp.SetLCDRSet(1);
-    M5.Touch.begin();*/
-}
-
-/**
- * Write to Wire1
- */
-void BoardM5stackCoreS3::Write1Byte(uint8_t Addr, uint8_t Data)
-{
-  Wire1.beginTransmission(0x34);
-  Wire1.write(Addr);
-  Wire1.write(Data);
-  Wire1.endTransmission();
-}
-
-/**
- * Read from Wire1
- */
-uint8_t BoardM5stackCoreS3::Read8bit(uint8_t Addr)
-{
-  Wire1.beginTransmission(0x34);
-  Wire1.write(Addr);
-  Wire1.endTransmission();
-  Wire1.requestFrom(0x34, 1);
-  return Wire1.read();
 }
 
 /**

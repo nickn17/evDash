@@ -137,15 +137,21 @@ void CarHyundaiIoniq5::activateCommandQueue()
       //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220104", // gear selected (D/R/N/P)
       // temporary to check response
-      "220101",
-      "220102",
-      "220103",
+      //"220101",
+      //"220102",
+      //"220103",
       "220105",
       "220106",
       // Without response on eGMP
       //"22C101", // brake
       //"22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
       //"22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
+
+      //"ATSH7D4", // Electric power steering
+      //"220101",  // ???
+
+      //"ATSH730", // ADAS
+      //"22F010",  // ???
 
       "ATSH7A0",
       "22C00B", // tire pressure/temp
@@ -154,6 +160,8 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "ATSH7B3",
       //"3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220100", // in/out temp
+      //"220101", // ???
+      //"220102", // ???
       //"220102", // coolant temp1, 2
 
       // CLUSTER MODULE
@@ -166,12 +174,12 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "ATSH7E2",
       //"3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "22E003",
-      "22E004",
-      "22E005",
+      "22E004", // ???
+      "22E005", // ???
       "22E006",
-      "22E007",
-      "22E008",
-      "22E009",
+      //"22E007",
+      //"22E008",
+      //"22E009",
 
       // ICCU
       "ATSH7E5",
@@ -189,7 +197,10 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
       // MCU
       "ATSH7E3",
+      //"22E009", // EOP oil pump
+      //"22E001", // ???
       "2102", // motor/invertor temp
+      //"22E001", //?
 
       // GSM (looking for gps lat/lon - only for data contributing)
       "ATSH7E6",
@@ -219,6 +230,15 @@ void CarHyundaiIoniq5::activateCommandQueue()
         "22F183",
         "22FD85",*/
 
+      // 7DF
+      //"ATSH7DF",
+      //"0100",
+      //"0101",
+      //"0121",
+      //"0130",
+      //"0131",
+      //"015B",
+
       // BMS
       "ATSH7E4",
       //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
@@ -231,23 +251,32 @@ void CarHyundaiIoniq5::activateCommandQueue()
       "22010A", // cell voltages 97 - 128
       "22010B", // cell voltages 129 - 160
       "22010C", // cell voltages 161 - 180
+                //"220111", // ???
+                //"220114", // ???
   };
 
   // kWh model?
   liveData->params.batModuleTempCount = 16;
-  liveData->params.batteryTotalAvailableKWh = 77;
-  liveData->params.cellCount = 180;
+  liveData->params.batteryTotalAvailableKWh = 77.4;
+  liveData->params.cellCount = 192; // 384 / 2, 32 modules
 
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58)
+  {
     liveData->params.batteryTotalAvailableKWh = 58;
+    liveData->params.cellCount = 144; // 288 / 2, 24 modules
+  }
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72)
+  {
     liveData->params.batteryTotalAvailableKWh = 72.6;
-  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77)
-    liveData->params.batteryTotalAvailableKWh = 77.4;
+    liveData->params.cellCount = 180; // 360 / 2, 30 modules
+  }
+  // if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77)
   if (liveData->settings.carType == CAR_KIA_EV6_58)
+  {
     liveData->params.batteryTotalAvailableKWh = 58;
-  if (liveData->settings.carType == CAR_KIA_EV6_77)
-    liveData->params.batteryTotalAvailableKWh = 77.4;
+    liveData->params.cellCount = 144; // 288 / 2, 24 modules
+  }
+  // if (liveData->settings.carType == CAR_KIA_EV6_77)
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -416,6 +445,8 @@ void CarHyundaiIoniq5::parseRowMerged()
     if (liveData->commandRequest.equals("220101"))
     {
       liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
+      liveData->params.cumulativeChargeCurrentAh = liveData->decFromResponse(66, 74) / 10.0;
+      liveData->params.cumulativeDischargeCurrentAh = liveData->decFromResponse(74, 82) / 10.0;
       liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
       liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
       liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
