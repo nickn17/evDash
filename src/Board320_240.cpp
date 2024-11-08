@@ -55,9 +55,6 @@ So in summary, it initializes the core display and hardware functionality, retri
 #include "WebInterface.h"
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
-RTC_DATA_ATTR unsigned int bootCount = 0;
-RTC_DATA_ATTR unsigned int sleepCount = 0;
-
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 WebInterface *webInterface = nullptr;
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
@@ -130,9 +127,6 @@ void Board320_240::initBoard()
   getLocalTime(&tm);
   liveData->params.currentTime = mktime(&tm);
   liveData->params.chargingStartTime = liveData->params.currentTime;
-
-  // Boot counter
-  ++bootCount;
 }
 
 /**
@@ -143,12 +137,8 @@ void Board320_240::afterSetup()
   // Check if board was sleeping
   bool afterSetup = false;
 
-  syslog->print("Boot count: ");
-  syslog->println(bootCount);
   syslog->print("SleepMode: ");
   syslog->println(liveData->settings.sleepModeLevel);
-  syslog->print("Continuous sleep count: ");
-  syslog->println(sleepCount);
 
   // Init Voltmeter
   if (liveData->settings.voltmeterEnabled == 1)
@@ -163,30 +153,11 @@ void Board320_240::afterSetup()
     syslog->println("mA");
   }
 
-  if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && !skipAdapterScan() && bootCount > 1)
-  {
-    // Init comm device if COMM device based wakeup
-    if (liveData->settings.voltmeterBasedSleep == 0)
-    {
-      afterSetup = true;
-      BoardInterface::afterSetup();
-    }
-
-    // Wake or go to sleep again
-    afterSleep();
-    sleepCount = 0;
-  }
-
-  wakeupBoard();
-
   // Init display
   syslog->println("Init TFT display");
   tft.begin();
-#ifdef BOARD_M5STACK_CORE2
-  // tft.invertDisplay(invertDisplay);
-  //  spr.create = new LGFX_Sprite(&tft);
-#endif // BOARD_M5STACK_CORE2
   tft.setRotation(liveData->settings.displayRotation);
+
   setBrightness();
   tft.fillScreen(TFT_RED);
 
@@ -243,11 +214,8 @@ void Board320_240::afterSetup()
   tft.fillScreen(TFT_ORANGE);
 
   // Init comm device
-  if (!afterSetup)
-  {
-    BoardInterface::afterSetup();
-    printHeapMemory();
-  }
+  BoardInterface::afterSetup();
+  printHeapMemory();
   tft.fillScreen(TFT_SILVER);
 
   // Threading
@@ -451,180 +419,6 @@ void Board320_240::otaUpdate()
 }
 
 /**
- * Puts the board into sleep mode for a number of seconds.
- *
- * If SIM800L is enabled, disconnects from GPRS before sleeping.
- * Puts SIM800L into sleep mode.
- *
- * If GPS is enabled, sends command to put into sleep mode.
- *
- * Determines sleep duration based on settings:
- * - sleepModeLevel: SLEEP_MODE_DEEP_SLEEP to use interval from settings.
- * - sleepModeIntervalSec: seconds to sleep.
- * - sleepModeShutdownHrs: max hours to sleep before shutting down.
- * Increments counter of sleep cycles.
- *
- * Calls enterSleepMode() with determined duration.
- */
-void Board320_240::goToSleep()
-{
-  syslog->println("Going to sleep.");
-
-  // Sleep GPS
-  if (gpsHwUart != NULL)
-  {
-    uint8_t GPSoff[] = {0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x4D, 0x3B};
-    gpsHwUart->write(GPSoff, sizeof(GPSoff));
-  }
-
-  int sleepSeconds = 0;
-
-  if (liveData->settings.sleepModeLevel == SLEEP_MODE_DEEP_SLEEP &&
-      (sleepCount * liveData->settings.sleepModeIntervalSec <= liveData->settings.sleepModeShutdownHrs * 3600 ||
-       liveData->settings.sleepModeShutdownHrs == 0))
-  {
-    sleepSeconds = liveData->settings.sleepModeIntervalSec;
-  }
-
-  ++sleepCount;
-
-  enterSleepMode(sleepSeconds);
-}
-
-/**
- * Wake up board from deep sleep and determine if car is charging or ignition is on.
- * Checks wakeup reason and returns if external wakeup pin was triggered.
- * Checks voltage and returns if above wakeup threshold.
- * Otherwise queues commands to check for valid response indicating car is active.
- * If no valid response after timeout, enters deep sleep again.
- */
-void Board320_240::afterSleep()
-{
-  // Wakeup reason
-  esp_sleep_wakeup_cause_t wakeup_reason;
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-  switch (wakeup_reason)
-  {
-  case ESP_SLEEP_WAKEUP_EXT0:
-    syslog->println("Wakeup caused by external signal using RTC_IO");
-    break;
-  case ESP_SLEEP_WAKEUP_EXT1:
-    syslog->println("Wakeup caused by external signal using RTC_CNTL");
-    break;
-  case ESP_SLEEP_WAKEUP_TIMER:
-    syslog->println("Wakeup caused by timer");
-    break;
-  case ESP_SLEEP_WAKEUP_TOUCHPAD:
-    syslog->println("Wakeup caused by touchpad");
-    break;
-  case ESP_SLEEP_WAKEUP_ULP:
-    syslog->println("Wakeup caused by ULP program");
-    break;
-  default:
-    syslog->printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
-    break;
-  }
-
-  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
-  {
-    syslog->println("Button pressed = Waking up");
-    return;
-  }
-
-  if (liveData->settings.voltmeterBasedSleep == 1)
-  {
-    liveData->params.auxVoltage = ina3221.getBusVoltage_V(1);
-
-#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-    if (liveData->settings.sdcardEnabled == 1 && bootCount % (unsigned int)(300 / liveData->settings.sleepModeIntervalSec) == 0)
-    {
-      tft.begin();
-      sdcardMount();
-
-      if (liveData->params.sdcardInit)
-      {
-        struct tm now;
-        getLocalTime(&now);
-        char filename[32];
-        strftime(filename, sizeof(filename), "/sleep_%y-%m-%d.json", &now);
-
-        File file = SD.open(filename, FILE_APPEND);
-        if (!file)
-        {
-          syslog->println("Failed to open file for appending");
-          File file = SD.open(filename, FILE_WRITE);
-        }
-        if (file)
-        {
-          StaticJsonDocument<128> jsonData;
-          jsonData["carType"] = liveData->settings.carType;
-          jsonData["currTime"] = liveData->params.currentTime;
-          jsonData["auxV"] = liveData->params.auxVoltage;
-          jsonData["bootCount"] = bootCount;
-          jsonData["sleepCount"] = sleepCount;
-          serializeJson(jsonData, file);
-
-          file.print(",\n");
-          file.close();
-        }
-      }
-    }
-#endif
-
-    if (liveData->params.auxVoltage > 5 && liveData->params.auxVoltage < liveData->settings.voltmeterCutOff)
-    {
-      syslog->print("AUX voltage under cut-off voltage: ");
-      syslog->println(liveData->settings.voltmeterCutOff);
-      liveData->settings.sleepModeLevel = SLEEP_MODE_SHUTDOWN;
-      goToSleep();
-    }
-    else if (liveData->params.auxVoltage > 0 && liveData->params.auxVoltage < liveData->settings.voltmeterWakeUp)
-    {
-      syslog->print("AUX voltage under: ");
-      syslog->println(liveData->settings.voltmeterWakeUp);
-      goToSleep();
-    }
-    else
-    {
-      liveData->params.lastVoltageOkTime = liveData->params.currentTime;
-      syslog->println("Wake up conditions satisfied... Good morning!");
-      return;
-    }
-  }
-
-  liveData->params.sleepModeQueue = true;
-
-  bool firstRun = true;
-  while (liveData->commandQueueIndex - 1 > liveData->commandQueueLoopFrom || firstRun)
-  {
-    if (liveData->commandQueueIndex - 1 == liveData->commandQueueLoopFrom)
-    {
-      firstRun = false;
-    }
-
-    if (millis() > 30000)
-    {
-      syslog->println("Time's up (30s timeout)...");
-      goToSleep();
-    }
-
-    commInterface->mainLoop();
-  }
-
-  if (liveData->params.getValidResponse)
-  {
-    syslog->println("Wake up conditions satisfied... Good morning!");
-    liveData->params.sleepModeQueue = false;
-    return;
-  }
-  else
-  {
-    syslog->println("No response from module...");
-    goToSleep();
-  }
-}
-
-/**
  * Turns off the screen by setting the brightness to 0.
  * Checks if screen is already off before doing anything.
  * Has debug mode to print messages.
@@ -649,11 +443,70 @@ void Board320_240::turnOffScreen()
 
 #ifdef BOARD_M5STACK_CORE2
   M5.Axp.SetDCDC3(false);
-  M5.Axp.SetLcdVoltage(2500);
+  M5.Lcd.setBrightness(0);
+  M5.Axp.SetLcdVoltage(0);
 #endif // BOARD_M5STACK_CORE2
 #ifdef BOARD_M5STACK_CORES3
   /*CoreS3.Display.setBrightness;
   M5.Axp.SetLcdVoltage(2500);*/
+#endif // BOARD_M5STACK_CORES3
+}
+
+/**
+ * sprSetFont
+ */
+#ifdef BOARD_M5STACK_CORE2
+void Board320_240::sprSetFont(const GFXfont *f)
+{
+  lastFont = f;
+  if (lastFont == fontFont7 || lastFont == fontFont2)
+  {
+    spr.setTextFont(lastFont == fontFont7 ? 7 : 2);
+  }
+  else
+  {
+    spr.setFont(f);
+  }
+}
+#endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3
+void Board320_240::sprSetFont(const lgfx::GFXfont *f)
+{
+  lastFont = f;
+  if (lastFont == fontFont7 || lastFont == fontFont2)
+  {
+    spr.setFont(lastFont == fontFont7 ? fontFont7bmp : fontFont2bmp);
+  }
+  else
+  {
+    spr.setFont(f);
+  }
+}
+#endif // BOARD_M5STACK_CORES3
+
+/**
+ * drawString
+ */
+void Board320_240::sprDrawString(const char *string, int32_t poX, int32_t poY)
+{
+#ifdef BOARD_M5STACK_CORE2
+  spr.drawString(string, poX, poY, lastFont == fontFont7 ? 7 : (lastFont == fontFont2 ? 2 : GFXFF));
+#endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3
+  spr.drawString(string, poX, poY);
+#endif // BOARD_M5STACK_CORES3
+}
+
+/**
+ * drawString
+ */
+void Board320_240::tftDrawStringFont7(const char *string, int32_t poX, int32_t poY)
+{
+#ifdef BOARD_M5STACK_CORE2
+  tft.drawString(string, poX, poY, 7);
+#endif // BOARD_M5STACK_CORE2
+#ifdef BOARD_M5STACK_CORES3
+  tft.drawString(string, poX, poY);
 #endif // BOARD_M5STACK_CORES3
 }
 
@@ -690,6 +543,10 @@ void Board320_240::setBrightness()
   syslog->println(lcdBrightnessPerc);
   currentBrightness = lcdBrightnessPerc;
 #ifdef BOARD_M5STACK_CORE2
+  // M5.Lcd.setBrightness(lcdBrightnessPerc * 2.54);
+  // M5.Axp.SetDCDC3(true);
+  // M5.Axp.SetLDOEnable(2, true);
+  // M5.Axp.SetLDOEnable(3, true);
   M5.Axp.SetDCDC3(true);
   uint16_t lcdVolt = map(lcdBrightnessPerc, 0, 100, 2500, 3300);
   M5.Axp.SetLcdVoltage(lcdVolt);
@@ -720,10 +577,10 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
     spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
     spr.setTextDatum(ML_DATUM);
     spr.setTextColor(TFT_YELLOW, TFT_NAVY);
-    spr.setFont(&fonts::Roboto_Thin_24);
+    sprSetFont(fontRobotoThin24);
     spr.setTextDatum(BL_DATUM);
-    spr.drawString(row1, 0, height / 2);
-    spr.drawString(row2, 0, (height / 2) + 30);
+    sprDrawString(row1, 0, height / 2);
+    sprDrawString(row2, 0, (height / 2) + 30);
     spr.pushSprite(0, 0);
   }
   else
@@ -732,7 +589,7 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
     // tft.fillScreen(TFT_BLACK);
     tft.setTextDatum(ML_DATUM);
     tft.setTextColor(TFT_YELLOW, TFT_NAVY);
-    tft.setFont(&fonts::Roboto_Thin_24);
+    tft.setFont(fontRobotoThin24);
     tft.setTextDatum(BL_DATUM);
     tft.drawString(row1, 0, height / 2);
     tft.drawString(row2, 0, (height / 2) + 30);
@@ -761,16 +618,16 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
   spr.setTextDatum(ML_DATUM);
   spr.setTextColor(TFT_YELLOW, TFT_NAVY);
-  spr.setFont(&fonts::Roboto_Thin_24);
+  sprSetFont(fontRobotoThin24);
   spr.setTextDatum(BL_DATUM);
-  spr.drawString(row1, 0, height / 2);
-  spr.drawString(row2, 0, (height / 2) + 30);
+  sprDrawString(row1, 0, height / 2);
+  sprDrawString(row2, 0, (height / 2) + 30);
   spr.fillRect(0, height - 50, 100, 50, TFT_NAVY);
   spr.fillRect(tft.width() - 100, height - 50, 100, 50, TFT_NAVY);
   spr.setTextDatum(BL_DATUM);
-  spr.drawString("YES", 10, height - 10);
+  sprDrawString("YES", 10, height - 10);
   spr.setTextDatum(BR_DATUM);
-  spr.drawString("NO", tft.width() - 10, height - 10);
+  sprDrawString("NO", tft.width() - 10, height - 10);
   spr.pushSprite(0, 0);
 
   bool res = false;
@@ -822,8 +679,8 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
   spr.setTextDatum(TL_DATUM);   // Topleft
   spr.setTextColor(TFT_SILVER); // Bk, fg color
   spr.setTextSize(1);           // Size for small 5x7 font
-  spr.setFont(&fonts::Font2);
-  spr.drawString(desc, posx, posy);
+  sprSetFont(fontFont2);
+  sprDrawString(desc, posx, posy);
 
   // Big 2x2 cell in the middle of screen
   if (w == 2 && h == 2)
@@ -833,32 +690,32 @@ void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const
     posx = (x * 80) + 5;
     posy = ((y + h) * 60) - 32;
     sprintf(tmpStr3, "-%01.01f", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
-    spr.setFont(&fonts::Roboto_Thin_24);
+    sprSetFont(fontRobotoThin24);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString(tmpStr3, posx, posy);
+    sprDrawString(tmpStr3, posx, posy);
 
     posx = ((x + w) * 80) - 8;
     sprintf(tmpStr3, "+%01.01f", liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
     spr.setTextDatum(TR_DATUM);
-    spr.drawString(tmpStr3, posx, posy);
+    sprDrawString(tmpStr3, posx, posy);
 
     // Main number - kwh on roads, amps on charges
     posy = (y * 60) + 24;
     spr.setTextColor(fgColor);
-    // spr.setFont(&fonts::Orbitron_Light_32);
-    spr.setFont(&fonts::Font7);
-    spr.drawString(text, posx, posy);
+    // sprSetFont(fontOrbitronLight32);
+    sprSetFont(fontFont7);
+    sprDrawString(text, posx, posy);
   }
   else
   {
     // All others 1x1 cells
     spr.setTextDatum(MC_DATUM);
     spr.setTextColor(fgColor);
-    spr.setFont(&fonts::Orbitron_Light_24);
+    sprSetFont(fontOrbitronLight24);
     //, (w == 2 ? 7 : GFXFF)
     posx = (x * 80) + (w * 80 / 2) - 3;
     posy = (y * 60) + (h * 60 / 2) + 4;
-    spr.drawString(text, posx, posy);
+    sprDrawString(text, posx, posy);
   }
 }
 
@@ -878,14 +735,14 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
   spr.setTextDatum(TL_DATUM);   // Topleft
   spr.setTextColor(TFT_SILVER); // Bk, fg bgColor
   spr.setTextSize(1);           // Size for small 5x7 font
-  spr.setFont(&fonts::Font2);
-  spr.drawString(desc, posx, posy);
+  sprSetFont(fontFont2);
+  sprDrawString(desc, posx, posy);
 
   spr.setTextDatum(TC_DATUM);
   spr.setTextColor(fgColor);
   posx = (x * 80) + (w * 80 / 2) - 3;
-  spr.setFont(&fonts::Font2);
-  spr.drawString(text, posx, posy + 14);
+  sprSetFont(fontFont2);
+  sprDrawString(text, posx, posy + 14);
 }
 
 /**
@@ -912,20 +769,20 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_SILVER);
   spr.setTextSize(1);
-  spr.setFont(&fonts::Font2);
+  sprSetFont(fontFont2);
   posx = (x * 80) + 4;
   posy = (y * 60) + 0;
-  spr.drawString(topleft, posx, posy);
+  sprDrawString(topleft, posx, posy);
   posy = (y * 60) + 14;
-  spr.drawString(bottomleft, posx, posy);
+  sprDrawString(bottomleft, posx, posy);
 
   spr.setTextDatum(TR_DATUM);
-  spr.setFont(&fonts::Font2);
+  sprSetFont(fontFont2);
   posx = ((x + w) * 80) - 4;
   posy = (y * 60) + 0;
-  spr.drawString(topright, posx, posy);
+  sprDrawString(topright, posx, posy);
   posy = (y * 60) + 14;
-  spr.drawString(bottomright, posx, posy);
+  sprDrawString(bottomright, posx, posy);
 }
 
 /**
@@ -974,12 +831,12 @@ void Board320_240::drawSceneMain()
   // TODO: refactoring
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_GREEN);
-  spr.setFont(&fonts::Font2);
+  sprSetFont(fontFont2);
   sprintf(tmpStr1, ((liveData->params.cumulativeEnergyChargedKWh == -1) ? "CEC: n/a" : "C: %01.01f +%01.01fkWh"), liveData->params.cumulativeEnergyChargedKWh, liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
-  spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30);
+  sprDrawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30);
   spr.setTextColor(TFT_YELLOW);
   sprintf(tmpStr1, ((liveData->params.cumulativeEnergyDischargedKWh == -1) ? "CED: n/a" : "D: %01.01f -%01.01fkWh"), liveData->params.cumulativeEnergyDischargedKWh, liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
-  spr.drawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44);
+  sprDrawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44);
 
   // batPowerKwh100 on roads, else batPowerAmp
   if (liveData->params.speedKmh > 20 ||
@@ -1070,15 +927,15 @@ void Board320_240::drawSceneSpeed()
   if (liveData->params.stopCommandQueueTime != 0)
   {
     sprintf(tmpStr1, "%s%d", (liveData->params.stopCommandQueue ? "QS " : "QR "), (liveData->params.currentTime - liveData->params.stopCommandQueueTime));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, 0, 40);
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, 0, 40);
   }
   if (liveData->params.stopCommandQueue)
   {
-    spr.setFont(&fonts::Roboto_Thin_24);
+    sprSetFont(fontRobotoThin24);
     spr.setTextColor(TFT_RED);
     spr.setTextDatum(TL_DATUM);
-    spr.drawString("SENTRY ON", 90, 100);
+    sprDrawString("SENTRY ON", 90, 100);
     return;
   }
 
@@ -1087,7 +944,7 @@ void Board320_240::drawSceneSpeed()
   {
     // Charging voltage, current, time
     posy = 40;
-    spr.setFont(&fonts::Roboto_Thin_24);
+    sprSetFont(fontRobotoThin24);
     spr.setTextDatum(TR_DATUM); // Top center
     spr.setTextColor(TFT_WHITE);
     time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
@@ -1095,18 +952,18 @@ void Board320_240::drawSceneSpeed()
       sprintf(tmpStr3, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
     else
       sprintf(tmpStr3, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
-    spr.drawString(tmpStr3, 200, posy);
+    sprDrawString(tmpStr3, 200, posy);
     posy += 24;
     sprintf(tmpStr3, (liveData->params.batVoltage == -1000) ? "n/a V" : "%01.01f V", liveData->params.batVoltage);
-    spr.drawString(tmpStr3, 200, posy);
+    sprDrawString(tmpStr3, 200, posy);
     posy += 24;
     sprintf(tmpStr3, (liveData->params.batPowerAmp == -1000) ? "n/a A" : "%01.01f A", liveData->params.batPowerAmp);
-    spr.drawString(tmpStr3, 200, posy);
+    sprDrawString(tmpStr3, 200, posy);
     posy += 24;
     if (diffTime > 5)
     {
       sprintf(tmpStr3, "avg.%01.01f kW", ((liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart) * (3600 / diffTime)));
-      spr.drawString(tmpStr3, 200, posy);
+      sprDrawString(tmpStr3, 200, posy);
     }
   }
   else
@@ -1114,8 +971,8 @@ void Board320_240::drawSceneSpeed()
     // Speed
     spr.setTextSize(2);
     sprintf(tmpStr3, "%01.00f", liveData->km2distance((((liveData->params.speedKmhGPS > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_GPS) ? liveData->params.speedKmhGPS : ((((liveData->params.speedKmh > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_CAR)) ? liveData->params.speedKmh : 0))));
-    spr.setFont(&fonts::Font7);
-    spr.drawString(tmpStr3, 200, posy);
+    sprSetFont(fontFont7);
+    sprDrawString(tmpStr3, 200, posy);
   }
 
   posy = 140;
@@ -1124,26 +981,26 @@ void Board320_240::drawSceneSpeed()
   if ((liveData->params.speedKmh > 25 || (liveData->params.speedKmhGPS > 25 && liveData->params.gpsSat >= 4)) && liveData->params.batPowerKw < 0)
   {
     sprintf(tmpStr3, (liveData->params.batPowerKwh100 == -1000) ? "n/a" : "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
-    spr.setFont(&fonts::Font2);
-    spr.drawString("kWh/100km", 200, posy + 46);
+    sprSetFont(fontFont2);
+    sprDrawString("kWh/100km", 200, posy + 46);
   }
   else
   {
     sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a" : "%01.01f", liveData->params.batPowerKw);
-    spr.setFont(&fonts::Font2);
-    spr.drawString("kW", 200, posy + 48);
+    sprSetFont(fontFont2);
+    sprDrawString("kW", 200, posy + 48);
   }
-  spr.setFont(&fonts::Font7);
-  spr.drawString(tmpStr3, 200, posy);
+  sprSetFont(fontFont7);
+  sprDrawString(tmpStr3, 200, posy);
 
   // Bottom 2 numbers with charged/discharged kWh from start
-  spr.setFont(&fonts::Roboto_Thin_24);
+  sprSetFont(fontRobotoThin24);
   spr.setTextColor(TFT_WHITE);
   posx = 0;
   posy = 0;
   spr.setTextDatum(TL_DATUM);
   sprintf(tmpStr3, (liveData->params.odoKm == -1) ? "n/a km" : ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
-  spr.drawString(tmpStr3, posx, posy);
+  sprDrawString(tmpStr3, posx, posy);
   sprintf(tmpStr3, "N");
   if (liveData->params.forwardDriveMode)
   {
@@ -1173,23 +1030,23 @@ void Board320_240::drawSceneSpeed()
   {
     sprintf(tmpStr3, "DC");
   }
-  spr.drawString(tmpStr3, posx, posy + 20);
+  sprDrawString(tmpStr3, posx, posy + 20);
 
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)
   {
     sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
             liveData->celsius2temperature(liveData->params.coolingWaterTempC));
-    spr.drawString(tmpStr1, 319 - posx, posy);
+    sprDrawString(tmpStr1, 319 - posx, posy);
   }
 
   // Avg speed
   posy = 60;
   sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
   spr.setTextDatum(TL_DATUM);
-  spr.drawString(tmpStr3, posx, posy);
-  spr.setFont(&fonts::Font2);
-  spr.drawString("avg.km/h", 0, posy + 20);
+  sprDrawString(tmpStr3, posx, posy);
+  sprSetFont(fontFont2);
+  sprDrawString("avg.km/h", 0, posy + 20);
   posy += 40;
 
   // AUX voltage
@@ -1199,18 +1056,18 @@ void Board320_240::drawSceneSpeed()
     {
       sprintf(tmpStr3, "%01.00f", liveData->params.auxPerc);
       spr.setTextDatum(TL_DATUM);
-      spr.setFont(&fonts::Roboto_Thin_24);
-      spr.drawString(tmpStr3, posx, posy);
-      spr.setFont(&fonts::Font2);
-      spr.drawString("aux %", 0, posy + 20);
+      sprSetFont(fontRobotoThin24);
+      sprDrawString(tmpStr3, posx, posy);
+      sprSetFont(fontFont2);
+      sprDrawString("aux %", 0, posy + 20);
       posy += 40;
     }
     sprintf(tmpStr3, "%01.01f", liveData->params.auxVoltage);
     spr.setTextDatum(TL_DATUM);
-    spr.setFont(&fonts::Roboto_Thin_24);
-    spr.drawString(tmpStr3, posx, posy);
-    spr.setFont(&fonts::Font2);
-    spr.drawString("aux V", 0, posy + 20);
+    sprSetFont(fontRobotoThin24);
+    sprDrawString(tmpStr3, posx, posy);
+    sprSetFont(fontFont2);
+    sprDrawString("aux V", 0, posy + 20);
     posy += 40;
   }
 
@@ -1220,10 +1077,10 @@ void Board320_240::drawSceneSpeed()
   sprintf(tmpStr3, "-%01.01f +%01.01f", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart,
           liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
   spr.setTextDatum(BL_DATUM);
-  spr.setFont(&fonts::Roboto_Thin_24);
-  spr.drawString(tmpStr3, posx, posy);
-  spr.setFont(&fonts::Font2);
-  spr.drawString("cons./regen.kWh", 0, 240 - 28);
+  sprSetFont(fontRobotoThin24);
+  sprDrawString(tmpStr3, posx, posy);
+  sprSetFont(fontFont2);
+  sprDrawString("cons./regen.kWh", 0, 240 - 28);
   posx = 319;
   float kwh100a = 0;
   float kwh100b = 0;
@@ -1236,46 +1093,46 @@ void Board320_240::drawSceneSpeed()
                (liveData->params.odoKm - liveData->params.odoKmStart));
   sprintf(tmpStr3, "%01.01f/%01.01f", kwh100a, kwh100b);
   spr.setTextDatum(BR_DATUM);
-  spr.setFont(&fonts::Font2);
-  spr.drawString("avg.kWh/100km", posx, 240 - 28);
-  spr.setFont(&fonts::Roboto_Thin_24);
-  spr.drawString(tmpStr3, posx, posy);
+  sprSetFont(fontFont2);
+  sprDrawString("avg.kWh/100km", posx, 240 - 28);
+  sprSetFont(fontRobotoThin24);
+  sprDrawString(tmpStr3, posx, posy);
   // Bat.power
   /*posx = 320 / 2;
   sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a kw" : "%01.01fkw", liveData->params.batPowerKw);
   spr.setTextDatum(BC_DATUM);
-  spr.drawString(tmpStr3, posx, posy);*/
+  sprDrawString(tmpStr3, posx, posy);*/
 
   // RIGHT INFO
   // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
   spr.fillRect(210, 55, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
   spr.fillRect(210, 120, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
   spr.setTextColor(TFT_WHITE);
-  spr.setFont(&fonts::Roboto_Thin_24);
+  sprSetFont(fontRobotoThin24);
   spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, (liveData->params.batMaxC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
-  spr.drawString(tmpStr3, 319, 66);
+  sprDrawString(tmpStr3, 319, 66);
   sprintf(tmpStr3, (liveData->params.batMinC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
-  spr.drawString(tmpStr3, 319, 92);
+  sprDrawString(tmpStr3, 319, 92);
   if (liveData->params.motor1Rpm > 0 || liveData->params.motor2Rpm > 0)
   {
     sprintf(tmpStr3, "%01.01f/%01.01fkr", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
-    spr.drawString(tmpStr3, 319, 26);
+    sprDrawString(tmpStr3, 319, 26);
   }
   else if (liveData->params.outdoorTemperature != -100)
   {
     sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature)); //, liveData->celsius2temperature(liveData->params.motorTempC));
-    spr.drawString(tmpStr3, 319, 26);
+    sprDrawString(tmpStr3, 319, 26);
   }
 
   // Min.Cell V
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, (liveData->params.batCellMaxV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMaxV);
-  spr.drawString(tmpStr3, 280, 66);
+  sprDrawString(tmpStr3, 280, 66);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, (liveData->params.batCellMinV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMinV);
-  spr.drawString(tmpStr3, 280, 92);
+  sprDrawString(tmpStr3, 280, 92);
 
   // Brake lights
   spr.fillRect(140, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
@@ -1293,10 +1150,10 @@ void Board320_240::drawSceneSpeed()
                                                                                                                                                                      : TFT_GREEN);
   spr.setTextDatum(BR_DATUM);
   sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
-  spr.setFont(&fonts::Orbitron_Light_32);
-  spr.drawString(tmpStr3, 285, 165);
-  spr.setFont(&fonts::Orbitron_Light_24);
-  spr.drawString("%", 319, 155);
+  sprSetFont(fontOrbitronLight32);
+  sprDrawString(tmpStr3, 285, 165);
+  sprSetFont(fontOrbitronLight24);
+  sprDrawString("%", 319, 155);
   if (liveData->params.socPerc > 0)
   {
     float capacity = liveData->params.batteryTotalAvailableKWh * (liveData->params.socPerc / 100);
@@ -1306,15 +1163,15 @@ void Board320_240::drawSceneSpeed()
       capacity = (liveData->params.socPerc * 0.615) * (1 + (liveData->params.socPerc * 0.0008));
     }
     spr.setTextColor(TFT_WHITE);
-    spr.setFont(&fonts::Orbitron_Light_32);
+    sprSetFont(fontOrbitronLight32);
     sprintf(tmpStr3, "%01.00f", capacity);
-    spr.drawString(tmpStr3, 285, 200);
-    spr.setFont(&fonts::Orbitron_Light_24);
+    sprDrawString(tmpStr3, 285, 200);
+    sprSetFont(fontOrbitronLight24);
     sprintf(tmpStr3, ".%d", int(10 * (capacity - (int)capacity)));
-    spr.drawString(tmpStr3, 319, 200);
+    sprDrawString(tmpStr3, 319, 200);
     spr.setTextColor(TFT_SILVER);
-    spr.setFont(&fonts::Font2);
-    spr.drawString("kWh", 319, 174);
+    sprSetFont(fontFont2);
+    sprDrawString("kWh", 319, 174);
   }
 }
 
@@ -1366,8 +1223,8 @@ void Board320_240::drawSceneHud()
   {
     sprintf(tmpStr3, "0");
   }
-  spr.setFont(&fonts::Font7);
-  tft.drawString(tmpStr3, 319, 0);
+  tft.setFont(fontFont7);
+  tftDrawStringFont7(tmpStr3, 319, 0);
 
   // Draw power kWh/100km (>25kmh) else kW
   tft.setTextSize(1);
@@ -1380,20 +1237,20 @@ void Board320_240::drawSceneHud()
     sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
   }
   tft.fillRect(181, 149, 150, 50, TFT_BLACK);
-  spr.setFont(&fonts::Font7);
-  tft.drawString(tmpStr3, 320, 150);
+  tft.setFont(fontFont7);
+  tftDrawStringFont7(tmpStr3, 320, 150);
 
   // Draw soc%
   sprintf(tmpStr3, "%01.00f%c", liveData->params.socPerc, '%');
-  spr.setFont(&fonts::Font7);
-  tft.drawString(tmpStr3, 160, 150);
+  tft.setFont(fontFont7);
+  tftDrawStringFont7(tmpStr3, 160, 150);
 
   // Cold gate battery
   batColor = (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED;
   tft.fillRect(0, 70, 50, 140, batColor);
   tft.fillRect(15, 60, 20, 10, batColor);
   tft.setTextColor(TFT_WHITE, batColor);
-  tft.setFont(&fonts::Roboto_Thin_24);
+  tft.setFont(fontRobotoThin24);
   tft.setTextDatum(MC_DATUM);
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
   tft.drawString(tmpStr3, 25, 180);
@@ -1445,8 +1302,8 @@ void Board320_240::drawSceneBatteryCells()
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED));
       sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]), char(127));
-      spr.setFont(&fonts::Font2);
-      spr.drawString(tmpStr1, posx + 4, posy);
+      sprSetFont(fontFont2);
+      sprDrawString(tmpStr1, posx + 4, posy);
     }
   }
 
@@ -1481,8 +1338,8 @@ void Board320_240::drawSceneBatteryCells()
     // Battery cell imbalance detetection
     if (liveData->params.cellVoltage[i] > 1.5 && liveData->params.cellVoltage[i] < 3.0)
       spr.setTextColor(TFT_WHITE, TFT_RED);
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr3, posx, posy);
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr3, posx, posy);
   }
 }
 
@@ -1537,8 +1394,8 @@ void Board320_240::drawSceneChargingGraph()
     /*if (i != 0 && i != 10) {
       sprintf(tmpStr1, "%d%%", i * 10);
       spr.setTextDatum(BC_DATUM);
-          spr.setFont(&fonts::Font2);
-      spr.drawString(tmpStr1, zeroX + (i * 10 * mulX),  zeroY - (maxKw * mulY));
+          sprSetFont(fontFont2);
+      sprDrawString(tmpStr1, zeroX + (i * 10 * mulX),  zeroY - (maxKw * mulY));
       }*/
     if (i <= (maxKw / 10))
     {
@@ -1547,8 +1404,8 @@ void Board320_240::drawSceneChargingGraph()
       {
         sprintf(tmpStr1, "%d", i * 10);
         spr.setTextDatum(ML_DATUM);
-        spr.setFont(&fonts::Font2);
-        spr.drawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY));
+        sprSetFont(fontFont2);
+        sprDrawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY));
       }
     }
   }
@@ -1576,34 +1433,34 @@ void Board320_240::drawSceneChargingGraph()
   spr.setTextDatum(BL_DATUM);
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00f%cC" : "1=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 0, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00f%cC" : "2=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 48, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 48, zeroY - (maxKw * mulY));
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00f%cC" : "3=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 96, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 96, zeroY - (maxKw * mulY));
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00f%cC" : "4=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
   spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 144, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 144, zeroY - (maxKw * mulY));
   sprintf(tmpStr1, "ir %01.00fkOhm", liveData->params.isolationResistanceKOhm);
 
   // Bms max.regen/power available
   spr.setTextColor(TFT_WHITE);
   sprintf(tmpStr1, "xC=%01.00fkW ", liveData->params.availableChargePower);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 192, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 192, zeroY - (maxKw * mulY));
   spr.setTextColor(TFT_WHITE);
   sprintf(tmpStr1, "xD=%01.00fkW", liveData->params.availableDischargePower);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 256, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 256, zeroY - (maxKw * mulY));
 
   //
   spr.setTextDatum(TR_DATUM);
@@ -1614,65 +1471,65 @@ void Board320_240::drawSceneChargingGraph()
             liveData->celsius2temperature(liveData->params.coolingWaterTempC),
             char(127));
     spr.setTextColor(TFT_PINK);
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   spr.setTextColor(TFT_WHITE);
   if (liveData->params.batFanFeedbackHz > 0)
   {
     sprintf(tmpStr1, "FF=%03.00fHz", liveData->params.batFanFeedbackHz);
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.batFanStatus > 0)
   {
     sprintf(tmpStr1, "FS=%03.00f", liveData->params.batFanStatus);
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.coolantTemp1C != -100 && liveData->params.coolantTemp2C != -100)
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00f%cC" : "C1/2:%01.00f/%01.00f%cF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C), char(127));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.bmsUnknownTempA != -100)
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "A=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempA), char(127));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.bmsUnknownTempB != -100)
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "B=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempB), char(127));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.bmsUnknownTempC != -100)
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempC), char(127));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.bmsUnknownTempD != -100)
   {
     sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "D=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempD), char(127));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
   if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
   {
     sprintf(tmpStr1, ((liveData->params.chargerACconnected) ? "AC=%d" : "DC=%d"), ((liveData->params.chargingOn) ? 1 : 0));
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
     posy++;
   }
 
@@ -1684,8 +1541,8 @@ void Board320_240::drawSceneChargingGraph()
     sprintf(tmpStr1, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_SILVER);
-  spr.setFont(&fonts::Font2);
-  spr.drawString(tmpStr1, 0, zeroY - (maxKw * mulY));
+  sprSetFont(fontFont2);
+  sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
 }
 
 /**
@@ -1708,21 +1565,21 @@ void Board320_240::drawSceneSoc10Table()
   spr.setTextSize(1); // Size for small 5x7 font
   spr.setTextColor(TFT_SILVER);
   spr.setTextDatum(TL_DATUM);
-  spr.setFont(&fonts::Font2);
-  spr.drawString("CONSUMPTION | DISCH.100%->4% SOC", 2, zeroY);
+  sprSetFont(fontFont2);
+  sprDrawString("CONSUMPTION | DISCH.100%->4% SOC", 2, zeroY);
 
   spr.setTextDatum(TR_DATUM);
 
-  spr.setFont(&fonts::Font2);
-  spr.drawString("dis./char.kWh", 128, zeroY + (1 * 15));
-  spr.drawString(((liveData->settings.distanceUnit == 'k') ? "km" : "mi"), 160, zeroY + (1 * 15));
-  spr.drawString("kWh100", 224, zeroY + (1 * 15));
-  spr.drawString("avg.speed", 310, zeroY + (1 * 15));
+  sprSetFont(fontFont2);
+  sprDrawString("dis./char.kWh", 128, zeroY + (1 * 15));
+  sprDrawString(((liveData->settings.distanceUnit == 'k') ? "km" : "mi"), 160, zeroY + (1 * 15));
+  sprDrawString("kWh100", 224, zeroY + (1 * 15));
+  sprDrawString("avg.speed", 310, zeroY + (1 * 15));
 
   for (int i = 0; i <= 10; i++)
   {
     sprintf(tmpStr1, "%d%%", (i == 0) ? 5 : i * 10);
-    spr.drawString(tmpStr1, 32, zeroY + ((12 - i) * 15));
+    sprDrawString(tmpStr1, 32, zeroY + ((12 - i) * 15));
 
     firstCed = (liveData->params.soc10ced[i] != -1) ? liveData->params.soc10ced[i] : firstCed;
     lastCed = (lastCed == -1 && liveData->params.soc10ced[i] != -1) ? liveData->params.soc10ced[i] : lastCed;
@@ -1740,55 +1597,55 @@ void Board320_240::drawSceneSoc10Table()
       if (diffCec != 0)
       {
         sprintf(tmpStr1, "+%01.01f", diffCec);
-        spr.drawString(tmpStr1, 128, zeroY + ((12 - i) * 15));
+        sprDrawString(tmpStr1, 128, zeroY + ((12 - i) * 15));
         diffCec0to5 = (i == 0) ? diffCec : diffCec0to5;
       }
       if (diffCed != 0)
       {
         sprintf(tmpStr1, "%01.01f", diffCed);
-        spr.drawString(tmpStr1, 80, zeroY + ((12 - i) * 15));
+        sprDrawString(tmpStr1, 80, zeroY + ((12 - i) * 15));
         diffCed0to5 = (i == 0) ? diffCed : diffCed0to5;
       }
       if (diffOdo != -1)
       {
         sprintf(tmpStr1, "%01.00f", liveData->km2distance(diffOdo));
-        spr.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15));
+        sprDrawString(tmpStr1, 160, zeroY + ((12 - i) * 15));
         diffOdo0to5 = (i == 0) ? diffOdo : diffOdo0to5;
         if (diffTime > 0)
         {
           sprintf(tmpStr1, "%01.01f", liveData->km2distance(diffOdo) / (diffTime / 3600));
-          spr.drawString(tmpStr1, 310, zeroY + ((12 - i) * 15));
+          sprDrawString(tmpStr1, 310, zeroY + ((12 - i) * 15));
         }
       }
       if (diffOdo > 0 && diffCed != 0)
       {
         sprintf(tmpStr1, "%01.1f", (-diffCed * 100.0 / liveData->km2distance(diffOdo)));
-        spr.drawString(tmpStr1, 224, zeroY + ((12 - i) * 15));
+        sprDrawString(tmpStr1, 224, zeroY + ((12 - i) * 15));
       }
     }
 
     if (diffOdo == -1 && liveData->params.soc10odo[i] != -1)
     {
       sprintf(tmpStr1, "%01.00f", liveData->km2distance(liveData->params.soc10odo[i]));
-      spr.drawString(tmpStr1, 160, zeroY + ((12 - i) * 15));
+      sprDrawString(tmpStr1, 160, zeroY + ((12 - i) * 15));
     }
   }
 
-  spr.drawString("0%", 32, zeroY + (13 * 15));
-  spr.drawString("0-5% is calculated (same) as 5-10%", 310, zeroY + (13 * 15));
+  sprDrawString("0%", 32, zeroY + (13 * 15));
+  sprDrawString("0-5% is calculated (same) as 5-10%", 310, zeroY + (13 * 15));
 
-  spr.drawString("TOT.", 32, zeroY + (14 * 15));
+  sprDrawString("TOT.", 32, zeroY + (14 * 15));
   diffCed = (lastCed != -1 && firstCed != -1) ? firstCed - lastCed + diffCed0to5 : 0;
   sprintf(tmpStr1, "%01.01f", diffCed);
-  spr.drawString(tmpStr1, 80, zeroY + (14 * 15));
+  sprDrawString(tmpStr1, 80, zeroY + (14 * 15));
   diffCec = (lastCec != -1 && firstCec != -1) ? lastCec - firstCec + diffCec0to5 : 0;
   sprintf(tmpStr1, "+%01.01f", diffCec);
-  spr.drawString(tmpStr1, 128, zeroY + (14 * 15));
+  sprDrawString(tmpStr1, 128, zeroY + (14 * 15));
   diffOdo = (lastOdo != -1 && firstOdo != -1) ? lastOdo - firstOdo + diffOdo0to5 : 0;
   sprintf(tmpStr1, "%01.00f", liveData->km2distance(diffOdo));
-  spr.drawString(tmpStr1, 160, zeroY + (14 * 15));
+  sprDrawString(tmpStr1, 160, zeroY + (14 * 15));
   sprintf(tmpStr1, "AVAIL.CAP: %01.01f kWh", -diffCed - diffCec);
-  spr.drawString(tmpStr1, 310, zeroY + (14 * 15));
+  sprDrawString(tmpStr1, 310, zeroY + (14 * 15));
 }
 
 /**
@@ -1814,7 +1671,7 @@ void Board320_240::drawSceneDebug()
   spr.setTextSize(1); // Size for small 5x7 font
   spr.setTextColor(TFT_SILVER);
   spr.setTextDatum(TL_DATUM);
-  spr.setFont(&fonts::Font2);
+  sprSetFont(fontFont2);
   spr.setCursor(0, 0);
 
   /* Spotzify [SE]: Diagnostic values I would love to have :
@@ -1943,12 +1800,6 @@ SD status*/
     break;
   case SLEEP_MODE_SCREEN_ONLY:
     spr.print("SCREEN ONLY");
-    break;
-  case SLEEP_MODE_DEEP_SLEEP:
-    spr.print("DEEP SLEEP");
-    break;
-  case SLEEP_MODE_SHUTDOWN:
-    spr.print("SHUTDOWN");
     break;
   default:
     spr.print("UNKNOWN");
@@ -2267,12 +2118,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     case SLEEP_MODE_SCREEN_ONLY:
       suffix = "[screen only]";
       break;
-    case SLEEP_MODE_DEEP_SLEEP:
-      suffix = "[deep sleep]";
-      break;
-    case SLEEP_MODE_SHUTDOWN:
-      suffix = "[shutdown]";
-      break;
     default:
       suffix = "[unknown]";
     }
@@ -2286,23 +2131,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     case SLEEP_MODE_SCREEN_ONLY:
       suffix = "[screen only]";
       break;
-    case SLEEP_MODE_DEEP_SLEEP:
-      suffix = "[deep sleep]";
-      break;
-    case SLEEP_MODE_SHUTDOWN:
-      suffix = "[shutdown]";
-      break;
     default:
       suffix = "[unknown]";
     }
-    break;
-  case MENU_SLEEP_MODE_WAKEINTERVAL:
-    sprintf(tmpStr1, "[%d sec]", liveData->settings.sleepModeIntervalSec);
-    suffix = tmpStr1;
-    break;
-  case MENU_SLEEP_MODE_SHUTDOWNHRS:
-    sprintf(tmpStr1, "[%d hrs]", liveData->settings.sleepModeShutdownHrs);
-    suffix = tmpStr1;
     break;
   case MENU_GPS_MODULE_TYPE:
     switch (liveData->settings.gpsModuleType)
@@ -2477,7 +2308,7 @@ void Board320_240::showMenu()
   liveData->menuVisible = true;
   spr.fillSprite(TFT_BLACK);
   spr.setTextDatum(TL_DATUM);
-  spr.setFont(&fonts::Roboto_Thin_24);
+  sprSetFont(fontRobotoThin24);
 
   // dynamic car menu
   std::vector<String> customMenu;
@@ -2511,7 +2342,7 @@ void Board320_240::showMenu()
           spr.fillRect(0, posY + menuItemHeight - 2, 320, 2, TFT_WHITE);
         }
         spr.setTextColor(TFT_WHITE);
-        spr.drawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title), 0, posY + off);
+        sprDrawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title).c_str(), 0, posY + off);
         posY += menuItemHeight;
       }
       tmpCurrMenuItem++;
@@ -2531,7 +2362,7 @@ void Board320_240::showMenu()
       // spr.fillRect(0, posY, 320, menuItemHeight + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
       spr.setTextColor(TFT_WHITE);
       idx = customMenu.at(i).indexOf("=");
-      spr.drawString(customMenu.at(i).substring(idx + 1), 0, posY + off);
+      sprDrawString(customMenu.at(i).substring(idx + 1).c_str(), 0, posY + off);
       posY += menuItemHeight;
     }
     tmpCurrMenuItem++;
@@ -2873,17 +2704,7 @@ void Board320_240::menuItemClick()
       break;
     // SleepMode off/on
     case MENU_SLEEP_MODE_MODE:
-      liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == SLEEP_MODE_SHUTDOWN) ? SLEEP_MODE_OFF : liveData->settings.sleepModeLevel + 1;
-      showMenu();
-      return;
-      break;
-    case MENU_SLEEP_MODE_WAKEINTERVAL:
-      liveData->settings.sleepModeIntervalSec = (liveData->settings.sleepModeIntervalSec == 600) ? 30 : liveData->settings.sleepModeIntervalSec + 30;
-      showMenu();
-      return;
-      break;
-    case MENU_SLEEP_MODE_SHUTDOWNHRS:
-      liveData->settings.sleepModeShutdownHrs = (liveData->settings.sleepModeShutdownHrs == 168) ? 0 : liveData->settings.sleepModeShutdownHrs + 12;
+      liveData->settings.sleepModeLevel = (liveData->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY) ? SLEEP_MODE_OFF : liveData->settings.sleepModeLevel + 1;
       showMenu();
       return;
       break;
@@ -3350,10 +3171,10 @@ void Board320_240::redrawScreen()
       !liveData->params.headLights && !liveData->params.autoLights)
   {
     spr.fillSprite(TFT_RED);
-    spr.setFont(&fonts::Orbitron_Light_32);
+    sprSetFont(fontOrbitronLight32);
     spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(MC_DATUM);
-    spr.drawString("! LIGHTS OFF !", 160, 120);
+    sprDrawString("! LIGHTS OFF !", 160, 120);
     spr.pushSprite(0, 0);
     redrawScreenIsRunning = false;
     return;
@@ -3439,8 +3260,8 @@ void Board320_240::redrawScreen()
     spr.setTextColor((liveData->params.gpsValid) ? TFT_GREEN : TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "%d", liveData->params.gpsSat);
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, 174, 2);
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, 174, 2);
   }
 
   // SDCARD recording
@@ -3553,9 +3374,9 @@ void Board320_240::redrawScreen()
     spr.setTextDatum(TL_DATUM);
     spr.setTextColor(TFT_WHITE);
     sprintf(tmpStr1, "OBDII not connected #%d", commInterface->getConnectAttempts());
-    spr.setFont(&fonts::Font2);
-    spr.drawString(tmpStr1, 10, 190);
-    spr.drawString(commInterface->getConnectStatus(), 10, 210);
+    sprSetFont(fontFont2);
+    sprDrawString(tmpStr1, 10, 190);
+    sprDrawString(commInterface->getConnectStatus().c_str(), 10, 210);
   }
   else
     // CAN not connected
@@ -3567,11 +3388,11 @@ void Board320_240::redrawScreen()
       spr.setTextSize(1);
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
-      spr.setFont(&fonts::Roboto_Thin_24);
+      sprSetFont(fontRobotoThin24);
       sprintf(tmpStr1, "CAN #%d %s%d", commInterface->getConnectAttempts(), (liveData->params.stopCommandQueue ? "QS" : "QR"), liveData->params.queueLoopCounter);
-      spr.setFont(&fonts::Font2);
-      spr.drawString(tmpStr1, 10, 190);
-      spr.drawString(commInterface->getConnectStatus(), 10, 210);
+      sprSetFont(fontFont2);
+      sprDrawString(tmpStr1, 10, 190);
+      sprDrawString(commInterface->getConnectStatus().c_str(), 10, 210);
     }
 
   spr.pushSprite(0, 0);
@@ -3941,32 +3762,13 @@ void Board320_240::mainLoop()
   if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 10 &&
       liveData->settings.sleepModeLevel >= SLEEP_MODE_SCREEN_ONLY &&
       liveData->params.currentTime - liveData->params.lastButtonPushedTime > 30 &&
-      (liveData->params.currentTime - liveData->params.wakeUpTime > 60 || bootCount > 1))
+      (liveData->params.currentTime - liveData->params.wakeUpTime > 60))
   {
     turnOffScreen();
   }
   else
   {
     setBrightness();
-  }
-
-  // Go to sleep when car is off for more than 30s and not charging (AC charger is disabled for few seconds when ignition is turned off)
-  if (liveData->params.currentTime - liveData->params.lastIgnitionOnTime > 30 && !liveData->params.chargingOn && liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP && liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10 && liveData->settings.voltmeterBasedSleep == 0)
-  {
-    goToSleep();
-  }
-
-  // Go to sleep when liveData->params.auxVoltage <= liveData->settings.voltmeterSleep for 30 seconds
-  if (liveData->settings.voltmeterEnabled == 1 && liveData->settings.voltmeterBasedSleep == 1 &&
-      liveData->params.auxVoltage > 0 && liveData->params.currentTime - liveData->params.lastVoltageOkTime > 30 &&
-      liveData->params.currentTime - liveData->params.wakeUpTime > 30 && liveData->params.currentTime - liveData->params.lastButtonPushedTime > 10)
-  {
-    // eGMP Ioniq6 DC2DC is sometimes not active in forward driving mode and evDash then turn off screen
-    if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
-    {
-      if (liveData->settings.sleepModeLevel >= SLEEP_MODE_DEEP_SLEEP)
-        goToSleep();
-    }
   }
 
   // Read data from BLE/CAN
@@ -4028,12 +3830,12 @@ void Board320_240::mainLoop()
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_DRIVE);
   }
-  else if (!liveData->params.chargingOn && !liveData->params.forwardDriveMode && liveData->params.carMode != CAR_MODE_NONE &&
-           liveData->params.currentTime - liveData->params.carModeChanged > 1800 &&
+  /*else if (!liveData->params.chargingOn && !liveData->params.forwardDriveMode && liveData->params.carMode != CAR_MODE_NONE &&
+           (!(liveData->params.speedKmh > 15 || (liveData->params.speedKmhGPS > 15 && liveData->params.gpsSat >= 4))) && liveData->params.currentTime - liveData->params.carModeChanged > 1800 &&
            liveData->params.currentTime - liveData->params.carModeChanged < 10 * 24 * 3600)
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_NONE);
-  }
+  }*/
 }
 
 /**

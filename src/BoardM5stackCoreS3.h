@@ -16,14 +16,11 @@ protected:
 public:
   void initBoard() override;
   void afterSetup() override;
-  void wakeupBoard() override;
   void boardLoop() override;
   void mainLoop() override;
   bool isButtonPressed(int button) override;
   void enterSleepMode(int secs) override;
-  void Write1Byte(uint8_t Addr, uint8_t Data);
   bool skipAdapterScan() override;
-  uint8_t Read8bit(uint8_t Addr);
   //  static void eventDisplay(Event &e);
   void setTime(String timestamp) override;
   void ntpSync() override;

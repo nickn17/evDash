@@ -37,11 +37,11 @@ lib_deps =
 upload_protocol = esptool
 upload_port = /dev/cu.usbmodem11301
 monitor_port = /dev/cu.usbmodem11301
-upload_speed = 1500000		;921600
+upload_speed = 1500000
 monitor_speed = 115200
 
-; M5Core2 configuration
-[env:m5stack-core2]
+; M5Core2 v1.0 board configuration
+[env:m5stack-core2-v1_0]
 platform = espressif32
 board = m5stack-core2
 board_build.mcu = esp32
@@ -65,10 +65,6 @@ build_flags =
 	-D SERIAL2_TX=14
 lib_deps = 
 	m5stack/M5Core2
-	m5stack/M5Unified
-	m5stack/M5GFX
-	;m5stack/M5Core2@0.1.5
-	;m5stack/M5GFX@0.1.12
 	mikalhart/TinyGPSPlus@^1.0.2
 	erropix/ESP32 AnalogWrite@^0.2.0
 	bblanchon/ArduinoJson@^6.17.2
@@ -82,5 +78,49 @@ lib_deps =
 upload_protocol = esptool
 upload_port = COM6
 monitor_port = COM6
-upload_speed = 1500000		;921600
+upload_speed = 1500000
+monitor_speed = 115200
+
+; M5Core2 v1.1 board configuration
+[env:m5stack-core2-v1_1]
+platform = espressif32
+board = m5stack-core2
+board_build.mcu = esp32
+board_build.partitions = default_16MB.csv    ;no_ota.csv
+board_build.f_cpu = 240000000L        ;240M(WiFi OK), 160M(WiFi OK), 80M(WiFi OK), 40M, 20M, 10M
+board_build.f_flash = 80000000L       ;80M, 40M
+board_build.flash_mode = dio          ;io, qout, dio, dout
+lib_ldf_mode = deep
+framework = arduino
+build_flags = 
+   	-D M5STACK_CORE2
+    -D LGFX_AUTODETECT
+
+    -D ARDUINO_M5STACK_Core2
+    -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
+	-D BOARD_M5STACK_CORE2
+	-D BOARD_HAS_PSRAM
+    -mfix-esp32-psram-cache-issue
+	-D COMMU_CS_PIN=26
+	-D COMMU_INT_PIN=4
+	-D SERIAL2_RX=13
+	-D SERIAL2_TX=14
+lib_deps = 
+	m5stack/M5Core2
+	mikalhart/TinyGPSPlus@^1.0.2
+	erropix/ESP32 AnalogWrite@^0.2.0
+	bblanchon/ArduinoJson@^6.17.2
+	Pedroalbuquerque/ESP32WebServer
+	https://github.com/switchdoclabs/SDL_Arduino_INA3221
+	https://github.com/coryjfowler/MCP_CAN_lib
+	https://github.com/nickn17/Solarlib
+	knolleary/PubSubClient@^2.8
+
+;targets = upload
+upload_protocol = esptool
+;upload_port = /dev/cu.usbserial-58640310361
+;monitor_port = /dev/cu.usbserial-58640310361
+upload_port = COM6
+monitor_port = COM6
+upload_speed = 1500000
 monitor_speed = 115200

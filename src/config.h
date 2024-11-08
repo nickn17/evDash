@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v3.0.6"
-#define APP_RELEASE_DATE "2024-04-11"
+#define APP_VERSION "v4.0.0"
+#define APP_RELEASE_DATE "2024-11-08"
 // TFT COLORS
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */
 #define TFT_NAVY 0x000F      /*   0,   0, 128 */
@@ -47,8 +47,8 @@
 // SLEEP MODE
 #define SLEEP_MODE_OFF 0
 #define SLEEP_MODE_SCREEN_ONLY 1
-#define SLEEP_MODE_DEEP_SLEEP 2
-#define SLEEP_MODE_SHUTDOWN 3
+// 202408 removed: #define SLEEP_MODE_DEEP_SLEEP 2
+// 202408 removed: #define SLEEP_MODE_SHUTDOWN 2
 
 // GPS MODULE
 #define GPS_MODULE_TYPE_NONE 0
@@ -233,8 +233,8 @@ typedef enum
   // menu sleep
   MENU_SLEEP_TOP = 3110,
   MENU_SLEEP_MODE_MODE,
-  MENU_SLEEP_MODE_WAKEINTERVAL,
-  MENU_SLEEP_MODE_SHUTDOWNHRS,
+  // 202408 removed: MENU_SLEEP_MODE_WAKEINTERVAL,
+  // 202408 removed: MENU_SLEEP_MODE_SHUTDOWNHRS,
 
   // menu voltmeter
   MENU_VOLTMETER_TOP = 3150,

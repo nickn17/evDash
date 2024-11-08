@@ -9,10 +9,22 @@
 
 #ifdef BOARD_M5STACK_CORE2
 #include <M5Core2.h>
-#include <M5GFX.h>
+#define fontRobotoThin24 &Roboto_Thin_24
+#define fontOrbitronLight24 &Orbitron_Light_24
+#define fontOrbitronLight32 &Orbitron_Light_32
+#define fontFont2 &FreeSans9pt7b
+#define fontFont7 &FreeSansBold12pt7b
+
 #endif // BOARD_M5STACK_CORE2
 #ifdef BOARD_M5STACK_CORES3
 #include <M5CoreS3.h>
+#define fontRobotoThin24 &fonts::Roboto_Thin_24
+#define fontOrbitronLight24 &fonts::Orbitron_Light_24
+#define fontOrbitronLight32 &fonts::Orbitron_Light_32
+#define fontFont2 &FreeSans9pt7b
+#define fontFont7 &FreeSansBold12pt7b
+#define fontFont2bmp &fonts::Font2
+#define fontFont7bmp &fonts::Font7
 #endif // BOARD_M5STACK_CORES3
 
 class Board320_240 : public BoardInterface
@@ -21,13 +33,19 @@ class Board320_240 : public BoardInterface
 protected:
 // TFT, SD SPI
 #if BOARD_M5STACK_CORE2
-  M5GFX tft;
-  M5Canvas spr = M5Canvas(&tft);
+  M5Display tft;
+  TFT_eSprite spr = TFT_eSprite(&tft);
+  const GFXfont *lastFont;
+  void sprSetFont(const GFXfont *f);
 #endif // BOARD_M5STACK_CORE
 #if BOARD_M5STACK_CORES3
   M5GFX &tft = CoreS3.Display;
   M5Canvas spr = M5Canvas(&CoreS3.Display);
-#endif // BOARD_M5STACK_CORE2
+  const lgfx::GFXfont *lastFont;
+  void sprSetFont(const lgfx::GFXfont *font);
+#endif // BOARD_M5STACK_CORES3
+  void sprDrawString(const char *string, int32_t poX, int32_t poY);
+  void tftDrawStringFont7(const char *string, int32_t poX, int32_t poY);
   HardwareSerial *gpsHwUart = NULL;
   SDL_Arduino_INA3221 ina3221;
   TinyGPSPlus gps;
@@ -51,7 +69,6 @@ protected:
   float displayFps = 0;
 
 public:
-  bool invertDisplay = false;
   byte pinButtonLeft = 0;
   byte pinButtonRight = 0;
   byte pinButtonMiddle = 0;
@@ -69,8 +86,6 @@ public:
   void boardLoop() override;
   void mainLoop() override;
   bool skipAdapterScan() override;
-  void goToSleep();
-  void afterSleep();
   void otaUpdate() override;
   // SD card
   bool sdcardMount() override;

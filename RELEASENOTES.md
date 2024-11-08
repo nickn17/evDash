@@ -1,13 +1,24 @@
 # RELEASE NOTES
 
-### Next version
 
-### v3.1.0 xxxxx
-- CoreS3 support
+### V4.0.0 2024-11-08
+- New: M5Stack CoreS3 support
+  - LogSerial via HWCDC instead of HardwareSerial
+  - M5GFX, M5Unified integration
+  - Rewritten ESprite to LGFX_Sprite, fonts::xx
+  - CAN CS/INT pins
+- New: M5Stack Core2 v1.1 board
+- Core2 v1.0 rewritten to the latest m5core2 branch
+- No longer supports SLEEP MODE – deep sleep and shutdown
+
+- New: M5Stack CoreS3 support
   - LogSerial via HWCDC instead HardwareSerial
   - M5GFX, M5Unified
   - Rewritten ESprite to LGFX_Sprite, fonts::xx
   - CAN CS/INT pins
+- New: M5Stack Core2 v1.1 board 
+- Core2 v1.0 rewriten to latest m5core2 branch
+- No longer support for SLEEP MODE - deep sleep and shutdown
 
 ### v3.0.6 2024-04-11
 - motor1/2 rpm instead out temperature

@@ -599,6 +599,8 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   jsonData["batV"] = liveData->params.batVoltage;
   jsonData["cecKwh"] = liveData->params.cumulativeEnergyChargedKWh;
   jsonData["cedKwh"] = liveData->params.cumulativeEnergyDischargedKWh;
+  jsonData["cccAh"] = liveData->params.cumulativeChargeCurrentAh;
+  jsonData["cdcAh"] = liveData->params.cumulativeDischargeCurrentAh;
   jsonData["maxChKw"] = liveData->params.availableChargePower;
   jsonData["maxDisKw"] = liveData->params.availableDischargePower;
 
@@ -649,7 +651,7 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
   {
     if (liveData->params.cellVoltage[i] == -1)
       continue;
-    jsonData[String("c" + String(i) + "V")] = liveData->params.cellVoltage[i];
+    jsonData[String("c" + String(i) + "V")] = round(liveData->params.cellVoltage[i] * 1000) / 1000;
   }
 
   serializeJson(jsonData, Serial);

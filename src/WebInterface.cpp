@@ -127,8 +127,8 @@ void handleRoot()
 
   text += "<tr><th colspan='2'>Sleep</th></tr>";
   text += "<tr><td>Mode</td><td>" + String(liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_OFF ? "off" : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY ? "SCREEN ONLY"
-                                                                                                           : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_DEEP_SLEEP    ? "DEEP SLEEP"
-                                                                                                           : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SHUTDOWN      ? "SHUTDOWN"
+                                                                                                                                                                                 // 202408: removed: : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_DEEP_SLEEP    ? "DEEP SLEEP"
+                                                                                                                                                                                 // 202408: removed: : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SHUTDOWN      ? "SHUTDOWN"
                                                                                                                                                                                  : "UNKNOWN") +
           "</td></tr>";
   text += "<tr><td>sleepModeIntervalSec</td><td>" + String(liveDataWebInt->settings.sleepModeIntervalSec) + "</td></tr>";

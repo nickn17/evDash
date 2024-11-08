@@ -107,7 +107,7 @@ typedef struct
   // Network
   time_t lastDataSent;
   time_t lastContributeSent;
-  bool sim800l_enabled; // UNSUPPORTED MODULE
+  bool sim800l_enabled;             // UNSUPPORTED MODULE
   time_t sim800l_lastOkReceiveTime; // UNSUPPORTED MODULE
   time_t lastSuccessNetSendTime;
   bool isWifiBackupLive;
@@ -182,8 +182,10 @@ typedef struct
   float cumulativeEnergyChargedKWhStart;
   float cumulativeEnergyDischargedKWh;
   float cumulativeEnergyDischargedKWhStart;
-  float availableChargePower;    // max regen
-  float availableDischargePower; // max power
+  float cumulativeChargeCurrentAh;    // CCC
+  float cumulativeDischargeCurrentAh; // CDC
+  float availableChargePower;         // max regen
+  float availableDischargePower;      // max power
   float isolationResistanceKOhm;
   float batEnergyContent;
   float batMaxEnergyContent;
@@ -234,7 +236,7 @@ typedef struct
   float tireRearRightTempC;
   float tireRearRightPressureBar;
   uint16_t cellCount;
-  float cellVoltage[200]; // 1..180 has index 0..179
+  float cellVoltage[200]; // 1..192 has index 0..191
 
   // Screen - charging graph
   float chargingGraphMinKw[101];             // 0..100% .. Min power Kw
@@ -304,7 +306,7 @@ typedef struct
   char remoteApiUrl[64];                  // Will be used as mqtt password in future builds
   char remoteApiKey[32];                  // Will be used as mqtt username in future builds
   //
-  uint8_t headlightsReminder;     // Deprecated
+  uint8_t headlightsReminder; // Deprecated
   // === settings version 5
   // =================================
   uint8_t gpsHwSerialPort;  // 255-off, 0,1,2 - hw serial
@@ -373,13 +375,13 @@ typedef struct
   uint8_t commandQueueAutoStop;     // Command queue autostop. Recommended for eGMP (Hyundai/Kia) platform
   unsigned long gpsSerialPortSpeed; // default 9600
   // == settings version 19
-  uint8_t boardPowerMode;     // Default: 1 - external, 0 - from USB
+  uint8_t boardPowerMode; // Default: 1 - external, 0 - from USB
   // == settings version 20
-  uint8_t gpsModuleType;      // 0 - none, Default: 
-  // 1 - u-blox NEO-M8N https://shop.m5stack.com/products/gps-module, 
+  uint8_t gpsModuleType; // 0 - none, Default:
+  // 1 - u-blox NEO-M8N https://shop.m5stack.com/products/gps-module,
   // 2 - GNSS Module https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
   // == settings version 21
-  uint8_t carSpeedType;      // 0 - automatic (car/gps), 1 - only from car, 2 - only from gps
+  uint8_t carSpeedType; // 0 - automatic (car/gps), 1 - only from car, 2 - only from gps
   //
 } SETTINGS_STRUC;
 
