@@ -1,113 +1,135 @@
 # evDash
 
-!!! Use it at your own risk !!!
+⚠️ **Use at your own risk!**
 
-- evDash Discord server: https://discord.gg/rfAvH7xzTr
-- Project is maintained by EV owners car community
+- evDash Discord server: [Join the community](https://discord.gg/rfAvH7xzTr)
+- Project maintained by the EV owners community
 
-Supported hardware
+## Supported Hardware
 
-- Only boards M5Stack Core2 or M5Stack CoreS3
-- M5 GPS modules - GNSS NEO-M9N (38400bps), older GPS U-BLOX NEO-M8N (9600bps)
+- M5Stack Core2 v1.0
+- In development: M5Stack Core2 v1.1
+- In development: M5Stack CoreS3
+- M5 GPS modules: GNSS NEO-M9N (38400bps), older GPS U-BLOX NEO-M8N (9600bps)
 
-Deprecated
+## Deprecated Hardware
+
 - INA3221A voltage meter
 
-No longer supported hardware
+## No Longer Supported
+
 - M5STACK CORE1
 - LILYGO TTGO T4 v1.3
 - SIM800L GPRS module
 
-Working only with electric vehicles
-Fully supported: Hyundai Ioniq5/6, Kia EV6
-Community supported: Kia e-Niro/Hyundai Kona EV, Kia Niro PHEV, Renault ZOE 28, BMW i3, VW ID3 45/58/77.
-See Release notes, quick installation via flash tool bellow.
+**Note:** This app works only with electric vehicles.
 
-## Required hardware
+**Fully supported cars:**
+- Hyundai Ioniq5/6
+- Kia EV6
 
-### BOARD
-- M5STACK CORE2 IOT Development Kit (K010)
-  https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit
-- older M5STACK CORE2 IOT Development Kit (K010)
-  https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit
+**Community supported:**
+- Kia e-Niro
+- Hyundai Kona EV
+- Kia Niro PHEV
+- Renault ZOE 28
+- BMW i3
+- VW ID3 45/58/77
 
-### CAN vs OBD2 adapter
-- optional CAN module COMMU (M011) - RS485, TTL and CAN
-  https://shop.m5stack.com/products/commu-module
-- OBD2 connector can provide power to the M5 stack with a 12V to 5V converter (e.g. Recom R-785.0-1.0).
+See release notes for more details and quick installation via the flash tool below. When installed from source, OTA updates over Wi-Fi are also available.
 
-- OBD2 adapters - supported is only Vgate iCar Pro Bluetooth 4.0 (BLE4) OBD2. We can add another BLE adapter if you provide 3x UUID (service/notify,read/write)
-- For nonstop use we strongly recommend to use direct CAN onnection (via OBD2 connector)). It's due to security! 
+## Required Hardware
 
-### GPS
-- GNSS Module with Barometric Pressure, IMU, Magnetometer Sensors (NEO-M9N, BMP280, BMI270, BMM150)
-  https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
-- older module (M003) - NEO-M8N (with external atenna)
-  https://shop.m5stack.com/products/gps-module
+### Board
 
-## Hardware configuration
+- M5STACK CORE2 IOT Development Kit (K010)  
+  [M5Stack Core2 Product Link](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit)
+
+### CAN vs OBD2 Adapter
+
+- Optional CAN module COMMU (M011) - RS485, TTL, and CAN  
+  [COMMU Module Product Link](https://shop.m5stack.com/products/commu-module)
+
+- OBD2 connector can provide power to the M5Stack with a 12V to 5V converter (e.g., Recom R-785.0-1.0).
+
+- Supported OBD2 adapters: Vgate iCar Pro Bluetooth 4.0 (BLE4).  
+  For other BLE adapters, please provide the 3 UUIDs (service/notify, read/write).
+
+- For continuous use, we strongly recommend using a direct CAN connection via the OBD2 connector due to security concerns.
+
+### GPS Module
+
+- GNSS Module with Barometric Pressure, IMU, Magnetometer Sensors (NEO-M9N, BMP280, BMI270, BMM150)  
+  [GNSS Module Product Link](https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors)
+
+- Older module (M003) - NEO-M8N (with external antenna)  
+  [Older GPS Module Product Link](https://shop.m5stack.com/products/gps-module)
+
+## Hardware Configuration
 
 The M5 Core 2 uses UART0 for serial communication and flashing (USB port).
 
-The COMMU module is wired with SMD jumpers to use UART0 for TTL and UART2 for RS485. CAN doesn't need UART. Both 0 and 2 can be unwired.
+- The COMMU module is wired with SMD jumpers to use UART0 for TTL and UART2 for RS485. CAN does not require UART. Both UART0 and UART2 can be unwired if necessary.
 
-The GPS module is wired with SMD jumpers to use UART2. This can be easily changed to UART0 in order to use it stacked with the GSM module. The counterside is this conflicts with the USB connection of Core2, so flashing will not be possible.If it's only stacked with COMMU, it can stay on UART2, but COMMU needs to be unwired from UART2.
+- The GPS module is wired with SMD jumpers to use UART2. This can be easily switched to UART0 for stacking with the GSM module. However, this configuration conflicts with the USB connection of Core2, making flashing impossible. If only stacked with COMMU, it can remain on UART2, but COMMU must be unwired from UART2.
 
-Check the documentations of the modules for more details:
-Core2 - https://docs.m5stack.com/en/core/core2
-GPS - https://docs.m5stack.com/en/module/gps
-COMMU - https://docs.m5stack.com/en/module/commu
+Check the documentation of the modules for more details:  
+- [Core2 Documentation](https://docs.m5stack.com/en/core/core2)  
+- [GPS Module Documentation](https://docs.m5stack.com/en/module/gps)  
+- [COMMU Module Documentation](https://docs.m5stack.com/en/module/commu)
 
-## Quick installation with ESP32 flash tool
+## Quick Installation with ESP32 Flash Tool
 
-See [INSTALLATION.md](INSTALLATION.md)
+See [INSTALLATION.md](INSTALLATION.md) for instructions.
 
-## Installation from sources (VS code)
+## Installation from Sources (VS Code)
 
-See [INSTALLATION.md](INSTALLATION.md)
+See [INSTALLATION.md](INSTALLATION.md) for detailed steps.
 
-## RELEASE NOTES
+## Release Notes
 
-see. [RELEASENOTES.md](RELEASENOTES.md) file
+Check the [RELEASENOTES.md](RELEASENOTES.md) file for the latest updates.
 
-## Screens and shortcuts
+## Screens and Shortcuts
 
-Touch screen zones
-![image](https://github.com/nickn17/evDash/blob/master/docs/core2_touch_zones.jpg)
+### Touch Screen Zones
 
-- Middle button - menu
-- Left button - toggle screens
+![Touch Zones](https://github.com/nickn17/evDash/blob/master/docs/core2_touch_zones.jpg)
 
-Touch screen
-- left 1/3 of screen - toggle screen left
-- right 1/3 of screen - toggle screen right
-- middle 1/3 of screen - menu
+- Middle button: Open menu
+- Left button: Toggle screens
 
-In the menu 
-- top left corner (64x64px) - exit menu
-- top right corner (64x64x) - page up
-- bottom right corner (64x64px) - page down
-- rest of the screen - select item
+### Touch Screen Actions
 
-Screen list
-- 0 blank screen, lcd off
-- 1 automatic mode (summary info / speed kmh / charging graph)
-- 2 summary info
-- 3 speed kmh + kwh/100km, charging data (V/A/kW)
-- 4 battery cells + battery module temperatures
-- 5 charging graph
-- 6 consumption table. Can be used to measure available battery capacity.
-- 7 debug info
+- Left 1/3 of screen: Toggle screen left
+- Right 1/3 of screen: Toggle screen right
+- Middle 1/3 of screen: Open menu
 
-![image](https://github.com/nickn17/evDash/blob/master/screenshots/v2_ioniq6.png)
+### In the Menu
 
-Top Info
+- Top left corner (64x64px): Exit menu
+- Top right corner (64x64px): Page up
+- Bottom right corner (64x64px): Page down
+- Rest of the screen: Select item
 
-- yellow - icon - upload data. 
-- circle - outer gps 
-- inner - queue loop (flashing).
-- lines under it -- headlights (still not working on egmp)
+### Screen List
 
+1. Blank screen (LCD off)
+2. Automatic mode (summary info / speed km/h / charging graph)
+3. Summary info
+4. Speed (km/h) + kWh/100km, charging data (V/A/kW)
+5. Battery cells + battery module temperatures
+6. Charging graph
+7. Consumption table (used to measure available battery capacity)
+8. Debug info
 
-![image](https://github.com/nickn17/evDash/assets/7864168/0a936f1a-fd46-49fd-926b-9716ca7ba007)
+![Ioniq 6 Screenshot](https://github.com/nickn17/evDash/blob/master/screenshots/v2_ioniq6.png)
 
+## Top Info Indicators
+
+- Yellow icon: Upload data
+- Circle (outer): GPS status
+- Circle (inner): Queue loop (flashing)
+- Lines under it: Headlights status (currently not working on eGMP vehicles)
+
+![Top Info Indicators](https://github.com/nickn17/evDash/assets/7864168/0a936f1a-fd46-49fd-926b-9716ca7ba007)

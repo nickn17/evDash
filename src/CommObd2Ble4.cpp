@@ -54,9 +54,11 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
       {
         if (liveDataObj->menuItems[i].id == 10001 + liveDataObj->scanningDeviceIndex)
         {
-          tmpStr = advertisedDevice.toString().c_str();
-          tmpStr.replace("Name: ", "");
-          tmpStr.replace("Address: ", "");
+          tmpStr = advertisedDevice.getName().c_str();
+          tmpStr += ", ";
+          tmpStr += advertisedDevice.getManufacturerData().c_str();
+          tmpStr += ", ";
+          tmpStr += advertisedDevice.getAddress().toString().c_str();
           tmpStr.toCharArray(liveDataObj->menuItems[i].title, 48);
           tmpStr = advertisedDevice.getAddress().toString().c_str();
           tmpStr.toCharArray(liveDataObj->menuItems[i].obdMacAddress, 18);
@@ -271,107 +273,116 @@ void CommObd2Ble4::startBleScan()
 }
 
 /**
-   Do connect BLE with server (OBD device)
+   Connect to BLE device and automatically detect service and characteristics
 */
 bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
 {
-
   board->displayMessage(" > Connecting device", "");
 
-  syslog->print("liveData->obd2ready ");
+  syslog->print("Connecting to device: ");
   syslog->println(pAddress.toString().c_str());
   board->displayMessage(" > Connecting device - init", pAddress.toString().c_str());
 
+  // Set BLE encryption and security
   BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
   BLEDevice::setSecurityCallbacks(new MySecurity());
 
   BLESecurity *pSecurity = new BLESecurity();
-  pSecurity->setAuthenticationMode(ESP_LE_AUTH_BOND); //
+  pSecurity->setAuthenticationMode(ESP_LE_AUTH_BOND);
   pSecurity->setCapability(ESP_IO_CAP_KBDISP);
   pSecurity->setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
 
+  // Create BLE client and set callbacks
   board->displayMessage(" > Connecting device", pAddress.toString().c_str());
   liveData->pClient = BLEDevice::createClient();
   liveData->pClient->setClientCallbacks(new MyClientCallback());
-  if (liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM))
-    syslog->println(" - liveData->obd2readyed to server");
-  syslog->printf("Total/free heap: %i/%i-%i\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-  // Remote service
-  board->displayMessage(" > Connecting device", "Connecting service...");
-  syslog->print("serviceUUID -");
-  syslog->print(liveData->settings.serviceUUID);
-  syslog->println("-");
-  syslog->println("- PASS OK -1");
-  BLEUUID tempUID = BLEUUID(liveData->settings.serviceUUID);
-  syslog->println("- PASS OK -2");
-  syslog->println(CONFIG_BT_BTU_TASK_STACK_SIZE);
-  BLERemoteService *pRemoteService = liveData->pClient->getService(tempUID);
-  syslog->println("- PASS OK -3");
-
-  if (pRemoteService == nullptr)
+  // Attempt to connect to the BLE device
+  if (!liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM))
   {
-    syslog->print("Failed to find our service UUID: ");
-    syslog->println(liveData->settings.serviceUUID);
-    board->displayMessage(" > Connecting device", "Unable to find service");
+    syslog->println("Failed to connect to BLE device.");
+    board->displayMessage("Connection failed", "Retrying...");
+    delay(2000); // Delay before retrying to avoid immediate restart
     return false;
   }
-  syslog->println(" - Found our service");
-  syslog->printf("Total/free heap: %i/%i-%i\n", ESP.getHeapSize(), ESP.getFreeHeap(), heap_caps_get_free_size(MALLOC_CAP_8BIT));
+  syslog->println("Successfully connected to BLE device.");
+  board->displayMessage("> Successfully connected", pAddress.toString().c_str());
 
-  // Get characteristics
-  board->displayMessage(" > Connecting device", "Connecting TxUUID...");
-  syslog->print("charTxUUID -");
-  syslog->print(liveData->settings.charTxUUID);
-  syslog->println("-");
-  liveData->pRemoteCharacteristic = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charTxUUID));
-  if (liveData->pRemoteCharacteristic == nullptr)
+  // Discover all services
+  std::map<std::string, BLERemoteService *> *services = liveData->pClient->getServices();
+  if (services == nullptr || services->empty())
   {
-    syslog->print("Failed to find our characteristic UUID: ");
-    syslog->println(liveData->settings.charTxUUID); //.toString().c_str());
-    board->displayMessage(" > Connecting device", "Unable to find TxUUID");
+    syslog->println("No services found.");
+    liveData->pClient->disconnect();
     return false;
   }
-  syslog->println(" - Found our characteristic");
 
-  // Get characteristics
-  board->displayMessage(" > Connecting device", "Connecting RxUUID...");
-  syslog->print("charRxUUID -");
-  syslog->print(liveData->settings.charRxUUID);
-  syslog->println("-");
-  liveData->pRemoteCharacteristicWrite = pRemoteService->getCharacteristic(BLEUUID(liveData->settings.charRxUUID));
-  if (liveData->pRemoteCharacteristicWrite == nullptr)
-  {
-    syslog->print("Failed to find our characteristic UUID: ");
-    syslog->println(liveData->settings.charRxUUID); //.toString().c_str());
-    board->displayMessage(" > Connecting device", "Unable to find RxUUID");
-    return false;
-  }
-  syslog->println(" - Found our characteristic write");
+  // Loop through services to find characteristics
+  liveData->pRemoteCharacteristic = nullptr;
+  liveData->pRemoteCharacteristicWrite = nullptr;
 
-  board->displayMessage(" > Connecting device", "Register callbacks...");
-  // Read the value of the characteristic.
-  if (liveData->pRemoteCharacteristic->canNotify())
+  for (auto const &entry : *services)
   {
-    syslog->println(" - canNotify");
-    if (liveData->pRemoteCharacteristic->canIndicate())
+    BLERemoteService *pRemoteService = entry.second;
+    syslog->print("Detected service UUID: ");
+    syslog->println(entry.first.c_str());
+
+    // Discover characteristics within the service
+    std::map<std::string, BLERemoteCharacteristic *> *characteristics = pRemoteService->getCharacteristics();
+    for (auto const &charEntry : *characteristics)
     {
-      syslog->println(" - canIndicate");
-      const uint8_t indicationOn[] = {0x2, 0x0};
-      // const uint8_t indicationOff[] = {0x0,0x0};
-      liveData->pRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)indicationOn, 2, true);
-      // liveData->pRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t*)notifyOff,2,true);
-      liveData->pRemoteCharacteristic->registerForNotify(notifyCallback, false);
-      delay(200);
+      BLERemoteCharacteristic *pCharacteristic = charEntry.second;
+
+      // Check if the characteristic can notify (Tx)
+      if (pCharacteristic->canNotify() && liveData->pRemoteCharacteristic == nullptr)
+      {
+        liveData->pRemoteCharacteristic = pCharacteristic;
+        syslog->print("Detected Tx characteristic UUID: ");
+        syslog->println(charEntry.first.c_str());
+      }
+
+      // Check if the characteristic can write (Rx)
+      if (pCharacteristic->canWrite() && liveData->pRemoteCharacteristicWrite == nullptr)
+      {
+        liveData->pRemoteCharacteristicWrite = pCharacteristic;
+        syslog->print("Detected Rx characteristic UUID: ");
+        syslog->println(charEntry.first.c_str());
+      }
+
+      // Stop searching if both Tx and Rx characteristics are found
+      if (liveData->pRemoteCharacteristic && liveData->pRemoteCharacteristicWrite)
+      {
+        break;
+      }
+    }
+
+    // Exit if we found valid Tx and Rx characteristics
+    if (liveData->pRemoteCharacteristic && liveData->pRemoteCharacteristicWrite)
+    {
+      break;
     }
   }
 
-  board->displayMessage(" > Connecting device", "Done...");
-  if (liveData->pRemoteCharacteristicWrite->canWrite())
+  // Check if Tx and Rx characteristics were found
+  if (liveData->pRemoteCharacteristic == nullptr || liveData->pRemoteCharacteristicWrite == nullptr)
   {
-    syslog->println(" - canWrite");
+    syslog->println("Failed to detect Tx/Rx characteristics.");
+    liveData->pClient->disconnect();
+    return false;
   }
 
+  syslog->println("Successfully detected service and characteristics.");
+
+  // Enable notifications for the Tx characteristic
+  if (liveData->pRemoteCharacteristic->canNotify())
+  {
+    const uint8_t indicationOn[] = {0x2, 0x0};
+    liveData->pRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)indicationOn, 2, true);
+    liveData->pRemoteCharacteristic->registerForNotify(notifyCallback, false);
+    delay(200);
+  }
+
+  syslog->println("BLE device is ready for communication.");
   return true;
 }
 

@@ -1,5 +1,8 @@
 # RELEASE NOTES
 
+### V4.0.2 2024-11-11
+- New: Automatic detection of service, RX, and TX UUIDs for BLE4 adapters!
+
 ### V4.0.0 2024-11-08
 !! Note !! This is an initial support release. Known issues include:
 - Core2 v1.0: When powered via external CAN, the module does not start. You need to briefly connect USB power, and after disconnecting, it runs fine. Tested for a few months with this configuration.
