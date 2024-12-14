@@ -49,6 +49,7 @@ So in summary, it initializes the core display and hardware functionality, retri
 #include "Board320_240.h"
 #include <time.h>
 #include <ArduinoJson.h>
+#include "CarModelUtils.h"
 
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #include <PubSubClient.h>
@@ -1825,7 +1826,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   {
   // Set vehicle type
   case MENU_VEHICLE_TYPE:
-    suffix = getCarModelAbrpStr();
+    suffix = getCarModelAbrpStr(liveData->settings.carType);
     suffix = String("[" + suffix.substring(0, suffix.indexOf(":", 12)) + "]");
     break;
   case MENU_SAVE_SETTINGS:
@@ -4340,7 +4341,7 @@ bool Board320_240::netSendData()
   {
     StaticJsonDocument<768> jsonData;
 
-    jsonData["car_model"] = getCarModelAbrpStr();
+    jsonData["car_model"] = getCarModelAbrpStr(liveData->settings.carType);
     if (strcmp(jsonData["car_model"], "n/a") == 0)
     {
       syslog->println("Car not supported by ABRP Uploader");
@@ -4523,7 +4524,7 @@ bool Board320_240::netContributeData()
     {
 
       liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
-      liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr() + "\", ";
+      liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
       liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
       liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
       liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
@@ -4595,80 +4596,6 @@ bool Board320_240::netContributeData()
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
   return true;
-}
-
-/**
- * Returns the ABRP car model string for the selected car type.
- *
- * Maps the internal car type enum to the corresponding ABRP car model string.
- * This allows looking up the car capabilities on ABRP.
- *
- * @param carType The internal car type enum.
- * @return The ABRP car model string.
- */
-String Board320_240::getCarModelAbrpStr()
-{
-  switch (liveData->settings.carType)
-  {
-  case CAR_HYUNDAI_KONA_2020_39:
-    return "hyundai:kona:19:39:other";
-  case CAR_HYUNDAI_IONIQ_2018:
-    return "hyundai:ioniq:17:28:other";
-  case CAR_HYUNDAI_IONIQ_PHEV:
-    return "hyundai:phev:17:28:other";
-  case CAR_HYUNDAI_IONIQ5_58:
-    return "hyundai:ioniq5:21:58:mr";
-  case CAR_HYUNDAI_IONIQ5_72:
-    return "hyundai:ioniq5:21:72:lr";
-  case CAR_HYUNDAI_IONIQ5_77:
-    return "hyundai:ioniq5:21:77:lr";
-  case CAR_HYUNDAI_IONIQ6_77:
-    return "hyundai:ioniq6:23:77:lr";
-  case CAR_KIA_ENIRO_2020_64:
-    return "kia:niro:19:64:other";
-  case CAR_KIA_ESOUL_2020_64:
-    return "kia:soul:19:64:other";
-  case CAR_HYUNDAI_KONA_2020_64:
-    return "hyundai:kona:19:64:other";
-  case CAR_KIA_ENIRO_2020_39:
-    return "kia:niro:19:39:other";
-  case CAR_KIA_EV6_58:
-    return "kia:ev6:22:58:mr";
-  case CAR_KIA_EV6_77:
-    return "kia:ev6:22:77:lr";
-  case CAR_AUDI_Q4_35:
-    return "audi:q4:21:52:meb";
-  case CAR_AUDI_Q4_40:
-    return "audi:q4:21:77:meb";
-  case CAR_AUDI_Q4_45:
-    return "audi:q4:21:77:meb";
-  case CAR_AUDI_Q4_50:
-    return "audi:q4:21:77:meb";
-  case CAR_SKODA_ENYAQ_55:
-    return "skoda:enyaq:21:52:meb";
-  case CAR_SKODA_ENYAQ_62:
-    return "skoda:enyaq:21:55:meb";
-  case CAR_SKODA_ENYAQ_82:
-    return "skoda:enyaq:21:77:meb";
-  case CAR_VW_ID3_2021_45:
-    return "volkswagen:id3:20:45:sr";
-  case CAR_VW_ID3_2021_58:
-    return "volkswagen:id3:20:58:mr";
-  case CAR_VW_ID3_2021_77:
-    return "volkswagen:id3:20:77:lr";
-  case CAR_VW_ID4_2021_45:
-    return "volkswagen:id4:20:45:sr"; // not valid in the iterno list of cars
-  case CAR_VW_ID4_2021_58:
-    return "volkswagen:id4:21:52";
-  case CAR_VW_ID4_2021_77:
-    return "volkswagen:id4:21:77";
-  case CAR_RENAULT_ZOE:
-    return "renault:zoe:r240:22:other";
-  case CAR_BMW_I3_2014:
-    return "bmw:i3:14:22:other";
-  default:
-    return "n/a";
-  }
 }
 
 /**
@@ -4746,13 +4673,8 @@ void Board320_240::initGPS()
         0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, // VTG
         // Enable GPS, GLONASS, Galileo, BeiDou
         0xB5, 0x62, 0x06, 0x3E, 0x24, 0x00, 0x00, 0x20, 0x20, 0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0xA4, 0x47,
+        0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0xA4, 0x47,
         // Set NAV5 model to automotive, static hold on 0.5m/s, 3m
-        0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
-        0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
-        0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,
-        // Dynamic Model: Automotive
         0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
         0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
         0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,
