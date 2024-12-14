@@ -37,7 +37,7 @@ String getOffOnText(uint8_t state)
 }
 
 /**
- *  Handle webserver root
+ * Handle webserver root
  **/
 void handleRoot()
 {
@@ -45,7 +45,6 @@ void handleRoot()
   char tmpStr1[20];
 
   // Render html5
-  //<meta http-equiv='refresh' content='5'>
   text = "<html><head><link href='https://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet'><style>body { margin:32px; background:black; color: white; font-family: 'Roboto Condensed', sans-serif; } td { padding: 0px 16px 0px 0px; text-align: left;} th { color: orange; text-align: left; padding: 16px 16px 4px 0px; } td:first-child { text-align: left; } .off { color: gray; } .on { color: lime; } .red { color: red; } .lime { color: lime; } .yellow { color: yellow; } .right {text-align:right; } h2 { margin-top: 12px; font-size: 1.1em; }</style></head>";
   text += "<body><h1>[ evDash " + String(APP_VERSION) + ", settings v" + String(liveDataWebInt->settings.settingsVersion) + " ] </h1>";
 
@@ -209,9 +208,6 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
 
   // Enable webserver
   server.on("/", handleRoot);
-  // server.on("/export", handleExport);
-  /*server.on("/inline", []()
-            { server.send(200, "text/plain", "this works as well"); });*/
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -223,5 +219,4 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
 void WebInterface::mainLoop()
 {
   server.handleClient();
-  // syslog->println("handleClient");
 }
