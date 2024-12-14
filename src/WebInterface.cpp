@@ -51,7 +51,6 @@ void handleRoot()
 
   // 1st column settings
   text += "<div style='float:left; width:50%;'>";
-
   text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Communication</th></tr>";
   text += "<tr><td>Type</td><td>" + String(liveDataWebInt->settings.commType == COMM_TYPE_CAN_COMMU ? "CAN COMMU module" : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BLE4 ? "OBD2 BLE4"
@@ -127,8 +126,6 @@ void handleRoot()
 
   text += "<tr><th colspan='2'>Sleep</th></tr>";
   text += "<tr><td>Mode</td><td>" + String(liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_OFF ? "off" : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY ? "SCREEN ONLY"
-                                                                                                                                                                                 // 202408: removed: : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_DEEP_SLEEP    ? "DEEP SLEEP"
-                                                                                                                                                                                 // 202408: removed: : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SHUTDOWN      ? "SHUTDOWN"
                                                                                                                                                                                  : "UNKNOWN") +
           "</td></tr>";
   text += "<tr><td>sleepModeIntervalSec</td><td>" + String(liveDataWebInt->settings.sleepModeIntervalSec) + "</td></tr>";
@@ -144,12 +141,10 @@ void handleRoot()
   text += "<tr><td>Daylight saving</td><td>" + getOffOnText(liveDataWebInt->settings.daylightSaving) + "</td></tr>";
 
   text += "</table>";
-
   text += "</div>";
 
   // 2nd column - car info
   text += "<div style='float:left; width:50%;'>";
-
   text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Car status</th></tr>";
   text += "<tr><td>Car mode</td><td>" + String(liveDataWebInt->params.carMode) + "</td></tr>";
@@ -162,10 +157,8 @@ void handleRoot()
   text += "<tr><td>Reverse drive mode</td><td>" + getOffOnText(liveDataWebInt->params.reverseDriveMode) + "</td></tr>";
 
   text += "</table>";
-
   text += "</div>";
   text += "<div style='clear:both;'></div>";
-
   text += "</body></html>";
 
   // Send page to client
@@ -177,7 +170,6 @@ void handleRoot()
 */
 void handleNotFound()
 {
-
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();

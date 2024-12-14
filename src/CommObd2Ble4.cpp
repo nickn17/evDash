@@ -45,20 +45,35 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
     syslog->println(advertisedDevice.toString().c_str());
     syslog->println(advertisedDevice.getAddress().toString().c_str());
 
-    // Add to device list (max. 9 devices allowed yet)
+    // Add to the device list (maximum of 9 devices allowed for now)
     String tmpStr;
 
     if (liveDataObj->scanningDeviceIndex < 10)
-    { // && advertisedDevice.haveServiceUUID()
+    { // Check if the device name and manufacturer data are empty, skip adding to the list
       for (uint16_t i = 0; i < liveDataObj->menuItemsCount; ++i)
       {
         if (liveDataObj->menuItems[i].id == 10001 + liveDataObj->scanningDeviceIndex)
         {
-          tmpStr = advertisedDevice.getName().c_str();
-          tmpStr += ", ";
-          tmpStr += advertisedDevice.getManufacturerData().c_str();
+          String deviceName = advertisedDevice.getName().c_str();
+          String manufacturerData = advertisedDevice.getManufacturerData().c_str();
+
+          if (deviceName.isEmpty() && manufacturerData.isEmpty())
+          {
+            syslog->println("Skipping device with empty name and manufacturer data.");
+            continue;
+          }
+
+          // Populate the string with name, manufacturer, and MAC address
+          tmpStr = deviceName;
+          if (!manufacturerData.isEmpty())
+          {
+            tmpStr += ", ";
+            tmpStr += manufacturerData;
+          }
           tmpStr += ", ";
           tmpStr += advertisedDevice.getAddress().toString().c_str();
+
+          // Save to menuItems
           tmpStr.toCharArray(liveDataObj->menuItems[i].title, 48);
           tmpStr = advertisedDevice.getAddress().toString().c_str();
           tmpStr.toCharArray(liveDataObj->menuItems[i].obdMacAddress, 18);
@@ -66,15 +81,6 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
       }
       liveDataObj->scanningDeviceIndex++;
     }
-
-    //        if (advertisedDevice.getServiceDataUUID().toString() != "<NULL>") {
-    //          syslog->print("ServiceDataUUID: ");
-    //          syslog->println(advertisedDevice.getServiceDataUUID().toString().c_str());
-    //        if (advertisedDevice.getServiceUUID().toString() != "<NULL>") {
-    //          syslog->print("ServiceUUID: ");
-    //          syslog->println(advertisedDevice.getServiceUUID().toString().c_str());
-    //        }
-    //        }
 
     if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)) &&
         (strcmp(advertisedDevice.getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0))

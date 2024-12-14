@@ -655,15 +655,6 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
  * This handles drawing the cell background, border, and centered text.
  * It handles large 2x2 cells differently, drawing kWh and amp
  * values instead of generic text.
- *
- * @param x The X grid position of the cell
- * @param y The Y grid position of the cell
- * @param w The width of the cell in grid blocks
- * @param h The height of the cell in grid blocks
- * @param text The text/value to draw in the cell
- * @param desc Small description text
- * @param bgColor The background color of the cell
- * @param fgColor The foreground color of the text
  */
 void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, uint16_t bgColor, uint16_t fgColor)
 {
@@ -747,16 +738,6 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
 
 /**
  * Draws tire pressure and temperature info in a 2x2 grid cell.
- *
- * @param x The x grid position
- * @param y The y grid position
- * @param w The width in grid cells
- * @param h The height in grid cells
- * @param topleft The top left text
- * @param topright The top right text
- * @param bottomleft The bottom left text
- * @param bottomright The bottom right text
- * @param color The background color
  */
 void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char *topleft, const char *topright, const char *bottomleft, const char *bottomright, uint16_t color)
 {
@@ -3383,8 +3364,8 @@ void Board320_240::redrawScreen()
     if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
     {
       // Print message
-      spr.fillRect(0, 185, 160, 50, TFT_BLACK);
-      spr.drawRect(0, 185, 160, 50, TFT_WHITE);
+      spr.fillRect(0, 185, 320, 50, TFT_BLACK);
+      spr.drawRect(0, 185, 320, 50, TFT_WHITE);
       spr.setTextSize(1);
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
@@ -3892,43 +3873,29 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
  */
 void Board320_240::syncTimes(time_t newTime)
 {
-  if (liveData->params.chargingStartTime != 0)
-    liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
+  time_t *timeParams[] = {
+      &liveData->params.chargingStartTime,
+      &liveData->params.lastDataSent,
+      &liveData->params.lastContributeSent,
+      &liveData->params.lastSuccessNetSendTime,
+      &liveData->params.lastButtonPushedTime,
+      &liveData->params.wakeUpTime,
+      &liveData->params.lastIgnitionOnTime,
+      &liveData->params.stopCommandQueueTime,
+      &liveData->params.lastChargingOnTime,
+      &liveData->params.lastVoltageReadTime,
+      &liveData->params.lastVoltageOkTime,
+      &liveData->params.lastCanbusResponseTime};
 
-  if (liveData->params.lastDataSent != 0)
-    liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
+  for (time_t *param : timeParams)
+  {
+    if (*param != 0)
+    {
+      *param = newTime - (liveData->params.currentTime - *param);
+    }
+  }
 
-  if (liveData->params.lastContributeSent != 0)
-    liveData->params.lastContributeSent = newTime - (liveData->params.currentTime - liveData->params.lastContributeSent);
-
-  if (liveData->params.lastSuccessNetSendTime != 0)
-    liveData->params.lastSuccessNetSendTime = newTime - (liveData->params.currentTime - liveData->params.lastSuccessNetSendTime);
-
-  if (liveData->params.lastButtonPushedTime != 0)
-    liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
-
-  if (liveData->params.wakeUpTime != 0)
-    liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
-
-  if (liveData->params.lastIgnitionOnTime != 0)
-    liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
-
-  if (liveData->params.stopCommandQueueTime != 0)
-    liveData->params.stopCommandQueueTime = newTime - (liveData->params.currentTime - liveData->params.stopCommandQueueTime);
-
-  if (liveData->params.lastChargingOnTime != 0)
-    liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
-
-  if (liveData->params.lastVoltageReadTime != 0)
-    liveData->params.lastVoltageReadTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageReadTime);
-
-  if (liveData->params.lastVoltageOkTime != 0)
-    liveData->params.lastVoltageOkTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageOkTime);
-
-  if (liveData->params.lastCanbusResponseTime != 0)
-    liveData->params.lastCanbusResponseTime = newTime - (liveData->params.currentTime - liveData->params.lastCanbusResponseTime);
-
-  // reset avg speed counter
+  // Reset avg speed counter
   lastForwardDriveModeStart = 0;
   lastForwardDriveMode = false;
 }
@@ -3952,55 +3919,58 @@ bool Board320_240::skipAdapterScan()
  */
 bool Board320_240::sdcardMount()
 {
+  // Check if SD card is already initialized
   if (liveData->params.sdcardInit)
   {
-    syslog->println("SD card already mounted...");
+    syslog->println("SD card already mounted. Skipping initialization.");
     return true;
   }
 
-  bool SdState = false;
+  // Attempt SD card initialization
   syslog->print("Initializing SD card...");
-  SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
-  if (SdState)
+  bool sdInitialized = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
+
+  if (!sdInitialized)
   {
-
-    uint8_t cardType = SD.cardType();
-    if (cardType == CARD_NONE)
-    {
-      syslog->println("No SD card attached");
-      return false;
-    }
-
-    syslog->println("SD card found.");
-    liveData->params.sdcardInit = true;
-
-    syslog->print("SD Card Type: ");
-    if (cardType == CARD_MMC)
-    {
-      syslog->println("MMC");
-    }
-    else if (cardType == CARD_SD)
-    {
-      syslog->println("SDSC");
-    }
-    else if (cardType == CARD_SDHC)
-    {
-      syslog->println("SDHC");
-    }
-    else
-    {
-      syslog->println("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    syslog->printf("SD Card Size: %lluMB\n", cardSize);
-
-    return true;
+    syslog->println("Initialization failed!");
+    return false;
   }
 
-  syslog->println("Initialization failed!");
+  // Check SD card type
+  uint8_t cardType = SD.cardType();
+  if (cardType == CARD_NONE)
+  {
+    syslog->println("No SD card detected.");
+    return false;
+  }
 
-  return false;
+  // Log successful initialization
+  syslog->println("SD card successfully initialized.");
+  liveData->params.sdcardInit = true;
+
+  // Log SD card type
+  syslog->print("SD Card Type: ");
+  switch (cardType)
+  {
+  case CARD_MMC:
+    syslog->println("MMC");
+    break;
+  case CARD_SD:
+    syslog->println("SDSC");
+    break;
+  case CARD_SDHC:
+    syslog->println("SDHC");
+    break;
+  default:
+    syslog->println("UNKNOWN");
+    break;
+  }
+
+  // Log SD card size
+  uint64_t cardSizeMB = SD.cardSize() / (1024 * 1024);
+  syslog->printf("SD Card Size: %llu MB\n", cardSizeMB);
+
+  return true;
 }
 
 /**
@@ -4028,33 +3998,40 @@ void Board320_240::sdcardToggleRecording()
 }
 
 /**
- * Syncs GPS data from the GPS module to the live data parameters.
+ * Synchronizes GPS data with the liveData structure.
  *
- * Updates validity flags and values for GPS location, altitude, speed,
- * satellite info. Handles syncing time from GPS if needed.
+ * This function updates GPS-related parameters such as latitude, longitude,
+ * altitude, satellite count, speed, and time synchronization if valid data is received.
  */
 void Board320_240::syncGPS()
 {
+  // Update GPS validity and location data
   liveData->params.gpsValid = gps.location.isValid();
   if (liveData->params.gpsValid)
   {
     liveData->params.gpsLat = gps.location.lat();
     liveData->params.gpsLon = gps.location.lng();
     liveData->params.gpsAlt = gps.altitude.meters();
-    calcAutomaticBrightnessLatLon();
+    calcAutomaticBrightnessLatLon(); // Adjust screen brightness based on location
   }
+
+  // Update GPS speed if valid and enough satellites are available
   if (gps.speed.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.speedKmhGPS = gps.speed.kmph();
   }
   else
   {
-    liveData->params.speedKmhGPS = -1;
+    liveData->params.speedKmhGPS = -1; // Invalid GPS speed
   }
+
+  // Update satellite count if available
   if (gps.satellites.isValid())
   {
     liveData->params.gpsSat = gps.satellites.value();
   }
+
+  // Synchronize time with GPS if it has not been synchronized yet
   if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
   {
     setGpsTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
@@ -4062,35 +4039,33 @@ void Board320_240::syncGPS()
 }
 
 /**
- * Sets up the WiFi connection using the stored SSID and password.
- * Enables STA mode, connects to the network, and records the time of
- * the last successful connection.
+ * Initializes and connects to WiFi using the stored SSID and password.
  *
- * @returns True if the WiFi connection setup succeeded, false otherwise.
+ * Enables STA mode, starts the connection, and updates the last connected time.
+ *
+ * @return True if WiFi initialization and connection succeeded, false otherwise.
  */
 bool Board320_240::wifiSetup()
 {
-  syslog->print("WiFi init: ");
-
-  /*String tmpStr;
-  tmpStr = "s1";
-  tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);*/
-
+  syslog->print("Initializing WiFi with SSID: ");
   syslog->println(liveData->settings.wifiSsid);
+
+  // Enable Station mode and start connection
   WiFi.enableSTA(true);
   WiFi.mode(WIFI_STA);
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+
+  // Update the last connected time
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+
   return true;
 }
 
 /**
- * Switches between the main and backup WiFi networks.
+ * Handles switching between main and backup WiFi networks.
  *
- * Disconnects from the current WiFi network.
- * If a backup network is configured, switches to
- * the other network. Otherwise, attempts to
- * reconnect to the main network.
+ * Disconnects from the current WiFi network. If a backup network is configured, it switches to the backup
+ * network or restores the main network otherwise. Useful for maintaining connectivity during interruptions.
  */
 void Board320_240::wifiFallback()
 {
@@ -4098,7 +4073,7 @@ void Board320_240::wifiFallback()
 
   if (liveData->settings.backupWifiEnabled == 1)
   {
-    if (liveData->params.isWifiBackupLive == false)
+    if (!liveData->params.isWifiBackupLive)
     {
       wifiSwitchToBackup();
     }
@@ -4109,17 +4084,19 @@ void Board320_240::wifiFallback()
   }
   else
   {
-    // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
+    // Attempt reconnection to the main WiFi if no backup is configured
     wifiSwitchToMain();
   }
 }
 
 /**
- * Switch to backup wifi
+ * Switches to the backup WiFi network.
+ *
+ * Updates relevant parameters and attempts to connect using the backup credentials.
  */
 void Board320_240::wifiSwitchToBackup()
 {
-  syslog->print("WiFi switchover to backup: ");
+  syslog->print("Switching to backup WiFi: ");
   syslog->println(liveData->settings.wifiSsid2);
   WiFi.begin(liveData->settings.wifiSsid2, liveData->settings.wifiPassword2);
   liveData->params.isWifiBackupLive = true;
@@ -4128,11 +4105,13 @@ void Board320_240::wifiSwitchToBackup()
 }
 
 /**
- * Restore main wifi connection
+ * Restores the main WiFi connection.
+ *
+ * Reverts to the main WiFi credentials and updates status parameters.
  */
 void Board320_240::wifiSwitchToMain()
 {
-  syslog->print("WiFi switchover to main: ");
+  syslog->print("Switching to main WiFi: ");
   syslog->println(liveData->settings.wifiSsid);
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
   liveData->params.isWifiBackupLive = false;

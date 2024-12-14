@@ -1,6 +1,7 @@
 /* use
 openssl s_client -showcerts -connect raw.githubusercontent.com:443 </dev/null
-to get this certificate */
+to get this certificate
+*/
 
 const char *root_cert =
     "-----BEGIN CERTIFICATE-----\n"
