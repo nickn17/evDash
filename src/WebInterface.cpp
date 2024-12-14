@@ -61,7 +61,6 @@ void handleRoot()
   text += "<tr><td>Obd2 Ble4 Tx uuid</td><td>" + String(liveDataWebInt->settings.charTxUUID) + "</td></tr>";
   text += "<tr><td>Obd2 Ble4 Rx uuid</td><td>" + String(liveDataWebInt->settings.charRxUUID) + "</td></tr>";
   text += "<tr><td>Disable command optimizer (log all cells)</td><td>" + getOffOnText(liveDataWebInt->settings.disableCommandOptimizer) + "</td></tr>";
-  text += "<tr><td>CAN threading (very unstable)</td><td>" + getOffOnText(liveDataWebInt->settings.threading) + "</td></tr>";
 
   text += "<tr><th colspan='2'>Wifi client</th></tr>";
   text += "<tr><td>Enabled</td><td>" + getOffOnText(liveDataWebInt->settings.wifiEnabled) + "</td></tr>";

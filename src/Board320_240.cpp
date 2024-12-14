@@ -219,18 +219,6 @@ void Board320_240::afterSetup()
   printHeapMemory();
   tft.fillScreen(TFT_SILVER);
 
-  // Threading
-  // Comm via thread (ble/can)
-  if (liveData->settings.threading)
-  {
-    syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
-    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 32768, (void *)this, 0, NULL);
-  }
-  else
-  {
-    syslog->println("COMM without threading (ble/can)");
-  }
-
   showTime();
   tft.fillScreen(TFT_GREEN);
 
@@ -1953,36 +1941,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
-  case MENU_ADAPTER_THREADING:
-    suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
-    break;
-  /*case MENU_WIFI:
-    suffix = "n/a";
-    switch (WiFi.status())
-    {
-    WL_CONNECTED:
-      suffix = "CONNECTED";
-      break;
-    WL_NO_SHIELD:
-      suffix = "NO_SHIELD";
-      break;
-    WL_IDLE_STATUS:
-      suffix = "IDLE_STATUS";
-      break;
-    WL_SCAN_COMPLETED:
-      suffix = "SCAN_COMPLETED";
-      break;
-    WL_CONNECT_FAILED:
-      suffix = "CONNECT_FAILED";
-      break;
-    WL_CONNECTION_LOST:
-      suffix = "CONNECTION_LOST";
-      break;
-    WL_DISCONNECTED:
-      suffix = "DISCONNECTED";
-      break;
-    }
-    break;*/
+
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
     break;
@@ -2636,11 +2595,6 @@ void Board320_240::menuItemClick()
       break;
     case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
       liveData->settings.disableCommandOptimizer = (liveData->settings.disableCommandOptimizer == 1) ? 0 : 1;
-      showMenu();
-      return;
-      break;
-    case MENU_ADAPTER_THREADING:
-      liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
       showMenu();
       return;
       break;
@@ -3754,10 +3708,7 @@ void Board320_240::mainLoop()
   }
 
   // Read data from BLE/CAN
-  if (!liveData->settings.threading)
-  {
-    commInterface->mainLoop();
-  }
+  commInterface->mainLoop();
 
   // force redraw (min 1 sec update)
   if (liveData->params.currentTime - lastRedrawTime >= 1 || liveData->redrawScreenRequested)
@@ -3830,7 +3781,7 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
 {
   liveData->params.currTimeSyncWithGps = true;
 
-  struct tm tm;
+  struct tm tm = {0};
   tm.tm_year = year - 1900;
   tm.tm_mon = month - 1;
   tm.tm_mday = day;
@@ -3840,22 +3791,12 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
   time_t t = mktime(&tm);
   printf("%02d%02d%02d%02d%02d%02d\n", year - 2000, month, day, hour, minute, seconds);
   struct timeval now = {.tv_sec = t};
-  /*struct timezone tz;
-  tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
-  tz.tz_dsttime = 0;*/
   settimeofday(&now, NULL);
   syncTimes(t);
 
 #ifdef BOARD_M5STACK_CORE2
-  RTC_TimeTypeDef RTCtime;
-  RTC_DateTypeDef RTCdate;
-
-  RTCdate.Year = year;
-  RTCdate.Month = month;
-  RTCdate.Date = day;
-  RTCtime.Hours = hour;
-  RTCtime.Minutes = minute;
-  RTCtime.Seconds = seconds;
+  RTC_TimeTypeDef RTCtime = {hour, minute, seconds};
+  RTC_DateTypeDef RTCdate = {year, month, day};
 
   M5.Rtc.SetTime(&RTCtime);
   M5.Rtc.SetDate(&RTCdate);
