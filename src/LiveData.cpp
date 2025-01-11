@@ -62,6 +62,11 @@ void LiveData::initParams()
   params.lastVoltageOkTime = 0;
   params.stopCommandQueueTime = 0;
   // Car data
+  // Fill car VIN with 0 values
+  for (int i = 0; i < sizeof(params.carVin); i++)
+  {
+    params.carVin[i] = 0;
+  }
   params.carMode = CAR_MODE_NONE;
   params.sleepModeQueue = false;
   params.getValidResponse = false;

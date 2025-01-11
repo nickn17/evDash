@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+### V4.0.3 2025-01-11
+- CarHyundaiIoniq5 renamed to CarHyundaiEgmp
+- refactoring in src/Board320_240.cpp
+
 ### V4.0.2 2024-11-11
 - New: Automatic detection of service, RX, and TX UUIDs for BLE4 adapters!
 

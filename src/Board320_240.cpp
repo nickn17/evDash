@@ -1320,201 +1320,112 @@ void Board320_240::drawSceneChargingGraph()
 {
   int zeroX = 0;
   int zeroY = 238;
-  int mulX = 3;   // 100% = 300px;
+  int mulX = 3;   // 100% = 300px
   float mulY = 2; // 100kW = 200px
   int maxKw = 75;
-  int posy = 0;
   uint16_t color;
 
-  // Autoscale Y-axis
+  // Determine the maximum kW value to scale the Y-axis properly
   for (int i = 0; i <= 100; i++)
-    if (liveData->params.chargingGraphMaxKw[i] > maxKw)
-      maxKw = liveData->params.chargingGraphMaxKw[i];
-  maxKw = (ceil(maxKw / 10) + 1) * 10;
-  mulY = 160.0 / maxKw;
-
-  spr.fillSprite(TFT_BLACK);
-
-  sprintf(tmpStr1, "%01.00f", liveData->params.socPerc);
-  drawSmallCell(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerKw);
-  drawSmallCell(1, 0, 1, 1, tmpStr1, "POWER kW", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerAmp);
-  drawSmallCell(2, 0, 1, 1, tmpStr1, "CURRENT A", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%03.00f", liveData->params.batVoltage);
-  drawSmallCell(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
-  drawSmallCell(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
-  drawSmallCell(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batMinC), char(127));
-  drawSmallCell(2, 1, 1, 1, tmpStr1, "BAT.MIN", (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.outdoorTemperature), char(127));
-  drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
-
-  spr.setTextColor(TFT_SILVER);
-
-  for (int i = 0; i <= 10; i++)
   {
-    color = TFT_DARKRED2;
-    if (i == 0 || i == 5 || i == 10)
-      color = TFT_DARKRED;
-    spr.drawFastVLine(zeroX + (i * 10 * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
-    /*if (i != 0 && i != 10) {
-      sprintf(tmpStr1, "%d%%", i * 10);
-      spr.setTextDatum(BC_DATUM);
-          sprSetFont(fontFont2);
-      sprDrawString(tmpStr1, zeroX + (i * 10 * mulX),  zeroY - (maxKw * mulY));
-      }*/
-    if (i <= (maxKw / 10))
+    if (liveData->params.chargingGraphMaxKw[i] > maxKw)
     {
-      spr.drawFastHLine(zeroX, zeroY - (i * 10 * mulY), 100 * mulX, color);
-      if (i > 0)
-      {
-        sprintf(tmpStr1, "%d", i * 10);
-        spr.setTextDatum(ML_DATUM);
-        sprSetFont(fontFont2);
-        sprDrawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY));
-      }
+      maxKw = liveData->params.chargingGraphMaxKw[i];
     }
   }
 
-  // Draw realtime values
+  // Round up maxKw to the next multiple of 10
+  maxKw = ((maxKw + 9) / 10) * 10;
+  maxKw = 200;
+  // Recalculate the Y-axis multiplier based on the actual maxKw
+  mulY = 160.0f / maxKw;
+
+  spr.fillSprite(TFT_BLACK);
+
+  // Display basic information cells
+  sprintf(tmpStr1, "%01.00f", liveData->params.socPerc);
+  drawSmallCell(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerKw);
+  drawSmallCell(1, 0, 1, 1, tmpStr1, "POWER kW", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerAmp);
+  drawSmallCell(2, 0, 1, 1, tmpStr1, "CURRENT A", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, "%03.00f", liveData->params.batVoltage);
+  drawSmallCell(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
+
+  // Temperature related cells
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
+  drawSmallCell(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_RED);
+
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.batInletC), char(127));
+  drawSmallCell(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.batMinC), char(127));
+  drawSmallCell(2, 1, 1, 1, tmpStr1, "BAT.MIN", (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
+
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.outdoorTemperature), char(127));
+  drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
+
+  spr.setTextColor(TFT_SILVER);
+  sprSetFont(fontFont2);
+
+  // Draw vertical grid lines every 10% (X-axis)
+  for (int i = 0; i <= 100; i += 10)
+  {
+    color = (i == 0 || i == 50 || i == 100) ? TFT_DARKRED : TFT_DARKRED2;
+    spr.drawFastVLine(zeroX + (i * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
+  }
+
+  // Draw horizontal grid lines every 10kW (Y-axis)
+  spr.setTextDatum(ML_DATUM);
+  for (int i = 0; i <= maxKw; i += (maxKw > 150 ? 20 : 10))
+  {
+    color = ((i % 50) == 0 || i == 0) ? TFT_DARKRED : TFT_DARKRED2;
+    spr.drawFastHLine(zeroX, zeroY - (i * mulY), 100 * mulX, color);
+
+    sprintf(tmpStr1, "%d", i);
+    sprDrawString(tmpStr1, zeroX + (100 * mulX) + (i > 100 ? 0 : 3), zeroY - (i * mulY));
+  }
+
+  // Draw real-time values (temperature and kW lines)
   for (int i = 0; i <= 100; i++)
   {
     if (liveData->params.chargingGraphBatMinTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphBatMinTempC[i] * mulY), mulX, TFT_BLUE);
+
     if (liveData->params.chargingGraphBatMaxTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphBatMaxTempC[i] * mulY), mulX, TFT_BLUE);
+
     if (liveData->params.chargingGraphWaterCoolantTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphWaterCoolantTempC[i] * mulY), mulX, TFT_PURPLE);
+
     if (liveData->params.chargingGraphHeaterTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphHeaterTempC[i] * mulY), mulX, TFT_RED);
 
     if (liveData->params.chargingGraphMinKw[i] > 0)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphMinKw[i] * mulY), mulX, TFT_GREENYELLOW);
+
     if (liveData->params.chargingGraphMaxKw[i] > 0)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphMaxKw[i] * mulY), mulX, TFT_YELLOW);
   }
 
-  // Bat.module temperatures
-  spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextDatum(BL_DATUM);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00f%cC" : "1=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00f%cC" : "2=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 48, zeroY - (maxKw * mulY));
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00f%cC" : "3=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 96, zeroY - (maxKw * mulY));
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00f%cC" : "4=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 144, zeroY - (maxKw * mulY));
-  sprintf(tmpStr1, "ir %01.00fkOhm", liveData->params.isolationResistanceKOhm);
-
-  // Bms max.regen/power available
-  spr.setTextColor(TFT_WHITE);
-  sprintf(tmpStr1, "xC=%01.00fkW ", liveData->params.availableChargePower);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 192, zeroY - (maxKw * mulY));
-  spr.setTextColor(TFT_WHITE);
-  sprintf(tmpStr1, "xD=%01.00fkW", liveData->params.availableDischargePower);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 256, zeroY - (maxKw * mulY));
-
-  //
-  spr.setTextDatum(TR_DATUM);
-  if (liveData->params.coolingWaterTempC != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00f%cC" : "%s /W=%01.00f%cF"),
-            liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
-            liveData->celsius2temperature(liveData->params.coolingWaterTempC),
-            char(127));
-    spr.setTextColor(TFT_PINK);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  spr.setTextColor(TFT_WHITE);
-  if (liveData->params.batFanFeedbackHz > 0)
-  {
-    sprintf(tmpStr1, "FF=%03.00fHz", liveData->params.batFanFeedbackHz);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.batFanStatus > 0)
-  {
-    sprintf(tmpStr1, "FS=%03.00f", liveData->params.batFanStatus);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.coolantTemp1C != -100 && liveData->params.coolantTemp2C != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00f%cC" : "C1/2:%01.00f/%01.00f%cF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempA != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "A=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempA), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempB != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "B=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempB), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempC != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempC), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempD != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "D=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempD), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
-  {
-    sprintf(tmpStr1, ((liveData->params.chargerACconnected) ? "AC=%d" : "DC=%d"), ((liveData->params.chargingOn) ? 1 : 0));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-
-  // Print charging time
+  // Print the charging time
   time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
   if ((diffTime / 60) > 99)
     sprintf(tmpStr1, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
   else
     sprintf(tmpStr1, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
+
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_SILVER);
-  sprSetFont(fontFont2);
   sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
 }
-
 /**
  * Draws the SOC 10% table screen. (screen 5)
  *
@@ -3002,22 +2913,6 @@ void Board320_240::menuItemClick()
         otaUpdate();
       }
       showMenu();
-      /*  commInterface->executeCommand("ATSH770");
-          delay(50);
-          commInterface->executeCommand("3E");
-          delay(50);
-          commInterface->executeCommand("1003");
-          delay(50);
-          commInterface->executeCommand("2FBC1003");
-          delay(5000);
-          commInterface->executeCommand("ATSH770");
-          delay(50);
-          commInterface->executeCommand("3E");
-          delay(50);
-          commInterface->executeCommand("1003");
-          delay(50);
-          commInterface->executeCommand("2FBC1103");
-          delay(5000);*/
       return;
       break;
     // Memory usage
@@ -3325,7 +3220,7 @@ void Board320_240::redrawScreen()
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
       sprSetFont(fontRobotoThin24);
-      sprintf(tmpStr1, "CAN #%d %s%d", commInterface->getConnectAttempts(), (liveData->params.stopCommandQueue ? "QS" : "QR"), liveData->params.queueLoopCounter);
+      sprintf(tmpStr1, "CAN #%d %s%d", commInterface->getConnectAttempts(), (liveData->params.stopCommandQueue ? "QS" : "QR"), liveData->params.queueLoopCounter, " ", liveData->currentAtshRequest);
       sprSetFont(fontFont2);
       sprDrawString(tmpStr1, 10, 190);
       sprDrawString(commInterface->getConnectStatus().c_str(), 10, 210);
@@ -4466,6 +4361,7 @@ bool Board320_240::netContributeData()
 
       liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
       liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
+      liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
       liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
       liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
       liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
