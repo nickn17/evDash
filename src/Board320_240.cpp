@@ -49,6 +49,7 @@ So in summary, it initializes the core display and hardware functionality, retri
 #include "Board320_240.h"
 #include <time.h>
 #include <ArduinoJson.h>
+#include "CarModelUtils.h"
 
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #include <PubSubClient.h>
@@ -217,18 +218,6 @@ void Board320_240::afterSetup()
   BoardInterface::afterSetup();
   printHeapMemory();
   tft.fillScreen(TFT_SILVER);
-
-  // Threading
-  // Comm via thread (ble/can)
-  if (liveData->settings.threading)
-  {
-    syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
-    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 32768, (void *)this, 0, NULL);
-  }
-  else
-  {
-    syslog->println("COMM without threading (ble/can)");
-  }
 
   showTime();
   tft.fillScreen(TFT_GREEN);
@@ -655,15 +644,6 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
  * This handles drawing the cell background, border, and centered text.
  * It handles large 2x2 cells differently, drawing kWh and amp
  * values instead of generic text.
- *
- * @param x The X grid position of the cell
- * @param y The Y grid position of the cell
- * @param w The width of the cell in grid blocks
- * @param h The height of the cell in grid blocks
- * @param text The text/value to draw in the cell
- * @param desc Small description text
- * @param bgColor The background color of the cell
- * @param fgColor The foreground color of the text
  */
 void Board320_240::drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, uint16_t bgColor, uint16_t fgColor)
 {
@@ -747,16 +727,6 @@ void Board320_240::drawSmallCell(int32_t x, int32_t y, int32_t w, int32_t h, con
 
 /**
  * Draws tire pressure and temperature info in a 2x2 grid cell.
- *
- * @param x The x grid position
- * @param y The y grid position
- * @param w The width in grid cells
- * @param h The height in grid cells
- * @param topleft The top left text
- * @param topright The top right text
- * @param bottomleft The bottom left text
- * @param bottomright The bottom right text
- * @param color The background color
  */
 void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const char *topleft, const char *topright, const char *bottomleft, const char *bottomright, uint16_t color)
 {
@@ -1350,201 +1320,112 @@ void Board320_240::drawSceneChargingGraph()
 {
   int zeroX = 0;
   int zeroY = 238;
-  int mulX = 3;   // 100% = 300px;
+  int mulX = 3;   // 100% = 300px
   float mulY = 2; // 100kW = 200px
   int maxKw = 75;
-  int posy = 0;
   uint16_t color;
 
-  // Autoscale Y-axis
+  // Determine the maximum kW value to scale the Y-axis properly
   for (int i = 0; i <= 100; i++)
-    if (liveData->params.chargingGraphMaxKw[i] > maxKw)
-      maxKw = liveData->params.chargingGraphMaxKw[i];
-  maxKw = (ceil(maxKw / 10) + 1) * 10;
-  mulY = 160.0 / maxKw;
-
-  spr.fillSprite(TFT_BLACK);
-
-  sprintf(tmpStr1, "%01.00f", liveData->params.socPerc);
-  drawSmallCell(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerKw);
-  drawSmallCell(1, 0, 1, 1, tmpStr1, "POWER kW", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerAmp);
-  drawSmallCell(2, 0, 1, 1, tmpStr1, "CURRENT A", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, "%03.00f", liveData->params.batVoltage);
-  drawSmallCell(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
-  drawSmallCell(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_RED);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
-  drawSmallCell(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batMinC), char(127));
-  drawSmallCell(2, 1, 1, 1, tmpStr1, "BAT.MIN", (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.outdoorTemperature), char(127));
-  drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
-
-  spr.setTextColor(TFT_SILVER);
-
-  for (int i = 0; i <= 10; i++)
   {
-    color = TFT_DARKRED2;
-    if (i == 0 || i == 5 || i == 10)
-      color = TFT_DARKRED;
-    spr.drawFastVLine(zeroX + (i * 10 * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
-    /*if (i != 0 && i != 10) {
-      sprintf(tmpStr1, "%d%%", i * 10);
-      spr.setTextDatum(BC_DATUM);
-          sprSetFont(fontFont2);
-      sprDrawString(tmpStr1, zeroX + (i * 10 * mulX),  zeroY - (maxKw * mulY));
-      }*/
-    if (i <= (maxKw / 10))
+    if (liveData->params.chargingGraphMaxKw[i] > maxKw)
     {
-      spr.drawFastHLine(zeroX, zeroY - (i * 10 * mulY), 100 * mulX, color);
-      if (i > 0)
-      {
-        sprintf(tmpStr1, "%d", i * 10);
-        spr.setTextDatum(ML_DATUM);
-        sprSetFont(fontFont2);
-        sprDrawString(tmpStr1, zeroX + (100 * mulX) + 3, zeroY - (i * 10 * mulY));
-      }
+      maxKw = liveData->params.chargingGraphMaxKw[i];
     }
   }
 
-  // Draw realtime values
+  // Round up maxKw to the next multiple of 10
+  maxKw = ((maxKw + 9) / 10) * 10;
+  maxKw = 200;
+  // Recalculate the Y-axis multiplier based on the actual maxKw
+  mulY = 160.0f / maxKw;
+
+  spr.fillSprite(TFT_BLACK);
+
+  // Display basic information cells
+  sprintf(tmpStr1, "%01.00f", liveData->params.socPerc);
+  drawSmallCell(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerKw);
+  drawSmallCell(1, 0, 1, 1, tmpStr1, "POWER kW", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerAmp);
+  drawSmallCell(2, 0, 1, 1, tmpStr1, "CURRENT A", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, "%03.00f", liveData->params.batVoltage);
+  drawSmallCell(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
+
+  // Temperature related cells
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
+  drawSmallCell(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_RED);
+
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.batInletC), char(127));
+  drawSmallCell(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
+
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.batMinC), char(127));
+  drawSmallCell(2, 1, 1, 1, tmpStr1, "BAT.MIN", (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
+
+  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
+          liveData->celsius2temperature(liveData->params.outdoorTemperature), char(127));
+  drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
+
+  spr.setTextColor(TFT_SILVER);
+  sprSetFont(fontFont2);
+
+  // Draw vertical grid lines every 10% (X-axis)
+  for (int i = 0; i <= 100; i += 10)
+  {
+    color = (i == 0 || i == 50 || i == 100) ? TFT_DARKRED : TFT_DARKRED2;
+    spr.drawFastVLine(zeroX + (i * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
+  }
+
+  // Draw horizontal grid lines every 10kW (Y-axis)
+  spr.setTextDatum(ML_DATUM);
+  for (int i = 0; i <= maxKw; i += (maxKw > 150 ? 20 : 10))
+  {
+    color = ((i % 50) == 0 || i == 0) ? TFT_DARKRED : TFT_DARKRED2;
+    spr.drawFastHLine(zeroX, zeroY - (i * mulY), 100 * mulX, color);
+
+    sprintf(tmpStr1, "%d", i);
+    sprDrawString(tmpStr1, zeroX + (100 * mulX) + (i > 100 ? 0 : 3), zeroY - (i * mulY));
+  }
+
+  // Draw real-time values (temperature and kW lines)
   for (int i = 0; i <= 100; i++)
   {
     if (liveData->params.chargingGraphBatMinTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphBatMinTempC[i] * mulY), mulX, TFT_BLUE);
+
     if (liveData->params.chargingGraphBatMaxTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphBatMaxTempC[i] * mulY), mulX, TFT_BLUE);
+
     if (liveData->params.chargingGraphWaterCoolantTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphWaterCoolantTempC[i] * mulY), mulX, TFT_PURPLE);
+
     if (liveData->params.chargingGraphHeaterTempC[i] > -10)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphHeaterTempC[i] * mulY), mulX, TFT_RED);
 
     if (liveData->params.chargingGraphMinKw[i] > 0)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphMinKw[i] * mulY), mulX, TFT_GREENYELLOW);
+
     if (liveData->params.chargingGraphMaxKw[i] > 0)
       spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphMaxKw[i] * mulY), mulX, TFT_YELLOW);
   }
 
-  // Bat.module temperatures
-  spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextDatum(BL_DATUM);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "1=%01.00f%cC" : "1=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "2=%01.00f%cC" : "2=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 48, zeroY - (maxKw * mulY));
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "3=%01.00f%cC" : "3=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 96, zeroY - (maxKw * mulY));
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "4=%01.00f%cC" : "4=%01.00f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
-  spr.setTextColor((liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 144, zeroY - (maxKw * mulY));
-  sprintf(tmpStr1, "ir %01.00fkOhm", liveData->params.isolationResistanceKOhm);
-
-  // Bms max.regen/power available
-  spr.setTextColor(TFT_WHITE);
-  sprintf(tmpStr1, "xC=%01.00fkW ", liveData->params.availableChargePower);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 192, zeroY - (maxKw * mulY));
-  spr.setTextColor(TFT_WHITE);
-  sprintf(tmpStr1, "xD=%01.00fkW", liveData->params.availableDischargePower);
-  sprSetFont(fontFont2);
-  sprDrawString(tmpStr1, 256, zeroY - (maxKw * mulY));
-
-  //
-  spr.setTextDatum(TR_DATUM);
-  if (liveData->params.coolingWaterTempC != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%s / W=%01.00f%cC" : "%s /W=%01.00f%cF"),
-            liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
-            liveData->celsius2temperature(liveData->params.coolingWaterTempC),
-            char(127));
-    spr.setTextColor(TFT_PINK);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  spr.setTextColor(TFT_WHITE);
-  if (liveData->params.batFanFeedbackHz > 0)
-  {
-    sprintf(tmpStr1, "FF=%03.00fHz", liveData->params.batFanFeedbackHz);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.batFanStatus > 0)
-  {
-    sprintf(tmpStr1, "FS=%03.00f", liveData->params.batFanStatus);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.coolantTemp1C != -100 && liveData->params.coolantTemp2C != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C1/2:%01.00f/%01.00f%cC" : "C1/2:%01.00f/%01.00f%cF"), liveData->celsius2temperature(liveData->params.coolantTemp1C), liveData->celsius2temperature(liveData->params.coolantTemp2C), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempA != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "A=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempA), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempB != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "B=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempB), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempC != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "C=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempC), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.bmsUnknownTempD != -100)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "D=%01.00f%cC" : "W=%01.00f%cF"), liveData->celsius2temperature(liveData->params.bmsUnknownTempD), char(127));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-  if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
-  {
-    sprintf(tmpStr1, ((liveData->params.chargerACconnected) ? "AC=%d" : "DC=%d"), ((liveData->params.chargingOn) ? 1 : 0));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, zeroX + (10 * 10 * mulX), zeroY - (maxKw * mulY) + (posy * 15));
-    posy++;
-  }
-
-  // Print charging time
+  // Print the charging time
   time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
   if ((diffTime / 60) > 99)
     sprintf(tmpStr1, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
   else
     sprintf(tmpStr1, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
+
   spr.setTextDatum(TL_DATUM);
   spr.setTextColor(TFT_SILVER);
-  sprSetFont(fontFont2);
   sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
 }
-
 /**
  * Draws the SOC 10% table screen. (screen 5)
  *
@@ -1844,7 +1725,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   {
   // Set vehicle type
   case MENU_VEHICLE_TYPE:
-    suffix = getCarModelAbrpStr();
+    suffix = getCarModelAbrpStr(liveData->settings.carType);
     suffix = String("[" + suffix.substring(0, suffix.indexOf(":", 12)) + "]");
     break;
   case MENU_SAVE_SETTINGS:
@@ -1971,36 +1852,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
-  case MENU_ADAPTER_THREADING:
-    suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
-    break;
-  /*case MENU_WIFI:
-    suffix = "n/a";
-    switch (WiFi.status())
-    {
-    WL_CONNECTED:
-      suffix = "CONNECTED";
-      break;
-    WL_NO_SHIELD:
-      suffix = "NO_SHIELD";
-      break;
-    WL_IDLE_STATUS:
-      suffix = "IDLE_STATUS";
-      break;
-    WL_SCAN_COMPLETED:
-      suffix = "SCAN_COMPLETED";
-      break;
-    WL_CONNECT_FAILED:
-      suffix = "CONNECT_FAILED";
-      break;
-    WL_CONNECTION_LOST:
-      suffix = "CONNECTION_LOST";
-      break;
-    WL_DISCONNECTED:
-      suffix = "DISCONNECTED";
-      break;
-    }
-    break;*/
+
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
     break;
@@ -2657,11 +2509,6 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_ADAPTER_THREADING:
-      liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
-      showMenu();
-      return;
-      break;
     case MENU_ADAPTER_LOAD_TEST_DATA:
       loadTestData();
       break;
@@ -3066,22 +2913,6 @@ void Board320_240::menuItemClick()
         otaUpdate();
       }
       showMenu();
-      /*  commInterface->executeCommand("ATSH770");
-          delay(50);
-          commInterface->executeCommand("3E");
-          delay(50);
-          commInterface->executeCommand("1003");
-          delay(50);
-          commInterface->executeCommand("2FBC1003");
-          delay(5000);
-          commInterface->executeCommand("ATSH770");
-          delay(50);
-          commInterface->executeCommand("3E");
-          delay(50);
-          commInterface->executeCommand("1003");
-          delay(50);
-          commInterface->executeCommand("2FBC1103");
-          delay(5000);*/
       return;
       break;
     // Memory usage
@@ -3383,13 +3214,13 @@ void Board320_240::redrawScreen()
     if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
     {
       // Print message
-      spr.fillRect(0, 185, 160, 50, TFT_BLACK);
-      spr.drawRect(0, 185, 160, 50, TFT_WHITE);
+      spr.fillRect(0, 185, 320, 50, TFT_BLACK);
+      spr.drawRect(0, 185, 320, 50, TFT_WHITE);
       spr.setTextSize(1);
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
       sprSetFont(fontRobotoThin24);
-      sprintf(tmpStr1, "CAN #%d %s%d", commInterface->getConnectAttempts(), (liveData->params.stopCommandQueue ? "QS" : "QR"), liveData->params.queueLoopCounter);
+      sprintf(tmpStr1, "CAN #%d %s%d", commInterface->getConnectAttempts(), (liveData->params.stopCommandQueue ? "QS" : "QR"), liveData->params.queueLoopCounter, " ", liveData->currentAtshRequest);
       sprSetFont(fontFont2);
       sprDrawString(tmpStr1, 10, 190);
       sprDrawString(commInterface->getConnectStatus().c_str(), 10, 210);
@@ -3772,10 +3603,7 @@ void Board320_240::mainLoop()
   }
 
   // Read data from BLE/CAN
-  if (!liveData->settings.threading)
-  {
-    commInterface->mainLoop();
-  }
+  commInterface->mainLoop();
 
   // force redraw (min 1 sec update)
   if (liveData->params.currentTime - lastRedrawTime >= 1 || liveData->redrawScreenRequested)
@@ -3848,7 +3676,7 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
 {
   liveData->params.currTimeSyncWithGps = true;
 
-  struct tm tm;
+  struct tm tm = {0};
   tm.tm_year = year - 1900;
   tm.tm_mon = month - 1;
   tm.tm_mday = day;
@@ -3858,22 +3686,12 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
   time_t t = mktime(&tm);
   printf("%02d%02d%02d%02d%02d%02d\n", year - 2000, month, day, hour, minute, seconds);
   struct timeval now = {.tv_sec = t};
-  /*struct timezone tz;
-  tz.tz_minuteswest = (liveData->settings.timezone + liveData->settings.daylightSaving) * 60;
-  tz.tz_dsttime = 0;*/
   settimeofday(&now, NULL);
   syncTimes(t);
 
 #ifdef BOARD_M5STACK_CORE2
-  RTC_TimeTypeDef RTCtime;
-  RTC_DateTypeDef RTCdate;
-
-  RTCdate.Year = year;
-  RTCdate.Month = month;
-  RTCdate.Date = day;
-  RTCtime.Hours = hour;
-  RTCtime.Minutes = minute;
-  RTCtime.Seconds = seconds;
+  RTC_TimeTypeDef RTCtime = {hour, minute, seconds};
+  RTC_DateTypeDef RTCdate = {year, month, day};
 
   M5.Rtc.SetTime(&RTCtime);
   M5.Rtc.SetDate(&RTCdate);
@@ -3892,43 +3710,29 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
  */
 void Board320_240::syncTimes(time_t newTime)
 {
-  if (liveData->params.chargingStartTime != 0)
-    liveData->params.chargingStartTime = newTime - (liveData->params.currentTime - liveData->params.chargingStartTime);
+  time_t *timeParams[] = {
+      &liveData->params.chargingStartTime,
+      &liveData->params.lastDataSent,
+      &liveData->params.lastContributeSent,
+      &liveData->params.lastSuccessNetSendTime,
+      &liveData->params.lastButtonPushedTime,
+      &liveData->params.wakeUpTime,
+      &liveData->params.lastIgnitionOnTime,
+      &liveData->params.stopCommandQueueTime,
+      &liveData->params.lastChargingOnTime,
+      &liveData->params.lastVoltageReadTime,
+      &liveData->params.lastVoltageOkTime,
+      &liveData->params.lastCanbusResponseTime};
 
-  if (liveData->params.lastDataSent != 0)
-    liveData->params.lastDataSent = newTime - (liveData->params.currentTime - liveData->params.lastDataSent);
+  for (time_t *param : timeParams)
+  {
+    if (*param != 0)
+    {
+      *param = newTime - (liveData->params.currentTime - *param);
+    }
+  }
 
-  if (liveData->params.lastContributeSent != 0)
-    liveData->params.lastContributeSent = newTime - (liveData->params.currentTime - liveData->params.lastContributeSent);
-
-  if (liveData->params.lastSuccessNetSendTime != 0)
-    liveData->params.lastSuccessNetSendTime = newTime - (liveData->params.currentTime - liveData->params.lastSuccessNetSendTime);
-
-  if (liveData->params.lastButtonPushedTime != 0)
-    liveData->params.lastButtonPushedTime = newTime - (liveData->params.currentTime - liveData->params.lastButtonPushedTime);
-
-  if (liveData->params.wakeUpTime != 0)
-    liveData->params.wakeUpTime = newTime - (liveData->params.currentTime - liveData->params.wakeUpTime);
-
-  if (liveData->params.lastIgnitionOnTime != 0)
-    liveData->params.lastIgnitionOnTime = newTime - (liveData->params.currentTime - liveData->params.lastIgnitionOnTime);
-
-  if (liveData->params.stopCommandQueueTime != 0)
-    liveData->params.stopCommandQueueTime = newTime - (liveData->params.currentTime - liveData->params.stopCommandQueueTime);
-
-  if (liveData->params.lastChargingOnTime != 0)
-    liveData->params.lastChargingOnTime = newTime - (liveData->params.currentTime - liveData->params.lastChargingOnTime);
-
-  if (liveData->params.lastVoltageReadTime != 0)
-    liveData->params.lastVoltageReadTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageReadTime);
-
-  if (liveData->params.lastVoltageOkTime != 0)
-    liveData->params.lastVoltageOkTime = newTime - (liveData->params.currentTime - liveData->params.lastVoltageOkTime);
-
-  if (liveData->params.lastCanbusResponseTime != 0)
-    liveData->params.lastCanbusResponseTime = newTime - (liveData->params.currentTime - liveData->params.lastCanbusResponseTime);
-
-  // reset avg speed counter
+  // Reset avg speed counter
   lastForwardDriveModeStart = 0;
   lastForwardDriveMode = false;
 }
@@ -3952,55 +3756,58 @@ bool Board320_240::skipAdapterScan()
  */
 bool Board320_240::sdcardMount()
 {
+  // Check if SD card is already initialized
   if (liveData->params.sdcardInit)
   {
-    syslog->println("SD card already mounted...");
+    syslog->println("SD card already mounted. Skipping initialization.");
     return true;
   }
 
-  bool SdState = false;
+  // Attempt SD card initialization
   syslog->print("Initializing SD card...");
-  SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
-  if (SdState)
+  bool sdInitialized = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
+
+  if (!sdInitialized)
   {
-
-    uint8_t cardType = SD.cardType();
-    if (cardType == CARD_NONE)
-    {
-      syslog->println("No SD card attached");
-      return false;
-    }
-
-    syslog->println("SD card found.");
-    liveData->params.sdcardInit = true;
-
-    syslog->print("SD Card Type: ");
-    if (cardType == CARD_MMC)
-    {
-      syslog->println("MMC");
-    }
-    else if (cardType == CARD_SD)
-    {
-      syslog->println("SDSC");
-    }
-    else if (cardType == CARD_SDHC)
-    {
-      syslog->println("SDHC");
-    }
-    else
-    {
-      syslog->println("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    syslog->printf("SD Card Size: %lluMB\n", cardSize);
-
-    return true;
+    syslog->println("Initialization failed!");
+    return false;
   }
 
-  syslog->println("Initialization failed!");
+  // Check SD card type
+  uint8_t cardType = SD.cardType();
+  if (cardType == CARD_NONE)
+  {
+    syslog->println("No SD card detected.");
+    return false;
+  }
 
-  return false;
+  // Log successful initialization
+  syslog->println("SD card successfully initialized.");
+  liveData->params.sdcardInit = true;
+
+  // Log SD card type
+  syslog->print("SD Card Type: ");
+  switch (cardType)
+  {
+  case CARD_MMC:
+    syslog->println("MMC");
+    break;
+  case CARD_SD:
+    syslog->println("SDSC");
+    break;
+  case CARD_SDHC:
+    syslog->println("SDHC");
+    break;
+  default:
+    syslog->println("UNKNOWN");
+    break;
+  }
+
+  // Log SD card size
+  uint64_t cardSizeMB = SD.cardSize() / (1024 * 1024);
+  syslog->printf("SD Card Size: %llu MB\n", cardSizeMB);
+
+  return true;
 }
 
 /**
@@ -4028,33 +3835,40 @@ void Board320_240::sdcardToggleRecording()
 }
 
 /**
- * Syncs GPS data from the GPS module to the live data parameters.
+ * Synchronizes GPS data with the liveData structure.
  *
- * Updates validity flags and values for GPS location, altitude, speed,
- * satellite info. Handles syncing time from GPS if needed.
+ * This function updates GPS-related parameters such as latitude, longitude,
+ * altitude, satellite count, speed, and time synchronization if valid data is received.
  */
 void Board320_240::syncGPS()
 {
+  // Update GPS validity and location data
   liveData->params.gpsValid = gps.location.isValid();
   if (liveData->params.gpsValid)
   {
     liveData->params.gpsLat = gps.location.lat();
     liveData->params.gpsLon = gps.location.lng();
     liveData->params.gpsAlt = gps.altitude.meters();
-    calcAutomaticBrightnessLatLon();
+    calcAutomaticBrightnessLatLon(); // Adjust screen brightness based on location
   }
+
+  // Update GPS speed if valid and enough satellites are available
   if (gps.speed.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.speedKmhGPS = gps.speed.kmph();
   }
   else
   {
-    liveData->params.speedKmhGPS = -1;
+    liveData->params.speedKmhGPS = -1; // Invalid GPS speed
   }
+
+  // Update satellite count if available
   if (gps.satellites.isValid())
   {
     liveData->params.gpsSat = gps.satellites.value();
   }
+
+  // Synchronize time with GPS if it has not been synchronized yet
   if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
   {
     setGpsTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
@@ -4062,35 +3876,33 @@ void Board320_240::syncGPS()
 }
 
 /**
- * Sets up the WiFi connection using the stored SSID and password.
- * Enables STA mode, connects to the network, and records the time of
- * the last successful connection.
+ * Initializes and connects to WiFi using the stored SSID and password.
  *
- * @returns True if the WiFi connection setup succeeded, false otherwise.
+ * Enables STA mode, starts the connection, and updates the last connected time.
+ *
+ * @return True if WiFi initialization and connection succeeded, false otherwise.
  */
 bool Board320_240::wifiSetup()
 {
-  syslog->print("WiFi init: ");
-
-  /*String tmpStr;
-  tmpStr = "s1";
-  tmpStr.toCharArray(liveData->settings.wifiSsid, tmpStr.length() + 1);*/
-
+  syslog->print("Initializing WiFi with SSID: ");
   syslog->println(liveData->settings.wifiSsid);
+
+  // Enable Station mode and start connection
   WiFi.enableSTA(true);
   WiFi.mode(WIFI_STA);
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
+
+  // Update the last connected time
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+
   return true;
 }
 
 /**
- * Switches between the main and backup WiFi networks.
+ * Handles switching between main and backup WiFi networks.
  *
- * Disconnects from the current WiFi network.
- * If a backup network is configured, switches to
- * the other network. Otherwise, attempts to
- * reconnect to the main network.
+ * Disconnects from the current WiFi network. If a backup network is configured, it switches to the backup
+ * network or restores the main network otherwise. Useful for maintaining connectivity during interruptions.
  */
 void Board320_240::wifiFallback()
 {
@@ -4098,7 +3910,7 @@ void Board320_240::wifiFallback()
 
   if (liveData->settings.backupWifiEnabled == 1)
   {
-    if (liveData->params.isWifiBackupLive == false)
+    if (!liveData->params.isWifiBackupLive)
     {
       wifiSwitchToBackup();
     }
@@ -4109,17 +3921,19 @@ void Board320_240::wifiFallback()
   }
   else
   {
-    // if there is no backup wifi config we try to connect to the main wifi anyway. Maybe there was an interruption.
+    // Attempt reconnection to the main WiFi if no backup is configured
     wifiSwitchToMain();
   }
 }
 
 /**
- * Switch to backup wifi
+ * Switches to the backup WiFi network.
+ *
+ * Updates relevant parameters and attempts to connect using the backup credentials.
  */
 void Board320_240::wifiSwitchToBackup()
 {
-  syslog->print("WiFi switchover to backup: ");
+  syslog->print("Switching to backup WiFi: ");
   syslog->println(liveData->settings.wifiSsid2);
   WiFi.begin(liveData->settings.wifiSsid2, liveData->settings.wifiPassword2);
   liveData->params.isWifiBackupLive = true;
@@ -4128,11 +3942,13 @@ void Board320_240::wifiSwitchToBackup()
 }
 
 /**
- * Restore main wifi connection
+ * Restores the main WiFi connection.
+ *
+ * Reverts to the main WiFi credentials and updates status parameters.
  */
 void Board320_240::wifiSwitchToMain()
 {
-  syslog->print("WiFi switchover to main: ");
+  syslog->print("Switching to main WiFi: ");
   syslog->println(liveData->settings.wifiSsid);
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
   liveData->params.isWifiBackupLive = false;
@@ -4361,7 +4177,7 @@ bool Board320_240::netSendData()
   {
     StaticJsonDocument<768> jsonData;
 
-    jsonData["car_model"] = getCarModelAbrpStr();
+    jsonData["car_model"] = getCarModelAbrpStr(liveData->settings.carType);
     if (strcmp(jsonData["car_model"], "n/a") == 0)
     {
       syslog->println("Car not supported by ABRP Uploader");
@@ -4544,7 +4360,8 @@ bool Board320_240::netContributeData()
     {
 
       liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
-      liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr() + "\", ";
+      liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
+      liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
       liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
       liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
       liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
@@ -4616,80 +4433,6 @@ bool Board320_240::netContributeData()
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
   return true;
-}
-
-/**
- * Returns the ABRP car model string for the selected car type.
- *
- * Maps the internal car type enum to the corresponding ABRP car model string.
- * This allows looking up the car capabilities on ABRP.
- *
- * @param carType The internal car type enum.
- * @return The ABRP car model string.
- */
-String Board320_240::getCarModelAbrpStr()
-{
-  switch (liveData->settings.carType)
-  {
-  case CAR_HYUNDAI_KONA_2020_39:
-    return "hyundai:kona:19:39:other";
-  case CAR_HYUNDAI_IONIQ_2018:
-    return "hyundai:ioniq:17:28:other";
-  case CAR_HYUNDAI_IONIQ_PHEV:
-    return "hyundai:phev:17:28:other";
-  case CAR_HYUNDAI_IONIQ5_58:
-    return "hyundai:ioniq5:21:58:mr";
-  case CAR_HYUNDAI_IONIQ5_72:
-    return "hyundai:ioniq5:21:72:lr";
-  case CAR_HYUNDAI_IONIQ5_77:
-    return "hyundai:ioniq5:21:77:lr";
-  case CAR_HYUNDAI_IONIQ6_77:
-    return "hyundai:ioniq6:23:77:lr";
-  case CAR_KIA_ENIRO_2020_64:
-    return "kia:niro:19:64:other";
-  case CAR_KIA_ESOUL_2020_64:
-    return "kia:soul:19:64:other";
-  case CAR_HYUNDAI_KONA_2020_64:
-    return "hyundai:kona:19:64:other";
-  case CAR_KIA_ENIRO_2020_39:
-    return "kia:niro:19:39:other";
-  case CAR_KIA_EV6_58:
-    return "kia:ev6:22:58:mr";
-  case CAR_KIA_EV6_77:
-    return "kia:ev6:22:77:lr";
-  case CAR_AUDI_Q4_35:
-    return "audi:q4:21:52:meb";
-  case CAR_AUDI_Q4_40:
-    return "audi:q4:21:77:meb";
-  case CAR_AUDI_Q4_45:
-    return "audi:q4:21:77:meb";
-  case CAR_AUDI_Q4_50:
-    return "audi:q4:21:77:meb";
-  case CAR_SKODA_ENYAQ_55:
-    return "skoda:enyaq:21:52:meb";
-  case CAR_SKODA_ENYAQ_62:
-    return "skoda:enyaq:21:55:meb";
-  case CAR_SKODA_ENYAQ_82:
-    return "skoda:enyaq:21:77:meb";
-  case CAR_VW_ID3_2021_45:
-    return "volkswagen:id3:20:45:sr";
-  case CAR_VW_ID3_2021_58:
-    return "volkswagen:id3:20:58:mr";
-  case CAR_VW_ID3_2021_77:
-    return "volkswagen:id3:20:77:lr";
-  case CAR_VW_ID4_2021_45:
-    return "volkswagen:id4:20:45:sr"; // not valid in the iterno list of cars
-  case CAR_VW_ID4_2021_58:
-    return "volkswagen:id4:21:52";
-  case CAR_VW_ID4_2021_77:
-    return "volkswagen:id4:21:77";
-  case CAR_RENAULT_ZOE:
-    return "renault:zoe:r240:22:other";
-  case CAR_BMW_I3_2014:
-    return "bmw:i3:14:22:other";
-  default:
-    return "n/a";
-  }
 }
 
 /**
@@ -4767,13 +4510,8 @@ void Board320_240::initGPS()
         0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, // VTG
         // Enable GPS, GLONASS, Galileo, BeiDou
         0xB5, 0x62, 0x06, 0x3E, 0x24, 0x00, 0x00, 0x20, 0x20, 0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0xA4, 0x47,
+        0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0xA4, 0x47,
         // Set NAV5 model to automotive, static hold on 0.5m/s, 3m
-        0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
-        0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
-        0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,
-        // Dynamic Model: Automotive
         0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
         0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
         0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,

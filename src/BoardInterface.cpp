@@ -184,7 +184,6 @@ void BoardInterface::loadSettings()
   tmpStr.toCharArray(liveData->settings.wifiPassword2, tmpStr.length() + 1);
   liveData->settings.backupWifiEnabled = 0;
   // v13
-  liveData->settings.threading = 0;
   liveData->settings.speedCorrection = 0;
   // v14
   liveData->settings.disableCommandOptimizer = 0;
@@ -340,7 +339,6 @@ void BoardInterface::loadSettings()
       if (liveData->tmpSettings.settingsVersion == 12)
       {
         liveData->tmpSettings.settingsVersion = 13;
-        liveData->tmpSettings.threading = 0;
         liveData->tmpSettings.speedCorrection = 0;
       }
       if (liveData->tmpSettings.settingsVersion == 13)

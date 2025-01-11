@@ -139,6 +139,7 @@ typedef struct
   time_t lastVoltageOkTime;
   time_t stopCommandQueueTime;
   // Car params
+  char carVin[18];
   uint8_t carMode;
   time_t carModeChanged;
   bool sleepModeQueue;
@@ -346,8 +347,8 @@ typedef struct
   char wifiPassword2[32];    // backup wifi Pass
   uint8_t backupWifiEnabled; // enable Backup WIFI fallback 0/1
   // == settings version 13
-  uint8_t threading;      // 0 - off, 1 - on
-  int8_t speedCorrection; // -5 to +5
+  uint8_t REMOVEDthreading; // REMOVED 241214: 0 - off, 1 - on
+  int8_t speedCorrection;   // -5 to +5
   // == settings version 14
   uint8_t disableCommandOptimizer; // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
   // == settings version 15

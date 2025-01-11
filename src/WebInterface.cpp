@@ -37,7 +37,7 @@ String getOffOnText(uint8_t state)
 }
 
 /**
- *  Handle webserver root
+ * Handle webserver root
  **/
 void handleRoot()
 {
@@ -45,13 +45,11 @@ void handleRoot()
   char tmpStr1[20];
 
   // Render html5
-  //<meta http-equiv='refresh' content='5'>
   text = "<html><head><link href='https://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet'><style>body { margin:32px; background:black; color: white; font-family: 'Roboto Condensed', sans-serif; } td { padding: 0px 16px 0px 0px; text-align: left;} th { color: orange; text-align: left; padding: 16px 16px 4px 0px; } td:first-child { text-align: left; } .off { color: gray; } .on { color: lime; } .red { color: red; } .lime { color: lime; } .yellow { color: yellow; } .right {text-align:right; } h2 { margin-top: 12px; font-size: 1.1em; }</style></head>";
   text += "<body><h1>[ evDash " + String(APP_VERSION) + ", settings v" + String(liveDataWebInt->settings.settingsVersion) + " ] </h1>";
 
   // 1st column settings
   text += "<div style='float:left; width:50%;'>";
-
   text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Communication</th></tr>";
   text += "<tr><td>Type</td><td>" + String(liveDataWebInt->settings.commType == COMM_TYPE_CAN_COMMU ? "CAN COMMU module" : liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BLE4 ? "OBD2 BLE4"
@@ -63,7 +61,6 @@ void handleRoot()
   text += "<tr><td>Obd2 Ble4 Tx uuid</td><td>" + String(liveDataWebInt->settings.charTxUUID) + "</td></tr>";
   text += "<tr><td>Obd2 Ble4 Rx uuid</td><td>" + String(liveDataWebInt->settings.charRxUUID) + "</td></tr>";
   text += "<tr><td>Disable command optimizer (log all cells)</td><td>" + getOffOnText(liveDataWebInt->settings.disableCommandOptimizer) + "</td></tr>";
-  text += "<tr><td>CAN threading (very unstable)</td><td>" + getOffOnText(liveDataWebInt->settings.threading) + "</td></tr>";
 
   text += "<tr><th colspan='2'>Wifi client</th></tr>";
   text += "<tr><td>Enabled</td><td>" + getOffOnText(liveDataWebInt->settings.wifiEnabled) + "</td></tr>";
@@ -127,8 +124,6 @@ void handleRoot()
 
   text += "<tr><th colspan='2'>Sleep</th></tr>";
   text += "<tr><td>Mode</td><td>" + String(liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_OFF ? "off" : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SCREEN_ONLY ? "SCREEN ONLY"
-                                                                                                                                                                                 // 202408: removed: : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_DEEP_SLEEP    ? "DEEP SLEEP"
-                                                                                                                                                                                 // 202408: removed: : liveDataWebInt->settings.sleepModeLevel == SLEEP_MODE_SHUTDOWN      ? "SHUTDOWN"
                                                                                                                                                                                  : "UNKNOWN") +
           "</td></tr>";
   text += "<tr><td>sleepModeIntervalSec</td><td>" + String(liveDataWebInt->settings.sleepModeIntervalSec) + "</td></tr>";
@@ -144,12 +139,10 @@ void handleRoot()
   text += "<tr><td>Daylight saving</td><td>" + getOffOnText(liveDataWebInt->settings.daylightSaving) + "</td></tr>";
 
   text += "</table>";
-
   text += "</div>";
 
   // 2nd column - car info
   text += "<div style='float:left; width:50%;'>";
-
   text += "<table style='min-width: 25%;'>";
   text += "<tr><th colspan='2'>Car status</th></tr>";
   text += "<tr><td>Car mode</td><td>" + String(liveDataWebInt->params.carMode) + "</td></tr>";
@@ -162,10 +155,8 @@ void handleRoot()
   text += "<tr><td>Reverse drive mode</td><td>" + getOffOnText(liveDataWebInt->params.reverseDriveMode) + "</td></tr>";
 
   text += "</table>";
-
   text += "</div>";
   text += "<div style='clear:both;'></div>";
-
   text += "</body></html>";
 
   // Send page to client
@@ -177,7 +168,6 @@ void handleRoot()
 */
 void handleNotFound()
 {
-
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -217,9 +207,6 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
 
   // Enable webserver
   server.on("/", handleRoot);
-  // server.on("/export", handleExport);
-  /*server.on("/inline", []()
-            { server.send(200, "text/plain", "this works as well"); });*/
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -231,5 +218,4 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
 void WebInterface::mainLoop()
 {
   server.handleClient();
-  // syslog->println("handleClient");
 }

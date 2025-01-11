@@ -4,11 +4,11 @@
 #include <string.h>
 #include <sys/time.h>
 #include "LiveData.h"
-#include "CarHyundaiIoniq5.h"
+#include "CarHyundaiEgmp.h"
 #include "CommInterface.h"
 #include <vector>
 
-#define commandQueueLoopFromHyundaiIoniq5 8
+#define commandQueueLoopFromHyundaiEgmp 8
 
 // https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
 //
@@ -92,20 +92,20 @@ This is the CAN ID that responds to UDS tester present up to 0xFFF
 0x07FC
 0x07FD
 0x07FE
-0x07FF
+0x07F
 */
 
 /**
    activateCommandQueue
 */
-void CarHyundaiIoniq5::activateCommandQueue()
+void CarHyundaiEgmp::activateCommandQueue()
 {
 
   // Optimizer
   lastAllowTpms = 0;
 
   // Command queue
-  std::vector<String> commandQueueHyundaiIoniq5 = {
+  std::vector<String> commandQueueHyundaiEgmp = {
       "AT Z",    // Reset all
       "AT I",    // Print the version ID
       "AT S0",   // Printing of spaces on
@@ -120,6 +120,10 @@ void CarHyundaiIoniq5::activateCommandQueue()
       ////"AT AT0",     // disabled adaptive timing
       "AT DP",
       "AT ST16", // reduced timeout to 1, orig.16
+
+      // Read car VIN code
+      //"ATSH7E8",
+      //"22F190",
 
       // Loop from here
 
@@ -280,21 +284,20 @@ void CarHyundaiIoniq5::activateCommandQueue()
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
-  // for (int i = 0; i < commandQueueCountHyundaiIoniq5; i++) {
-  for (auto cmd : commandQueueHyundaiIoniq5)
+  for (auto cmd : commandQueueHyundaiEgmp)
   {
     liveData->commandQueue.push_back({0, cmd}); // stxChar not used, keep it 0
   }
 
   //
-  liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiIoniq5;
-  liveData->commandQueueCount = commandQueueHyundaiIoniq5.size();
+  liveData->commandQueueLoopFrom = commandQueueLoopFromHyundaiEgmp;
+  liveData->commandQueueCount = commandQueueHyundaiEgmp.size();
 }
 
 /**
    parseRowMerged
 */
-void CarHyundaiIoniq5::parseRowMerged()
+void CarHyundaiEgmp::parseRowMerged()
 {
 
   uint8_t tempByte;
@@ -651,7 +654,7 @@ void CarHyundaiIoniq5::parseRowMerged()
 /**
    Is command from queue allowed for execute, or continue with next
 */
-bool CarHyundaiIoniq5::commandAllowed()
+bool CarHyundaiEgmp::commandAllowed()
 {
 
   /* syslog->print("Command allowed: ");
@@ -773,7 +776,7 @@ bool CarHyundaiIoniq5::commandAllowed()
 /**
    loadTestData
 */
-void CarHyundaiIoniq5::loadTestData()
+void CarHyundaiEgmp::loadTestData()
 {
   // ECALL
   liveData->currentAtshRequest = "ATSH7C7";
@@ -972,12 +975,23 @@ void CarHyundaiIoniq5::loadTestData()
       liveData->params.leftRearDoorOpen = liveData->params.rightRearDoorOpen = false;
   liveData->params.hoodDoorOpen = true;
   liveData->params.auxVoltage = 13.1;
+
+  // Charging graph
+  for (int i = 0; i <= 100; i++)
+  {
+    liveData->params.chargingGraphBatMinTempC[i] = i / 7;
+    liveData->params.chargingGraphBatMaxTempC[i] = (i / 7) + (i / 20);
+    liveData->params.chargingGraphHeaterTempC[i] = 30;
+    liveData->params.chargingGraphWaterCoolantTempC[i] = 12;
+    liveData->params.chargingGraphMinKw[i] = (i * 1.3);
+    liveData->params.chargingGraphMaxKw[i] = (i * 2.3);
+  }
 }
 
 /**
    Test handler
 */
-void CarHyundaiIoniq5::testHandler(const String &cmd)
+void CarHyundaiEgmp::testHandler(const String &cmd)
 {
   int8_t idx = cmd.indexOf("/");
   if (idx == -1)
@@ -1134,7 +1148,7 @@ void CarHyundaiIoniq5::testHandler(const String &cmd)
 /**
  * Custom menu
  */
-std::vector<String> CarHyundaiIoniq5::customMenu(int16_t menuId)
+std::vector<String> CarHyundaiEgmp::customMenu(int16_t menuId)
 {
   if (menuId == MENU_CAR_COMMANDS)
     return {
@@ -1181,7 +1195,7 @@ std::vector<String> CarHyundaiIoniq5::customMenu(int16_t menuId)
 /**
  * Execute custom command
  */
-void CarHyundaiIoniq5::carCommand(const String &cmd)
+void CarHyundaiEgmp::carCommand(const String &cmd)
 {
   if (cmd.equals("vessOn"))
   {
@@ -1330,7 +1344,7 @@ void CarHyundaiIoniq5::carCommand(const String &cmd)
 /**
  * Eniro cmds
  */
-void CarHyundaiIoniq5::eNiroCarControl(const uint16_t pid, const String &cmd)
+void CarHyundaiEgmp::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
   // syslog->println("EXECUTING COMMAND");
   // syslog->println(cmd);
