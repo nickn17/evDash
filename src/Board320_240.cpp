@@ -1603,6 +1603,9 @@ SD status*/
   spr.print("CarMode: ");
   spr.println(liveData->params.carMode);
 
+  spr.print("VIN: ");
+  spr.println(liveData->params.carVin);
+
   spr.print("Power (kW): ");
   spr.println(liveData->params.batPowerKw * -1);
 
@@ -3116,13 +3119,16 @@ void Board320_240::redrawScreen()
   }
 
   // Ignition ON, Gyro motion
-  if (liveData->params.gyroSensorMotion)
+  if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
   {
-    spr.fillRect(128, 3, 4, 18, TFT_ORANGE);
-  }
-  if (liveData->params.ignitionOn)
-  {
-    spr.fillRect(130, 4, 2, 14, TFT_GREEN);
+    if (liveData->params.gyroSensorMotion)
+    {
+      spr.fillRect(128, 3, 4, 18, TFT_ORANGE);
+    }
+    if (liveData->params.ignitionOn)
+    {
+      spr.fillRect(130, 4, 2, 14, TFT_GREEN);
+    }
   }
 
   // WiFi Status
@@ -3561,6 +3567,10 @@ void Board320_240::mainLoop()
   )
   {
     liveData->continueWithCommandQueue();
+    if (commInterface->isSuspended())
+    {
+      commInterface->resumeDevice();
+    }
   }
   // Stop command queue
   //  - automatically turns off CAN scanning after 1-2 minutes of inactivity
@@ -3581,6 +3591,7 @@ void Board320_240::mainLoop()
        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.0)))
   {
     liveData->params.stopCommandQueue = true;
+    commInterface->suspendDevice();
     syslog->println("CAN Command queue stopped...");
   }
   // Descrease loop fps

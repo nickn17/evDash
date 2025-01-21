@@ -80,7 +80,7 @@ void CommObd2Can::disconnectDevice()
   sentCanData = false;
   liveData->commConnected = false;
 
-  // CAN->setMode(MCP_SLEEP);
+  suspendDevice();
   syslog->println("COMM disconnectDevice");
   connectStatus = "Disconnected";
 }
@@ -114,14 +114,14 @@ void CommObd2Can::mainLoop()
   }
 
   // Reconnect CAN bus if no response for 5s
-  if (//liveData->settings.commType == 1 &&
+  if ( // liveData->settings.commType == 1 &&
       liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
       checkConnectAttempts())
   {
     syslog->print("No response from CANbus for 5 seconds, reconnecting ... ");
     syslog->println(getConnectAttempts());
     liveData->redrawScreenRequested = true;
-   
+
     connectDevice();
     liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   }
@@ -738,5 +738,59 @@ void CommObd2Can::processMergedResponse()
   if (liveData->delayBetweenCommandsMs == 0)
   {
     liveData->canSendNextAtCommand = true; // allow next command immediately
+  }
+}
+
+/**
+ * Suspends the CAN device by setting it to sleep mode.
+ * Stops communication and minimizes power consumption.
+ */
+void CommObd2Can::suspendDevice()
+{
+  suspendedDevice = true;
+  if (CAN)
+  {
+    if (CAN->setMode(MCP_SLEEP) == MCP2515_OK)
+    {
+      syslog->println("CAN module suspended (MCP_SLEEP mode).");
+      connectStatus = "Suspended";
+    }
+    else
+    {
+      syslog->println("Error: Failed to suspend CAN module.");
+      connectStatus = "Suspend failed";
+    }
+  }
+  else
+  {
+    syslog->println("Error: CAN module not initialized.");
+    connectStatus = "Not initialized";
+  }
+}
+
+/**
+ * Resumes the CAN device by reinitializing it to normal mode.
+ */
+void CommObd2Can::resumeDevice()
+{
+  suspendedDevice = false;
+  if (CAN)
+  {
+    if (CAN->setMode(MCP_NORMAL) == MCP2515_OK)
+    {
+      syslog->println("CAN module resumed (MCP_NORMAL mode).");
+      connectStatus = "Resumed";
+      liveData->commConnected = true; // Update connection status
+    }
+    else
+    {
+      syslog->println("Error: Failed to resume CAN module.");
+      connectStatus = "Resume failed";
+    }
+  }
+  else
+  {
+    syslog->println("Error: CAN module not initialized.");
+    connectStatus = "Not initialized";
   }
 }

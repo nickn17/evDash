@@ -36,6 +36,7 @@ uint8_t CommInterface::checkConnectAttempts()
   if (connectAttempts == 0)
   {
     connectStatus = "CAN failed. 0 attempts";
+    suspendDevice();
   }
   return connectAttempts > 0;
 }
@@ -338,4 +339,12 @@ void CommInterface::sendPID(const uint32_t pid, const String &cmd)
 uint8_t CommInterface::receivePID()
 {
   return 0;
+}
+
+/**
+ * Is device suspended?
+ */
+bool CommInterface::isSuspended()
+{
+  return suspendedDevice;
 }

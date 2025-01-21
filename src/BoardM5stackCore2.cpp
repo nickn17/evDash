@@ -64,33 +64,13 @@ void BoardM5stackCore2::initBoard()
 
   // Core instead M5 & AXP begin
   //////////
-  /*Wire.begin(32, 33);     // I2C enable
-  Wire1.begin(21, 22);    // AXP begin
-  Wire1.setClock(400000); // AXP
-  // AXP192 30H
-  Write1Byte(0x30, (Read8bit(0x30) & 0x04) | 0X02);
-  // AXP192 GPIO1:OD OUTPUT
-  Write1Byte(0x92, Read8bit(0x92) & 0xf8);
-  // AXP192 GPIO2:OD OUTPUT
-  Write1Byte(0x93, Read8bit(0x93) & 0xf8);
-  // AXP192 RTC CHG
-  Write1Byte(0x35, (Read8bit(0x35) & 0x1c) | 0xa2);
-  // AXP192 GPIO4
-  Write1Byte(0X95, (Read8bit(0x95) & 0x72) | 0X84);
-  Write1Byte(0X36, 0X4C);
-  Write1Byte(0x82, 0xff);
-*/
-  // Set AXP192 to automatically power on when VBUS or ACIN is applied
-  uint8_t data = /*M5.Axp.*/ Read8bit(0x31);
-  data |= 0x06; // Set bits 1 and 2 to enable power-on by ACIN and VBUS rising edge
-  /*M5.Axp.*/ Write1Byte(0x31, data);
-
-  liveData->settings.boardPowerMode = 1;
-  M5.begin(true, true, true, true, (liveData->settings.boardPowerMode == 1 ? kMBusModeInput : kMBusModeOutput), false);
+  M5.begin(true, true, true, true,
+           (liveData->settings.boardPowerMode == 1 ? kMBusModeInput : kMBusModeOutput),
+           false);
 
   // Configure AXP192 PMIC
   // Set the LCD and ESP voltages if necessary
-  M5.Axp.SetLcdVoltage(2500);
+  /*&M5.Axp.SetLcdVoltage(2500);
   M5.Axp.SetESPVoltage(3350);
 
   // Enable LDO2 and set voltages
@@ -98,12 +78,7 @@ void BoardM5stackCore2::initBoard()
   M5.Axp.SetLDOVoltage(2, 3300);
   M5.Axp.SetLDOVoltage(3, 2000);
   M5.Axp.SetLDOEnable(2, true);
-  M5.Axp.SetDCDC3(true);
-
-  // Set AXP192 to automatically power on when VBUS or ACIN is applied
-  data = /*M5.Axp.*/ Read8bit(0x31);
-  data |= 0x06; // Set bits 1 and 2 to enable power-on by ACIN and VBUS rising edge
-  /*M5.Axp.*/ Write1Byte(0x31, data);
+  M5.Axp.SetDCDC3(true);*/
 
   // Initialize other components
   M5.Touch.begin();
@@ -112,10 +87,7 @@ void BoardM5stackCore2::initBoard()
   M5.Axp.SetLed(false);
 
   // Wake up the device
-  M5.Axp.SetLcdVoltage(2500);
-  // M5.Axp.SetLCDRSet(0);
-  // delay(100);
-  // M5.Axp.SetLCDRSet(1);
+  //  M5.Axp.SetLcdVoltage(2500);
 
   Board320_240::initBoard();
 }
@@ -167,6 +139,10 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   {
     syslog->println("Touch event");
     liveData->continueWithCommandQueue();
+    if (commInterface->isSuspended())
+    {
+      commInterface->resumeDevice();
+    }
     touchPressed = false;
 
     // Process action
