@@ -651,6 +651,8 @@ bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
       continue;
     jsonData[String("c" + String(i) + "V")] = round(liveData->params.cellVoltage[i] * 1000) / 1000;
   }
+  // syslog->println("CELL COUNT");
+  /// syslog->println(liveData->params.cellCount);
 
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);

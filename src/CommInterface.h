@@ -17,6 +17,7 @@ protected:
   int8_t canComparerRecordIndex = -1;
   uint32_t canComparerRecordQueueLoop;
   String canComparerData[4] = {"", "", "", ""};
+  bool suspendedDevice = false;
 
 public:
   void initComm(LiveData *pLiveData, BoardInterface *pBoard);
@@ -35,4 +36,7 @@ public:
   void compareCanRecords();
   virtual void sendPID(const uint32_t pid, const String &cmd);
   virtual uint8_t receivePID();
+  bool isSuspended();
+  virtual void suspendDevice() = 0;
+  virtual void resumeDevice() = 0;
 };

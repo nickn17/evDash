@@ -1,5 +1,8 @@
 # RELEASE NOTES
 
+### V4.0.4 2025-01-21
+- CAN queue can stop, suspend, or resume the CAN chip
+
 ### V4.0.3 2025-01-11
 - CarHyundaiIoniq5 renamed to CarHyundaiEgmp
 - refactoring in src/Board320_240.cpp

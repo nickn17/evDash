@@ -445,3 +445,22 @@ void CommObd2Ble4::executeCommand(String cmd)
     liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
   }
 }
+
+/**
+ * Suspends the CAN device by setting it to sleep mode.
+ * Stops communication and minimizes power consumption.
+ */
+void CommObd2Ble4::suspendDevice()
+{
+  suspendedDevice = true;
+  // TODO
+}
+
+/**
+ * Resumes the CAN device by reinitializing it to normal mode.
+ */
+void CommObd2Ble4::resumeDevice()
+{
+  suspendedDevice = false;
+  // TODO
+}

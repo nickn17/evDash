@@ -57,4 +57,6 @@ private:
   bool processFrameBytes();
   bool processFrame();
   void processMergedResponse();
+  void suspendDevice() override;
+  void resumeDevice() override;
 };

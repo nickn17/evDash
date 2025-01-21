@@ -165,3 +165,22 @@ void CommObd2Wifi::executeCommand(String cmd)
     client.print(tmpStr);
   }
 }
+
+/**
+ * Suspends the CAN device by setting it to sleep mode.
+ * Stops communication and minimizes power consumption.
+ */
+void CommObd2Wifi::suspendDevice()
+{
+  suspendedDevice = true;
+  // TODO
+}
+
+/**
+ * Resumes the CAN device by reinitializing it to normal mode.
+ */
+void CommObd2Wifi::resumeDevice()
+{
+  suspendedDevice = false;
+  // TODO
+}

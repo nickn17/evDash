@@ -122,8 +122,8 @@ void CarHyundaiEgmp::activateCommandQueue()
       "AT ST16", // reduced timeout to 1, orig.16
 
       // Read car VIN code
-      //"ATSH7E8",
-      //"22F190",
+      //"ATSH7DF",
+      //"0902",
 
       // Loop from here
 
@@ -274,13 +274,11 @@ void CarHyundaiEgmp::activateCommandQueue()
     liveData->params.batteryTotalAvailableKWh = 72.6;
     liveData->params.cellCount = 180; // 360 / 2, 30 modules
   }
-  // if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77)
   if (liveData->settings.carType == CAR_KIA_EV6_58)
   {
     liveData->params.batteryTotalAvailableKWh = 58;
     liveData->params.cellCount = 144; // 288 / 2, 24 modules
   }
-  // if (liveData->settings.carType == CAR_KIA_EV6_77)
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -723,7 +721,7 @@ bool CarHyundaiEgmp::commandAllowed()
   }
 
   // BMS (only for SCREEN_CELLS)
-  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  /*if (liveData->currentAtshRequest.equals("ATSH7E4"))
   {
     if (liveData->commandRequest.equals("220102") || liveData->commandRequest.equals("220103") || liveData->commandRequest.equals("220104") ||
         liveData->commandRequest.equals("22010A") || liveData->commandRequest.equals("22010B") || liveData->commandRequest.equals("22010C"))
@@ -731,13 +729,13 @@ bool CarHyundaiEgmp::commandAllowed()
       if (liveData->params.displayScreen != SCREEN_CELLS && liveData->params.displayScreenAutoMode != SCREEN_CELLS)
         return false;
     }
-  }
+  }*/
 
   // HUD speedup
   if (liveData->params.displayScreen == SCREEN_HUD)
   {
     // no cooling water temp
-    if (liveData->currentAtshRequest.equals("ATSH7E4"))
+    if (liveData->currentAtshRequest.equals("ATSH5"))
     {
       if (liveData->commandRequest.equals("220106"))
       {
