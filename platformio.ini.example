@@ -9,13 +9,13 @@ board = esp32-s3-devkitc-1
 ;board_build.flash_mode = dio
 framework = arduino
 build_flags = 
-    -DESP32S3
-    -D ARDUINO_M5STACK_CoreS3
-	-D BOARD_M5STACK_CORES3
 ;	-D RESET_SETTINGS
+	-DESP32S3
+	-D ARDUINO_M5STACK_CoreS3
+	-D BOARD_M5STACK_CORES3
 	-D BOARD_HAS_PSRAM
 	-D CORE_DEBUG_LEVEL=0
-    -mfix-esp32-psram-cache-issue
+	-mfix-esp32-psram-cache-issue
 	-D COMMU_CS_PIN=6
 	-D COMMU_INT_PIN=13
 	-D SERIAL2_RX=13
@@ -52,13 +52,11 @@ board_build.flash_mode = dio          ;io, qout, dio, dout
 lib_ldf_mode = deep
 framework = arduino
 build_flags = 
-    -D ARDUINO_M5STACK_Core2
-    -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
-;    -DARDUINO_RUNNING_CORE=1         ;0:Core0, 1:Core1(default)
-;    -DARDUINO_EVENT_RUNNING_CORE=1   ;0:Core0, 1:Core1(default)
+	-D ARDUINO_M5STACK_Core2
 	-D BOARD_M5STACK_CORE2
 	-D BOARD_HAS_PSRAM
-    -mfix-esp32-psram-cache-issue
+	-D CORE_DEBUG_LEVEL=0
+	-mfix-esp32-psram-cache-issue
 	-D COMMU_CS_PIN=27
 	-D COMMU_INT_PIN=2
 	-D SERIAL2_RX=13
@@ -93,13 +91,13 @@ board_build.flash_mode = dio          ;io, qout, dio, dout
 lib_ldf_mode = deep
 framework = arduino
 build_flags = 
-   	-D M5STACK_CORE2
-    -D LGFX_AUTODETECT
-    -D ARDUINO_M5STACK_Core2
-    -DCORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
+	-D ARDUINO_M5STACK_Core2
 	-D BOARD_M5STACK_CORE2
+	-D M5STACK_CORE2
+	-D LGFX_AUTODETECT
 	-D BOARD_HAS_PSRAM
-    -mfix-esp32-psram-cache-issue
+	-D CORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
+	-mfix-esp32-psram-cache-issue
 	-D COMMU_CS_PIN=26
 	-D COMMU_INT_PIN=4
 	-D SERIAL2_RX=13

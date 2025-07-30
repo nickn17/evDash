@@ -3594,6 +3594,7 @@ void Board320_240::mainLoop()
     commInterface->suspendDevice();
     syslog->println("CAN Command queue stopped...");
   }
+
   // Descrease loop fps
   if (liveData->params.stopCommandQueue)
   {
