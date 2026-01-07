@@ -42,7 +42,7 @@ monitor_speed = 115200
 
 ; M5Core2 v1.0 board configuration
 [env:m5stack-core2-v1_0]
-platform = espressif32
+platform = espressif32@6.4.0
 board = m5stack-core2
 board_build.mcu = esp32
 board_build.partitions = default_16MB.csv    ;no_ota.csv
@@ -81,7 +81,7 @@ monitor_speed = 115200
 
 ; M5Core2 v1.1 board configuration
 [env:m5stack-core2-v1_1]
-platform = espressif32
+platform = espressif32@6.4.0
 board = m5stack-core2
 board_build.mcu = esp32
 board_build.partitions = default_16MB.csv    ;no_ota.csv
