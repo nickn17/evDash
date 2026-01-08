@@ -2,7 +2,7 @@
 
 ### V4.1.0 2026-01-08
 - Update platform version for M5Core2 configurations (thanks to bkralik)
-- Addopted spot2000 changes - Kia EV9 support, gps heading for ABRP and optimized SD card buffer and flush
+- Adopted spot2000 changes - Kia EV9 support, gps heading for ABRP and optimized SD card buffer and flush
 
 ### V4.0.4 2025-01-21
 - CAN queue can stop, suspend, or resume the CAN chip
