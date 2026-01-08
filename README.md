@@ -138,8 +138,8 @@ Check the [RELEASENOTES.md](RELEASENOTES.md) file for the latest updates.
 
 ### M5Core2 v1.0 and v1.1 difference
 
-###🔌 Main Hardware Differences
-###Power management & charging
+### Main Hardware Differences
+### Power management & charging
 
 Core2 v1.0
 - Uses the AXP192 PMIC.
@@ -153,7 +153,7 @@ Core2 v1.1
 What this means in practice:
 v1.1 is noticeably better for battery-powered projects and long-term deployments where power monitoring matters.
 
-###RTC (Real-Time Clock) behavior
+### RTC (Real-Time Clock) behavior
 
 Core2 v1.0
 - No dedicated RTC backup battery.
@@ -166,7 +166,7 @@ Core2 v1.1
 Why this matters:
 If you rely on timestamps (logging, telemetry, CAN logs, dashboards, etc.), v1.1 is clearly superior.
 
-###Power LED indication
+### Power LED indication
 
 Core2 v1.0
 - Power indicator LED is green.
@@ -176,7 +176,7 @@ Core2 v1.1
 
 This is also the easiest visual way to identify the hardware version without opening the device.
 
-###Current sensing & diagnostics
+### Current sensing & diagnostics
 
 Core2 v1.0
 - No onboard current monitoring IC.
@@ -188,14 +188,14 @@ Core2 v1.1
 - More accurate energy usage tracking
 - Useful for advanced firmware, power optimization, and debugging.
 
-###Software & firmware considerations
+### Software & firmware considerations
 
 Both versions use the same ESP32, display, touch controller, IMU, Wi-Fi, and Bluetooth.
 Some low-level power-related APIs behave differently due to the PMIC change.
 Many frameworks (e.g. M5Unified) can auto-detect the PMIC and adjust behavior.
 In normal Arduino / PlatformIO projects, most application code is identical.
 
-###Bottom line
+### Bottom line
 
 v1.0: perfectly fine for basic UI, Wi-Fi, sensor, and dashboard projects.
 
