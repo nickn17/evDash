@@ -5,6 +5,22 @@
 
 // #include <string.h>
 
+static inline uint8_t hexNibble(const char ch)
+{
+  if (ch >= '0' && ch <= '9')
+    return static_cast<uint8_t>(ch - '0');
+  if (ch >= 'A' && ch <= 'F')
+    return static_cast<uint8_t>(ch - 'A' + 10);
+  if (ch >= 'a' && ch <= 'f')
+    return static_cast<uint8_t>(ch - 'a' + 10);
+  return 0;
+}
+
+static inline uint8_t hexPairToByte(const char *p)
+{
+  return static_cast<uint8_t>((hexNibble(p[0]) << 4) | hexNibble(p[1]));
+}
+
 /**
  * Connects to the CAN bus adapter.
  * Initializes the MCP2515 CAN controller, configures the bitrate, masks,
@@ -229,7 +245,8 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 {
 
   uint8_t txBuf[8] = {0}; // init with zeroes
-  String tmpStr;
+  const char *cmdChars = cmd.c_str();
+  const size_t cmdLen = cmd.length();
 
   if (liveData->bAdditionalStartingChar)
   {
@@ -246,11 +263,10 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 
     for (uint8_t i = 0; i < sizeof(pPacket->payload); i++)
     {
-      tmpStr = cmd;
-      tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
-      if (tmpStr != "")
+      const size_t offset = i * 2;
+      if (offset + 1 < cmdLen)
       {
-        pPacket->payload[i] = liveData->hexToDec(tmpStr, 1, false);
+        pPacket->payload[i] = hexPairToByte(cmdChars + offset);
       }
     }
   }
@@ -267,11 +283,10 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
 
     for (uint8_t i = 0; i < sizeof(pPacket->payload); i++)
     {
-      tmpStr = cmd;
-      tmpStr = tmpStr.substring(i * 2, ((i + 1) * 2));
-      if (tmpStr != "")
+      const size_t offset = i * 2;
+      if (offset + 1 < cmdLen)
       {
-        pPacket->payload[i] = liveData->hexToDec(tmpStr, 1, false);
+        pPacket->payload[i] = hexPairToByte(cmdChars + offset);
       }
     }
   }

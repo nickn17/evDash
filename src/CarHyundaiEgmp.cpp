@@ -279,6 +279,11 @@ void CarHyundaiEgmp::activateCommandQueue()
     liveData->params.batteryTotalAvailableKWh = 58;
     liveData->params.cellCount = 144; // 288 / 2, 24 modules
   }
+  if (liveData->settings.carType == CAR_KIA_EV9_100)
+  {
+    liveData->params.cellCount = 180;
+    liveData->params.batteryTotalAvailableKWh = 100;
+  }
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();
@@ -735,7 +740,7 @@ bool CarHyundaiEgmp::commandAllowed()
   if (liveData->params.displayScreen == SCREEN_HUD)
   {
     // no cooling water temp
-    if (liveData->currentAtshRequest.equals("ATSH5"))
+    if (liveData->currentAtshRequest.equals("ATSH7E4"))
     {
       if (liveData->commandRequest.equals("220106"))
       {

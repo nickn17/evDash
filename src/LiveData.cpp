@@ -26,7 +26,8 @@ void LiveData::initParams()
   params.stopCommandQueue = false;
   // Network
   params.ntpTimeSet = false;
-  params.lastDataSent = 0;
+  params.lastRemoteApiSent = 0;
+  params.lastAbrpSent = 0;
   params.lastContributeSent = 0;
   params.sim800l_enabled = false;       // UNSUPPORTED MODULE
   params.sim800l_lastOkReceiveTime = 0; // UNSUPPORTED MODULE
@@ -42,6 +43,7 @@ void LiveData::initParams()
   tmpStr.toCharArray(params.sdcardFilename, tmpStr.length() + 1);
   tmpStr.toCharArray(params.sdcardAbrpFilename, tmpStr.length() + 1);
   params.sdcardCanNotify = false;
+  params.sdcardLastFlushMs = 0;
   // Gps
   params.currTimeSyncWithGps = false;
   params.gpsValid = false;
@@ -49,6 +51,7 @@ void LiveData::initParams()
   params.gpsLon = -1.0;
   params.gpsSat = 0;
   params.gpsAlt = -500;
+  params.gpsHeadingDeg = -1.0;
   params.setGpsTimeFromCar = 0;
   params.gyroSensorMotion = false;
   // Display

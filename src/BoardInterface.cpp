@@ -184,6 +184,7 @@ void BoardInterface::loadSettings()
   tmpStr.toCharArray(liveData->settings.wifiPassword2, tmpStr.length() + 1);
   liveData->settings.backupWifiEnabled = 0;
   // v13
+  liveData->settings.threading = 0;
   liveData->settings.speedCorrection = 0;
   // v14
   liveData->settings.disableCommandOptimizer = 0;
@@ -339,6 +340,7 @@ void BoardInterface::loadSettings()
       if (liveData->tmpSettings.settingsVersion == 12)
       {
         liveData->tmpSettings.settingsVersion = 13;
+        liveData->tmpSettings.threading = 0;
         liveData->tmpSettings.speedCorrection = 0;
       }
       if (liveData->tmpSettings.settingsVersion == 13)
@@ -557,106 +559,122 @@ void BoardInterface::parseRowMerged()
 /**
  * Serialize parameters for abrp/remote upload/sdcard
  */
+namespace
+{
+  void populateParamsJson(LiveData *liveData, StaticJsonDocument<4096> &jsonData, bool inclApiKey)
+  {
+    if (inclApiKey)
+      jsonData["apiKey"] = liveData->settings.remoteApiKey;
+
+    jsonData["carType"] = liveData->settings.carType;
+    jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
+    jsonData["currTime"] = liveData->params.currentTime + (liveData->settings.timezone * 3600) + (liveData->settings.daylightSaving * 3600);
+    jsonData["opTime"] = liveData->params.operationTimeSec;
+
+    jsonData["gpsSat"] = liveData->params.gpsSat;
+    jsonData["lat"] = liveData->params.gpsLat;
+    jsonData["lon"] = liveData->params.gpsLon;
+    jsonData["alt"] = liveData->params.gpsAlt;
+    jsonData["speedKmhGPS"] = liveData->params.speedKmhGPS;
+    jsonData["gpsHeading"] = liveData->params.gpsHeadingDeg;
+
+    jsonData["ignitionOn"] = liveData->params.ignitionOn;
+    jsonData["chargingOn"] = liveData->params.chargingOn;
+
+    jsonData["socPerc"] = liveData->params.socPerc;
+    jsonData["socPercBms"] = liveData->params.socPercBms;
+    jsonData["sohPerc"] = liveData->params.sohPerc;
+    jsonData["powKwh100"] = liveData->params.batPowerKwh100;
+    jsonData["speedKmh"] = liveData->params.speedKmh;
+    jsonData["motorRpm"] = liveData->params.motor1Rpm;
+    jsonData["motor2Rpm"] = liveData->params.motor2Rpm;
+    jsonData["odoKm"] = liveData->params.odoKm;
+
+    if (liveData->params.batEnergyContent != 1)
+      jsonData["batEneWh"] = liveData->params.batEnergyContent;
+    if (liveData->params.batMaxEnergyContent != 1)
+      jsonData["batMaxEneWh"] = liveData->params.batMaxEnergyContent;
+
+    jsonData["batPowKw"] = liveData->params.batPowerKw;
+    jsonData["batPowA"] = liveData->params.batPowerAmp;
+    jsonData["batV"] = liveData->params.batVoltage;
+    jsonData["cecKwh"] = liveData->params.cumulativeEnergyChargedKWh;
+    jsonData["cedKwh"] = liveData->params.cumulativeEnergyDischargedKWh;
+    jsonData["cccAh"] = liveData->params.cumulativeChargeCurrentAh;
+    jsonData["cdcAh"] = liveData->params.cumulativeDischargeCurrentAh;
+    jsonData["maxChKw"] = liveData->params.availableChargePower;
+    jsonData["maxDisKw"] = liveData->params.availableDischargePower;
+
+    jsonData["cellMinV"] = liveData->params.batCellMinV;
+    jsonData["cellMaxV"] = liveData->params.batCellMaxV;
+    if (liveData->params.batCellMinVNo != 255)
+      jsonData["cellMinVNo"] = liveData->params.batCellMinVNo;
+    if (liveData->params.batCellMaxVNo != 255)
+      jsonData["cellMaxVNo"] = liveData->params.batCellMaxVNo;
+    jsonData["bMinC"] = round(liveData->params.batMinC);
+    jsonData["bMaxC"] = round(liveData->params.batMaxC);
+    jsonData["bHeatC"] = round(liveData->params.batHeaterC);
+    jsonData["bInletC"] = round(liveData->params.batInletC);
+    jsonData["bFanSt"] = liveData->params.batFanStatus;
+    jsonData["bWatC"] = round(liveData->params.coolingWaterTempC);
+    jsonData["tmpA"] = round(liveData->params.bmsUnknownTempA);
+    jsonData["tmpB"] = round(liveData->params.bmsUnknownTempB);
+    jsonData["tmpC"] = round(liveData->params.bmsUnknownTempC);
+    jsonData["tmpD"] = round(liveData->params.bmsUnknownTempD);
+
+    jsonData["invC"] = round(liveData->params.inverterTempC);
+    jsonData["motC"] = round(liveData->params.motorTempC);
+
+    jsonData["auxPerc"] = liveData->params.auxPerc;
+    jsonData["auxV"] = liveData->params.auxVoltage;
+    jsonData["auxA"] = liveData->params.auxCurrentAmp;
+
+    jsonData["inC"] = liveData->params.indoorTemperature;
+    jsonData["outC"] = liveData->params.outdoorTemperature;
+    jsonData["evapC"] = liveData->params.evaporatorTempC;
+    jsonData["c1C"] = liveData->params.coolantTemp1C;
+    jsonData["c2C"] = liveData->params.coolantTemp2C;
+
+    jsonData["tFlC"] = liveData->params.tireFrontLeftTempC;
+    jsonData["tFlBar"] = round(liveData->params.tireFrontLeftPressureBar * 10) / 10;
+    jsonData["tFrC"] = liveData->params.tireFrontRightTempC;
+    jsonData["tFrBar"] = round(liveData->params.tireFrontRightPressureBar * 10) / 10;
+    jsonData["tRlC"] = liveData->params.tireRearLeftTempC;
+    jsonData["tRlBar"] = round(liveData->params.tireRearLeftPressureBar * 10) / 10;
+    jsonData["tRrC"] = liveData->params.tireRearRightTempC;
+    jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
+    jsonData["brakeL"] = liveData->params.brakeLights;
+
+    jsonData["bmMode"] = liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode);
+
+    // cell voltage
+    for (int i = 0; i < liveData->params.cellCount; i++)
+    {
+      if (liveData->params.cellVoltage[i] == -1)
+        continue;
+      char key[8] = {0};
+      snprintf(key, sizeof(key), "c%dV", i);
+      jsonData[key] = liveData->params.cellVoltage[i];
+    }
+  }
+} // namespace
+
 bool BoardInterface::serializeParamsToJson(File file, bool inclApiKey)
 {
   StaticJsonDocument<4096> jsonData;
-
-  if (inclApiKey)
-    jsonData["apiKey"] = liveData->settings.remoteApiKey;
-
-  jsonData["carType"] = liveData->settings.carType;
-  jsonData["batTotalKwh"] = liveData->params.batteryTotalAvailableKWh;
-  jsonData["currTime"] = liveData->params.currentTime + (liveData->settings.timezone * 3600) + (liveData->settings.daylightSaving * 3600);
-  jsonData["opTime"] = liveData->params.operationTimeSec;
-
-  jsonData["gpsSat"] = liveData->params.gpsSat;
-  jsonData["lat"] = liveData->params.gpsLat;
-  jsonData["lon"] = liveData->params.gpsLon;
-  jsonData["alt"] = liveData->params.gpsAlt;
-  jsonData["speedKmhGPS"] = liveData->params.speedKmhGPS;
-
-  jsonData["ignitionOn"] = liveData->params.ignitionOn;
-  jsonData["chargingOn"] = liveData->params.chargingOn;
-
-  jsonData["socPerc"] = liveData->params.socPerc;
-  jsonData["socPercBms"] = liveData->params.socPercBms;
-  jsonData["sohPerc"] = liveData->params.sohPerc;
-  jsonData["powKwh100"] = liveData->params.batPowerKwh100;
-  jsonData["speedKmh"] = liveData->params.speedKmh;
-  jsonData["motorRpm"] = liveData->params.motor1Rpm;
-  jsonData["motor2Rpm"] = liveData->params.motor2Rpm;
-  jsonData["odoKm"] = liveData->params.odoKm;
-
-  if (liveData->params.batEnergyContent != 1)
-    jsonData["batEneWh"] = liveData->params.batEnergyContent;
-  if (liveData->params.batMaxEnergyContent != 1)
-    jsonData["batMaxEneWh"] = liveData->params.batMaxEnergyContent;
-
-  jsonData["batPowKw"] = liveData->params.batPowerKw;
-  jsonData["batPowA"] = liveData->params.batPowerAmp;
-  jsonData["batV"] = liveData->params.batVoltage;
-  jsonData["cecKwh"] = liveData->params.cumulativeEnergyChargedKWh;
-  jsonData["cedKwh"] = liveData->params.cumulativeEnergyDischargedKWh;
-  jsonData["cccAh"] = liveData->params.cumulativeChargeCurrentAh;
-  jsonData["cdcAh"] = liveData->params.cumulativeDischargeCurrentAh;
-  jsonData["maxChKw"] = liveData->params.availableChargePower;
-  jsonData["maxDisKw"] = liveData->params.availableDischargePower;
-
-  jsonData["cellMinV"] = liveData->params.batCellMinV;
-  jsonData["cellMaxV"] = liveData->params.batCellMaxV;
-  if (liveData->params.batCellMinVNo != 255)
-    jsonData["cellMinVNo"] = liveData->params.batCellMinVNo;
-  if (liveData->params.batCellMaxVNo != 255)
-    jsonData["cellMaxVNo"] = liveData->params.batCellMaxVNo;
-  jsonData["bMinC"] = round(liveData->params.batMinC);
-  jsonData["bMaxC"] = round(liveData->params.batMaxC);
-  jsonData["bHeatC"] = round(liveData->params.batHeaterC);
-  jsonData["bInletC"] = round(liveData->params.batInletC);
-  jsonData["bFanSt"] = liveData->params.batFanStatus;
-  jsonData["bWatC"] = round(liveData->params.coolingWaterTempC);
-  jsonData["tmpA"] = round(liveData->params.bmsUnknownTempA);
-  jsonData["tmpB"] = round(liveData->params.bmsUnknownTempB);
-  jsonData["tmpC"] = round(liveData->params.bmsUnknownTempC);
-  jsonData["tmpD"] = round(liveData->params.bmsUnknownTempD);
-
-  jsonData["invC"] = round(liveData->params.inverterTempC);
-  jsonData["motC"] = round(liveData->params.motorTempC);
-
-  jsonData["auxPerc"] = liveData->params.auxPerc;
-  jsonData["auxV"] = liveData->params.auxVoltage;
-  jsonData["auxA"] = liveData->params.auxCurrentAmp;
-
-  jsonData["inC"] = liveData->params.indoorTemperature;
-  jsonData["outC"] = liveData->params.outdoorTemperature;
-  jsonData["evapC"] = liveData->params.evaporatorTempC;
-  jsonData["c1C"] = liveData->params.coolantTemp1C;
-  jsonData["c2C"] = liveData->params.coolantTemp2C;
-
-  jsonData["tFlC"] = liveData->params.tireFrontLeftTempC;
-  jsonData["tFlBar"] = round(liveData->params.tireFrontLeftPressureBar * 10) / 10;
-  jsonData["tFrC"] = liveData->params.tireFrontRightTempC;
-  jsonData["tFrBar"] = round(liveData->params.tireFrontRightPressureBar * 10) / 10;
-  jsonData["tRlC"] = liveData->params.tireRearLeftTempC;
-  jsonData["tRlBar"] = round(liveData->params.tireRearLeftPressureBar * 10) / 10;
-  jsonData["tRrC"] = liveData->params.tireRearRightTempC;
-  jsonData["tRrBar"] = round(liveData->params.tireRearRightPressureBar * 10) / 10;
-  jsonData["brakeL"] = liveData->params.brakeLights;
-
-  jsonData["bmMode"] = liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode);
-
-  // cell voltage
-  for (int i = 0; i < liveData->params.cellCount; i++)
-  {
-    if (liveData->params.cellVoltage[i] == -1)
-      continue;
-    jsonData[String("c" + String(i) + "V")] = round(liveData->params.cellVoltage[i] * 1000) / 1000;
-  }
-  // syslog->println("CELL COUNT");
-  /// syslog->println(liveData->params.cellCount);
-
+  populateParamsJson(liveData, jsonData, inclApiKey);
   serializeJson(jsonData, Serial);
   serializeJson(jsonData, file);
 
+  return true;
+}
+
+bool BoardInterface::serializeParamsToJson(String &outJson, bool inclApiKey)
+{
+  StaticJsonDocument<4096> jsonData;
+  populateParamsJson(liveData, jsonData, inclApiKey);
+  outJson = "";
+  serializeJson(jsonData, outJson);
   return true;
 }
 
