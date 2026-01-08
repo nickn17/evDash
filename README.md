@@ -134,16 +134,18 @@ Check the [RELEASENOTES.md](RELEASENOTES.md) file for the latest updates.
 
 ![Top Info Indicators](https://github.com/nickn17/evDash/assets/7864168/0a936f1a-fd46-49fd-926b-9716ca7ba007)
 
+
+
 ## M5Core2 v1.0 and v1.1 difference
 
-🔌 Main Hardware Differences
-Power management & charging
+##🔌 Main Hardware Differences
+##Power management & charging
 
-#Core2 v1.0
+Core2 v1.0
 Uses the AXP192 PMIC.
 More limited power telemetry.
 
-#Core2 v1.1
+Core2 v1.1
 Uses AXP2101 PMIC together with INA3221.
 Improved power efficiency and accurate current/voltage measurement.
 Better control of charging and battery behavior.
@@ -151,49 +153,49 @@ Better control of charging and battery behavior.
 What this means in practice:
 v1.1 is noticeably better for battery-powered projects and long-term deployments where power monitoring matters.
 
-RTC (Real-Time Clock) behavior
+##RTC (Real-Time Clock) behavior
 
-#Core2 v1.0
+Core2 v1.0
 No dedicated RTC backup battery.
 Time can reset or drift if the main battery is removed or fully discharged.
 
-#Core2 v1.1
+Core2 v1.1
 Has a dedicated RTC backup battery.
 Time is preserved even when the main battery is disconnected.
 
 Why this matters:
 If you rely on timestamps (logging, telemetry, CAN logs, dashboards, etc.), v1.1 is clearly superior.
 
-#Power LED indication
+##Power LED indication
 
-#Core2 v1.0
+Core2 v1.0
 Power indicator LED is green.
 
-#Core2 v1.1
+Core2 v1.1
 Power indicator LED is blue.
 
 This is also the easiest visual way to identify the hardware version without opening the device.
 
-#Current sensing & diagnostics
+##Current sensing & diagnostics
 
-#Core2 v1.0
+Core2 v1.0
 No onboard current monitoring IC.
 
-#Core2 v1.1
+Core2 v1.1
 Includes INA3221, allowing:
 Battery current measurement
 System power diagnostics
 More accurate energy usage tracking
 Useful for advanced firmware, power optimization, and debugging.
 
-#Software & firmware considerations
+##Software & firmware considerations
 
 Both versions use the same ESP32, display, touch controller, IMU, Wi-Fi, and Bluetooth.
 Some low-level power-related APIs behave differently due to the PMIC change.
 Many frameworks (e.g. M5Unified) can auto-detect the PMIC and adjust behavior.
 In normal Arduino / PlatformIO projects, most application code is identical.
 
-#Bottom line
+##Bottom line
 
 v1.0: perfectly fine for basic UI, Wi-Fi, sensor, and dashboard projects.
 
