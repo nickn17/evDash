@@ -4522,6 +4522,10 @@ bool Board320_240::netSendData(bool sendAbrp)
     jsonData["kwh_charged"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["soh"] = liveData->params.sohPerc;
     jsonData["ext_temp"] = liveData->params.outdoorTemperature;
+    if (liveData->params.indoorTemperature != -100)
+    {
+      jsonData["cabin_temp"] = liveData->params.indoorTemperature;
+    }
     jsonData["batt_temp"] = liveData->params.batMinC;
     jsonData["voltage"] = liveData->params.batVoltage;
     jsonData["current"] = liveData->params.batPowerAmp * -1;
