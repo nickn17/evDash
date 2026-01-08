@@ -78,6 +78,8 @@ protected:
   volatile bool netSendInProgress = false;
   uint32_t lastNetSendDurationMs = 0;
   uint32_t maxMainLoopDuringNetSendMs = 0;
+  QueueHandle_t abrpSdLogQueue = nullptr;
+  TaskHandle_t abrpSdLogTaskHandle = nullptr;
 
 public:
   byte pinButtonLeft = 0;
@@ -94,6 +96,7 @@ public:
   void afterSetup() override;
   static void xTaskCommLoop(void *pvParameters);
   static void xTaskNetSendLoop(void *pvParameters);
+  static void xTaskAbrpSdLogLoop(void *pvParameters);
   void commLoop() override;
   void boardLoop() override;
   void mainLoop() override;
@@ -116,6 +119,7 @@ public:
   void wifiSwitchToMain();
   void wifiSwitchToBackup();
   void uploadSdCardLogToEvDashServer();
+  void queueAbrpSdLog(const char *payload, size_t length, time_t currentTime, uint64_t operationTimeSec, bool timeSyncWithGps);
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;
