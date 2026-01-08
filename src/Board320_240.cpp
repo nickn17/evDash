@@ -4118,6 +4118,10 @@ void Board320_240::syncGPS()
   {
     liveData->params.speedKmhGPS = -1; // Invalid GPS speed
   }
+  if (liveData->params.speedKmh == 0)
+  {
+    liveData->params.speedKmhGPS = 0;
+  }
   if (gps.course.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.gpsHeadingDeg = gps.course.deg();
