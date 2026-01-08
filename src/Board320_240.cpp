@@ -66,6 +66,47 @@ namespace
   {
     bool sendAbrp;
   };
+
+  constexpr size_t kAbrpPayloadBufferSize = 768;
+  constexpr size_t kAbrpFormBufferSize = 1536;
+
+  struct AbrpLogEntry
+  {
+    char payload[kAbrpPayloadBufferSize];
+    size_t length;
+    time_t currentTime;
+    uint64_t operationTimeSec;
+    bool timeSyncWithGps;
+  };
+
+  size_t encodeQuotes(char *dest, size_t destSize, const char *source)
+  {
+    size_t written = 0;
+    while (*source != '\0')
+    {
+      if (*source == '"')
+      {
+        if (written + 3 >= destSize)
+        {
+          break;
+        }
+        dest[written++] = '%';
+        dest[written++] = '2';
+        dest[written++] = '2';
+      }
+      else
+      {
+        if (written + 1 >= destSize)
+        {
+          break;
+        }
+        dest[written++] = *source;
+      }
+      source++;
+    }
+    dest[written] = '\0';
+    return written;
+  }
 } // namespace
 
 #ifdef BOARD_M5STACK_CORES3
@@ -241,7 +282,7 @@ void Board320_240::afterSetup()
 
   if (netSendQueue == nullptr)
   {
-    netSendQueue = xQueueCreate(2, sizeof(NetSendJob));
+    netSendQueue = xQueueCreate(4, sizeof(NetSendJob));
     if (netSendQueue != nullptr)
     {
       syslog->println("xTaskCreate/xTaskNetSendLoop - NET send via thread");
@@ -250,6 +291,20 @@ void Board320_240::afterSetup()
     else
     {
       syslog->println("Failed to create net send queue");
+    }
+  }
+
+  if (abrpSdLogQueue == nullptr)
+  {
+    abrpSdLogQueue = xQueueCreate(4, sizeof(AbrpLogEntry));
+    if (abrpSdLogQueue != nullptr)
+    {
+      syslog->println("xTaskCreate/xTaskAbrpSdLogLoop - ABRP SD log via thread");
+      xTaskCreate(xTaskAbrpSdLogLoop, "xTaskAbrpSdLogLoop", 8192, (void *)this, 1, &abrpSdLogTaskHandle);
+    }
+    else
+    {
+      syslog->println("Failed to create ABRP SD log queue");
     }
   }
 
@@ -3351,6 +3406,61 @@ void Board320_240::xTaskNetSendLoop(void *pvParameters)
 }
 
 /**
+ * Task that writes ABRP JSON logs to SD card.
+ *
+ * @param pvParameters Pointer to the Board320_240 instance.
+ */
+void Board320_240::xTaskAbrpSdLogLoop(void *pvParameters)
+{
+  Board320_240 *boardObj = (Board320_240 *)pvParameters;
+  AbrpLogEntry entry{};
+  while (1)
+  {
+    if (boardObj->abrpSdLogQueue != nullptr && xQueueReceive(boardObj->abrpSdLogQueue, &entry, portMAX_DELAY) == pdTRUE)
+    {
+      if (!boardObj->liveData->params.sdcardInit || !boardObj->liveData->params.sdcardRecording)
+      {
+        continue;
+      }
+
+      struct tm now;
+      time_t logTime = entry.currentTime;
+      localtime_r(&logTime, &now);
+
+      if (entry.operationTimeSec > 0 && strlen(boardObj->liveData->params.sdcardAbrpFilename) == 0)
+      {
+        sprintf(boardObj->liveData->params.sdcardAbrpFilename, "/%llu.abrp.json", entry.operationTimeSec / 60);
+      }
+      if (entry.timeSyncWithGps && strlen(boardObj->liveData->params.sdcardAbrpFilename) < 20)
+      {
+        strftime(boardObj->liveData->params.sdcardAbrpFilename, sizeof(boardObj->liveData->params.sdcardAbrpFilename), "/%y%m%d%H%M.abrp.json", &now);
+      }
+
+      if (strlen(boardObj->liveData->params.sdcardAbrpFilename) != 0)
+      {
+        File file = SD.open(boardObj->liveData->params.sdcardAbrpFilename, FILE_APPEND);
+        if (!file)
+        {
+          syslog->println("Failed to open file for appending");
+          file = SD.open(boardObj->liveData->params.sdcardAbrpFilename, FILE_WRITE);
+        }
+        if (!file)
+        {
+          syslog->println("Failed to create file");
+        }
+        if (file)
+        {
+          syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
+          file.write((const uint8_t *)entry.payload, entry.length);
+          file.print(",\n");
+          file.close();
+        }
+      }
+    }
+  }
+}
+
+/**
  * commLoop function - This function runs the main communication loop.
  * It calls the commInterface's mainLoop() method to read data from
  * BLE and CAN interfaces. This allows the communication code to run
@@ -4008,6 +4118,10 @@ void Board320_240::syncGPS()
   {
     liveData->params.speedKmhGPS = -1; // Invalid GPS speed
   }
+  if (liveData->params.speedKmh == 0)
+  {
+    liveData->params.speedKmhGPS = 0;
+  }
   if (gps.course.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.gpsHeadingDeg = gps.course.deg();
@@ -4129,7 +4243,8 @@ void Board320_240::netLoop()
   }
 
   // Upload to custom API
-  if (liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
+  if (wifiReady && liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec &&
+      liveData->settings.remoteUploadIntervalSec != 0)
   {
     liveData->params.lastRemoteApiSent = liveData->params.currentTime;
     syslog->info(DEBUG_COMM, "Remote send tick");
@@ -4138,13 +4253,19 @@ void Board320_240::netLoop()
       NetSendJob job{false};
       if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
       {
-        syslog->info(DEBUG_COMM, "Net send queue full, dropping remote send");
+        NetSendJob discard{};
+        xQueueReceive(netSendQueue, &discard, 0);
+        if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
+        {
+          syslog->info(DEBUG_COMM, "Net send queue full, dropping remote send");
+        }
       }
     }
   }
 
   // Upload to ABRP
-  if (liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  if (wifiReady && liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec &&
+      liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
     liveData->params.lastAbrpSent = liveData->params.currentTime;
     syslog->info(DEBUG_COMM, "ABRP send tick");
@@ -4153,7 +4274,12 @@ void Board320_240::netLoop()
       NetSendJob job{true};
       if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
       {
-        syslog->info(DEBUG_COMM, "Net send queue full, dropping ABRP send");
+        NetSendJob discard{};
+        xQueueReceive(netSendQueue, &discard, 0);
+        if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
+        {
+          syslog->info(DEBUG_COMM, "Net send queue full, dropping ABRP send");
+        }
       }
     }
   }
@@ -4400,65 +4526,39 @@ bool Board320_240::netSendData(bool sendAbrp)
     jsonData["kwh_charged"] = liveData->params.cumulativeEnergyChargedKWh;
     jsonData["soh"] = liveData->params.sohPerc;
     jsonData["ext_temp"] = liveData->params.outdoorTemperature;
+    if (liveData->params.indoorTemperature != -100)
+    {
+      jsonData["cabin_temp"] = liveData->params.indoorTemperature;
+    }
     jsonData["batt_temp"] = liveData->params.batMinC;
     jsonData["voltage"] = liveData->params.batVoltage;
     jsonData["current"] = liveData->params.batPowerAmp * -1;
     if (liveData->params.odoKm > 0)
       jsonData["odometer"] = liveData->params.odoKm;
 
-    String payload;
-    serializeJson(jsonData, payload);
-
-    // Log ABRP jsonData to SD card
-    struct tm now;
-    getLocalTime(&now);
-    if (liveData->settings.abrpSdcardLog != 0 && liveData->settings.remoteUploadAbrpIntervalSec > 0 && liveData->params.sdcardInit && liveData->params.sdcardRecording)
+    char payload[kAbrpPayloadBufferSize];
+    size_t payloadLength = serializeJson(jsonData, payload, sizeof(payload));
+    if (payloadLength == 0)
     {
-      // create filename
-      if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardAbrpFilename) == 0)
-      {
-        sprintf(liveData->params.sdcardAbrpFilename, "/%llu.abrp.json", uint64_t(liveData->params.operationTimeSec / 60));
-      }
-      if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardAbrpFilename) < 20)
-      {
-        strftime(liveData->params.sdcardAbrpFilename, sizeof(liveData->params.sdcardAbrpFilename), "/%y%m%d%H%M.abrp.json", &now);
-      }
-
-      // append buffer, clear buffer & notify state
-      if (strlen(liveData->params.sdcardAbrpFilename) != 0)
-      {
-        File file = SD.open(liveData->params.sdcardAbrpFilename, FILE_APPEND);
-        if (!file)
-        {
-          syslog->println("Failed to open file for appending");
-          File file = SD.open(liveData->params.sdcardAbrpFilename, FILE_WRITE);
-        }
-        if (!file)
-        {
-          syslog->println("Failed to create file");
-        }
-        if (file)
-        {
-          syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
-          serializeJson(jsonData, file);
-          file.print(",\n");
-          file.close();
-        }
-      }
+      syslog->println("Failed to serialize ABRP payload");
+      return false;
     }
-    // End of ABRP SD card log
 
-    String tmpStr = "api_key="; // dev ApiKey
-    tmpStr.concat(ABRP_API_KEY);
-    tmpStr.concat("&token=");
-    tmpStr.concat(liveData->settings.abrpApiToken); // User token
-    tmpStr.concat("&tlm=");
-    tmpStr.concat(payload);
+    if (liveData->settings.abrpSdcardLog != 0 && liveData->settings.remoteUploadAbrpIntervalSec > 0)
+    {
+      queueAbrpSdLog(payload, payloadLength, liveData->params.currentTime, liveData->params.operationTimeSec, liveData->params.currTimeSyncWithGps);
+    }
 
-    tmpStr.replace("\"", "%22");
+    char encodedPayload[kAbrpFormBufferSize];
+    encodeQuotes(encodedPayload, sizeof(encodedPayload), payload);
 
-    char dta[tmpStr.length() + 1];
-    tmpStr.toCharArray(dta, tmpStr.length() + 1);
+    char dta[kAbrpFormBufferSize];
+    int dtaLength = snprintf(dta, sizeof(dta), "api_key=%s&token=%s&tlm=%s", ABRP_API_KEY, liveData->settings.abrpApiToken, encodedPayload);
+    if (dtaLength < 0 || static_cast<size_t>(dtaLength) >= sizeof(dta))
+    {
+      syslog->println("ABRP payload too large, skipping send");
+      return false;
+    }
 
     if (netDebug)
     {
@@ -4474,17 +4574,22 @@ bool Board320_240::netSendData(bool sendAbrp)
     rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
-      WiFiClientSecure client;
-      HTTPClient http;
+      static WiFiClientSecure client;
+      static HTTPClient http;
+      static bool httpInitialized = false;
 
-      client.setInsecure();
+      if (!httpInitialized || !http.connected())
+      {
+        http.end();
+        client.setInsecure();
+        http.begin(client, "https://api.iternio.com/1/tlm/send");
+        http.setReuse(true);
+        httpInitialized = true;
+      }
 
-      // http.begin(client, "api.iternio.com", 443, "/1/tlm/send", true);
-      http.begin(client, "https://api.iternio.com/1/tlm/send");
-      // http.begin(client, "https://api.iternio.com/1/tlm/send");   // test of SSL via HTTPS to API endpoint
       http.setConnectTimeout(1000);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-      rc = http.POST(dta);
+      rc = http.POST((uint8_t *)dta, strlen(dta));
 
       if (rc == HTTP_CODE_OK)
       {
@@ -4526,6 +4631,32 @@ bool Board320_240::netSendData(bool sendAbrp)
   // syslog->println("Time taken by function: netSendData() " + String(duration2) + " microseconds");
 
   return true;
+}
+
+void Board320_240::queueAbrpSdLog(const char *payload, size_t length, time_t currentTime, uint64_t operationTimeSec, bool timeSyncWithGps)
+{
+  if (abrpSdLogQueue == nullptr || payload == nullptr)
+  {
+    return;
+  }
+
+  AbrpLogEntry entry{};
+  entry.length = (length >= sizeof(entry.payload)) ? sizeof(entry.payload) - 1 : length;
+  memcpy(entry.payload, payload, entry.length);
+  entry.payload[entry.length] = '\0';
+  entry.currentTime = currentTime;
+  entry.operationTimeSec = operationTimeSec;
+  entry.timeSyncWithGps = timeSyncWithGps;
+
+  if (xQueueSend(abrpSdLogQueue, &entry, 0) != pdTRUE)
+  {
+    AbrpLogEntry discard{};
+    xQueueReceive(abrpSdLogQueue, &discard, 0);
+    if (xQueueSend(abrpSdLogQueue, &entry, 0) != pdTRUE)
+    {
+      syslog->info(DEBUG_SDCARD, "ABRP SD log queue full, dropping log entry");
+    }
+  }
 }
 
 /**
