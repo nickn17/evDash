@@ -105,7 +105,8 @@ bool BoardM5stackCoreS3::isButtonPressed(int button)
   {
     syslog->println("Touch event");
     liveData->continueWithCommandQueue();
-    if (commInterface->isSuspended()) {
+    if (commInterface->isSuspended())
+    {
       commInterface->resumeDevice();
     }
     touchPressed = false;

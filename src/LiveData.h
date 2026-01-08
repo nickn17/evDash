@@ -25,6 +25,7 @@
 #define CAR_KIA_ESOUL_2020_64 8
 #define CAR_KIA_EV6_58 16
 #define CAR_KIA_EV6_77 17
+#define CAR_KIA_EV9_100 30
 
 #define CAR_AUDI_Q4_35 24
 #define CAR_AUDI_Q4_40 25
@@ -105,7 +106,8 @@ typedef struct
   bool ntpTimeSet;
   uint8_t contributeStatus; // 0 - none, 1 - ready to scan (waiting for loop begin), 2 - collecting data, 3 - ready to send
   // Network
-  time_t lastDataSent;
+  time_t lastRemoteApiSent;
+  time_t lastAbrpSent;
   time_t lastContributeSent;
   bool sim800l_enabled;             // UNSUPPORTED MODULE
   time_t sim800l_lastOkReceiveTime; // UNSUPPORTED MODULE
@@ -121,6 +123,7 @@ typedef struct
   float gpsLon;
   uint8_t gpsSat; // satellites count
   int16_t gpsAlt;
+  float gpsHeadingDeg;
   time_t setGpsTimeFromCar;
   bool gyroSensorMotion;
   // SD card
@@ -128,6 +131,7 @@ typedef struct
   bool sdcardRecording;
   char sdcardFilename[32];
   char sdcardAbrpFilename[32];
+  uint32_t sdcardLastFlushMs;
   // Display
   uint8_t displayScreen;
   uint8_t displayScreenAutoMode;
@@ -346,9 +350,9 @@ typedef struct
   char wifiSsid2[32];        // backup wifi SSID
   char wifiPassword2[32];    // backup wifi Pass
   uint8_t backupWifiEnabled; // enable Backup WIFI fallback 0/1
-  // == settings version 13
-  uint8_t REMOVEDthreading; // REMOVED 241214: 0 - off, 1 - on
-  int8_t speedCorrection;   // -5 to +5
+                             // == settings version 13
+  uint8_t threading;         // 0 - off, 1 - on
+  int8_t speedCorrection;    // -5 to +5
   // == settings version 14
   uint8_t disableCommandOptimizer; // 0 - OFF-optimizer enabled, 1 - ON-disable (log all obd2 values)
   // == settings version 15

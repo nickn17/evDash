@@ -6,6 +6,9 @@
 #include <SD.h>
 #include <SPI.h>
 #include "SDL_Arduino_INA3221.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 
 #ifdef BOARD_M5STACK_CORE2
 #include <M5Core2.h>
@@ -66,7 +69,15 @@ protected:
   float forwardDriveOdoKmStart = -1;
   float forwardDriveOdoKmLast = -1;
   uint32_t mainLoopStart = 0;
+  uint32_t lastTimeUpdateMs = 0;
+  time_t cachedNowEpoch = 0;
+  struct tm cachedNow = {};
   float displayFps = 0;
+  QueueHandle_t netSendQueue = nullptr;
+  TaskHandle_t netSendTaskHandle = nullptr;
+  volatile bool netSendInProgress = false;
+  uint32_t lastNetSendDurationMs = 0;
+  uint32_t maxMainLoopDuringNetSendMs = 0;
 
 public:
   byte pinButtonLeft = 0;
@@ -82,6 +93,7 @@ public:
   void initBoard() override;
   void afterSetup() override;
   static void xTaskCommLoop(void *pvParameters);
+  static void xTaskNetSendLoop(void *pvParameters);
   void commLoop() override;
   void boardLoop() override;
   void mainLoop() override;
@@ -98,7 +110,7 @@ public:
   // Notwork
   bool wifiSetup();
   void netLoop();
-  bool netSendData();
+  bool netSendData(bool sendAbrp);
   bool netContributeData();
   void wifiFallback();
   void wifiSwitchToMain();

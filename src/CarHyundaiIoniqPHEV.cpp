@@ -34,7 +34,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
       "AT DP",
       "AT ST16",
       "ATSH7DF",
-      "010D", // speed 
+      "010D", // speed
       // Loop from (HYUNDAI IONIQ)
       // BMS
       "ATSH7E4",
@@ -42,7 +42,7 @@ void CarHyundaiIoniqPHEV::activateCommandQueue()
       "2102", // cell voltages, screen 3 only
       "2103", // cell voltages, screen 3 only
       "2104", // cell voltages, screen 3 only
-      "2105", // soh, soc, .. 
+      "2105", // soh, soc, ..
       // VMCU
       /////////"ATSH7E2",
       /////////"2101", // speed, ...
@@ -112,9 +112,9 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
   {
     if (liveData->commandRequest.equals("010D"))
     {
-      //liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(4, 6, 1, false) ; // / 100.0 *1.609 = real to gps is 1.750
-      syslog->println("responseRowMerged: "+liveData->responseRowMerged);
+      // liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+      liveData->params.speedKmh = liveData->hexToDecFromResponse(4, 6, 1, false); // / 100.0 *1.609 = real to gps is 1.750
+      syslog->println("responseRowMerged: " + liveData->responseRowMerged);
       if (liveData->params.speedKmh > 10)
         liveData->params.speedKmh += liveData->settings.speedCorrection;
       if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
@@ -122,24 +122,24 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
     }
   }
 
-/*
-  // VMCU 7E2
-  if (liveData->currentAtshRequest.equals("ATSH7E2"))
-  {
-    if (liveData->commandRequest.equals("2101"))
+  /*
+    // VMCU 7E2
+    if (liveData->currentAtshRequest.equals("ATSH7E2"))
     {
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
-      if (liveData->params.speedKmh > 10)
-        liveData->params.speedKmh += liveData->settings.speedCorrection;
-      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-        liveData->params.speedKmh = 0;
+      if (liveData->commandRequest.equals("2101"))
+      {
+        liveData->params.speedKmh = liveData->hexToDecFromResponse(32, 36, 2, false) * 0.0155; // / 100.0 *1.609 = real to gps is 1.750
+        if (liveData->params.speedKmh > 10)
+          liveData->params.speedKmh += liveData->settings.speedCorrection;
+        if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
+          liveData->params.speedKmh = 0;
+      }
+      if (liveData->commandRequest.equals("2102"))
+      {
+        liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
+      }
     }
-    if (liveData->commandRequest.equals("2102"))
-    {
-      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
-    }
-  }
-*/  
+  */
   // IGPM
   if (liveData->currentAtshRequest.equals("ATSH770"))
   {
@@ -369,9 +369,6 @@ void CarHyundaiIoniqPHEV::parseRowMerged()
     {
       liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
     }
-
-
-
   }
 
   // TPMS 7a0
@@ -422,7 +419,8 @@ bool CarHyundaiIoniqPHEV::commandAllowed()
   }
 
   // Disabled command optimizer (allows to log all car values to sdcard, but it's slow)
-  if (liveData->settings.disableCommandOptimizer) {
+  if (liveData->settings.disableCommandOptimizer)
+  {
     return true;
   }
 
@@ -537,8 +535,6 @@ void CarHyundaiIoniqPHEV::loadTestData()
   liveData->responseRowMerged = "6102FF80000001010000009522C570273A0F0D9199953900000000";
   parseRowMerged();
 
-
-
   // AIRCON / ACU ATSH7B3
   liveData->currentAtshRequest = "ATSH7B3";
   // 220100
@@ -578,8 +574,6 @@ void CarHyundaiIoniqPHEV::loadTestData()
   // liveData->responseRowMerged = "6105FFFFFFFF00000000000B0B0B0B0B0B0B136826480001500B0B03E80203E831C60031000000000000000000000000";
   liveData->responseRowMerged = "6105FFFFFFFF0064010064011011BA16F800110000000000000000FF0F0000000042006A1003E852C000000000000000";
   parseRowMerged();
-
-
 
   // BCM / TPMS ATSH7A0
   liveData->currentAtshRequest = "ATSH7A0";

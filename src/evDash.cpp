@@ -104,6 +104,7 @@ void setup(void)
   case CAR_HYUNDAI_IONIQ6_77:
   case CAR_KIA_EV6_58:
   case CAR_KIA_EV6_77:
+  case CAR_KIA_EV9_100:
     car = new CarHyundaiEgmp();
     break;
   case CAR_HYUNDAI_IONIQ_2018:

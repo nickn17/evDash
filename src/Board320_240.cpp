@@ -60,6 +60,14 @@ So in summary, it initializes the core display and hardware functionality, retri
 WebInterface *webInterface = nullptr;
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
+namespace
+{
+  struct NetSendJob
+  {
+    bool sendAbrp;
+  };
+} // namespace
+
 #ifdef BOARD_M5STACK_CORES3
 // SD card
 #define TFCARD_CS_PIN 4
@@ -218,6 +226,32 @@ void Board320_240::afterSetup()
   BoardInterface::afterSetup();
   printHeapMemory();
   tft.fillScreen(TFT_SILVER);
+
+  // Threading
+  // Comm via thread (ble/can)
+  if (liveData->settings.threading)
+  {
+    syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
+    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 32768, (void *)this, 0, NULL);
+  }
+  else
+  {
+    syslog->println("COMM without threading (ble/can)");
+  }
+
+  if (netSendQueue == nullptr)
+  {
+    netSendQueue = xQueueCreate(2, sizeof(NetSendJob));
+    if (netSendQueue != nullptr)
+    {
+      syslog->println("xTaskCreate/xTaskNetSendLoop - NET send via thread");
+      xTaskCreate(xTaskNetSendLoop, "xTaskNetSendLoop", 16384, (void *)this, 1, &netSendTaskHandle);
+    }
+    else
+    {
+      syslog->println("Failed to create net send queue");
+    }
+  }
 
   showTime();
   tft.fillScreen(TFT_GREEN);
@@ -1779,6 +1813,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case VEHICLE_TYPE_KIA_EV6_77:
     prefix = (liveData->settings.carType == CAR_KIA_EV6_77) ? ">" : "";
     break;
+  case VEHICLE_TYPE_KIA_EV9_100:
+    prefix = (liveData->settings.carType == CAR_KIA_EV9_100) ? ">" : "";
+    break;
   case VEHICLE_TYPE_AUDI_Q4_35:
     prefix = (liveData->settings.carType == CAR_AUDI_Q4_35) ? ">" : "";
     break;
@@ -1855,7 +1892,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
-
+  case MENU_ADAPTER_THREADING:
+    suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
+    break;
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
     break;
@@ -2398,6 +2437,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_KIA_EV9_100:
+      liveData->settings.carType = CAR_KIA_EV9_100;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_AUDI_Q4_35:
       liveData->settings.carType = CAR_AUDI_Q4_35;
       showMenu();
@@ -2509,6 +2553,11 @@ void Board320_240::menuItemClick()
       break;
     case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
       liveData->settings.disableCommandOptimizer = (liveData->settings.disableCommandOptimizer == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_ADAPTER_THREADING:
+      liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
       showMenu();
       return;
       break;
@@ -3275,6 +3324,33 @@ void Board320_240::xTaskCommLoop(void *pvParameters)
 }
 
 /**
+ * Task that performs network sends outside the UI loop.
+ *
+ * @param pvParameters Pointer to the Board320_240 instance.
+ */
+void Board320_240::xTaskNetSendLoop(void *pvParameters)
+{
+  Board320_240 *boardObj = (Board320_240 *)pvParameters;
+  NetSendJob job{};
+  while (1)
+  {
+    if (boardObj->netSendQueue != nullptr && xQueueReceive(boardObj->netSendQueue, &job, portMAX_DELAY) == pdTRUE)
+    {
+      boardObj->netSendInProgress = true;
+      boardObj->maxMainLoopDuringNetSendMs = 0;
+      int64_t startTime = esp_timer_get_time();
+      boardObj->netSendData(job.sendAbrp);
+      int64_t endTime = esp_timer_get_time();
+      boardObj->lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
+      boardObj->netSendInProgress = false;
+      syslog->info(DEBUG_COMM, "Net send done");
+      syslog->info(DEBUG_COMM, "Net send duration (ms): " + String(boardObj->lastNetSendDurationMs));
+      syslog->info(DEBUG_COMM, "Max mainLoop during send (ms): " + String(boardObj->maxMainLoopDuringNetSendMs));
+    }
+  }
+}
+
+/**
  * commLoop function - This function runs the main communication loop.
  * It calls the commInterface's mainLoop() method to read data from
  * BLE and CAN interfaces. This allows the communication code to run
@@ -3318,9 +3394,13 @@ void Board320_240::boardLoop()
 void Board320_240::mainLoop()
 {
   // Calculate FPS
-  float timeDiff = (millis() - mainLoopStart);
-  displayFps = (timeDiff == 0 ? 0 : (1000 / (millis() - mainLoopStart)));
+  const uint32_t loopDurationMs = (millis() - mainLoopStart);
+  displayFps = (loopDurationMs == 0 ? 0 : (1000.0f / loopDurationMs));
   mainLoopStart = millis();
+  if (netSendInProgress && loopDurationMs > maxMainLoopDuringNetSendMs)
+  {
+    maxMainLoopDuringNetSendMs = loopDurationMs;
+  }
 
   // board loop
   boardLoop();
@@ -3461,9 +3541,18 @@ void Board320_240::mainLoop()
   // syslog->println("Time taken by function: GPS loop " + String(duration4) + " microseconds");
 
   // currentTime
-  struct tm now;
-  getLocalTime(&now);
-  liveData->params.currentTime = mktime(&now);
+  struct tm now = cachedNow;
+  const uint32_t nowMs = millis();
+  if (lastTimeUpdateMs == 0 || (nowMs - lastTimeUpdateMs) >= 1000)
+  {
+    if (getLocalTime(&now))
+    {
+      cachedNow = now;
+      cachedNowEpoch = mktime(&cachedNow);
+      liveData->params.currentTime = cachedNowEpoch;
+      lastTimeUpdateMs = nowMs;
+    }
+  }
 
   // Check and eventually reconnect WIFI aconnection
   if (!liveData->params.stopCommandQueue && liveData->settings.commType != COMM_TYPE_OBD2_WIFI && !liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 &&
@@ -3480,6 +3569,8 @@ void Board320_240::mainLoop()
   if (!liveData->params.stopCommandQueue && liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
   {
+    const size_t sdcardFlushSize = 2048;
+    const uint32_t sdcardIntervalMs = static_cast<uint32_t>(liveData->settings.sdcardLogIntervalSec) * 1000U;
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0)
     {
@@ -3489,6 +3580,10 @@ void Board320_240::mainLoop()
     }
     if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardFilename) < 15)
     {
+      if (cachedNowEpoch == 0)
+      {
+        getLocalTime(&now);
+      }
       strftime(liveData->params.sdcardFilename, sizeof(liveData->params.sdcardFilename), "/%y%m%d%H%M.json", &now);
       syslog->print("Log filename by GPS: ");
       syslog->println(liveData->params.sdcardFilename);
@@ -3498,22 +3593,33 @@ void Board320_240::mainLoop()
     if (strlen(liveData->params.sdcardFilename) != 0)
     {
       liveData->params.sdcardCanNotify = false;
-      File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
-      if (!file)
+      String jsonLine;
+      serializeParamsToJson(jsonLine);
+      jsonLine += ",\n";
+      sdcardRecordBuffer += jsonLine;
+
+      const bool timeToFlush = (sdcardIntervalMs > 0U) && ((nowMs - liveData->params.sdcardLastFlushMs) >= sdcardIntervalMs);
+      const bool sizeToFlush = sdcardRecordBuffer.length() >= sdcardFlushSize;
+      if (timeToFlush || sizeToFlush)
       {
-        syslog->println("Failed to open file for appending");
-        File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
-      }
-      if (!file)
-      {
-        syslog->println("Failed to create file");
-      }
-      if (file)
-      {
-        syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
-        serializeParamsToJson(file);
-        file.print(",\n");
-        file.close();
+        File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
+        if (!file)
+        {
+          syslog->println("Failed to open file for appending");
+          File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
+        }
+        if (!file)
+        {
+          syslog->println("Failed to create file");
+        }
+        if (file)
+        {
+          syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
+          file.print(sdcardRecordBuffer);
+          file.close();
+          sdcardRecordBuffer = "";
+          liveData->params.sdcardLastFlushMs = nowMs;
+        }
       }
     }
   }
@@ -3615,7 +3721,10 @@ void Board320_240::mainLoop()
   }
 
   // Read data from BLE/CAN
-  commInterface->mainLoop();
+  if (!liveData->settings.threading)
+  {
+    commInterface->mainLoop();
+  }
 
   // force redraw (min 1 sec update)
   if (liveData->params.currentTime - lastRedrawTime >= 1 || liveData->redrawScreenRequested)
@@ -3704,6 +3813,12 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
 #ifdef BOARD_M5STACK_CORE2
   RTC_TimeTypeDef RTCtime = {hour, minute, seconds};
   RTC_DateTypeDef RTCdate = {year, month, day};
+  RTCdate.Year = year;
+  RTCdate.Month = month;
+  RTCdate.Date = day;
+  RTCtime.Hours = hour;
+  RTCtime.Minutes = minute;
+  RTCtime.Seconds = seconds;
 
   M5.Rtc.SetTime(&RTCtime);
   M5.Rtc.SetDate(&RTCdate);
@@ -3724,7 +3839,8 @@ void Board320_240::syncTimes(time_t newTime)
 {
   time_t *timeParams[] = {
       &liveData->params.chargingStartTime,
-      &liveData->params.lastDataSent,
+      &liveData->params.lastRemoteApiSent,
+      &liveData->params.lastAbrpSent,
       &liveData->params.lastContributeSent,
       &liveData->params.lastSuccessNetSendTime,
       &liveData->params.lastButtonPushedTime,
@@ -3771,55 +3887,53 @@ bool Board320_240::sdcardMount()
   // Check if SD card is already initialized
   if (liveData->params.sdcardInit)
   {
-    syslog->println("SD card already mounted. Skipping initialization.");
+    syslog->println("SD card already mounted...");
     return true;
   }
 
-  // Attempt SD card initialization
+  bool SdState = false;
   syslog->print("Initializing SD card...");
-  bool sdInitialized = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
-
-  if (!sdInitialized)
+  SdState = SD.begin(TFCARD_CS_PIN, SPI, 40000000);
+  if (SdState)
   {
-    syslog->println("Initialization failed!");
-    return false;
+
+    uint8_t cardType = SD.cardType();
+    if (cardType == CARD_NONE)
+    {
+      syslog->println("No SD card attached");
+      return false;
+    }
+
+    syslog->println("SD card found.");
+    liveData->params.sdcardInit = true;
+
+    syslog->print("SD Card Type: ");
+    if (cardType == CARD_MMC)
+    {
+      syslog->println("MMC");
+    }
+    else if (cardType == CARD_SD)
+    {
+      syslog->println("SDSC");
+    }
+    else if (cardType == CARD_SDHC)
+    {
+      syslog->println("SDHC");
+    }
+    else
+    {
+      syslog->println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    syslog->printf("SD Card Size: %lluMB\n", cardSize);
+
+    return true;
   }
 
-  // Check SD card type
-  uint8_t cardType = SD.cardType();
-  if (cardType == CARD_NONE)
-  {
-    syslog->println("No SD card detected.");
-    return false;
-  }
+  syslog->println("Initialization failed!");
 
-  // Log successful initialization
-  syslog->println("SD card successfully initialized.");
-  liveData->params.sdcardInit = true;
-
-  // Log SD card type
-  syslog->print("SD Card Type: ");
-  switch (cardType)
-  {
-  case CARD_MMC:
-    syslog->println("MMC");
-    break;
-  case CARD_SD:
-    syslog->println("SDSC");
-    break;
-  case CARD_SDHC:
-    syslog->println("SDHC");
-    break;
-  default:
-    syslog->println("UNKNOWN");
-    break;
-  }
-
-  // Log SD card size
-  uint64_t cardSizeMB = SD.cardSize() / (1024 * 1024);
-  syslog->printf("SD Card Size: %llu MB\n", cardSizeMB);
-
-  return true;
+  return false;
 }
 
 /**
@@ -3838,9 +3952,30 @@ void Board320_240::sdcardToggleRecording()
   if (liveData->params.sdcardRecording)
   {
     liveData->params.sdcardCanNotify = true;
+    liveData->params.sdcardLastFlushMs = millis();
   }
   else
   {
+    if (sdcardRecordBuffer.length() > 0 && strlen(liveData->params.sdcardFilename) != 0)
+    {
+      File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
+      if (!file)
+      {
+        syslog->println("Failed to open file for appending");
+        File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
+      }
+      if (!file)
+      {
+        syslog->println("Failed to create file");
+      }
+      if (file)
+      {
+        syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
+        file.print(sdcardRecordBuffer);
+        file.close();
+      }
+      sdcardRecordBuffer = "";
+    }
     String tmpStr = "";
     tmpStr.toCharArray(liveData->params.sdcardFilename, tmpStr.length() + 1);
   }
@@ -3873,8 +4008,14 @@ void Board320_240::syncGPS()
   {
     liveData->params.speedKmhGPS = -1; // Invalid GPS speed
   }
-
-  // Update satellite count if available
+  if (gps.course.isValid() && liveData->params.gpsSat >= 4)
+  {
+    liveData->params.gpsHeadingDeg = gps.course.deg();
+  }
+  else
+  {
+    liveData->params.gpsHeadingDeg = -1;
+  }
   if (gps.satellites.isValid())
   {
     liveData->params.gpsSat = gps.satellites.value();
@@ -3922,7 +4063,7 @@ void Board320_240::wifiFallback()
 
   if (liveData->settings.backupWifiEnabled == 1)
   {
-    if (!liveData->params.isWifiBackupLive)
+    if (liveData->params.isWifiBackupLive == false)
     {
       wifiSwitchToBackup();
     }
@@ -3988,17 +4129,33 @@ void Board320_240::netLoop()
   }
 
   // Upload to custom API
-  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
+  if (liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec && liveData->settings.remoteUploadIntervalSec != 0)
   {
-    liveData->params.lastDataSent = liveData->params.currentTime;
-    netSendData();
+    liveData->params.lastRemoteApiSent = liveData->params.currentTime;
+    syslog->info(DEBUG_COMM, "Remote send tick");
+    if (netSendQueue != nullptr)
+    {
+      NetSendJob job{false};
+      if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
+      {
+        syslog->info(DEBUG_COMM, "Net send queue full, dropping remote send");
+      }
+    }
   }
 
   // Upload to ABRP
-  if (liveData->params.currentTime - liveData->params.lastDataSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  if (liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec && liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
-    liveData->params.lastDataSent = liveData->params.currentTime;
-    netSendData();
+    liveData->params.lastAbrpSent = liveData->params.currentTime;
+    syslog->info(DEBUG_COMM, "ABRP send tick");
+    if (netSendQueue != nullptr)
+    {
+      NetSendJob job{true};
+      if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
+      {
+        syslog->info(DEBUG_COMM, "Net send queue full, dropping ABRP send");
+      }
+    }
   }
 
   // Contribute anonymous data
@@ -4016,10 +4173,11 @@ void Board320_240::netLoop()
 /**
  * Send data
  **/
-bool Board320_240::netSendData()
+bool Board320_240::netSendData(bool sendAbrp)
 {
   int64_t startTime2 = esp_timer_get_time();
   uint16_t rc = 0;
+  const bool netDebug = liveData->settings.debugLevel >= DEBUG_GSM;
 
   if (liveData->params.socPerc < 0)
   {
@@ -4043,7 +4201,7 @@ bool Board320_240::netSendData()
 
   syslog->println("Start HTTP POST...");
 
-  if (liveData->settings.remoteUploadIntervalSec != 0)
+  if (!sendAbrp && liveData->settings.remoteUploadIntervalSec != 0)
   {
     StaticJsonDocument<768> jsonData;
 
@@ -4079,16 +4237,25 @@ bool Board320_240::netSendData()
       jsonData["gpsLon"] = liveData->params.gpsLon;
       jsonData["gpsAlt"] = liveData->params.gpsAlt;
       jsonData["gpsSpeed"] = liveData->params.speedKmhGPS;
+      if (liveData->params.gpsHeadingDeg >= 0)
+        jsonData["gpsHeading"] = liveData->params.gpsHeadingDeg;
     }
 
     char payload[768];
     serializeJson(jsonData, payload);
 
-    syslog->print("Sending payload: ");
-    syslog->println(payload);
+    if (netDebug)
+    {
+      syslog->print("Sending payload: ");
+      syslog->println(payload);
 
-    syslog->print("Remote API server: ");
-    syslog->println(liveData->settings.remoteApiUrl);
+      syslog->print("Remote API server: ");
+      syslog->println(liveData->settings.remoteApiUrl);
+    }
+    else
+    {
+      syslog->println("Sending data to remote API");
+    }
 
     // WIFI remote upload
     rc = 0;
@@ -4156,6 +4323,13 @@ bool Board320_240::netSendData()
             strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsAlt");
             dtostrf(liveData->params.gpsAlt, 1, 2, tmpVal);
             client.publish(topic, tmpVal);
+
+            if (liveData->params.gpsHeadingDeg >= 0)
+            {
+              strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsHeading");
+              dtostrf(liveData->params.gpsHeadingDeg, 1, 2, tmpVal);
+              client.publish(topic, tmpVal);
+            }
           }
           rc = 200;
         }
@@ -4185,7 +4359,7 @@ bool Board320_240::netSendData()
       syslog->println(rc);
     }
   }
-  else if (liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  else if (sendAbrp && liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
     StaticJsonDocument<768> jsonData;
 
@@ -4218,6 +4392,8 @@ bool Board320_240::netSendData()
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;
       jsonData["elevation"] = liveData->params.gpsAlt;
+      if (liveData->params.gpsHeadingDeg >= 0)
+        jsonData["heading"] = liveData->params.gpsHeadingDeg;
     }
 
     jsonData["capacity"] = liveData->params.batteryTotalAvailableKWh;
@@ -4284,8 +4460,15 @@ bool Board320_240::netSendData()
     char dta[tmpStr.length() + 1];
     tmpStr.toCharArray(dta, tmpStr.length() + 1);
 
-    syslog->print("Sending data: ");
-    syslog->println(dta); // dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
+    if (netDebug)
+    {
+      syslog->print("Sending data: ");
+      syslog->println(dta); // dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
+    }
+    else
+    {
+      syslog->println("Sending data to ABRP");
+    }
 
     // Code for sending https data to ABRP api server
     rc = 0;
@@ -4306,8 +4489,11 @@ bool Board320_240::netSendData()
       if (rc == HTTP_CODE_OK)
       {
         // Request successful
-        String payload = http.getString();
-        syslog->println("HTTP Response: " + payload);
+        if (netDebug)
+        {
+          String payload = http.getString();
+          syslog->println("HTTP Response: " + payload);
+        }
       }
       else
       {
@@ -4522,8 +4708,13 @@ void Board320_240::initGPS()
         0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, // VTG
         // Enable GPS, GLONASS, Galileo, BeiDou
         0xB5, 0x62, 0x06, 0x3E, 0x24, 0x00, 0x00, 0x20, 0x20, 0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0xA4, 0x47,
+        0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01,
+        0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0xA4, 0x47,
         // Set NAV5 model to automotive, static hold on 0.5m/s, 3m
+        0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
+        0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
+        0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,
+        // Dynamic Model: Automotive
         0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
         0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x32, 0x3C, 0x00, 0x00,
         0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0x78,

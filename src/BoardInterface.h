@@ -61,4 +61,5 @@ public:
   virtual bool sdcardMount() { return false; };
   virtual void sdcardToggleRecording() = 0;
   bool serializeParamsToJson(File file, bool inclApiKey = false);
+  bool serializeParamsToJson(String &outJson, bool inclApiKey = false);
 };

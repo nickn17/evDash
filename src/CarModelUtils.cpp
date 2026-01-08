@@ -31,6 +31,8 @@ String getCarModelAbrpStr(int carType)
         return "kia:ev6:22:58:mr";
     case CAR_KIA_EV6_77:
         return "kia:ev6:22:77:lr";
+    case CAR_KIA_EV9_100:
+        return "kia:ev9:23:100:awd";
     case CAR_AUDI_Q4_35:
         return "audi:q4:21:52:meb";
     case CAR_AUDI_Q4_40:
