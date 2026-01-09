@@ -170,7 +170,7 @@ void setup(void)
   syslog->println("factoryReset   ... reset settings");
   syslog->println("ipconfig   ... print network settings");
   syslog->println("ABRP_debug   ... print ABRP user token");
-  syslog->println("debugLevel=n   [n = 0..3]  ... set debug level all, gps, comm, ...");
+  syslog->println("debugLevel=n   [n = 0..4]  ... set debug level all, gps, comm, ...");
   syslog->println("wifiSsid=x     ... set primary AP ssid");
   syslog->println("wifiPassword=x     ... set primary AP password");
   syslog->println("wifiSsid2=x     ... set backup AP ssid (replace primary wifi automatically in 1-2 minutes)");
@@ -182,7 +182,7 @@ void setup(void)
   syslog->println("mqttId=x     ... set Mqtt id");
   syslog->println("mqttUsername=x     ... set Mqtt username");
   syslog->println("mqttPassword=x     ... set Mqtt password");
-  syslog->println("mqttPubToken=x     ... set Mqtt publish token");
+  syslog->println("mqttPubTopic=x     ... set Mqtt publish topic");
   syslog->println("serviceUUID=x     ... set device uuid for obd2 ble adapter");
   syslog->println("charTxUUID=x     ... set tx uuid for obd2 ble adapter");
   syslog->println("charRxUUID=x     ... set rx uuid for obd2 ble adapter");

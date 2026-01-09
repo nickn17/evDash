@@ -445,6 +445,33 @@ void CarHyundaiEgmp::parseRowMerged()
     }
   }
 
+  // GSM / VIN 7E6
+  if (liveData->currentAtshRequest.equals("ATSH7E6"))
+  {
+    if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] == 0)
+    {
+      if (liveData->responseRowMerged.startsWith("62F190"))
+      {
+        char vin[18] = {0};
+        uint8_t vinLen = 0;
+        const uint16_t respLen = liveData->responseRowMerged.length();
+        for (uint16_t i = 6; i + 1 < respLen && vinLen < 17; i += 2)
+        {
+          const char c = static_cast<char>(liveData->hexToDec(liveData->responseRowMerged.substring(i, i + 2), 1, false));
+          if (c >= 32 && c <= 126)
+          {
+            vin[vinLen++] = c;
+          }
+        }
+        if (vinLen == 17)
+        {
+          strncpy(liveData->params.carVin, vin, sizeof(liveData->params.carVin) - 1);
+          liveData->params.carVin[sizeof(liveData->params.carVin) - 1] = '\0';
+        }
+      }
+    }
+  }
+
   // BMS 7e4
   if (liveData->currentAtshRequest.equals("ATSH7E4"))
   {
@@ -722,6 +749,10 @@ bool CarHyundaiEgmp::commandAllowed()
   // GSM // only for data-contribute
   if (liveData->currentAtshRequest.equals("ATSH7E6"))
   {
+    if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] == 0)
+    {
+      return true;
+    }
     return false;
   }
 

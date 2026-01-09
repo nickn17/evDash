@@ -75,6 +75,8 @@ protected:
   float displayFps = 0;
   QueueHandle_t netSendQueue = nullptr;
   TaskHandle_t netSendTaskHandle = nullptr;
+  TaskHandle_t commTaskHandle = nullptr;
+  SemaphoreHandle_t commMutex = nullptr;
   volatile bool netSendInProgress = false;
   uint32_t lastNetSendDurationMs = 0;
   uint32_t maxMainLoopDuringNetSendMs = 0;
