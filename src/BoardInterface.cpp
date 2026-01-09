@@ -506,8 +506,6 @@ void BoardInterface::customConsoleCommand(String cmd)
   }
   if (key == "wifiPassword2")
     value.toCharArray(liveData->settings.wifiPassword2, value.length() + 1);
-  if (key == "gprsApn")
-    value.toCharArray(liveData->settings.gprsApn, value.length() + 1);
   if (key == "remoteApiUrl")
     value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
   if (key == "remoteApiKey")

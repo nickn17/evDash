@@ -1,7 +1,14 @@
 # RELEASE NOTES
 
+### V4.1.1 2026-01-09
+Several fixes
+- Threading: CAN communication moved to a dedicated background FreeRTOS task (xTaskCreate / pinned-to-core where available) with proper synchronization (task handle + mutex) to keep UI responsive and reduce sporadic CAN dropouts.
+- Bootup & CAN: Fixed CAN command-queue auto-stop so it only becomes eligible after the first valid CAN response (checks params.getValidResponse). Prevents the queue from stopping during initial “silent” boot phase.
+- eGMP / VIN loading: Fixed missing VIN initialization on eGMP platforms.
+- UI / Architecture: Menu logic was separated out of Board320_240.cpp.
+
 ### V4.1.0 2026-01-08
-- Update platform version for M5Core2 configurations (thanks to bkralik)
+- Updated platform version for M5Core2 configurations (thanks to bkralik)
 - Adopted spot2000 changes - Kia EV9 support, gps heading for ABRP and optimized SD card buffer and flush
 
 ### V4.0.4 2025-01-21
