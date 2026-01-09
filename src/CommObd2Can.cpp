@@ -41,6 +41,7 @@ void CommObd2Can::connectDevice()
     syslog->println("Error: Not enough memory to instantiate CAN class");
     syslog->println("init_can() failed");
     connectStatus = "Not enough memory";
+    liveData->commConnected = false;
     return;
   }
 
@@ -56,6 +57,7 @@ void CommObd2Can::connectDevice()
     syslog->println("Error Initializing MCP2515...");
     connectStatus = "No MCP2515";
     connectAttempts = 0;
+    liveData->commConnected = false;
     return;
   }
 
@@ -74,6 +76,7 @@ void CommObd2Can::connectDevice()
   { // Set operation mode to normal so the MCP2515 sends acks to received data.
     syslog->println("Error: CAN->setMode(MCP_NORMAL) failed");
     connectStatus = "MCP_NORMAL failed";
+    liveData->commConnected = false;
     return;
   }
 
@@ -125,6 +128,12 @@ void CommObd2Can::mainLoop()
 {
   // CAN is paused
   if (liveData->params.stopCommandQueue)
+  {
+    return;
+  }
+
+  // Stop all CAN activity while suspended or disconnected
+  if (suspendedDevice || !liveData->commConnected)
   {
     return;
   }
@@ -763,6 +772,8 @@ void CommObd2Can::processMergedResponse()
 void CommObd2Can::suspendDevice()
 {
   suspendedDevice = true;
+  liveData->commConnected = false;
+  sentCanData = false;
   if (CAN)
   {
     if (CAN->setMode(MCP_SLEEP) == MCP2515_OK)
