@@ -323,9 +323,15 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     break;
   case MENU_CURRENT_TIME:
     struct tm now;
-    getLocalTime(&now);
-    sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
-    suffix = tmpStr1;
+    if (getLocalTime(&now, 0))
+    {
+      sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+      suffix = tmpStr1;
+    }
+    else
+    {
+      suffix = "[-- -- -- --:--:--]";
+    }
     break;
   case MENU_TIMEZONE:
     sprintf(tmpStr1, "[%d hrs]", liveData->settings.timezone);

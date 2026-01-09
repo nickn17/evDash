@@ -717,11 +717,17 @@ void BoardInterface::showNet()
 void BoardInterface::showTime()
 {
   struct tm now;
-  getLocalTime(&now);
-  char dts[32];
-  strftime(dts, sizeof(dts), "%Y-%m-%d %X", &now);
-  syslog->print("Current time: ");
-  syslog->println(dts);
+  if (getLocalTime(&now, 0))
+  {
+    char dts[32];
+    strftime(dts, sizeof(dts), "%Y-%m-%d %X", &now);
+    syslog->print("Current time: ");
+    syslog->println(dts);
+  }
+  else
+  {
+    syslog->println("Current time: not set");
+  }
 }
 
 /**
@@ -743,8 +749,10 @@ void BoardInterface::setTime(String timestamp)
 
   settimeofday(&tv, NULL);
   struct tm tm;
-  getLocalTime(&tm);
-  liveData->params.currentTime = mktime(&tm);
+  if (getLocalTime(&tm, 0))
+  {
+    liveData->params.currentTime = mktime(&tm);
+  }
   liveData->params.chargingStartTime = liveData->params.currentTime;
 
   syslog->println("New time set. Only M5 Core2 is supported.");
