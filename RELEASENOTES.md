@@ -5,6 +5,7 @@ Several fixes
 - Threading: CAN communication moved to a dedicated background FreeRTOS task (xTaskCreate / pinned-to-core where available) with proper synchronization (task handle + mutex) to keep UI responsive and reduce sporadic CAN dropouts.
 - Bootup & CAN: Fixed CAN command-queue auto-stop so it only becomes eligible after the first valid CAN response (checks params.getValidResponse). Prevents the queue from stopping during initial “silent” boot phase.
 - eGMP / VIN loading: Fixed missing VIN initialization on eGMP platforms.
+- Bootup & UI: Avoid blocking on `getLocalTime()` during cold start by using non-blocking time reads with cached fallback; keeps menu/UI responsive even before GPS/NTP time is set.
 - UI / Architecture: Menu logic was separated out of Board320_240.cpp.
 
 ### V4.1.0 2026-01-08
@@ -338,4 +339,3 @@ Changelog:
 ### v1.0 2020-03-23
 - first release
 - basic dashboard
-
