@@ -174,8 +174,14 @@ void Board320_240::initBoard()
 
   settimeofday(&tv, NULL);
   struct tm tm;
-  getLocalTime(&tm);
-  liveData->params.currentTime = mktime(&tm);
+  if (getLocalTime(&tm, 0))
+  {
+    liveData->params.currentTime = mktime(&tm);
+  }
+  else
+  {
+    liveData->params.currentTime = tv.tv_sec;
+  }
   liveData->params.chargingStartTime = liveData->params.currentTime;
 }
 
@@ -1818,9 +1824,15 @@ SD status*/
   spr.print("TIME ");
   spr.print(liveData->params.ntpTimeSet == 1 ? " NTP " : "");
   spr.print(liveData->params.currTimeSyncWithGps == 1 ? "GPS " : "");
-  struct tm now;
-  getLocalTime(&now);
-  sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  struct tm now = cachedNow;
+  if (cachedNowEpoch == 0)
+  {
+    sprintf(tmpStr1, "-- -- -- --:--:--");
+  }
+  else
+  {
+    sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  }
   spr.println(tmpStr1);
 }
 
@@ -2401,13 +2413,25 @@ void Board320_240::mainLoop()
   const uint32_t nowMs = millis();
   if (lastTimeUpdateMs == 0 || (nowMs - lastTimeUpdateMs) >= 1000)
   {
-    if (getLocalTime(&now))
+    if (getLocalTime(&now, 0))
     {
       cachedNow = now;
       cachedNowEpoch = mktime(&cachedNow);
-      liveData->params.currentTime = cachedNowEpoch;
-      lastTimeUpdateMs = nowMs;
     }
+    else if (cachedNowEpoch != 0 && lastTimeUpdateMs != 0)
+    {
+      const uint32_t deltaSec = (nowMs - lastTimeUpdateMs) / 1000U;
+      if (deltaSec > 0)
+      {
+        cachedNowEpoch += deltaSec;
+        localtime_r(&cachedNowEpoch, &cachedNow);
+      }
+    }
+    if (cachedNowEpoch != 0)
+    {
+      liveData->params.currentTime = cachedNowEpoch;
+    }
+    lastTimeUpdateMs = nowMs;
   }
 
   // Check and eventually reconnect WIFI aconnection
@@ -2438,7 +2462,7 @@ void Board320_240::mainLoop()
     {
       if (cachedNowEpoch == 0)
       {
-        getLocalTime(&now);
+        getLocalTime(&now, 0);
       }
       strftime(liveData->params.sdcardFilename, sizeof(liveData->params.sdcardFilename), "/%y%m%d%H%M.json", &now);
       syslog->print("Log filename by GPS: ");
