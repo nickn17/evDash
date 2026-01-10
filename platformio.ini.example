@@ -98,8 +98,10 @@ build_flags =
 	-D BOARD_HAS_PSRAM
 	-D CORE_DEBUG_LEVEL=0             ;0:None, 1:Error, 2:Warn, 3:Info, 4:Debug, 5:Verbose
 	-mfix-esp32-psram-cache-issue
-	-D COMMU_CS_PIN=26
-	-D COMMU_INT_PIN=4
+    -D COMMU_CS_PIN=27
+    -D COMMU_INT_PIN=2
+;	-D COMMU_CS_PIN=26
+;	-D COMMU_INT_PIN=4
 	-D SERIAL2_RX=13
 	-D SERIAL2_TX=14
 lib_deps = 
