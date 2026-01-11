@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+### V4.1.2 2026-01-10
+- Web interface: editable settings (wifi, adapter, board, units, GPS, remote upload, etc.) with auto-save + status message.
+- Web interface: BLE4 scan + adapter selection, plus Reboot/Shutdown actions.
+
 ### V4.1.1 2026-01-09
 Several fixes
 - Threading: CAN communication moved to a dedicated background FreeRTOS task (xTaskCreate / pinned-to-core where available) with proper synchronization (task handle + mutex) to keep UI responsive and reduce sporadic CAN dropouts.
