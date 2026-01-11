@@ -29,9 +29,9 @@ void LiveData::initParams()
   params.lastRemoteApiSent = 0;
   params.lastAbrpSent = 0;
   params.lastContributeSent = 0;
-  params.sim800l_enabled = false;       // UNSUPPORTED MODULE
-  params.sim800l_lastOkReceiveTime = 0; // UNSUPPORTED MODULE
   params.lastSuccessNetSendTime = 0;
+  params.netAvailable = true;
+  params.netLastFailureTime = 0;
   params.isWifiBackupLive = false;
   params.wifiLastConnectedTime = 0;
   params.wifiBackupUptime = 0;

@@ -1,5 +1,8 @@
 # RELEASE NOTES
 
+### V4.1.3 2026-01-11
+- WiFi internet outage handling: detect failed uploads, show "WiFi OK / Net temporarily unavailable" status, and back off network requests to keep CAN/SD logging responsive.
+
 ### V4.1.2 2026-01-10
 - Web interface: editable settings (wifi, adapter, board, units, GPS, remote upload, etc.) with auto-save + status message.
 - Web interface: BLE4 scan + adapter selection, plus Reboot/Shutdown actions.

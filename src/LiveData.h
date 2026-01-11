@@ -109,9 +109,9 @@ typedef struct
   time_t lastRemoteApiSent;
   time_t lastAbrpSent;
   time_t lastContributeSent;
-  bool sim800l_enabled;             // UNSUPPORTED MODULE
-  time_t sim800l_lastOkReceiveTime; // UNSUPPORTED MODULE
   time_t lastSuccessNetSendTime;
+  bool netAvailable;
+  time_t netLastFailureTime;
   bool isWifiBackupLive;
   time_t wifiLastConnectedTime;
   time_t wifiBackupUptime;
