@@ -67,6 +67,7 @@ namespace
     bool sendAbrp;
   };
 
+  constexpr uint32_t kNetRetryIntervalSec = 30;
   constexpr size_t kAbrpPayloadBufferSize = 768;
   constexpr size_t kAbrpFormBufferSize = 1536;
 
@@ -2053,6 +2054,8 @@ void Board320_240::redrawScreen()
       spr.fillRect(20, 240 - 4, 320 - 40, 4, TFT_GOLD);
   }
 
+  bool statusBoxUsed = false;
+
   // BLE not connected
   if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
        liveData->settings.commType == COMM_TYPE_OBD2_WIFI) &&
@@ -2068,6 +2071,7 @@ void Board320_240::redrawScreen()
     sprSetFont(fontFont2);
     sprDrawString(tmpStr1, 10, 190);
     sprDrawString(commInterface->getConnectStatus().c_str(), 10, 210);
+    statusBoxUsed = true;
   }
   else
     // CAN not connected
@@ -2084,7 +2088,22 @@ void Board320_240::redrawScreen()
       sprSetFont(fontFont2);
       sprDrawString(tmpStr1, 10, 190);
       sprDrawString(commInterface->getConnectStatus().c_str(), 10, 210);
+      statusBoxUsed = true;
     }
+
+  if (!statusBoxUsed && liveData->settings.wifiEnabled == 1 &&
+      WiFi.status() == WL_CONNECTED && !liveData->params.netAvailable)
+  {
+    spr.fillRect(0, 185, 320, 50, TFT_BLACK);
+    spr.drawRect(0, 185, 320, 50, TFT_WHITE);
+    spr.setTextSize(1);
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextColor(TFT_WHITE);
+    sprSetFont(fontFont2);
+    sprDrawString("WiFi OK", 10, 190);
+    sprDrawString("Net temporarily unavailable", 10, 210);
+    statusBoxUsed = true;
+  }
 
   spr.pushSprite(0, 0);
 
@@ -3007,6 +3026,20 @@ void Board320_240::wifiSwitchToMain()
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
 }
 
+void Board320_240::updateNetAvailability(bool success)
+{
+  if (success)
+  {
+    liveData->params.netAvailable = true;
+    liveData->params.netLastFailureTime = 0;
+  }
+  else
+  {
+    liveData->params.netAvailable = false;
+    liveData->params.netLastFailureTime = liveData->params.currentTime;
+  }
+}
+
 /**
  * Net loop, send data over net
  * Checks if WiFi is connected, syncs NTP if needed, sends data to remote API if interval elapsed,
@@ -3020,15 +3053,24 @@ void Board320_240::netLoop()
   }
 
   bool wifiReady = (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED);
+  if (!wifiReady)
+  {
+    liveData->params.netAvailable = true;
+    liveData->params.netLastFailureTime = 0;
+  }
+  bool netBackoffActive = (!liveData->params.netAvailable &&
+                           liveData->params.netLastFailureTime != 0 &&
+                           (liveData->params.currentTime - liveData->params.netLastFailureTime) < kNetRetryIntervalSec);
+  bool netReady = wifiReady && !netBackoffActive;
 
   // Sync NTP firsttime
-  if (wifiReady && !liveData->params.ntpTimeSet && liveData->settings.ntpEnabled)
+  if (netReady && !liveData->params.ntpTimeSet && liveData->settings.ntpEnabled)
   {
     ntpSync();
   }
 
   // Upload to custom API
-  if (wifiReady && liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec &&
+  if (netReady && liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec &&
       liveData->settings.remoteUploadIntervalSec != 0)
   {
     liveData->params.lastRemoteApiSent = liveData->params.currentTime;
@@ -3049,7 +3091,7 @@ void Board320_240::netLoop()
   }
 
   // Upload to ABRP
-  if (wifiReady && liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec &&
+  if (netReady && liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec &&
       liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
     liveData->params.lastAbrpSent = liveData->params.currentTime;
@@ -3070,12 +3112,12 @@ void Board320_240::netLoop()
   }
 
   // Contribute anonymous data
-  if (wifiReady && liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
+  if (netReady && liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
     liveData->params.contributeStatus = CONTRIBUTE_WAITING;
   }
-  if (wifiReady && liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
+  if (netReady && liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
     netContributeData();
   }
@@ -3089,6 +3131,7 @@ bool Board320_240::netSendData(bool sendAbrp)
   int64_t startTime2 = esp_timer_get_time();
   uint16_t rc = 0;
   const bool netDebug = liveData->settings.debugLevel >= DEBUG_GSM;
+  const bool wifiReady = (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED);
 
   if (liveData->params.socPerc < 0)
   {
@@ -3107,6 +3150,12 @@ bool Board320_240::netSendData(bool sendAbrp)
     {
       syslog->println("Unsupported module");
     }
+    return false;
+  }
+
+  if (!wifiReady)
+  {
+    syslog->println("WiFi not connected, skipping data send");
     return false;
   }
 
@@ -3262,12 +3311,14 @@ bool Board320_240::netSendData(bool sendAbrp)
     {
       syslog->println("HTTP POST send successful");
       liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
+      updateNetAvailability(true);
     }
     else
     {
       // Failed...
       syslog->print("HTTP POST error: ");
       syslog->println(rc);
+      updateNetAvailability(false);
     }
   }
   else if (sendAbrp && liveData->settings.remoteUploadAbrpIntervalSec != 0)
@@ -3398,12 +3449,14 @@ bool Board320_240::netSendData(bool sendAbrp)
     {
       syslog->println("HTTP POST send successful");
       liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
+      updateNetAvailability(true);
     }
     else
     {
       // Failed...
       syslog->print("HTTP POST error: ");
       syslog->println(rc);
+      updateNetAvailability(false);
     }
   }
   else
@@ -3519,6 +3572,7 @@ bool Board320_240::netContributeData()
       liveData->contributeDataJson = "{"; // begin json
       String payload = http.getString();
       syslog->println("HTTP Response (api.next176.sk): " + payload);
+      updateNetAvailability(true);
 
       StaticJsonDocument<200> doc;
       DeserializationError error = deserializeJson(doc, payload);
@@ -3542,6 +3596,7 @@ bool Board320_240::netContributeData()
       // Failed...
       syslog->print("HTTP POST error: ");
       syslog->println(rc);
+      updateNetAvailability(false);
     }
   }
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3

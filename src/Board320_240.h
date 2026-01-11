@@ -82,6 +82,7 @@ protected:
   uint32_t maxMainLoopDuringNetSendMs = 0;
   QueueHandle_t abrpSdLogQueue = nullptr;
   TaskHandle_t abrpSdLogTaskHandle = nullptr;
+  void updateNetAvailability(bool success);
 
 public:
   byte pinButtonLeft = 0;
