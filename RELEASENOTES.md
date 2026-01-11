@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+### V4.1.4 2026-01-12
+- GPS sanity filter: reject zero/invalid coords and implausible jumps; re-accept after long gaps to recover after tunnels/reboots.
+- ABRP/remote/MQTT/contribute GPS payloads only send filtered fixes to avoid bad locations.
+
 ### V4.1.3 2026-01-11
 - WiFi internet outage handling: detect failed uploads, show "WiFi OK / Net temporarily unavailable" status, and back off network requests to keep CAN/SD logging responsive.
 

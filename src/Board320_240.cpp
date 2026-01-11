@@ -44,6 +44,7 @@ So in summary, it initializes the core display and hardware functionality, retri
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h> //To be able to use https with ABRP api server
 #include <Update.h>
+#include <math.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -70,6 +71,11 @@ namespace
   constexpr uint32_t kNetRetryIntervalSec = 30;
   constexpr size_t kAbrpPayloadBufferSize = 768;
   constexpr size_t kAbrpFormBufferSize = 1536;
+  constexpr float kGpsMaxSpeedKmh = 250.0f;
+  constexpr float kGpsJitterMeters = 200.0f;
+  constexpr float kGpsMaxJumpMetersShort = 2000.0f;
+  constexpr uint32_t kGpsShortJumpWindowSec = 5;
+  constexpr uint32_t kGpsReacquireAfterSec = 900;
 
   struct AbrpLogEntry
   {
@@ -107,6 +113,55 @@ namespace
     }
     dest[written] = '\0';
     return written;
+  }
+
+  bool isGpsCoordSane(float lat, float lon)
+  {
+    if (!isfinite(lat) || !isfinite(lon))
+    {
+      return false;
+    }
+    if (fabsf(lat) < 0.0001f || fabsf(lon) < 0.0001f)
+    {
+      return false;
+    }
+    if (lat < -90.0f || lat > 90.0f)
+    {
+      return false;
+    }
+    if (lon < -180.0f || lon > 180.0f)
+    {
+      return false;
+    }
+    return true;
+  }
+
+  float gpsDistanceMeters(float lat1, float lon1, float lat2, float lon2)
+  {
+    constexpr float kEarthRadiusMeters = 6371000.0f;
+    constexpr float kDegToRad = 0.017453292519943295f;
+    float dLat = (lat2 - lat1) * kDegToRad;
+    float dLon = (lon2 - lon1) * kDegToRad;
+    float lat1Rad = lat1 * kDegToRad;
+    float lat2Rad = lat2 * kDegToRad;
+    float sinLat = sinf(dLat * 0.5f);
+    float sinLon = sinf(dLon * 0.5f);
+    float a = (sinLat * sinLat) + (cosf(lat1Rad) * cosf(lat2Rad) * sinLon * sinLon);
+    float c = 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
+    return kEarthRadiusMeters * c;
+  }
+
+  bool isGpsFixUsable(const LiveData *liveData)
+  {
+    if (!liveData->params.gpsValid)
+    {
+      return false;
+    }
+    if (liveData->params.gpsLat == -1.0f || liveData->params.gpsLon == -1.0f)
+    {
+      return false;
+    }
+    return isGpsCoordSane(liveData->params.gpsLat, liveData->params.gpsLon);
   }
 } // namespace
 
@@ -2903,14 +2958,101 @@ void Board320_240::sdcardToggleRecording()
  */
 void Board320_240::syncGPS()
 {
-  // Update GPS validity and location data
-  liveData->params.gpsValid = gps.location.isValid();
-  if (liveData->params.gpsValid)
+  if (gps.satellites.isValid())
   {
-    liveData->params.gpsLat = gps.location.lat();
-    liveData->params.gpsLon = gps.location.lng();
+    liveData->params.gpsSat = gps.satellites.value();
+  }
+
+  bool accepted = false;
+  float newLat = 0.0f;
+  float newLon = 0.0f;
+
+  if (gps.location.isValid())
+  {
+    newLat = gps.location.lat();
+    newLon = gps.location.lng();
+
+    if (isGpsCoordSane(newLat, newLon))
+    {
+      bool hasLastFix = (liveData->params.gpsLat != -1.0f && liveData->params.gpsLon != -1.0f &&
+                         (liveData->params.gpsLastFixTime != 0 || liveData->params.gpsLastFixMs != 0));
+
+      if (!hasLastFix)
+      {
+        accepted = true;
+      }
+      else
+      {
+        uint32_t dtSec = 0;
+        if (liveData->params.currentTime > 0 && liveData->params.gpsLastFixTime > 0)
+        {
+          dtSec = (liveData->params.currentTime >= liveData->params.gpsLastFixTime)
+                      ? static_cast<uint32_t>(liveData->params.currentTime - liveData->params.gpsLastFixTime)
+                      : 0;
+        }
+        else if (liveData->params.gpsLastFixMs != 0)
+        {
+          uint32_t nowMs = millis();
+          dtSec = (nowMs - liveData->params.gpsLastFixMs) / 1000;
+        }
+
+        if (dtSec == 0)
+        {
+          dtSec = 1;
+        }
+
+        float maxSpeedKmh = 130.0f;
+        if (liveData->params.speedKmh > 0)
+        {
+          float candidate = liveData->params.speedKmh + 30.0f;
+          if (candidate > maxSpeedKmh)
+          {
+            maxSpeedKmh = candidate;
+          }
+        }
+        if (gps.speed.isValid())
+        {
+          float candidate = gps.speed.kmph() + 30.0f;
+          if (candidate > maxSpeedKmh)
+          {
+            maxSpeedKmh = candidate;
+          }
+        }
+        if (maxSpeedKmh > kGpsMaxSpeedKmh)
+        {
+          maxSpeedKmh = kGpsMaxSpeedKmh;
+        }
+
+        float distanceMeters = gpsDistanceMeters(liveData->params.gpsLat, liveData->params.gpsLon, newLat, newLon);
+        float allowedMeters = (maxSpeedKmh * dtSec / 3.6f) + kGpsJitterMeters;
+        bool shortJump = (dtSec <= kGpsShortJumpWindowSec && distanceMeters > kGpsMaxJumpMetersShort);
+        bool speedJump = distanceMeters > allowedMeters;
+
+        if (!shortJump && !speedJump)
+        {
+          accepted = true;
+        }
+        else if (dtSec >= kGpsReacquireAfterSec)
+        {
+          accepted = true;
+        }
+      }
+    }
+  }
+
+  if (accepted)
+  {
+    liveData->params.gpsValid = true;
+    liveData->params.gpsLat = newLat;
+    liveData->params.gpsLon = newLon;
     liveData->params.gpsAlt = gps.altitude.meters();
+    liveData->params.gpsLastFixTime = liveData->params.currentTime;
+    liveData->params.gpsLastFixMs = millis();
     calcAutomaticBrightnessLatLon(); // Adjust screen brightness based on location
+  }
+  else
+  {
+    liveData->params.gpsValid = false;
   }
 
   // Update GPS speed if valid and enough satellites are available
@@ -2933,10 +3075,6 @@ void Board320_240::syncGPS()
   else
   {
     liveData->params.gpsHeadingDeg = -1;
-  }
-  if (gps.satellites.isValid())
-  {
-    liveData->params.gpsSat = gps.satellites.value();
   }
 
   // Synchronize time with GPS if it has not been synchronized yet
@@ -3190,8 +3328,7 @@ bool Board320_240::netSendData(bool sendAbrp)
     jsonData["cumulativeEnergyDischargedKWh"] = liveData->params.cumulativeEnergyDischargedKWh;
 
     // Send GPS data via GPRS (if enabled && valid)
-    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
-        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+    if (isGpsFixUsable(liveData))
     {
       jsonData["gpsLat"] = liveData->params.gpsLat;
       jsonData["gpsLon"] = liveData->params.gpsLon;
@@ -3266,8 +3403,7 @@ bool Board320_240::netSendData(bool sendAbrp)
           dtostrf(liveData->params.odoKm, 1, 2, tmpVal);
           client.publish(topic, tmpVal);
           // Send GPS data via GPRS (if enabled && valid)
-          if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
-              (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+          if (isGpsFixUsable(liveData))
           {
             strcpy(topic + strlen(liveData->settings.mqttPubTopic), "/gpsLat");
             dtostrf(liveData->params.gpsLat, 1, 2, tmpVal);
@@ -3348,8 +3484,7 @@ bool Board320_240::netSendData(bool sendAbrp)
     if (liveData->params.chargingOn)
       jsonData["is_dcfc"] = (liveData->params.chargerDCconnected) ? 1 : 0;
 
-    if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid()) || // HW GPS or MEB GPS
-        (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+    if (isGpsFixUsable(liveData))
     {
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;
@@ -3551,8 +3686,7 @@ bool Board320_240::netContributeData()
       liveData->contributeDataJson += "\"cecKWh\": " + String(liveData->params.cumulativeEnergyChargedKWh, 3) + ", ";
       liveData->contributeDataJson += "\"cedKWh\": " + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + ", ";
       // Send GPS data via GPRS (if enabled && valid)
-      if ((liveData->settings.gpsHwSerialPort <= 2 && gps.location.isValid() && liveData->params.gpsSat >= 3) || // HW GPS or MEB GPS
-          (liveData->settings.gpsHwSerialPort == 255 && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0))
+      if (isGpsFixUsable(liveData))
       {
         liveData->contributeDataJson += "\"gpsLat\": " + String(liveData->params.gpsLat, 5) + ", ";
         liveData->contributeDataJson += "\"gpsLon\": " + String(liveData->params.gpsLon, 5) + ", ";
