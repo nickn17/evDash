@@ -124,6 +124,8 @@ typedef struct
   uint8_t gpsSat; // satellites count
   int16_t gpsAlt;
   float gpsHeadingDeg;
+  time_t gpsLastFixTime;
+  uint32_t gpsLastFixMs;
   time_t setGpsTimeFromCar;
   bool gyroSensorMotion;
   // SD card
