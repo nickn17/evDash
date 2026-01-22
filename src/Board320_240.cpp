@@ -2505,6 +2505,11 @@ void Board320_240::mainLoop()
     {
       liveData->params.currentTime = cachedNowEpoch;
     }
+    else
+    {
+      // Fallback to uptime seconds when RTC/NTP/GPS time isn't available yet.
+      liveData->params.currentTime = nowMs / 1000U;
+    }
     lastTimeUpdateMs = nowMs;
   }
 
@@ -2739,6 +2744,12 @@ void Board320_240::mainLoop()
   }
 
   // Automatic reset charging or drive data after switch between drive / charging or longer standing (1800 seconds)
+  if (liveData->params.chargingOn && !lastChargingOn)
+  {
+    liveData->params.chargingStartTime = liveData->params.currentTime;
+  }
+  lastChargingOn = liveData->params.chargingOn;
+
   if (liveData->params.chargingOn && liveData->params.carMode != CAR_MODE_CHARGING)
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_CHARGING);
@@ -3250,12 +3261,14 @@ void Board320_240::netLoop()
   }
 
   // Contribute anonymous data
-  if (netReady && liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
+  if (netReady && liveData->settings.contributeData == 1 &&
+      liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
     liveData->params.contributeStatus = CONTRIBUTE_WAITING;
   }
-  if (netReady && liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
+  if (netReady && liveData->settings.contributeData == 1 &&
+      liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
     netContributeData();
   }
@@ -3301,6 +3314,14 @@ bool Board320_240::netSendData(bool sendAbrp)
 
   if (!sendAbrp && liveData->settings.remoteUploadIntervalSec != 0)
   {
+    if (strlen(liveData->settings.remoteApiUrl) == 0 ||
+        strcmp(liveData->settings.remoteApiUrl, "not_set") == 0 ||
+        strstr(liveData->settings.remoteApiUrl, "http") == nullptr)
+    {
+      syslog->println("Remote API URL not set, skipping send");
+      return false;
+    }
+
     StaticJsonDocument<768> jsonData;
 
     jsonData["apikey"] = liveData->settings.remoteApiKey;
@@ -3459,6 +3480,14 @@ bool Board320_240::netSendData(bool sendAbrp)
   }
   else if (sendAbrp && liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
+    if (strlen(liveData->settings.abrpApiToken) == 0 ||
+        strcmp(liveData->settings.abrpApiToken, "empty") == 0 ||
+        strcmp(liveData->settings.abrpApiToken, "not_set") == 0)
+    {
+      syslog->println("ABRP token not set, skipping send");
+      return false;
+    }
+
     StaticJsonDocument<768> jsonData;
 
     jsonData["car_model"] = getCarModelAbrpStr(liveData->settings.carType);

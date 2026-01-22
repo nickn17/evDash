@@ -1,5 +1,11 @@
 # RELEASE NOTES
 
+### V4.1.5 2026-01-21
+- Network status: avoid "Net temporarily unavailable" when remote API/ABRP is not configured; skip sends if URL/token is missing.
+- Contribute uploads only run when enabled in settings.
+- Charging screen: charging time now advances even before RTC/NTP/GPS time is available; reset start time on charging transition.
+- eGMP VIN: added Mode 09 PID 02 (7DF/0902) and expanded UDS 22F190 queries for more reliable VIN detection.
+
 ### V4.1.4 2026-01-12
 - GPS sanity filter: reject zero/invalid coords and implausible jumps; re-accept after long gaps to recover after tunnels/reboots.
 - ABRP/remote/MQTT/contribute GPS payloads only send filtered fixes to avoid bad locations.

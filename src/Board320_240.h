@@ -73,6 +73,7 @@ protected:
   time_t cachedNowEpoch = 0;
   struct tm cachedNow = {};
   float displayFps = 0;
+  bool lastChargingOn = false;
   QueueHandle_t netSendQueue = nullptr;
   TaskHandle_t netSendTaskHandle = nullptr;
   TaskHandle_t commTaskHandle = nullptr;
