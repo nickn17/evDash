@@ -122,8 +122,8 @@ void CarHyundaiEgmp::activateCommandQueue()
       "AT ST16", // reduced timeout to 1, orig.16
 
       // Read car VIN code
-      //"ATSH7DF",
-      //"0902",
+      "ATSH7DF",
+      "0902",
 
       // Loop from here
 
@@ -135,6 +135,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22BC05", // 00B 62BC05BF13200001000000AAAA
       "22BC06", // brake light
       "22BC07", // 00B 62BC070849DBC000101900AAAA
+      "22F190", // VIN (some modules respond here)
 
       // ABS / ESP + AHB
       "ATSH7D1",
@@ -173,6 +174,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22B001", // 008 62B00100000000000000000000
       "22B002", // odo
       "22B003", // 008 62B00398000000010000000000
+      "22F190", // VIN (some modules respond here)
 
       // VMCU
       "ATSH7E2",
@@ -255,6 +257,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22010A", // cell voltages 97 - 128
       "22010B", // cell voltages 129 - 160
       "22010C", // cell voltages 161 - 180
+      "22F190", // VIN (some modules respond here)
                 //"220111", // ???
                 //"220114", // ???
   };
@@ -445,29 +448,59 @@ void CarHyundaiEgmp::parseRowMerged()
     }
   }
 
-  // GSM / VIN 7E6
-  if (liveData->currentAtshRequest.equals("ATSH7E6"))
+  // VIN from UDS DID F190 (any ECU)
+  if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] == 0)
   {
-    if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] == 0)
+    if (liveData->responseRowMerged.startsWith("62F190"))
     {
-      if (liveData->responseRowMerged.startsWith("62F190"))
+      char vin[18] = {0};
+      uint8_t vinLen = 0;
+      const uint16_t respLen = liveData->responseRowMerged.length();
+      for (uint16_t i = 6; i + 1 < respLen && vinLen < 17; i += 2)
       {
-        char vin[18] = {0};
-        uint8_t vinLen = 0;
-        const uint16_t respLen = liveData->responseRowMerged.length();
-        for (uint16_t i = 6; i + 1 < respLen && vinLen < 17; i += 2)
+        const char c = static_cast<char>(liveData->hexToDec(liveData->responseRowMerged.substring(i, i + 2), 1, false));
+        if (c >= 32 && c <= 126)
         {
-          const char c = static_cast<char>(liveData->hexToDec(liveData->responseRowMerged.substring(i, i + 2), 1, false));
-          if (c >= 32 && c <= 126)
+          vin[vinLen++] = c;
+        }
+      }
+      if (vinLen == 17)
+      {
+        strncpy(liveData->params.carVin, vin, sizeof(liveData->params.carVin) - 1);
+        liveData->params.carVin[sizeof(liveData->params.carVin) - 1] = '\0';
+      }
+    }
+  }
+
+  // VIN from OBD-II Mode 09 PID 02 (functional 7DF)
+  if (liveData->commandRequest.equals("0902") && liveData->params.carVin[0] == 0)
+  {
+    if (liveData->responseRowMerged.startsWith("4902") || liveData->responseRowMerged.indexOf("490201") >= 0)
+    {
+      char vin[18] = {0};
+      uint8_t vinLen = 0;
+      const uint16_t respLen = liveData->responseRowMerged.length();
+      for (uint16_t i = 0; i + 1 < respLen && vinLen < 17; i += 2)
+      {
+        if (i + 6 <= respLen)
+        {
+          String hdr = liveData->responseRowMerged.substring(i, i + 6);
+          if (hdr == "490201" || hdr == "490202" || hdr == "490203")
           {
-            vin[vinLen++] = c;
+            i += 4;
+            continue;
           }
         }
-        if (vinLen == 17)
+        const char c = static_cast<char>(liveData->hexToDec(liveData->responseRowMerged.substring(i, i + 2), 1, false));
+        if (c >= 32 && c <= 126)
         {
-          strncpy(liveData->params.carVin, vin, sizeof(liveData->params.carVin) - 1);
-          liveData->params.carVin[sizeof(liveData->params.carVin) - 1] = '\0';
+          vin[vinLen++] = c;
         }
+      }
+      if (vinLen == 17)
+      {
+        strncpy(liveData->params.carVin, vin, sizeof(liveData->params.carVin) - 1);
+        liveData->params.carVin[sizeof(liveData->params.carVin) - 1] = '\0';
       }
     }
   }
