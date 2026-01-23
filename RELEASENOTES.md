@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.1.6 2026-01-23
+- WiFi fallback now triggers on prolonged internet outage even when WiFi stays connected (counts failed uploads and switches to backup).
+- eGMP: stop querying unsupported VIN/MCU requests (770/22F190, 7E3/2102) to avoid negative responses.
+- eGMP: once VIN is loaded (e.g., via 0902), skip further 22F190 polling.
+
 ### V4.1.5 2026-01-21
 - Network status: avoid "Net temporarily unavailable" when remote API/ABRP is not configured; skip sends if URL/token is missing.
 - Contribute uploads only run when enabled in settings.
