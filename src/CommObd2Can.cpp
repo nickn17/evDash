@@ -384,6 +384,7 @@ void CommObd2Can::sendFlowControlFrame()
  */
 uint8_t CommObd2Can::receivePID()
 {
+  const uint8_t rxBuffOffset = liveData->bAdditionalStartingChar ? 1 : 0;
   if (!digitalRead(pinCanInt) && sentCanData == true) // If CAN0_INT pin is low, read receive buffer
   {
     lastDataSent = millis();
@@ -427,8 +428,13 @@ uint8_t CommObd2Can::receivePID()
       return 0xff;
     }
 
+    const uint8_t *pDataStart = rxBuf + rxBuffOffset;
+    const bool isIsoTpSingle = ((pDataStart[0] & 0xF0) == 0x00);
+    const bool isNegativeResponse = isIsoTpSingle && rxLen > (rxBuffOffset + 2) && pDataStart[1] == 0x7F;
+
     // Filter received messages, all 11 bit CAN - korean cars (exclude MEB is29bit)
-    if (lastPid <= 4095 && rxId != lastPid + 8)
+    // Accept negative-response frames that some ECUs send back on the request ID.
+    if (lastPid <= 4095 && rxId != lastPid + 8 && !(rxId == lastPid && isNegativeResponse))
     {
       syslog->info(DEBUG_COMM, " [Filtered packet]");
       connectStatus = "Packet filtered";
@@ -446,7 +452,6 @@ uint8_t CommObd2Can::receivePID()
     return 0xff;
   }
 
-  const uint8_t rxBuffOffset = liveData->bAdditionalStartingChar ? 1 : 0;
   return rxBuf[0 + rxBuffOffset]; // return byte containing frame type, which requires removing offset byte
 }
 

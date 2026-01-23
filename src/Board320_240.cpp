@@ -69,6 +69,8 @@ namespace
   };
 
   constexpr uint32_t kNetRetryIntervalSec = 30;
+  constexpr uint32_t kNetFailureFallbackSec = 180;
+  constexpr uint16_t kNetFailureFallbackCount = 3;
   constexpr size_t kAbrpPayloadBufferSize = 768;
   constexpr size_t kAbrpFormBufferSize = 1536;
   constexpr float kGpsMaxSpeedKmh = 250.0f;
@@ -2513,11 +2515,26 @@ void Board320_240::mainLoop()
     lastTimeUpdateMs = nowMs;
   }
 
-  // Check and eventually reconnect WIFI aconnection
-  if (!liveData->params.stopCommandQueue && liveData->settings.commType != COMM_TYPE_OBD2_WIFI && !liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1 &&
-      WiFi.status() != WL_CONNECTED && liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60 && liveData->settings.remoteUploadModuleType == 1)
+  // Check and eventually reconnect WIFI connection
+  const bool wifiEnabled = (liveData->settings.wifiEnabled == 1);
+  const bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  const bool allowWifiFallback = (!liveData->params.stopCommandQueue &&
+                                  liveData->settings.commType != COMM_TYPE_OBD2_WIFI &&
+                                  !liveData->params.wifiApMode &&
+                                  wifiEnabled &&
+                                  liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI);
+  if (allowWifiFallback)
   {
-    wifiFallback();
+    const bool disconnectedTooLong = (!wifiConnected &&
+                                      liveData->params.currentTime - liveData->params.wifiLastConnectedTime > 60);
+    const bool netFailedTooLong = (wifiConnected &&
+                                   liveData->params.netFailureStartTime != 0 &&
+                                   liveData->params.netFailureCount >= kNetFailureFallbackCount &&
+                                   (liveData->params.currentTime - liveData->params.netFailureStartTime) > kNetFailureFallbackSec);
+    if (disconnectedTooLong || netFailedTooLong)
+    {
+      wifiFallback();
+    }
   }
 
   // SIM800L, WiFI remote upload, ABRP remote upload, MQTT
@@ -3181,11 +3198,21 @@ void Board320_240::updateNetAvailability(bool success)
   {
     liveData->params.netAvailable = true;
     liveData->params.netLastFailureTime = 0;
+    liveData->params.netFailureStartTime = 0;
+    liveData->params.netFailureCount = 0;
   }
   else
   {
     liveData->params.netAvailable = false;
     liveData->params.netLastFailureTime = liveData->params.currentTime;
+    if (liveData->params.netFailureStartTime == 0)
+    {
+      liveData->params.netFailureStartTime = liveData->params.currentTime;
+    }
+    if (liveData->params.netFailureCount < 0xFFFFU)
+    {
+      liveData->params.netFailureCount++;
+    }
   }
 }
 
@@ -3206,6 +3233,8 @@ void Board320_240::netLoop()
   {
     liveData->params.netAvailable = true;
     liveData->params.netLastFailureTime = 0;
+    liveData->params.netFailureStartTime = 0;
+    liveData->params.netFailureCount = 0;
   }
   bool netBackoffActive = (!liveData->params.netAvailable &&
                            liveData->params.netLastFailureTime != 0 &&

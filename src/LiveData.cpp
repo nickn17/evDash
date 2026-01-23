@@ -32,6 +32,8 @@ void LiveData::initParams()
   params.lastSuccessNetSendTime = 0;
   params.netAvailable = true;
   params.netLastFailureTime = 0;
+  params.netFailureStartTime = 0;
+  params.netFailureCount = 0;
   params.isWifiBackupLive = false;
   params.wifiLastConnectedTime = 0;
   params.wifiBackupUptime = 0;

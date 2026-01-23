@@ -135,7 +135,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22BC05", // 00B 62BC05BF13200001000000AAAA
       "22BC06", // brake light
       "22BC07", // 00B 62BC070849DBC000101900AAAA
-      "22F190", // VIN (some modules respond here)
+      //"22F190", // VIN (some modules respond here) - blocked on eGMP (770_22F190 returns NRC 0x31)
 
       // ABS / ESP + AHB
       "ATSH7D1",
@@ -205,7 +205,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "ATSH7E3",
       //"22E009", // EOP oil pump
       //"22E001", // ???
-      "2102", // motor/invertor temp
+      //"2102", // motor/invertor temp - blocked on eGMP (7E3_2102 returns NRC 0x11)
       //"22E001", //?
 
       // GSM (looking for gps lat/lon - only for data contributing)
@@ -429,14 +429,14 @@ void CarHyundaiEgmp::parseRowMerged()
   }
 
   // MCU 7E3
-  if (liveData->currentAtshRequest.equals("ATSH7E3"))
+  /*if (liveData->currentAtshRequest.equals("ATSH7E3"))
   {
     if (liveData->commandRequest.equals("2102"))
     {
       liveData->params.inverterTempC = liveData->hexToDecFromResponse(32, 34, 1, true);
       liveData->params.motorTempC = liveData->hexToDecFromResponse(34, 36, 1, true);
     }
-  }
+  }*/
 
   // ICCU 7E5
   if (liveData->currentAtshRequest.equals("ATSH7E5"))
@@ -786,6 +786,12 @@ bool CarHyundaiEgmp::commandAllowed()
     {
       return true;
     }
+    return false;
+  }
+
+  // VIN already loaded -> skip any further VIN DID requests
+  if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] != 0)
+  {
     return false;
   }
 

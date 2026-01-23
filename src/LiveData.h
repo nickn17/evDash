@@ -112,6 +112,8 @@ typedef struct
   time_t lastSuccessNetSendTime;
   bool netAvailable;
   time_t netLastFailureTime;
+  time_t netFailureStartTime;
+  uint16_t netFailureCount;
   bool isWifiBackupLive;
   time_t wifiLastConnectedTime;
   time_t wifiBackupUptime;
