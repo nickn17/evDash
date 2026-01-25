@@ -418,6 +418,11 @@ public:
   uint8_t commandStartChar;
   String commandRequest = ""; // TODO: us Command_t struct
   String currentAtshRequest = "";
+  bool packetFilteredPending = false;
+  String packetFilteredCommand = "";
+  String packetFilteredId = "";
+  String packetFilteredData = "";
+  unsigned long lastCommandLatencyMs = 0;
   String contributeDataJson = "";
   // Menu
   bool menuVisible = false;

@@ -90,6 +90,13 @@ See [INSTALLATION.md](INSTALLATION.md) for detailed steps.
 
 Check the [RELEASENOTES.md](RELEASENOTES.md) file for the latest updates.
 
+## Contribute anonymous data
+
+ The `Remote Upload -> Contribute anon.data` setting lets you share anonymous command/response logs with the dev team whenever the device has internet access. evDash uploads the ATSH+PID pair, the raw response payload, and the usual state snapshot (soc, temps, GPS, etc.) to `https://evdash.next176.sk/api/upload.php?token=<token>` every time the CAN queue finishes one loop (roughly every 15 minutes). Thanks to this telemetry we can decode new cars and detect strange behavior; nothing personally identifiable is transmitted.
+
+Each entry now also includes a `<ATSH>_<PID>_ms` field that records how many milliseconds elapsed between sending the request and receiving the final response. That latency number helps us pinpoint slow ECUs or framing problems and is part of the same anonymous upload stream.
+In addition, whenever the CAN engine drops a packet with the “Packet filtered” logic, the contribution payload stores `packet_filtered_command`, `packet_filtered_id`, and `packet_filtered_data` so the dev team can tie the latest dropped frame to the command that triggered it without needing full CAN logs.
+
 ## Screens and Shortcuts
 
 ### Touch Screen Zones

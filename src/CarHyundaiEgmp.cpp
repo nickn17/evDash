@@ -135,7 +135,6 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22BC05", // 00B 62BC05BF13200001000000AAAA
       "22BC06", // brake light
       "22BC07", // 00B 62BC070849DBC000101900AAAA
-      //"22F190", // VIN (some modules respond here) - blocked on eGMP (770_22F190 returns NRC 0x31)
 
       // ABS / ESP + AHB
       "ATSH7D1",
@@ -174,7 +173,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22B001", // 008 62B00100000000000000000000
       "22B002", // odo
       "22B003", // 008 62B00398000000010000000000
-      "22F190", // VIN (some modules respond here)
+      "22F190", // VIN (valid)
 
       // VMCU
       "ATSH7E2",
@@ -182,7 +181,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22E003",
       "22E004", // ???
       "22E005", // ???
-      "22E006",
+      // "22E006", 62E00600000000000000000000000000000000000000000000000000000000000000
       //"22E007",
       //"22E008",
       //"22E009",
@@ -209,9 +208,9 @@ void CarHyundaiEgmp::activateCommandQueue()
       //"22E001", //?
 
       // GSM (looking for gps lat/lon - only for data contributing)
-      "ATSH7E6",
-      "2201A0",
-      "22F190",
+      //"ATSH7E6",
+      //"2201A0", // 6201A001310000000000000000000000000000000000000000000000000000AAAAAA
+      //"22F190", // 62F190FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
       // AVN
       /*  "ATSH780",
@@ -257,7 +256,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       "22010A", // cell voltages 97 - 128
       "22010B", // cell voltages 129 - 160
       "22010C", // cell voltages 161 - 180
-      "22F190", // VIN (some modules respond here)
+                //"22F190", // 62F190434545562D2D20424D5320202020202020
                 //"220111", // ???
                 //"220114", // ???
   };
@@ -791,6 +790,10 @@ bool CarHyundaiEgmp::commandAllowed()
 
   // VIN already loaded -> skip any further VIN DID requests
   if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] != 0)
+  {
+    return false;
+  }
+  if (liveData->commandRequest.equals("0902") && liveData->params.carVin[0] != 0)
   {
     return false;
   }
