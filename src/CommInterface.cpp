@@ -234,10 +234,20 @@ void CommInterface::parseRowMerged()
   // Anonymous data
   if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
   {
-    liveData->contributeDataJson += "\"" + liveData->currentAtshRequest;
-    liveData->contributeDataJson += "_" + liveData->commandRequest;
-    liveData->contributeDataJson += "\": \"" + liveData->responseRowMerged;
-    liveData->contributeDataJson += "\", ";
+    String contributeKey = liveData->currentAtshRequest + "_" + liveData->commandRequest;
+    liveData->contributeDataJson += "\"" + contributeKey + "\": \"" + liveData->responseRowMerged + "\", ";
+    liveData->contributeDataJson += "\"" + contributeKey + "_ms\": \"" + String(liveData->lastCommandLatencyMs) + "\", ";
+    if (liveData->packetFilteredPending)
+    {
+      liveData->contributeDataJson += "\"packet_filtered_command\": \"" + liveData->packetFilteredCommand + "\", ";
+      liveData->contributeDataJson += "\"packet_filtered_id\": \"" + liveData->packetFilteredId + "\", ";
+      if (liveData->packetFilteredData.length())
+        liveData->contributeDataJson += "\"packet_filtered_data\": \"" + liveData->packetFilteredData + "\", ";
+      liveData->packetFilteredPending = false;
+      liveData->packetFilteredCommand = "";
+      liveData->packetFilteredId = "";
+      liveData->packetFilteredData = "";
+    }
     syslog->println(liveData->contributeDataJson);
   }
 

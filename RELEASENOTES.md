@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+### V4.1.7 2026-01-25
+- Added per-PID latency tracking and upload metadata so the anonymous `Contribute anon.data` stream can show how long each request took and help spot slow ECUs.
+- Once the VIN is cached we stop sending the Mode 09 PID 02 (`0902`), preventing repeated “Packet filtered” noise while keeping VIN detection stable.
+
 ### V4.1.6 2026-01-23
 - WiFi fallback now triggers on prolonged internet outage even when WiFi stays connected (counts failed uploads and switches to backup).
 - eGMP: stop querying unsupported VIN/MCU requests (770/22F190, 7E3/2102) to avoid negative responses.

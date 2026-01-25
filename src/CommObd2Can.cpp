@@ -434,8 +434,31 @@ uint8_t CommObd2Can::receivePID()
 
     // Filter received messages, all 11 bit CAN - korean cars (exclude MEB is29bit)
     // Accept negative-response frames that some ECUs send back on the request ID.
-    if (lastPid <= 4095 && rxId != lastPid + 8 && !(rxId == lastPid && isNegativeResponse))
+    bool allowSpecialResponse = false;
+    if (liveData->commandRequest.startsWith("0902") && rxId == 0x7EA)
+      allowSpecialResponse = true; // VIN replies can come from 7EA (Hyundai/Kia)
+    if (lastPid <= 4095 && rxId != lastPid + 8 && !(rxId == lastPid && isNegativeResponse) && !allowSpecialResponse)
     {
+      if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+      {
+        liveData->packetFilteredPending = true;
+        liveData->packetFilteredCommand = liveData->commandRequest;
+        char idBuf[32] = {0};
+        if ((rxId & 0x80000000) == 0x80000000)
+          sprintf(idBuf, "E:0x%.8lX", rxId & 0x1FFFFFFF);
+        else
+          sprintf(idBuf, "S:0x%.3lX", rxId);
+        liveData->packetFilteredId = idBuf;
+        liveData->packetFilteredData = "";
+        for (uint8_t i = 0; i < rxLen; i++)
+        {
+          if (i != 0)
+            liveData->packetFilteredData += " ";
+          char byteBuf[8];
+          sprintf(byteBuf, "0x%.2X", rxBuf[i]);
+          liveData->packetFilteredData += byteBuf;
+        }
+      }
       syslog->info(DEBUG_COMM, " [Filtered packet]");
       connectStatus = "Packet filtered";
       return 0xff;
@@ -640,10 +663,10 @@ bool CommObd2Can::processFrameBytes()
       mergedData.insert(mergedData.end(), dataRows[i].begin(), dataRows[i].end());
     }
 
-    buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size()); // output for string parsing
-    liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());        // output for binary parsing
-    processMergedResponse();
-  }
+  buffer2string(liveData->responseRowMerged, mergedData.data(), mergedData.size()); // output for string parsing
+  liveData->vResponseRowMerged.assign(mergedData.begin(), mergedData.end());        // output for binary parsing
+  processMergedResponse();
+}
 
   return true;
 }
@@ -756,6 +779,11 @@ void CommObd2Can::processMergedResponse()
     liveData->vResponseRowMerged.clear();
     return;
   }
+
+  if (lastDataSent != 0)
+    liveData->lastCommandLatencyMs = millis() - lastDataSent;
+  else
+    liveData->lastCommandLatencyMs = 0;
 
   parseRowMerged();
 
