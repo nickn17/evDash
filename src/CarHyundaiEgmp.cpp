@@ -266,7 +266,9 @@ void CarHyundaiEgmp::activateCommandQueue()
   liveData->params.batteryTotalAvailableKWh = 77.4;
   liveData->params.cellCount = 192; // 384 / 2, 32 modules
 
-  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58)
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
+      liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+      liveData->settings.carType == CAR_KIA_EV6_58_63)
   {
     liveData->params.batteryTotalAvailableKWh = 58;
     liveData->params.cellCount = 144; // 288 / 2, 24 modules
@@ -275,11 +277,6 @@ void CarHyundaiEgmp::activateCommandQueue()
   {
     liveData->params.batteryTotalAvailableKWh = 72.6;
     liveData->params.cellCount = 180; // 360 / 2, 30 modules
-  }
-  if (liveData->settings.carType == CAR_KIA_EV6_58)
-  {
-    liveData->params.batteryTotalAvailableKWh = 58;
-    liveData->params.cellCount = 144; // 288 / 2, 24 modules
   }
   if (liveData->settings.carType == CAR_KIA_EV9_100)
   {

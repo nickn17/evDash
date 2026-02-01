@@ -3272,16 +3272,22 @@ void Board320_240::netLoop()
   if (netReady && liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec &&
       liveData->settings.remoteUploadAbrpIntervalSec != 0)
   {
-    liveData->params.lastAbrpSent = liveData->params.currentTime;
     syslog->info(DEBUG_COMM, "ABRP send tick");
     if (netSendQueue != nullptr)
     {
-      NetSendJob job{true};
-      if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
+      const bool netSendBusy = netSendInProgress || (uxQueueMessagesWaiting(netSendQueue) > 0);
+      if (netSendBusy)
       {
-        NetSendJob discard{};
-        xQueueReceive(netSendQueue, &discard, 0);
-        if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
+        syslog->info(DEBUG_COMM, "Net send busy, skipping ABRP enqueue");
+      }
+      else
+      {
+        NetSendJob job{true};
+        if (xQueueSend(netSendQueue, &job, 0) == pdTRUE)
+        {
+          liveData->params.lastAbrpSent = liveData->params.currentTime;
+        }
+        else
         {
           syslog->info(DEBUG_COMM, "Net send queue full, dropping ABRP send");
         }
@@ -3603,22 +3609,15 @@ bool Board320_240::netSendData(bool sendAbrp)
     rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
-      static WiFiClientSecure client;
-      static HTTPClient http;
-      static bool httpInitialized = false;
+      WiFiClientSecure client;
+      HTTPClient http;
 
-      if (!httpInitialized || !http.connected())
-      {
-        http.end();
-        client.setInsecure();
-        http.begin(client, "https://api.iternio.com/1/tlm/send");
-        http.setReuse(true);
-        httpInitialized = true;
-      }
-
+      client.setInsecure();
+      http.begin(client, "https://api.iternio.com/1/tlm/send");
       http.setConnectTimeout(1000);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-      rc = http.POST((uint8_t *)dta, strlen(dta));
+      const size_t bodyLength = static_cast<size_t>(dtaLength);
+      rc = http.POST((uint8_t *)dta, bodyLength);
 
       if (rc == HTTP_CODE_OK)
       {
@@ -3636,6 +3635,7 @@ bool Board320_240::netSendData(bool sendAbrp)
       }
 
       http.end();
+      client.stop();
     }
 
     if (rc == 200)

@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.1.8 2026-02-01
+- ABRP upload: avoid stacking back-to-back sends when the network task is busy (helps prevent lockups with short ABRP intervals).
+- ABRP upload: refresh HTTPS client per request to reduce resource pressure after repeated posts.
+- eGMP: add Ioniq6 58/63 option and update Ioniq5/EV6 labels to 58/63 and 77/84 where cell counts match.
+
 ### V4.1.7 2026-01-25
 - Added per-PID latency tracking and upload metadata so the anonymous `Contribute anon.data` stream can show how long each request took and help spot slow ECUs.
 - Once the VIN is cached we stop sending the Mode 09 PID 02 (`0902`), preventing repeated “Packet filtered” noise while keeping VIN detection stable.

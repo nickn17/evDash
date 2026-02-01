@@ -11,13 +11,15 @@ String getCarModelAbrpStr(int carType)
         return "hyundai:ioniq:17:28:other";
     case CAR_HYUNDAI_IONIQ_PHEV:
         return "hyundai:phev:17:28:other";
-    case CAR_HYUNDAI_IONIQ5_58:
+    case CAR_HYUNDAI_IONIQ5_58_63:
         return "hyundai:ioniq5:21:58:mr";
     case CAR_HYUNDAI_IONIQ5_72:
         return "hyundai:ioniq5:21:72:lr";
-    case CAR_HYUNDAI_IONIQ5_77:
+    case CAR_HYUNDAI_IONIQ5_77_84:
         return "hyundai:ioniq5:21:77:lr";
-    case CAR_HYUNDAI_IONIQ6_77:
+    case CAR_HYUNDAI_IONIQ6_58_63:
+        return "hyundai:ioniq6:23:58:mr";
+    case CAR_HYUNDAI_IONIQ6_77_84:
         return "hyundai:ioniq6:23:77:lr";
     case CAR_KIA_ENIRO_2020_64:
         return "kia:niro:19:64:other";
@@ -27,9 +29,9 @@ String getCarModelAbrpStr(int carType)
         return "hyundai:kona:19:64:other";
     case CAR_KIA_ENIRO_2020_39:
         return "kia:niro:19:39:other";
-    case CAR_KIA_EV6_58:
+    case CAR_KIA_EV6_58_63:
         return "kia:ev6:22:58:mr";
-    case CAR_KIA_EV6_77:
+    case CAR_KIA_EV6_77_84:
         return "kia:ev6:22:77:lr";
     case CAR_KIA_EV9_100:
         return "kia:ev9:23:100:awd";
