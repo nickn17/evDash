@@ -83,6 +83,11 @@ void CommObd2Wifi::startWifiScan()
  **/
 void CommObd2Wifi::mainLoop()
 {
+  if (liveData->params.stopCommandQueue || suspendedDevice)
+  {
+    return;
+  }
+
   // Connect BLE device
   if (liveData->obd2ready == true)
   {
@@ -173,7 +178,10 @@ void CommObd2Wifi::executeCommand(String cmd)
 void CommObd2Wifi::suspendDevice()
 {
   suspendedDevice = true;
-  // TODO
+  liveData->commConnected = false;
+  liveData->obd2ready = false;
+  client.stop();
+  connectStatus = "Suspended";
 }
 
 /**
@@ -182,5 +190,6 @@ void CommObd2Wifi::suspendDevice()
 void CommObd2Wifi::resumeDevice()
 {
   suspendedDevice = false;
-  // TODO
+  liveData->obd2ready = true;
+  connectStatus = "Resumed";
 }

@@ -324,4 +324,5 @@ void LiveData::continueWithCommandQueue()
     params.stopCommandQueue = false;
     syslog->println("CAN Command queue restored...");
   }
+  canSendNextAtCommand = true;
 }

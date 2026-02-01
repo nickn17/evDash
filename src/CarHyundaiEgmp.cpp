@@ -122,8 +122,8 @@ void CarHyundaiEgmp::activateCommandQueue()
       "AT ST16", // reduced timeout to 1, orig.16
 
       // Read car VIN code
-      "ATSH7DF",
-      "0902",
+      //"ATSH7DF",
+      //"0902",
 
       // Loop from here
 
@@ -469,7 +469,7 @@ void CarHyundaiEgmp::parseRowMerged()
   }
 
   // VIN from OBD-II Mode 09 PID 02 (functional 7DF)
-  if (liveData->commandRequest.equals("0902") && liveData->params.carVin[0] == 0)
+  /*if (liveData->commandRequest.equals("0902") && liveData->params.carVin[0] == 0)
   {
     if (liveData->responseRowMerged.startsWith("4902") || liveData->responseRowMerged.indexOf("490201") >= 0)
     {
@@ -499,7 +499,7 @@ void CarHyundaiEgmp::parseRowMerged()
         liveData->params.carVin[sizeof(liveData->params.carVin) - 1] = '\0';
       }
     }
-  }
+  }*/
 
   // BMS 7e4
   if (liveData->currentAtshRequest.equals("ATSH7E4"))
