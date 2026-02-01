@@ -2302,6 +2302,11 @@ void Board320_240::xTaskAbrpSdLogLoop(void *pvParameters)
  */
 void Board320_240::commLoop()
 {
+  if (liveData->params.stopCommandQueue || commInterface->isSuspended())
+  {
+    return;
+  }
+
   // Start timing
   int64_t startTime3 = esp_timer_get_time();
 
@@ -2443,46 +2448,50 @@ void Board320_240::mainLoop()
     hideMenu();
   }
 
-  // GPS process
-  // Start timing
-  int64_t startTime4 = esp_timer_get_time();
-
-  if (gpsHwUart != NULL)
+  const bool allowGpsProcessing = !(liveData->params.stopCommandQueue && liveData->settings.voltmeterEnabled == 1);
+  if (allowGpsProcessing)
   {
-    unsigned long start = millis();
-    if (gpsHwUart->available())
+    // GPS process
+    // Start timing
+    int64_t startTime4 = esp_timer_get_time();
+
+    if (gpsHwUart != NULL)
     {
-      do
+      unsigned long start = millis();
+      if (gpsHwUart->available())
       {
-        int ch = gpsHwUart->read();
-        if (ch != -1)
-          syslog->infoNolf(DEBUG_GPS, char(ch));
-        gps.encode(ch);
-      } while (gpsHwUart->available());
-      syncGPS();
+        do
+        {
+          int ch = gpsHwUart->read();
+          if (ch != -1)
+            syslog->infoNolf(DEBUG_GPS, char(ch));
+          gps.encode(ch);
+        } while (gpsHwUart->available());
+        syncGPS();
+      }
     }
-  }
-  else
-  {
-    // MEB CAR GPS
-    if (liveData->params.gpsValid && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0)
-      calcAutomaticBrightnessLatLon();
-  }
-  if (liveData->params.setGpsTimeFromCar != 0)
-  {
-    struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);
-    tmm->tm_isdst = 0;
-    setGpsTime(tmm->tm_year + 1900, tmm->tm_mon + 1, tmm->tm_mday, tmm->tm_hour, tmm->tm_min, tmm->tm_sec);
-    liveData->params.setGpsTimeFromCar = 0;
-  }
+    else
+    {
+      // MEB CAR GPS
+      if (liveData->params.gpsValid && liveData->params.gpsLat != -1.0 && liveData->params.gpsLon != -1.0)
+        calcAutomaticBrightnessLatLon();
+    }
+    if (liveData->params.setGpsTimeFromCar != 0)
+    {
+      struct tm *tmm = gmtime(&liveData->params.setGpsTimeFromCar);
+      tmm->tm_isdst = 0;
+      setGpsTime(tmm->tm_year + 1900, tmm->tm_mon + 1, tmm->tm_mday, tmm->tm_hour, tmm->tm_min, tmm->tm_sec);
+      liveData->params.setGpsTimeFromCar = 0;
+    }
 
-  int64_t endTime4 = esp_timer_get_time();
-  // Calculate duration
-  int64_t duration4 = endTime4 - startTime4;
+    int64_t endTime4 = esp_timer_get_time();
+    // Calculate duration
+    int64_t duration4 = endTime4 - startTime4;
 
-  // Print the duration using syslog
-  // Use String constructor to convert int64_t to String
-  // syslog->println("Time taken by function: GPS loop " + String(duration4) + " microseconds");
+    // Print the duration using syslog
+    // Use String constructor to convert int64_t to String
+    // syslog->println("Time taken by function: GPS loop " + String(duration4) + " microseconds");
+  }
 
   // currentTime
   struct tm now = cachedNow;
@@ -2637,16 +2646,21 @@ void Board320_240::mainLoop()
   }
 
   // Wake up from stopped command queue
-  //  - any touch on display
   //  - ignitions on and aux >= 11.5v
   //  - ina3221 & voltage is >= 14V (DCDC is running)
-  //  - gps speed 20 - 60kmh & 8+ satellites
-  if (
-      (liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
-      (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
-      (liveData->params.gyroSensorMotion) ||
-      (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8) // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
-  )
+  //  - gps speed 20 - 60kmh & 8+ satellites (only when voltmeter is disabled)
+  //  - gyro motion (only when voltmeter is disabled)
+  const bool queueSleeping = (liveData->params.stopCommandQueue || liveData->params.stopCommandQueueTime != 0);
+  const bool allowMotionWake = (liveData->settings.voltmeterEnabled == 0);
+  const bool gpsWake =
+      allowMotionWake &&
+      (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8); // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
+  const bool gyroWake = allowMotionWake && liveData->params.gyroSensorMotion;
+  if (queueSleeping &&
+      ((liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
+       (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
+       gyroWake ||
+       gpsWake))
   {
     liveData->continueWithCommandQueue();
     if (commInterface->isSuspended())
@@ -2714,7 +2728,10 @@ void Board320_240::mainLoop()
   // Read data from BLE/CAN
   if (!liveData->settings.threading)
   {
-    commInterface->mainLoop();
+    if (!liveData->params.stopCommandQueue && !commInterface->isSuspended())
+    {
+      commInterface->mainLoop();
+    }
   }
 
   // force redraw (min 1 sec update)

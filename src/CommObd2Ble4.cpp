@@ -397,6 +397,10 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
 */
 void CommObd2Ble4::mainLoop()
 {
+  if (liveData->params.stopCommandQueue || suspendedDevice)
+  {
+    return;
+  }
 
   // Connect BLE device
   if (liveData->obd2ready == true && liveData->foundMyBleDevice != NULL)
@@ -453,7 +457,17 @@ void CommObd2Ble4::executeCommand(String cmd)
 void CommObd2Ble4::suspendDevice()
 {
   suspendedDevice = true;
-  // TODO
+  liveData->commConnected = false;
+  liveData->obd2ready = false;
+  if (liveData->pClient != nullptr && liveData->pClient->isConnected())
+  {
+    liveData->pClient->disconnect();
+  }
+  if (liveData->pBLEScan != nullptr)
+  {
+    liveData->pBLEScan->stop();
+  }
+  connectStatus = "Suspended";
 }
 
 /**
@@ -462,5 +476,6 @@ void CommObd2Ble4::suspendDevice()
 void CommObd2Ble4::resumeDevice()
 {
   suspendedDevice = false;
-  // TODO
+  liveData->obd2ready = true;
+  connectStatus = "Resumed";
 }

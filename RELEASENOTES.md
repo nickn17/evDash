@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.1.9 2026-02-01
+- Sentry/queue stop now hard-blocks OBD2/CAN sends (BLE/WiFi included) and pauses comm loop while suspended.
+- BLE/WiFi adapters stop reconnect/scanning during Sentry; suspend/resume now cleanly toggles OBD2 client state.
+- Sentry wake logic: when voltmeter is enabled, GPS/gyro wake triggers are ignored and GPS processing is paused to avoid false wakes.
+
 ### V4.1.8 2026-02-01
 - ABRP upload: avoid stacking back-to-back sends when the network task is busy (helps prevent lockups with short ABRP intervals).
 - ABRP upload: refresh HTTPS client per request to reduce resource pressure after repeated posts.

@@ -67,6 +67,7 @@ String CommInterface::getConnectStatus()
  */
 void CommInterface::mainLoop()
 {
+  const bool queueSuspended = liveData->params.stopCommandQueue || suspendedDevice;
 
   // Send command from TTY to OBD2
   if (syslog->available())
@@ -81,7 +82,10 @@ void CommInterface::mainLoop()
       // CustomConsoleCommand only process evDash command (reboot, savesetting, etd).
       response = response + ch;
       syslog->info(DEBUG_COMM, response);
-      executeCommand(response);
+      if (!queueSuspended)
+      {
+        executeCommand(response);
+      }
       response = "";
     }
     else
@@ -113,6 +117,11 @@ void CommInterface::mainLoop()
   // Can send next command from queue to OBD
   if (liveData->canSendNextAtCommand)
   {
+    if (queueSuspended)
+    {
+      connectStatus = "CAN queue paused";
+      return;
+    }
     if (liveData->commandQueueIndex == liveData->commandQueueCount && liveData->params.stopCommandQueue)
     {
       connectStatus = "CAN queue paused";
@@ -135,6 +144,12 @@ void CommInterface::mainLoop()
  */
 bool CommInterface::doNextQueueCommand()
 {
+  if (liveData->params.stopCommandQueue || suspendedDevice)
+  {
+    connectStatus = "CAN queue paused";
+    liveData->canSendNextAtCommand = true;
+    return false;
+  }
 
   // Send AT command to obd
   bool commandAllowed = false;
