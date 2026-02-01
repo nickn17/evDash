@@ -43,17 +43,20 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case VEHICLE_TYPE_KONA_2020_39:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_KONA_2020_39) ? ">" : "";
     break;
-  case VEHICLE_TYPE_HYUNDAI_IONIQ5_58:
-    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58) ? ">" : "";
+  case VEHICLE_TYPE_HYUNDAI_IONIQ5_58_63:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63) ? ">" : "";
     break;
   case VEHICLE_TYPE_HYUNDAI_IONIQ5_72:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72) ? ">" : "";
     break;
-  case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
-    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77) ? ">" : "";
+  case VEHICLE_TYPE_HYUNDAI_IONIQ5_77_84:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77_84) ? ">" : "";
     break;
-  case VEHICLE_TYPE_HYUNDAI_IONIQ6_77:
-    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_77) ? ">" : "";
+  case VEHICLE_TYPE_HYUNDAI_IONIQ6_58_63:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_HYUNDAI_IONIQ6_77_84:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_77_84) ? ">" : "";
     break;
   case VEHICLE_TYPE_ENIRO_2020_64:
     prefix = (liveData->settings.carType == CAR_KIA_ENIRO_2020_64) ? ">" : "";
@@ -64,11 +67,11 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case VEHICLE_TYPE_ESOUL_2020_64:
     prefix = (liveData->settings.carType == CAR_KIA_ESOUL_2020_64) ? ">" : "";
     break;
-  case VEHICLE_TYPE_KIA_EV6_58:
-    prefix = (liveData->settings.carType == CAR_KIA_EV6_58) ? ">" : "";
+  case VEHICLE_TYPE_KIA_EV6_58_63:
+    prefix = (liveData->settings.carType == CAR_KIA_EV6_58_63) ? ">" : "";
     break;
-  case VEHICLE_TYPE_KIA_EV6_77:
-    prefix = (liveData->settings.carType == CAR_KIA_EV6_77) ? ">" : "";
+  case VEHICLE_TYPE_KIA_EV6_77_84:
+    prefix = (liveData->settings.carType == CAR_KIA_EV6_77_84) ? ">" : "";
     break;
   case VEHICLE_TYPE_KIA_EV9_100:
     prefix = (liveData->settings.carType == CAR_KIA_EV9_100) ? ">" : "";
@@ -655,8 +658,8 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_HYUNDAI_IONIQ5_58:
-      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_58;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ5_58_63:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_58_63;
       showMenu();
       return;
       break;
@@ -665,13 +668,18 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_HYUNDAI_IONIQ5_77:
-      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_77;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ5_77_84:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ5_77_84;
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_HYUNDAI_IONIQ6_77:
-      liveData->settings.carType = CAR_HYUNDAI_IONIQ6_77;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ6_58_63:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ6_58_63;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ6_77_84:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ6_77_84;
       showMenu();
       return;
       break;
@@ -690,13 +698,13 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_KIA_EV6_58:
-      liveData->settings.carType = CAR_KIA_EV6_58;
+    case VEHICLE_TYPE_KIA_EV6_58_63:
+      liveData->settings.carType = CAR_KIA_EV6_58_63;
       showMenu();
       return;
       break;
-    case VEHICLE_TYPE_KIA_EV6_77:
-      liveData->settings.carType = CAR_KIA_EV6_77;
+    case VEHICLE_TYPE_KIA_EV6_77_84:
+      liveData->settings.carType = CAR_KIA_EV6_77_84;
       showMenu();
       return;
       break;

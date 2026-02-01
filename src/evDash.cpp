@@ -98,12 +98,13 @@ void setup(void)
   case CAR_KIA_ESOUL_2020_64:
     car = new CarKiaEniro();
     break;
-  case CAR_HYUNDAI_IONIQ5_58:
+  case CAR_HYUNDAI_IONIQ5_58_63:
   case CAR_HYUNDAI_IONIQ5_72:
-  case CAR_HYUNDAI_IONIQ5_77:
-  case CAR_HYUNDAI_IONIQ6_77:
-  case CAR_KIA_EV6_58:
-  case CAR_KIA_EV6_77:
+  case CAR_HYUNDAI_IONIQ5_77_84:
+  case CAR_HYUNDAI_IONIQ6_58_63:
+  case CAR_HYUNDAI_IONIQ6_77_84:
+  case CAR_KIA_EV6_58_63:
+  case CAR_KIA_EV6_77_84:
   case CAR_KIA_EV9_100:
     car = new CarHyundaiEgmp();
     break;
