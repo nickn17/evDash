@@ -68,6 +68,10 @@ void LiveData::initParams()
   params.lastVoltageReadTime = 0;
   params.lastVoltageOkTime = 0;
   params.stopCommandQueueTime = 0;
+  params.gpsWakeCount = 0;
+  params.gyroWakeCount = 0;
+  params.motionWakeLocked = false;
+  params.sentrySessionActive = false;
   // Car data
   memset(params.carVin, 0, sizeof(params.carVin));
   params.carMode = CAR_MODE_NONE;
@@ -310,6 +314,13 @@ void LiveData::prepareForStopCommandQueue()
   if (params.stopCommandQueueTime == 0)
   {
     params.stopCommandQueueTime = params.currentTime;
+    if (!params.sentrySessionActive)
+    {
+      params.sentrySessionActive = true;
+      params.gpsWakeCount = 0;
+      params.gyroWakeCount = 0;
+      params.motionWakeLocked = false;
+    }
   }
 }
 

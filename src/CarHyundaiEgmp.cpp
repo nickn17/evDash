@@ -127,7 +127,17 @@ void CarHyundaiEgmp::activateCommandQueue()
 
       // Loop from here
 
-      // IGPM
+      // Fast refresh block (display-critical values).
+      // Duplicated early in the loop so brake light, speed and power update more often
+      // without removing the full scan later in the queue.
+      "ATSH770",
+      "22BC06", // brake light
+      "ATSH7D1",
+      "220104", // speed/gear
+      "ATSH7E4",
+      "220101", // power kW (also drives kWh/100km calc)
+
+      // IGPM (full block)
       "ATSH770",
       "22BC01", // 009 62BC01400000000001AAAAAAAA
       "22BC03", // low beam
@@ -244,7 +254,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       //"0131",
       //"015B",
 
-      // BMS
+      // BMS (full block - 220101 is intentionally duplicated above for faster refresh)
       "ATSH7E4",
       //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "220101", // power kw, engine rpm etc
@@ -270,6 +280,7 @@ void CarHyundaiEgmp::activateCommandQueue()
       liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
       liveData->settings.carType == CAR_KIA_EV6_58_63)
   {
+    liveData->params.batModuleTempCount = 8;
     liveData->params.batteryTotalAvailableKWh = 58;
     liveData->params.cellCount = 144; // 288 / 2, 24 modules
   }
@@ -541,11 +552,25 @@ void CarHyundaiEgmp::parseRowMerged()
       liveData->params.batCellMaxVNo = liveData->hexToDecFromResponse(54, 56, 1, false);
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
       liveData->params.batCellMinVNo = liveData->hexToDecFromResponse(58, 60, 1, false);
-      liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true); // 1
-      liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true); // 2
-      liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true); // 3
-      liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true); // 4
-      liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
+      const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
+                                liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+                                liveData->settings.carType == CAR_KIA_EV6_58_63);
+      if (isSmallPack)
+      {
+        const uint8_t tempStart = 34; // 8 temp bytes start at byte index 17 in 220101 response
+        for (uint8_t i = 0; i < liveData->params.batModuleTempCount; i++)
+        {
+          liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
+        }
+      }
+      else
+      {
+        liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true); // 1
+        liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true); // 2
+        liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true); // 3
+        liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true); // 4
+        liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
+      }
       liveData->params.motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
       liveData->params.motor2Rpm = liveData->hexToDecFromResponse(116, 120, 2, false);
       // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
@@ -639,17 +664,23 @@ void CarHyundaiEgmp::parseRowMerged()
       liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
       // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
 
-      liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(24, 26, 1, true);  // 6
-      liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(26, 28, 1, true);  // 7
-      liveData->params.batModuleTempC[7] = liveData->hexToDecFromResponse(28, 30, 1, true);  // 8
-      liveData->params.batModuleTempC[8] = liveData->hexToDecFromResponse(30, 32, 1, true);  // 9
-      liveData->params.batModuleTempC[9] = liveData->hexToDecFromResponse(32, 34, 1, true);  // 10
-      liveData->params.batModuleTempC[10] = liveData->hexToDecFromResponse(34, 36, 1, true); // 11
-      liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(36, 38, 1, true); // 12
-      liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(84, 86, 1, true); // 13
-      liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(86, 88, 1, true); // 14
-      liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(88, 90, 1, true); // 15
-      liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(90, 92, 1, true); // 16
+      const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
+                                liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+                                liveData->settings.carType == CAR_KIA_EV6_58_63);
+      if (!isSmallPack)
+      {
+        liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(24, 26, 1, true);  // 6
+        liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(26, 28, 1, true);  // 7
+        liveData->params.batModuleTempC[7] = liveData->hexToDecFromResponse(28, 30, 1, true);  // 8
+        liveData->params.batModuleTempC[8] = liveData->hexToDecFromResponse(30, 32, 1, true);  // 9
+        liveData->params.batModuleTempC[9] = liveData->hexToDecFromResponse(32, 34, 1, true);  // 10
+        liveData->params.batModuleTempC[10] = liveData->hexToDecFromResponse(34, 36, 1, true); // 11
+        liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(36, 38, 1, true); // 12
+        liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(84, 86, 1, true); // 13
+        liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(86, 88, 1, true); // 14
+        liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(88, 90, 1, true); // 15
+        liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(90, 92, 1, true); // 16
+      }
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)

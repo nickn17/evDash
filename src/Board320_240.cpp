@@ -1078,6 +1078,15 @@ void Board320_240::drawSceneSpeed()
     spr.setTextColor(TFT_RED);
     spr.setTextDatum(TL_DATUM);
     sprDrawString("SENTRY ON", 90, 100);
+    sprSetFont(fontFont2);
+    spr.setTextColor(TFT_WHITE);
+    spr.setTextDatum(TL_DATUM);
+    sprintf(tmpStr1, "GPSw:%u GYw:%u", liveData->params.gpsWakeCount, liveData->params.gyroWakeCount);
+    sprDrawString(tmpStr1, 90, 130);
+    if (liveData->params.motionWakeLocked)
+    {
+      sprDrawString("Touch to wake", 90, 150);
+    }
     return;
   }
 
@@ -2645,6 +2654,18 @@ void Board320_240::mainLoop()
     }
   }
 
+  // Reset sentry session when car becomes active
+  if (liveData->params.ignitionOn || liveData->params.chargingOn)
+  {
+    if (liveData->params.sentrySessionActive)
+    {
+      liveData->params.sentrySessionActive = false;
+      liveData->params.motionWakeLocked = false;
+      liveData->params.gpsWakeCount = 0;
+      liveData->params.gyroWakeCount = 0;
+    }
+  }
+
   // Wake up from stopped command queue
   //  - ignitions on and aux >= 11.5v
   //  - ina3221 & voltage is >= 14V (DCDC is running)
@@ -2652,16 +2673,37 @@ void Board320_240::mainLoop()
   //  - gyro motion (only when voltmeter is disabled)
   const bool queueSleeping = (liveData->params.stopCommandQueue || liveData->params.stopCommandQueueTime != 0);
   const bool allowMotionWake = (liveData->settings.voltmeterEnabled == 0);
+  const uint16_t maxGpsWakePerSession = 1;
+  const uint16_t maxGyroWakePerSession = 2;
+  const bool gpsWakeRemaining = (liveData->params.gpsWakeCount < maxGpsWakePerSession);
+  const bool gyroWakeRemaining = (liveData->params.gyroWakeCount < maxGyroWakePerSession);
+  const bool motionWakeLocked = (!gpsWakeRemaining && !gyroWakeRemaining);
+  liveData->params.motionWakeLocked = motionWakeLocked;
+  const bool motionWakeAllowed = allowMotionWake && !motionWakeLocked;
   const bool gpsWake =
-      allowMotionWake &&
+      motionWakeAllowed && gpsWakeRemaining &&
       (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8); // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
-  const bool gyroWake = allowMotionWake && liveData->params.gyroSensorMotion;
+  const bool gyroWake = motionWakeAllowed && gyroWakeRemaining && liveData->params.gyroSensorMotion;
+  const bool motionWake = gpsWake || gyroWake;
   if (queueSleeping &&
       ((liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
        (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
-       gyroWake ||
-       gpsWake))
+       motionWake))
   {
+    if (motionWake)
+    {
+      if (gpsWake)
+      {
+        liveData->params.gpsWakeCount++;
+      }
+      if (gyroWake)
+      {
+        liveData->params.gyroWakeCount++;
+      }
+      liveData->params.motionWakeLocked =
+          (liveData->params.gpsWakeCount >= maxGpsWakePerSession &&
+           liveData->params.gyroWakeCount >= maxGyroWakePerSession);
+    }
     liveData->continueWithCommandQueue();
     if (commInterface->isSuspended())
     {
