@@ -1,9 +1,15 @@
 # RELEASE NOTES
 
+### V4.1.10 2026-02-02
+- eGMP 58/63 packs: parse only 8 BMS temp sensors from 220101 to avoid null (-40°C) readings.
+
 ### V4.1.9 2026-02-01
 - Sentry/queue stop now hard-blocks OBD2/CAN sends (BLE/WiFi included) and pauses comm loop while suspended.
 - BLE/WiFi adapters stop reconnect/scanning during Sentry; suspend/resume now cleanly toggles OBD2 client state.
 - Sentry wake logic: when voltmeter is enabled, GPS/gyro wake triggers are ignored and GPS processing is paused to avoid false wakes.
+- Sentry: GPS/Gyro motion wake is limited to one per parking session; further motion wakes require a touch to resume the queue.
+- Sentry screen now shows GPS/Gyro wake counters.
+- eGMP: duplicate brake light/speed/power requests early in the queue for faster display refresh while keeping full ECU scan.
 
 ### V4.1.8 2026-02-01
 - ABRP upload: avoid stacking back-to-back sends when the network task is busy (helps prevent lockups with short ABRP intervals).
