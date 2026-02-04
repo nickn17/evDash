@@ -1,5 +1,15 @@
 # RELEASE NOTES
 
+### V4.1.12 2026-02-04
+- Sentry wake tuning: higher gyro wake limit plus periodic reset while parked.
+- Sentry GPS wake: relaxed thresholds (valid fix, >= 5 km/h, 4+ satellites).
+- First touch now wakes display and resumes queue (no extra tap needed).
+- Sentry screen now shows GPS speed/satellites and AUX voltage.
+- CoreS3: enabled IMU gyro motion detection for wake.
+
+### V4.1.11 2026-02-04
+- eGMP 58/63 packs: clamp temp sensor count to 8 when parsing 220101 to avoid bogus negative readings.
+
 ### V4.1.10 2026-02-02
 - eGMP 58/63 packs: parse only 8 BMS temp sensors from 220101 to avoid null (-40°C) readings.
 

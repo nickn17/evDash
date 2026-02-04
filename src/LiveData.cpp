@@ -70,6 +70,7 @@ void LiveData::initParams()
   params.stopCommandQueueTime = 0;
   params.gpsWakeCount = 0;
   params.gyroWakeCount = 0;
+  params.motionWakeLastTime = 0;
   params.motionWakeLocked = false;
   params.sentrySessionActive = false;
   // Car data
@@ -320,6 +321,7 @@ void LiveData::prepareForStopCommandQueue()
       params.gpsWakeCount = 0;
       params.gyroWakeCount = 0;
       params.motionWakeLocked = false;
+      params.motionWakeLastTime = params.currentTime;
     }
   }
 }

@@ -149,6 +149,7 @@ typedef struct
   time_t stopCommandQueueTime;
   uint16_t gpsWakeCount;
   uint16_t gyroWakeCount;
+  time_t motionWakeLastTime;
   bool motionWakeLocked;
   bool sentrySessionActive;
   // Car params

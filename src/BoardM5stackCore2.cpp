@@ -130,6 +130,12 @@ bool BoardM5stackCore2::isButtonPressed(int button)
     {
       setBrightness();
       redrawScreen();
+      liveData->continueWithCommandQueue();
+      if (commInterface->isSuspended())
+      {
+        commInterface->resumeDevice();
+      }
+      touchPressed = false;
       return true;
     }
   }
