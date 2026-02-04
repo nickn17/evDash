@@ -557,8 +557,12 @@ void CarHyundaiEgmp::parseRowMerged()
                                 liveData->settings.carType == CAR_KIA_EV6_58_63);
       if (isSmallPack)
       {
+        // 58/63 kWh packs only expose 8 temp sensors in 220101.
         const uint8_t tempStart = 34; // 8 temp bytes start at byte index 17 in 220101 response
-        for (uint8_t i = 0; i < liveData->params.batModuleTempCount; i++)
+        const uint8_t tempCount = 8;
+        if (liveData->params.batModuleTempCount != tempCount)
+          liveData->params.batModuleTempCount = tempCount;
+        for (uint8_t i = 0; i < tempCount; i++)
         {
           liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
         }

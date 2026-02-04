@@ -78,6 +78,7 @@ namespace
   constexpr float kGpsMaxJumpMetersShort = 2000.0f;
   constexpr uint32_t kGpsShortJumpWindowSec = 5;
   constexpr uint32_t kGpsReacquireAfterSec = 900;
+  constexpr uint32_t kMotionWakeResetSec = 900;
 
   struct AbrpLogEntry
   {
@@ -1083,9 +1084,27 @@ void Board320_240::drawSceneSpeed()
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "GPSw:%u GYw:%u", liveData->params.gpsWakeCount, liveData->params.gyroWakeCount);
     sprDrawString(tmpStr1, 90, 130);
+    if (liveData->params.speedKmhGPS < 0)
+    {
+      snprintf(tmpStr2, sizeof(tmpStr2), "GPS:-- SAT:%u", liveData->params.gpsSat);
+    }
+    else
+    {
+      snprintf(tmpStr2, sizeof(tmpStr2), "GPS:%03.0f SAT:%u", liveData->params.speedKmhGPS, liveData->params.gpsSat);
+    }
+    sprDrawString(tmpStr2, 90, 145);
+    if (liveData->params.auxVoltage == -1)
+    {
+      snprintf(tmpStr3, sizeof(tmpStr3), "AUX: --.-V");
+    }
+    else
+    {
+      snprintf(tmpStr3, sizeof(tmpStr3), "AUX:%04.1fV", liveData->params.auxVoltage);
+    }
+    sprDrawString(tmpStr3, 90, 160);
     if (liveData->params.motionWakeLocked)
     {
-      sprDrawString("Touch to wake", 90, 150);
+      sprDrawString("Touch to wake", 90, 175);
     }
     return;
   }
@@ -2663,18 +2682,33 @@ void Board320_240::mainLoop()
       liveData->params.motionWakeLocked = false;
       liveData->params.gpsWakeCount = 0;
       liveData->params.gyroWakeCount = 0;
+      liveData->params.motionWakeLastTime = 0;
     }
   }
 
   // Wake up from stopped command queue
   //  - ignitions on and aux >= 11.5v
   //  - ina3221 & voltage is >= 14V (DCDC is running)
-  //  - gps speed 20 - 60kmh & 8+ satellites (only when voltmeter is disabled)
+  //  - gps speed >= 5kmh & 4+ satellites (only when voltmeter is disabled)
   //  - gyro motion (only when voltmeter is disabled)
   const bool queueSleeping = (liveData->params.stopCommandQueue || liveData->params.stopCommandQueueTime != 0);
   const bool allowMotionWake = (liveData->settings.voltmeterEnabled == 0);
+  if (queueSleeping)
+  {
+    if (liveData->params.motionWakeLastTime == 0)
+    {
+      liveData->params.motionWakeLastTime = liveData->params.currentTime;
+    }
+    else if (liveData->params.currentTime - liveData->params.motionWakeLastTime >= kMotionWakeResetSec)
+    {
+      liveData->params.gpsWakeCount = 0;
+      liveData->params.gyroWakeCount = 0;
+      liveData->params.motionWakeLocked = false;
+      liveData->params.motionWakeLastTime = liveData->params.currentTime;
+    }
+  }
   const uint16_t maxGpsWakePerSession = 1;
-  const uint16_t maxGyroWakePerSession = 2;
+  const uint16_t maxGyroWakePerSession = 5;
   const bool gpsWakeRemaining = (liveData->params.gpsWakeCount < maxGpsWakePerSession);
   const bool gyroWakeRemaining = (liveData->params.gyroWakeCount < maxGyroWakePerSession);
   const bool motionWakeLocked = (!gpsWakeRemaining && !gyroWakeRemaining);
@@ -2682,7 +2716,7 @@ void Board320_240::mainLoop()
   const bool motionWakeAllowed = allowMotionWake && !motionWakeLocked;
   const bool gpsWake =
       motionWakeAllowed && gpsWakeRemaining &&
-      (liveData->params.speedKmhGPS >= 20 && liveData->params.speedKmhGPS <= 60 && liveData->params.gpsSat >= 8); // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
+      (liveData->params.gpsValid && liveData->params.speedKmhGPS >= 5 && liveData->params.gpsSat >= 4); // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
   const bool gyroWake = motionWakeAllowed && gyroWakeRemaining && liveData->params.gyroSensorMotion;
   const bool motionWake = gpsWake || gyroWake;
   if (queueSleeping &&
@@ -2700,6 +2734,7 @@ void Board320_240::mainLoop()
       {
         liveData->params.gyroWakeCount++;
       }
+      liveData->params.motionWakeLastTime = liveData->params.currentTime;
       liveData->params.motionWakeLocked =
           (liveData->params.gpsWakeCount >= maxGpsWakePerSession &&
            liveData->params.gyroWakeCount >= maxGyroWakePerSession);
@@ -2903,6 +2938,7 @@ void Board320_240::syncTimes(time_t newTime)
       &liveData->params.wakeUpTime,
       &liveData->params.lastIgnitionOnTime,
       &liveData->params.stopCommandQueueTime,
+      &liveData->params.motionWakeLastTime,
       &liveData->params.lastChargingOnTime,
       &liveData->params.lastVoltageReadTime,
       &liveData->params.lastVoltageOkTime,

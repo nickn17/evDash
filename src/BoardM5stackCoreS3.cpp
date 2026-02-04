@@ -17,17 +17,12 @@ bool btnCPressed = false;
 
 // I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);
 
-/*float accX = 0.0F;  // Define variables for storing inertial sensor data
+float accX = 0.0F; // Inertial sensor data
 float accY = 0.0F;
 float accZ = 0.0F;
 float gyroX = 0.0F;
 float gyroY = 0.0F;
 float gyroZ = 0.0F;
-float pitch = 0.0F;
-float roll  = 0.0F;
-float yaw   = 0.0F;
-float temp = 0.0F;
-*/
 
 /**
  * Init board
@@ -96,6 +91,12 @@ bool BoardM5stackCoreS3::isButtonPressed(int button)
     {
       setBrightness();
       redrawScreen();
+      liveData->continueWithCommandQueue();
+      if (commInterface->isSuspended())
+      {
+        commInterface->resumeDevice();
+      }
+      touchPressed = false;
       return true;
     }
   }
@@ -303,28 +304,17 @@ void BoardM5stackCoreS3::boardLoop()
 
   Board320_240::boardLoop();
 
-  /*    M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
-      M5.IMU.getAccelData(
-          &accX, &accY,
-          &accZ);
-      M5.IMU.getAhrsData(
-          &pitch, &roll,
-          &yaw);
-      M5.IMU.getTempData(&temp);  // Stores the inertial sensor temperature to
-      if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0) {
-      syslog->printf("gyroX,  gyroY, gyroZ\n");
-      syslog->printf("%6.2f %6.2f%6.2f o/s\n", gyroX, gyroY, gyroZ);
-      }
-      if (accX != 0.0 || accY != 0.0 || accZ != 0.0) {
-      syslog->printf("accX,   accY,  accZ\n");
-      syslog->printf("%5.2f  %5.2f  %5.2f G\n", accX, accY, accZ);
-      }
-      if (pitch != 0.0 || roll != 0.0 || yaw != -8.5) {
-      syslog->printf("pitch,  roll,  yaw\n");
-      syslog->printf("%5.2f  %5.2f  %5.2f deg\n", pitch, roll, yaw);
-      }
-      syslog->flush();
-      */
+  CoreS3.Imu.getGyroData(&gyroX, &gyroY, &gyroZ);
+  CoreS3.Imu.getAccelData(&accX, &accY, &accZ);
+
+  if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0 || accX != 0.0 || accY != 0.0 || accZ != 0.0)
+  {
+    liveData->params.gyroSensorMotion = false;
+    if (abs(gyroX) > 15.0 || abs(gyroY) > 15.0 || abs(gyroZ) > 15.0)
+    {
+      liveData->params.gyroSensorMotion = true;
+    }
+  }
 }
 
 /**
