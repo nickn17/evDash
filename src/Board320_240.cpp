@@ -2552,6 +2552,21 @@ void Board320_240::mainLoop()
     lastTimeUpdateMs = nowMs;
   }
 
+  // Periodic automatic brightness recalculation (handles sunrise/sunset without new GPS fix)
+  if (liveData->settings.lcdBrightness == 0 &&
+      liveData->params.gpsLat != -1.0 &&
+      liveData->params.gpsLon != -1.0 &&
+      liveData->params.currentTime != 0)
+  {
+    static time_t lastAutoBrightnessCalc = 0;
+    const time_t nowTime = liveData->params.currentTime;
+    if (lastAutoBrightnessCalc == 0 || (nowTime - lastAutoBrightnessCalc) >= 60)
+    {
+      lastAutoBrightnessCalc = nowTime;
+      calcAutomaticBrightnessLatLon();
+    }
+  }
+
   // Check and eventually reconnect WIFI connection
   const bool wifiEnabled = (liveData->settings.wifiEnabled == 1);
   const bool wifiConnected = (WiFi.status() == WL_CONNECTED);
@@ -2756,12 +2771,16 @@ void Board320_240::mainLoop()
   //  - automatically turns off CAN scanning after 1-2 minutes of inactivity
   //  - ignition is off
   //  - AUX voltage is under 11.5V
+  const time_t doorStateStaleAfterSec = 15;
+  const bool doorStateStale = (liveData->params.currentTime - liveData->params.lastCanbusResponseTime > doorStateStaleAfterSec);
+  const bool doorsClosed = (!liveData->params.leftFrontDoorOpen &&
+                            !liveData->params.rightFrontDoorOpen &&
+                            !liveData->params.trunkDoorOpen);
+  const bool doorsOk = (doorsClosed || doorStateStale);
   if (liveData->settings.commandQueueAutoStop == 1 &&
       liveData->params.getValidResponse &&
       ((!liveData->params.ignitionOn &&
-        !liveData->params.leftFrontDoorOpen &&
-        !liveData->params.rightFrontDoorOpen &&
-        !liveData->params.trunkDoorOpen &&
+        doorsOk &&
         !liveData->params.chargingOn) ||
        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5)))
   {

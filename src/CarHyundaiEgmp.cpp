@@ -10,6 +10,88 @@
 
 #define commandQueueLoopFromHyundaiEgmp 8
 
+namespace
+{
+const char *udsNrcDescription(const String &nrc)
+{
+  if (nrc.equals("10"))
+    return "General reject";
+  if (nrc.equals("11"))
+    return "Service not supported";
+  if (nrc.equals("12"))
+    return "Sub-function not supported";
+  if (nrc.equals("13"))
+    return "Incorrect message length or invalid format";
+  if (nrc.equals("14"))
+    return "Response too long";
+  if (nrc.equals("21"))
+    return "Busy repeat request";
+  if (nrc.equals("22"))
+    return "Conditions not correct";
+  if (nrc.equals("24"))
+    return "Request sequence error";
+  if (nrc.equals("25"))
+    return "No response from subnet component";
+  if (nrc.equals("26"))
+    return "Failure prevents execution";
+  if (nrc.equals("31"))
+    return "Request out of range";
+  if (nrc.equals("33"))
+    return "Security access denied";
+  if (nrc.equals("35"))
+    return "Invalid key";
+  if (nrc.equals("36"))
+    return "Exceeded number of attempts";
+  if (nrc.equals("37"))
+    return "Required time delay not expired";
+  if (nrc.equals("78"))
+    return "Response pending";
+  if (nrc.equals("7E"))
+    return "Sub-function not supported in active session";
+  if (nrc.equals("7F"))
+    return "Service not supported in active session";
+  return "Unknown";
+}
+
+void logUdsResponse(LogSerial *logger, const char *label, const String &request, const String &response, bool gotResponse)
+{
+  if (!logger)
+    return;
+
+  String msg = String(label) + " " + request + " -> ";
+  if (!gotResponse)
+  {
+    msg += "[no response]";
+    logger->info(DEBUG_COMM, msg);
+    return;
+  }
+  if (response.length() == 0)
+  {
+    msg += "[empty response]";
+    logger->info(DEBUG_COMM, msg);
+    return;
+  }
+
+  String resp = response;
+  resp.toUpperCase();
+  msg += resp;
+
+  if (resp.startsWith("7F") && resp.length() >= 6)
+  {
+    String svc = resp.substring(2, 4);
+    String nrc = resp.substring(4, 6);
+    msg += " NRC ";
+    msg += nrc;
+    msg += " (";
+    msg += udsNrcDescription(nrc);
+    msg += "), svc ";
+    msg += svc;
+  }
+
+  logger->info(DEBUG_COMM, msg);
+}
+} // namespace
+
 // https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
 //
 // To-do list for IONIQ5
@@ -564,7 +646,10 @@ void CarHyundaiEgmp::parseRowMerged()
           liveData->params.batModuleTempCount = tempCount;
         for (uint8_t i = 0; i < tempCount; i++)
         {
-          liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
+          float temp = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
+          if (temp < -40 || temp > 120)
+            temp = -100;
+          liveData->params.batModuleTempC[i] = temp;
         }
       }
       else
@@ -582,17 +667,34 @@ void CarHyundaiEgmp::parseRowMerged()
       liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt
 
       // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
-      liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
-      for (uint16_t i = 1; i < liveData->params.batModuleTempCount; i++)
+      float minTemp = 999;
+      float maxTemp = -999;
+      for (uint16_t i = 0; i < liveData->params.batModuleTempCount; i++)
       {
-        if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
-          liveData->params.batMinC = liveData->params.batModuleTempC[i];
-        if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
-          liveData->params.batMaxC = liveData->params.batModuleTempC[i];
+        const float temp = liveData->params.batModuleTempC[i];
+        if (temp == -100)
+          continue;
+        if (temp < minTemp)
+          minTemp = temp;
+        if (temp > maxTemp)
+          maxTemp = temp;
       }
-      liveData->params.batTempC = liveData->params.batMinC;
+      if (minTemp < 900)
+      {
+        liveData->params.batMinC = minTemp;
+        liveData->params.batMaxC = maxTemp;
+        liveData->params.batTempC = liveData->params.batMinC;
+      }
+      else
+      {
+        liveData->params.batMinC = -100;
+        liveData->params.batMaxC = -100;
+        liveData->params.batTempC = -100;
+      }
 
-      liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
+      const float batInlet = liveData->hexToDecFromResponse(50, 52, 1, true);
+      if (batInlet > -40 && batInlet < 120)
+        liveData->params.batInletC = batInlet;
       if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
       {
         if (liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
@@ -671,7 +773,41 @@ void CarHyundaiEgmp::parseRowMerged()
       const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
                                 liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
                                 liveData->settings.carType == CAR_KIA_EV6_58_63);
-      if (!isSmallPack)
+      if (isSmallPack)
+      {
+        const uint8_t tempStart = 24; // 8 temp bytes start at byte index 12 in 220105 response
+        const uint8_t tempCount = 8;
+        if (liveData->responseRowMerged.length() >= tempStart + (tempCount * 2))
+        {
+          for (uint8_t i = 0; i < tempCount; i++)
+          {
+            float temp = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
+            if (temp < -40 || temp > 120)
+              temp = -100;
+            liveData->params.batModuleTempC[i] = temp;
+          }
+
+          float minTemp = 999;
+          float maxTemp = -999;
+          for (uint8_t i = 0; i < tempCount; i++)
+          {
+            const float temp = liveData->params.batModuleTempC[i];
+            if (temp == -100)
+              continue;
+            if (temp < minTemp)
+              minTemp = temp;
+            if (temp > maxTemp)
+              maxTemp = temp;
+          }
+          if (minTemp < 900)
+          {
+            liveData->params.batMinC = minTemp;
+            liveData->params.batMaxC = maxTemp;
+            liveData->params.batTempC = liveData->params.batMinC;
+          }
+        }
+      }
+      else
       {
         liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(24, 26, 1, true);  // 6
         liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(26, 28, 1, true);  // 7
@@ -699,7 +835,9 @@ void CarHyundaiEgmp::parseRowMerged()
         }
       }
       liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
-      liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
+      const float batHeater = liveData->hexToDecFromResponse(52, 54, 1, true);
+      if (batHeater > -40 && batHeater < 120)
+        liveData->params.batHeaterC = batHeater;
       liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
     }
     // BMS 7e4
@@ -1245,6 +1383,34 @@ void CarHyundaiEgmp::testHandler(const String &cmd)
       }
     }
   }
+  // SAFE DID READ (single ECU, single DID)
+  else if (key.equals("safe"))
+  {
+    // safe=07E2/22F190 or safe=07E2/F190
+    int8_t idx2 = value.indexOf("/");
+    if (idx2 == -1)
+    {
+      syslog->info(DEBUG_COMM, "SAFE usage: safe=07E2/22F190");
+      return;
+    }
+    String pidStr = value.substring(0, idx2);
+    String cmd = value.substring(idx2 + 1);
+    pidStr.replace(" ", "");
+    cmd.replace(" ", "");
+    pidStr.toUpperCase();
+    cmd.toUpperCase();
+
+    if (cmd.length() == 4 && !cmd.startsWith("22"))
+      cmd = "22" + cmd;
+
+    if (!cmd.startsWith("22"))
+    {
+      syslog->info(DEBUG_COMM, "SAFE only allows UDS 22 (ReadDataByIdentifier).");
+      return;
+    }
+
+    eNiroCarControl(liveData->hexToDec(pidStr, 2, false), cmd);
+  }
   // ONE COMMAND
   else
   {
@@ -1454,44 +1620,46 @@ void CarHyundaiEgmp::carCommand(const String &cmd)
  */
 void CarHyundaiEgmp::eNiroCarControl(const uint16_t pid, const String &cmd)
 {
+  String pidStr = String(pid, HEX);
+  pidStr.toUpperCase();
+  String pidLabel = "PID 0x" + pidStr;
+
+  auto waitForResponse = [&](const String &requestLabel, const String &expectedResponse) -> bool
+  {
+    bool gotResponse = false;
+    String response = "";
+    for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
+    {
+      if (commInterface->receivePID() != 0xff)
+      {
+        gotResponse = true;
+        response = liveData->prevResponseRowMerged;
+        if (expectedResponse.length() == 0 || response.equals(expectedResponse))
+          break;
+      }
+      delay(20);
+    }
+    logUdsResponse(syslog, "UDS", pidLabel + " " + requestLabel, response, gotResponse);
+    return gotResponse;
+  };
+
   // syslog->println("EXECUTING COMMAND");
   // syslog->println(cmd);
   commInterface->sendPID(pid, "3E"); // SET TESTER PRESENT
   delay(10);
-  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
-  {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
-  }
+  waitForResponse("3E", "");
   delay(liveData->delayBetweenCommandsMs);
 
   commInterface->sendPID(pid, "1003"); // CHANGE SESSION
   delay(10);
-  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
-  {
-    if (commInterface->receivePID() != 0xff)
-    {
-      // WAIT FOR POSITIVE ANSWER
-      if (liveData->responseRowMerged.equals("5003"))
-      {
-        break;
-      }
-    }
-    delay(20);
-  }
+  waitForResponse("1003", "5003");
   delay(liveData->delayBetweenCommandsMs);
 
   // EXECUTE COMMAND
   commInterface->sendPID(pid, cmd);
   syslog->setDebugLevel(DEBUG_COMM);
   delay(10);
-  for (uint16_t i = 0; i < (liveData->rxTimeoutMs / 20); i++)
-  {
-    if (commInterface->receivePID() != 0xff)
-      break;
-    delay(20);
-  }
+  waitForResponse(cmd, "");
   delay(liveData->delayBetweenCommandsMs);
 
   syslog->setDebugLevel(liveData->settings.debugLevel);
