@@ -2,7 +2,7 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v4.1.11"
+#define APP_VERSION "v4.1.13"
 #define APP_RELEASE_DATE "2026-02-04"
 // TFT COLORS
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */

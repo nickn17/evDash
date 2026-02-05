@@ -1,5 +1,12 @@
 # RELEASE NOTES
 
+### V4.1.13 2026-02-05
+- eGMP: add detailed UDS logging for 3E/1003/command with NRC decode.
+- eGMP: add safe test mode for single ECU/DID (UDS 22 only).
+- eGMP 58/63 packs: prefer 220105 temp bytes for module temps + sanity-filter temps (reject < -40 or > 120) to prevent spikes in min/max and inlet/heater.
+- Sentry: autostop no longer blocked by stale door state when CAN responses stop.
+- Auto brightness: periodic recalculation during parking so sunrise updates without new GPS fix.
+
 ### V4.1.12 2026-02-04
 - Sentry wake tuning: higher gyro wake limit plus periodic reset while parked.
 - Sentry GPS wake: relaxed thresholds (valid fix, >= 5 km/h, 4+ satellites).
