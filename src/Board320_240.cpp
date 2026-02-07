@@ -301,7 +301,9 @@ void Board320_240::afterSetup()
 
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
-  if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1)
+  const bool wifiRequiredByAdapter = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI);
+  if (!liveData->params.wifiApMode &&
+      (liveData->settings.wifiEnabled == 1 || wifiRequiredByAdapter))
   {
     wifiSetup();
     printHeapMemory();
@@ -728,6 +730,7 @@ void Board320_240::tftDrawStringFont7(const char *string, int32_t poX, int32_t p
  */
 void Board320_240::setBrightness()
 {
+  static uint32_t blankScreenStartMs = 0;
   uint8_t lcdBrightnessPerc;
 
   lcdBrightnessPerc = liveData->settings.lcdBrightness;
@@ -737,9 +740,19 @@ void Board320_240::setBrightness()
   }
   if (liveData->params.displayScreen == SCREEN_BLANK)
   {
-    turnOffScreen();
+    const uint32_t nowMs = millis();
+    if (blankScreenStartMs == 0)
+    {
+      blankScreenStartMs = nowMs;
+      tft.fillScreen(TFT_BLACK);
+    }
+    if (nowMs - blankScreenStartMs >= 5000U)
+    {
+      turnOffScreen();
+    }
     return;
   }
+  blankScreenStartMs = 0;
   if (liveData->params.displayScreen == SCREEN_HUD)
   {
     lcdBrightnessPerc = 100;
@@ -778,34 +791,47 @@ void Board320_240::setBrightness()
  */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
-  uint16_t height = tft.height();
+  const uint16_t height = tft.height();
+  const uint16_t width = tft.width();
+  const bool hasRow2 = (row2 != NULL && row2[0] != '\0');
+  const int16_t dialogW = width - 24;
+  const int16_t dialogH = hasRow2 ? 106 : 82;
+  const int16_t dialogX = (width - dialogW) / 2;
+  int16_t dialogY = (height - dialogH) / 2 - 12;
+  if (dialogY < 6)
+    dialogY = 6;
+  const int16_t radius = 12;
+  const uint16_t bg = 0x18C3; // darker panel for better contrast
+  const uint16_t border = TFT_DARKGREY;
+  const uint16_t textColor = TFT_WHITE;
+
   syslog->print("Message: ");
   syslog->print(row1);
   syslog->print(" ");
   syslog->println(row2);
 
-  // Must draw directly without sprite (psramUsed check)
   if (liveData->params.spriteInit)
   {
-    spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
-    spr.setTextDatum(ML_DATUM);
-    spr.setTextColor(TFT_YELLOW, TFT_NAVY);
+    spr.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    spr.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    spr.setTextColor(textColor, bg);
+    spr.setTextDatum(TC_DATUM);
     sprSetFont(fontRobotoThin24);
-    spr.setTextDatum(BL_DATUM);
-    sprDrawString(row1, 0, height / 2);
-    sprDrawString(row2, 0, (height / 2) + 30);
+    sprDrawString(row1, width / 2, dialogY + 24);
+    if (hasRow2)
+      sprDrawString(row2, width / 2, dialogY + 56);
     spr.pushSprite(0, 0);
   }
   else
   {
-    tft.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
-    // tft.fillScreen(TFT_BLACK);
-    tft.setTextDatum(ML_DATUM);
-    tft.setTextColor(TFT_YELLOW, TFT_NAVY);
+    tft.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    tft.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    tft.setTextColor(textColor, bg);
+    tft.setTextDatum(TC_DATUM);
     tft.setFont(fontRobotoThin24);
-    tft.setTextDatum(BL_DATUM);
-    tft.drawString(row1, 0, height / 2);
-    tft.drawString(row2, 0, (height / 2) + 30);
+    tft.drawString(row1, width / 2, dialogY + 24);
+    if (hasRow2)
+      tft.drawString(row2, width / 2, dialogY + 56);
   }
 }
 
@@ -822,31 +848,93 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
  */
 bool Board320_240::confirmMessage(const char *row1, const char *row2)
 {
-  uint16_t height = tft.height();
+  const uint16_t height = tft.height();
+  const uint16_t width = tft.width();
+  const int16_t dialogW = width - 24;
+  const int16_t dialogH = 142;
+  const int16_t dialogX = (width - dialogW) / 2;
+  int16_t dialogY = (height - dialogH) / 2 - 12;
+  if (dialogY < 6)
+    dialogY = 6;
+  const int16_t radius = 12;
+  const uint16_t bg = 0x18C3; // darker panel for better contrast
+  const uint16_t border = TFT_DARKGREY;
+  const uint16_t textColor = TFT_WHITE;
+  const uint16_t yesBg = TFT_DARKGREEN;
+  const uint16_t noBg = TFT_DARKRED;
+  const int16_t btnW = 90;
+  const int16_t btnH = 42; // ~30% higher than original 32px
+  const int16_t btnY = dialogY + dialogH - btnH - 10;
+  const int16_t btnYesX = dialogX + 16;
+  const int16_t btnNoX = dialogX + dialogW - btnW - 16;
   syslog->print("Confirm: ");
   syslog->print(row1);
   syslog->print(" ");
   syslog->println(row2);
 
-  spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
-  spr.setTextDatum(ML_DATUM);
-  spr.setTextColor(TFT_YELLOW, TFT_NAVY);
-  sprSetFont(fontRobotoThin24);
-  spr.setTextDatum(BL_DATUM);
-  sprDrawString(row1, 0, height / 2);
-  sprDrawString(row2, 0, (height / 2) + 30);
-  spr.fillRect(0, height - 50, 100, 50, TFT_NAVY);
-  spr.fillRect(tft.width() - 100, height - 50, 100, 50, TFT_NAVY);
-  spr.setTextDatum(BL_DATUM);
-  sprDrawString("YES", 10, height - 10);
-  spr.setTextDatum(BR_DATUM);
-  sprDrawString("NO", tft.width() - 10, height - 10);
-  spr.pushSprite(0, 0);
+  if (liveData->params.spriteInit)
+  {
+    spr.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    spr.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    spr.setTextColor(textColor, bg);
+    spr.setTextDatum(TC_DATUM);
+    sprSetFont(fontRobotoThin24);
+    sprDrawString(row1, width / 2, dialogY + 22);
+    sprDrawString(row2, width / 2, dialogY + 56);
+
+    spr.fillRoundRect(btnYesX, btnY, btnW, btnH, 8, yesBg);
+    spr.drawRoundRect(btnYesX, btnY, btnW, btnH, 8, border);
+    spr.fillRoundRect(btnNoX, btnY, btnW, btnH, 8, noBg);
+    spr.drawRoundRect(btnNoX, btnY, btnW, btnH, 8, border);
+
+    spr.setTextColor(TFT_WHITE, yesBg);
+    spr.setTextDatum(MC_DATUM);
+    sprDrawString("YES", btnYesX + btnW / 2, btnY + btnH / 2 + 1);
+    spr.setTextColor(TFT_WHITE, noBg);
+    sprDrawString("NO", btnNoX + btnW / 2, btnY + btnH / 2 + 1);
+    spr.pushSprite(0, 0);
+  }
+  else
+  {
+    tft.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    tft.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    tft.setTextColor(textColor, bg);
+    tft.setTextDatum(TC_DATUM);
+    tft.setFont(fontRobotoThin24);
+    tft.drawString(row1, width / 2, dialogY + 22);
+    tft.drawString(row2, width / 2, dialogY + 56);
+
+    tft.fillRoundRect(btnYesX, btnY, btnW, btnH, 8, yesBg);
+    tft.drawRoundRect(btnYesX, btnY, btnW, btnH, 8, border);
+    tft.fillRoundRect(btnNoX, btnY, btnW, btnH, 8, noBg);
+    tft.drawRoundRect(btnNoX, btnY, btnW, btnH, 8, border);
+
+    tft.setTextColor(TFT_WHITE, yesBg);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("YES", btnYesX + btnW / 2, btnY + btnH / 2 + 1);
+    tft.setTextColor(TFT_WHITE, noBg);
+    tft.drawString("NO", btnNoX + btnW / 2, btnY + btnH / 2 + 1);
+  }
 
   bool res = false;
+  modalDialogActive = true;
   for (uint16_t i = 0; i < 2000 * 100; i++)
   {
     boardLoop();
+    int16_t tx = 0, ty = 0;
+    if (getTouch(tx, ty))
+    {
+      if (tx >= btnYesX && tx <= (btnYesX + btnW) && ty >= btnY && ty <= (btnY + btnH))
+      {
+        res = true;
+        break;
+      }
+      if (tx >= btnNoX && tx <= (btnNoX + btnW) && ty >= btnY && ty <= (btnY + btnH))
+      {
+        res = false;
+        break;
+      }
+    }
     if (isButtonPressed(pinButtonLeft))
     {
       res = true;
@@ -858,6 +946,7 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
       break;
     }
   }
+  modalDialogActive = false;
   return res;
 }
 
@@ -977,22 +1066,10 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
 
 
 /**
- * Modify menu item text
+ * Draw currently selected screen into `spr` without pushing it to TFT.
  */
-void Board320_240::redrawScreen()
+bool Board320_240::drawActiveScreenToSprite()
 {
-  lastRedrawTime = liveData->params.currentTime;
-  liveData->redrawScreenRequested = false;
-
-  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
-  {
-    return;
-  }
-  if (redrawScreenIsRunning)
-  {
-    return;
-  }
-  redrawScreenIsRunning = true;
 
   // Headlights reminders
   if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode &&
@@ -1003,9 +1080,7 @@ void Board320_240::redrawScreen()
     spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(MC_DATUM);
     sprDrawString("! LIGHTS OFF !", 160, 120);
-    spr.pushSprite(0, 0);
-    redrawScreenIsRunning = false;
-    return;
+    return true;
   }
 
   spr.fillSprite(TFT_BLACK);
@@ -1075,8 +1150,7 @@ void Board320_240::redrawScreen()
   // Skip following lines for HUD display mode
   if (liveData->params.displayScreen == SCREEN_HUD)
   {
-    redrawScreenIsRunning = false;
-    return;
+    return false;
   }
 
   // GPS state
@@ -1137,19 +1211,22 @@ void Board320_240::redrawScreen()
               ? ((liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */)
               : TFT_RED; /* wifi not connected */
 
-      // WiFi icon (upper arcs + center dot) in place of the previous square.
+      // WiFi icon (upper arcs + center dot), tuned to be ~20% larger.
       const int wifiCx = 146;
       const int wifiCy = 11;
-      spr.drawCircle(wifiCx, wifiCy, 6, wifiColor);
-      spr.drawCircle(wifiCx, wifiCy, 4, wifiColor);
-      spr.drawCircle(wifiCx, wifiCy, 2, wifiColor);
-      spr.fillRect(wifiCx - 7, wifiCy, 15, 8, TFT_BLACK); // keep only upper arcs
-      spr.fillCircle(wifiCx, wifiCy + 1, 1, wifiColor);
+      const int wifiOuterR = 10;
+      const int wifiMidR = 6;
+      const int wifiInnerR = 4;
+      spr.drawCircle(wifiCx, wifiCy, wifiOuterR, wifiColor);
+      spr.drawCircle(wifiCx, wifiCy, wifiMidR, wifiColor);
+      spr.drawCircle(wifiCx, wifiCy, wifiInnerR, wifiColor);
+      spr.fillRect(wifiCx - (wifiOuterR + 1), wifiCy, (wifiOuterR + 1) * 2 + 1, wifiOuterR + 2, TFT_BLACK); // keep only upper arcs
+      spr.fillCircle(wifiCx, wifiCy + 3, 2, wifiColor);
 
       if (liveData->params.isWifiBackupLive)
       {
         // Backup link badge.
-        spr.fillCircle(wifiCx + 7, 2, 2, wifiColor);
+        spr.fillCircle(wifiCx + 11, 2, 2, wifiColor);
       }
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
@@ -1163,26 +1240,82 @@ void Board320_240::redrawScreen()
   // Door status
   if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
   {
-    if (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen || liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen)
+    const bool showCarIcon = (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen ||
+                              liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen);
+    if (showCarIcon)
     {
-      spr.fillRect(40 + 5, 40, 50 - 10, 90, 0x4208);
-      spr.fillRect(40, 40 + 5, 50, 90 - 10, 0x4208);
-      spr.fillCircle(40 + 5, 40 + 5, 5, 0x4208);
-      spr.fillCircle(40 + 50 - 6, 40 + 5, 5, 0x4208);
-      spr.fillCircle(40 + 5, 40 + 90 - 6, 5, 0x4208);
-      spr.fillCircle(40 + 50 - 6, 40 + 90 - 6, 5, 0x4208);
+      const int16_t carX = 40;
+      const int16_t carY = 40;
+      const int16_t carW = 50;
+      const int16_t carH = 90;
+      const int16_t bodyX = carX + 3;
+      const int16_t bodyY = carY + 6;
+      const int16_t bodyW = carW - 6;
+      const int16_t bodyH = carH - 12;
+      const uint16_t bodyColor = 0x4208;
+      const uint16_t cabinColor = 0x3186;
+      const uint16_t glassColor = 0x7BEF;
+      const uint16_t lineColor = 0x5AEB;
+
+      // Top-view silhouette
+      spr.fillRoundRect(bodyX, bodyY, bodyW, bodyH, 10, bodyColor);
+      spr.drawRoundRect(bodyX, bodyY, bodyW, bodyH, 10, lineColor);
+      spr.fillRoundRect(bodyX + 8, bodyY + 14, bodyW - 16, bodyH - 28, 8, cabinColor);
+      spr.drawRoundRect(bodyX + 8, bodyY + 14, bodyW - 16, bodyH - 28, 8, lineColor);
+      spr.fillRoundRect(bodyX + 10, bodyY + 18, bodyW - 20, 12, 4, glassColor);
+      spr.fillRoundRect(bodyX + 10, bodyY + bodyH - 30, bodyW - 20, 12, 4, glassColor);
+      spr.drawFastVLine(bodyX + (bodyW / 2), bodyY + 20, bodyH - 40, lineColor);
+      spr.fillRoundRect(bodyX - 3, bodyY + 22, 3, 10, 2, lineColor);
+      spr.fillRoundRect(bodyX + bodyW, bodyY + 22, 3, 10, 2, lineColor);
+      spr.drawFastHLine(bodyX + 2, bodyY + 24, 6, lineColor);
+      spr.drawFastHLine(bodyX + 2, bodyY + bodyH - 24, 6, lineColor);
+      spr.drawFastHLine(bodyX + bodyW - 8, bodyY + 24, 6, lineColor);
+      spr.drawFastHLine(bodyX + bodyW - 8, bodyY + bodyH - 24, 6, lineColor);
+
+      // Light indicators
+      if (liveData->params.brakeLights)
+      {
+        spr.fillRoundRect(bodyX + 5, bodyY + bodyH, 10, 6, 2, TFT_RED);
+        spr.fillRoundRect(bodyX + bodyW - 15, bodyY + bodyH, 10, 6, 2, TFT_RED);
+      }
+      if (liveData->params.headLights || liveData->params.dayLights)
+      {
+        const uint16_t headColor = liveData->params.headLights ? TFT_YELLOW : TFT_GOLD;
+        spr.fillRoundRect(bodyX + 5, bodyY - 6, 10, 6, 2, headColor);
+        spr.fillRoundRect(bodyX + bodyW - 15, bodyY - 6, 10, 6, 2, headColor);
+      }
+
+      // Charging door
+      if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
+      {
+        uint16_t doorColor = TFT_GREEN;
+        if (liveData->params.chargerACconnected && liveData->params.chargerDCconnected)
+          doorColor = TFT_MAGENTA;
+        else if (liveData->params.chargerDCconnected)
+          doorColor = TFT_BLUE;
+        const int16_t doorX = bodyX + bodyW + 2;
+        const int16_t doorY = bodyY + bodyH / 2 - 6;
+        spr.fillRoundRect(doorX, doorY, 10, 12, 2, doorColor);
+        spr.drawRoundRect(doorX, doorY, 10, 12, 2, lineColor);
+        if (liveData->params.chargingOn)
+        {
+          spr.drawFastVLine(doorX + 5, doorY + 2, 8, TFT_WHITE);
+          spr.drawFastHLine(doorX + 3, doorY + 6, 4, TFT_WHITE);
+        }
+      }
+
       if (liveData->params.trunkDoorOpen)
-        spr.fillRect(45, 36, 40, 20, TFT_GOLD);
+        spr.fillRoundRect(bodyX + 6, bodyY - 10, bodyW - 12, 10, 3, TFT_GOLD);
       if (liveData->params.leftFrontDoorOpen)
-        spr.fillRect(20, 60, 20, 4, TFT_GOLD);
-      if (liveData->params.leftRearDoorOpen)
-        spr.fillRect(90, 60, 20, 4, TFT_GOLD);
+        spr.fillRoundRect(bodyX - 14, bodyY + 20, 12, 18, 3, TFT_GOLD);
       if (liveData->params.rightFrontDoorOpen)
-        spr.fillRect(20, 90, 20, 4, TFT_GOLD);
+        spr.fillRoundRect(bodyX - 14, bodyY + bodyH - 38, 12, 18, 3, TFT_GOLD);
+      if (liveData->params.leftRearDoorOpen)
+        spr.fillRoundRect(bodyX + bodyW + 2, bodyY + 20, 12, 18, 3, TFT_GOLD);
       if (liveData->params.rightRearDoorOpen)
-        spr.fillRect(90, 90, 20, 4, TFT_GOLD);
+        spr.fillRoundRect(bodyX + bodyW + 2, bodyY + bodyH - 38, 12, 18, 3, TFT_GOLD);
       if (liveData->params.hoodDoorOpen)
-        spr.fillRect(45, 120, 40, 15, TFT_GOLD);
+        spr.fillRoundRect(bodyX + 6, bodyY + bodyH, bodyW - 12, 10, 3, TFT_GOLD);
     }
   }
   else
@@ -1202,6 +1335,7 @@ void Board320_240::redrawScreen()
   }
 
   bool statusBoxUsed = false;
+  constexpr int16_t statusBoxRadius = 8;
 
   // BLE not connected
   if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
@@ -1222,11 +1356,11 @@ void Board320_240::redrawScreen()
   }
   else
     // CAN not connected
-    if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
+    if (canStatusMessageVisible())
     {
       // Print message
-      spr.fillRect(0, 185, 320, 50, TFT_BLACK);
-      spr.drawRect(0, 185, 320, 50, TFT_WHITE);
+      spr.fillRoundRect(0, 185, 320, 50, statusBoxRadius, TFT_BLACK);
+      spr.drawRoundRect(0, 185, 320, 50, statusBoxRadius, TFT_WHITE);
       spr.setTextSize(1);
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
@@ -1252,8 +1386,107 @@ void Board320_240::redrawScreen()
     statusBoxUsed = true;
   }
 
-  spr.pushSprite(0, 0);
+  return true;
+}
 
+void Board320_240::redrawScreen()
+{
+  lastRedrawTime = liveData->params.currentTime;
+  liveData->redrawScreenRequested = false;
+
+  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
+  {
+    return;
+  }
+  if (redrawScreenIsRunning)
+  {
+    return;
+  }
+  redrawScreenIsRunning = true;
+
+  if (drawActiveScreenToSprite())
+  {
+    spr.pushSprite(0, 0);
+  }
+
+  redrawScreenIsRunning = false;
+}
+
+void Board320_240::showScreenSwipePreview(int16_t deltaX)
+{
+  static int16_t lastPreviewDeltaX = 0;
+  static uint32_t lastPreviewMs = 0;
+  const uint8_t firstCarouselScreen = SCREEN_DASH;
+  const uint8_t lastCarouselScreen = SCREEN_DEBUG;
+  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
+  {
+    return;
+  }
+  if (redrawScreenIsRunning)
+  {
+    return;
+  }
+  if (liveData->params.displayScreen == SCREEN_HUD)
+  {
+    return;
+  }
+
+  if (deltaX > 319)
+    deltaX = 319;
+  else if (deltaX < -319)
+    deltaX = -319;
+
+  if (deltaX == 0)
+  {
+    lastPreviewDeltaX = 0;
+    return;
+  }
+
+  const uint32_t nowMs = millis();
+  const bool deltaChangedEnough = (abs(deltaX - lastPreviewDeltaX) >= 2);
+  const bool frameElapsed = (nowMs - lastPreviewMs) >= 16;
+  if (!deltaChangedEnough && !frameElapsed)
+  {
+    return;
+  }
+  lastPreviewDeltaX = deltaX;
+  lastPreviewMs = nowMs;
+
+  const uint8_t originalScreen = liveData->params.displayScreen;
+  if (originalScreen < firstCarouselScreen || originalScreen > lastCarouselScreen)
+  {
+    return;
+  }
+  if ((deltaX > 0 && originalScreen == firstCarouselScreen) ||
+      (deltaX < 0 && originalScreen == lastCarouselScreen))
+  {
+    return;
+  }
+
+  const uint8_t originalAutoMode = liveData->params.displayScreenAutoMode;
+  const uint8_t adjacentScreen = (deltaX > 0) ? (originalScreen - 1) : (originalScreen + 1);
+
+  redrawScreenIsRunning = true;
+
+  tft.setRotation(liveData->settings.displayRotation);
+
+  liveData->params.displayScreen = originalScreen;
+  liveData->params.displayScreenAutoMode = originalAutoMode;
+  if (drawActiveScreenToSprite())
+  {
+    spr.pushSprite(deltaX, 0);
+  }
+
+  liveData->params.displayScreen = adjacentScreen;
+  liveData->params.displayScreenAutoMode = originalAutoMode;
+  if (drawActiveScreenToSprite())
+  {
+    const int16_t adjacentX = deltaX + ((deltaX > 0) ? -320 : 320);
+    spr.pushSprite(adjacentX, 0);
+  }
+
+  liveData->params.displayScreen = originalScreen;
+  liveData->params.displayScreenAutoMode = originalAutoMode;
   redrawScreenIsRunning = false;
 }
 
@@ -1898,7 +2131,8 @@ void Board320_240::mainLoop()
 
   // force redraw (min 1 sec update; slower while in Sentry)
   const time_t redrawIntervalSec = liveData->params.stopCommandQueue ? 2 : 1;
-  if (liveData->params.currentTime - lastRedrawTime >= redrawIntervalSec || liveData->redrawScreenRequested)
+  if (!screenSwipePreviewActive &&
+      (liveData->params.currentTime - lastRedrawTime >= redrawIntervalSec || liveData->redrawScreenRequested))
   {
     redrawScreen();
   }
@@ -2371,6 +2605,583 @@ void Board320_240::wifiSwitchToMain()
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
   liveData->params.isWifiBackupLive = false;
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+}
+
+bool Board320_240::wifiScanToMenu()
+{
+  displayMessage("Scanning WiFi...", "");
+  WiFi.enableSTA(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true, true);
+  delay(200);
+
+  int found = WiFi.scanNetworks();
+  liveData->wifiScanCount = 0;
+
+  for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
+  {
+    if (liveData->menuItems[i].id >= LIST_OF_WIFI_1 && liveData->menuItems[i].id <= LIST_OF_WIFI_10)
+    {
+      strlcpy(liveData->menuItems[i].title, "-", sizeof(liveData->menuItems[i].title));
+    }
+  }
+
+  if (found <= 0)
+  {
+    displayMessage("WiFi scan", "No networks found");
+    delay(1500);
+    showMenu();
+    return false;
+  }
+
+  for (int i = 0; i < found && liveData->wifiScanCount < 10; i++)
+  {
+    String ssid = WiFi.SSID(i);
+    if (ssid.length() == 0)
+      continue;
+
+    int8_t rssi = WiFi.RSSI(i);
+    uint8_t enc = WiFi.encryptionType(i);
+    uint8_t slot = liveData->wifiScanCount;
+
+    ssid.toCharArray(liveData->wifiScanSsid[slot], sizeof(liveData->wifiScanSsid[slot]));
+    liveData->wifiScanRssi[slot] = rssi;
+    liveData->wifiScanEnc[slot] = enc;
+
+    String label = ssid;
+    label += " ";
+    label += String(rssi);
+    label += "dBm";
+    if (enc != WIFI_AUTH_OPEN)
+      label += " *";
+
+    for (uint16_t m = 0; m < liveData->menuItemsCount; ++m)
+    {
+      if (liveData->menuItems[m].id == (LIST_OF_WIFI_1 + slot))
+      {
+        label.toCharArray(liveData->menuItems[m].title, sizeof(liveData->menuItems[m].title));
+        break;
+      }
+    }
+
+    liveData->wifiScanCount++;
+  }
+
+  liveData->menuVisible = true;
+  liveData->menuCurrent = LIST_OF_WIFI_DEV;
+  liveData->menuItemSelected = 0;
+  liveData->menuItemOffset = 0;
+  showMenu();
+  return true;
+}
+
+bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, uint8_t maxLen)
+{
+  const int16_t screenW = tft.width();
+  const int16_t screenH = tft.height();
+  const int16_t topBtnY = 4;
+  const int16_t topBtnH = 24;
+  const int16_t topExitW = 50;
+  const int16_t topExitX = 6;
+  const int16_t titleY = 6;
+  const int16_t titleX = topExitX + topExitW + 8;
+  const int16_t inputY = 32;
+  const int16_t inputH = 34;
+  const int16_t keyW = 30;
+  const int16_t gap = 2;
+  const int16_t rowsY = inputY + inputH + 8;
+  const int16_t keyboardRows = 5;
+  const int16_t modeW = 48;
+  const int16_t shiftW = 56;
+  const int16_t spaceW = 98;
+  const int16_t bkspW = 52;
+  const int16_t okW = 58;
+  int16_t keyH = (screenH - 6 - rowsY - (keyboardRows - 1) * gap) / keyboardRows;
+  if (keyH < 26)
+    keyH = 26;
+
+  enum KeyAction : uint8_t
+  {
+    KEY_NONE = 0,
+    KEY_CHAR,
+    KEY_MODE,
+    KEY_SHIFT,
+    KEY_SPACE,
+    KEY_DEL,
+    KEY_OK,
+    KEY_EXIT
+  };
+  struct KeyHit
+  {
+    KeyAction action;
+    char ch;
+  };
+
+  struct KeyRows
+  {
+    const char *row[4];
+    uint8_t len[4];
+  };
+
+  bool shift = false;
+  bool numericMode = false;
+  bool touchActive = false;
+  KeyAction activeAction = KEY_NONE;
+  char activeChar = 0;
+  char previewChar = 0;
+  uint32_t previewUntil = 0;
+  bool needsRedraw = true;
+
+  auto loadRows = [&](KeyRows &rows) {
+    if (!numericMode)
+    {
+      rows.row[0] = shift ? "QWERTYUIOP" : "qwertyuiop";
+      rows.len[0] = 10;
+      rows.row[1] = shift ? "ASDFGHJKL" : "asdfghjkl";
+      rows.len[1] = 9;
+      rows.row[2] = shift ? "ZXCVBNM" : "zxcvbnm";
+      rows.len[2] = 7;
+      rows.row[3] = "@._-/:;!?+";
+      rows.len[3] = 10;
+      return;
+    }
+
+    rows.row[0] = "1234567890";
+    rows.len[0] = 10;
+    if (!shift)
+    {
+      rows.row[1] = "!@#$%^&*()";
+      rows.len[1] = 10;
+      rows.row[2] = "-_=+[]{}";
+      rows.len[2] = 8;
+      rows.row[3] = ".,:;/?\\|";
+      rows.len[3] = 8;
+    }
+    else
+    {
+      rows.row[1] = "~`<>\"'()";
+      rows.len[1] = 8;
+      rows.row[2] = "{}[]+=-_";
+      rows.len[2] = 8;
+      rows.row[3] = "#$%&*@!?";
+      rows.len[3] = 8;
+    }
+  };
+
+  auto hitTest = [&](int16_t tx, int16_t ty) -> KeyHit {
+    if (ty >= topBtnY && ty <= topBtnY + topBtnH)
+    {
+      if (tx >= topExitX && tx <= topExitX + topExitW)
+      {
+        KeyHit hit = {KEY_EXIT, 0};
+        return hit;
+      }
+    }
+
+    KeyRows rows = {};
+    loadRows(rows);
+
+    for (int r = 0; r < 4; r++)
+    {
+      int len = rows.len[r];
+      int rowWidth = len * keyW + (len - 1) * gap;
+      int x0 = (screenW - rowWidth) / 2;
+      int y0 = rowsY + r * (keyH + gap);
+      if (ty < y0 || ty > y0 + keyH || tx < x0 || tx > x0 + rowWidth)
+        continue;
+      int col = (tx - x0) / (keyW + gap);
+      if (col < 0 || col >= len)
+        continue;
+      KeyHit hit = {KEY_CHAR, rows.row[r][col]};
+      return hit;
+    }
+
+    int ctrlY = rowsY + 4 * (keyH + gap);
+    int totalW = modeW + shiftW + spaceW + bkspW + okW + gap * 4;
+    int x = (screenW - totalW) / 2;
+    int modeX = x;
+    int shiftX = modeX + modeW + gap;
+    int spaceX = shiftX + shiftW + gap;
+    int bkspX = spaceX + spaceW + gap;
+    int okX = bkspX + bkspW + gap;
+
+    if (ty >= ctrlY && ty <= ctrlY + keyH)
+    {
+      if (tx >= modeX && tx <= modeX + modeW)
+      {
+        KeyHit hit = {KEY_MODE, 0};
+        return hit;
+      }
+      if (tx >= shiftX && tx <= shiftX + shiftW)
+      {
+        KeyHit hit = {KEY_SHIFT, 0};
+        return hit;
+      }
+      if (tx >= spaceX && tx <= spaceX + spaceW)
+      {
+        KeyHit hit = {KEY_SPACE, 0};
+        return hit;
+      }
+      if (tx >= bkspX && tx <= bkspX + bkspW)
+      {
+        KeyHit hit = {KEY_DEL, 0};
+        return hit;
+      }
+      if (tx >= okX && tx <= okX + okW)
+      {
+        KeyHit hit = {KEY_OK, 0};
+        return hit;
+      }
+    }
+
+    KeyHit hit = {KEY_NONE, 0};
+    return hit;
+  };
+
+  auto drawKeyboard = [&](bool showPreview) {
+    if (liveData->params.spriteInit)
+    {
+      spr.fillSprite(TFT_BLACK);
+    }
+    else
+    {
+      tft.fillScreen(TFT_BLACK);
+    }
+
+    auto drawRect = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t bg, uint16_t fg) {
+      if (liveData->params.spriteInit)
+      {
+        spr.fillRoundRect(x, y, w, h, 4, bg);
+        spr.drawRoundRect(x, y, w, h, 4, fg);
+      }
+      else
+      {
+        tft.fillRoundRect(x, y, w, h, 4, bg);
+        tft.drawRoundRect(x, y, w, h, 4, fg);
+      }
+    };
+
+    auto drawText = [&](const char *text, int16_t x, int16_t y, bool bigFont) {
+      if (liveData->params.spriteInit)
+      {
+        sprSetFont(bigFont ? fontRobotoThin24 : fontFont2);
+        spr.setTextColor(TFT_WHITE);
+        spr.setTextDatum(MC_DATUM);
+        sprDrawString(text, x, y);
+      }
+      else
+      {
+        tft.setFont(bigFont ? fontRobotoThin24 : fontFont2);
+        tft.setTextColor(TFT_WHITE);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(text, x, y);
+      }
+    };
+
+    auto drawLinePrim = [&](int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
+      if (liveData->params.spriteInit)
+      {
+        spr.drawLine(x0, y0, x1, y1, col);
+      }
+      else
+      {
+        tft.drawLine(x0, y0, x1, y1, col);
+      }
+    };
+
+    auto drawEnterIcon = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col) {
+      // Simple bent "enter" arrow.
+      int16_t cx = x + w / 2 + 7;
+      int16_t top = y + 6;
+      int16_t mid = y + h / 2 + 1;
+      drawLinePrim(cx, top, cx, mid, col);
+      drawLinePrim(cx, mid, x + 10, mid, col);
+      drawLinePrim(x + 10, mid, x + 14, mid - 4, col);
+      drawLinePrim(x + 10, mid, x + 14, mid + 4, col);
+    };
+
+    auto isActive = [&](KeyAction action, char ch) -> bool {
+      return touchActive && activeAction == action && activeChar == ch;
+    };
+
+    drawRect(topExitX, topBtnY, topExitW, topBtnH, isActive(KEY_EXIT, 0) ? TFT_RED : 0x1082, isActive(KEY_EXIT, 0) ? TFT_CYAN : 0x39E7);
+    drawText("EXIT", topExitX + topExitW / 2, topBtnY + topBtnH / 2 - 1, false);
+
+    if (liveData->params.spriteInit)
+    {
+      // Keep title style consistent with keyboard text style.
+      sprSetFont(fontFont2);
+      spr.setTextColor(TFT_WHITE);
+      spr.setTextDatum(TL_DATUM);
+      sprDrawString(title, titleX, titleY);
+    }
+    else
+    {
+      tft.setFont(fontFont2);
+      tft.setTextColor(TFT_WHITE);
+      tft.setTextDatum(TL_DATUM);
+      tft.drawString(title, titleX, titleY);
+    }
+
+    String display = value;
+    if (mask)
+    {
+      display = "";
+      for (size_t i = 0; i < value.length(); i++)
+        display += "*";
+    }
+
+    drawRect(6, inputY, screenW - 12, inputH, 0x0841, TFT_CYAN);
+    if (liveData->params.spriteInit)
+    {
+      sprSetFont(fontRobotoThin24);
+      spr.setTextColor(TFT_WHITE);
+      spr.setTextDatum(TL_DATUM);
+      sprDrawString(display.c_str(), 10, inputY + 7);
+    }
+    else
+    {
+      tft.setFont(fontRobotoThin24);
+      tft.setTextColor(TFT_WHITE);
+      tft.setTextDatum(TL_DATUM);
+      tft.drawString(display.c_str(), 10, inputY + 6);
+    }
+
+    KeyRows rows = {};
+    loadRows(rows);
+
+    for (int r = 0; r < 4; r++)
+    {
+      int len = rows.len[r];
+      int rowWidth = len * keyW + (len - 1) * gap;
+      int x0 = (screenW - rowWidth) / 2;
+      int y0 = rowsY + r * (keyH + gap);
+      for (int c = 0; c < len; c++)
+      {
+        char key[2] = {rows.row[r][c], 0};
+        int x = x0 + c * (keyW + gap);
+        bool active = isActive(KEY_CHAR, rows.row[r][c]);
+        drawRect(x, y0, keyW, keyH, active ? 0x001B : 0x1082, active ? TFT_CYAN : 0x39E7);
+        drawText(key, x + keyW / 2, y0 + keyH / 2 - 2, true);
+      }
+    }
+
+    int ctrlY = rowsY + 4 * (keyH + gap);
+    int totalW = modeW + shiftW + spaceW + bkspW + okW + gap * 4;
+    int x = (screenW - totalW) / 2;
+    drawRect(x, ctrlY, modeW, keyH, isActive(KEY_MODE, 0) ? 0x001B : 0x1082, isActive(KEY_MODE, 0) ? TFT_CYAN : 0x39E7);
+    drawText(numericMode ? "abc" : "123", x + modeW / 2, ctrlY + keyH / 2 - 2, false);
+    x += modeW + gap;
+    drawRect(x, ctrlY, shiftW, keyH, isActive(KEY_SHIFT, 0) ? 0x001B : (shift ? TFT_BLUE : 0x1082),
+             isActive(KEY_SHIFT, 0) ? TFT_CYAN : 0x39E7);
+    drawText("SHIFT", x + shiftW / 2, ctrlY + keyH / 2 - 2, false);
+    x += shiftW + gap;
+    drawRect(x, ctrlY, spaceW, keyH, isActive(KEY_SPACE, 0) ? 0x001B : 0x1082, isActive(KEY_SPACE, 0) ? TFT_CYAN : 0x39E7);
+    drawText("SPACE", x + spaceW / 2, ctrlY + keyH / 2 - 2, false);
+    x += spaceW + gap;
+    drawRect(x, ctrlY, bkspW, keyH, isActive(KEY_DEL, 0) ? 0x001B : 0x1082, isActive(KEY_DEL, 0) ? TFT_CYAN : 0x39E7);
+    drawText("DEL", x + bkspW / 2, ctrlY + keyH / 2 - 2, false);
+    x += bkspW + gap;
+    drawRect(x, ctrlY, okW, keyH, isActive(KEY_OK, 0) ? TFT_GREEN : TFT_DARKGREEN2, isActive(KEY_OK, 0) ? TFT_CYAN : 0x39E7);
+    drawEnterIcon(x, ctrlY, okW, keyH, TFT_WHITE);
+
+    if (showPreview && previewChar != 0)
+    {
+      const int16_t bubbleW = 144;
+      const int16_t bubbleH = 68;
+      const int16_t bubbleX = (screenW - bubbleW) / 2;
+      const int16_t bubbleY = 4;
+      char previewText[2] = {previewChar, 0};
+      drawRect(bubbleX, bubbleY, bubbleW, bubbleH, 0x52AA, 0x7BEF);
+      if (liveData->params.spriteInit)
+      {
+        sprSetFont(fontOrbitronLight32);
+        spr.setTextColor(TFT_WHITE);
+        spr.setTextDatum(MC_DATUM);
+        sprDrawString(previewText, bubbleX + bubbleW / 2, bubbleY + bubbleH / 2 + 1);
+      }
+      else
+      {
+        tft.setFont(fontOrbitronLight32);
+        tft.setTextColor(TFT_WHITE);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(previewText, bubbleX + bubbleW / 2, bubbleY + bubbleH / 2 + 1);
+      }
+    }
+
+    if (liveData->params.spriteInit)
+      spr.pushSprite(0, 0);
+  };
+
+  drawKeyboard(false);
+  bool previousPressed = false;
+
+  auto readTouchRaw = [&](int16_t &x, int16_t &y) -> bool {
+#ifdef BOARD_M5STACK_CORE2
+    if (M5.Touch.ispressed() && M5.Touch.points > 0 && M5.Touch.point[0].valid())
+    {
+      x = M5.Touch.point[0].x;
+      y = M5.Touch.point[0].y;
+      if (x < 0 || y < 0 || x >= screenW || y >= screenH)
+        return false;
+      return true;
+    }
+#endif
+#ifdef BOARD_M5STACK_CORES3
+    auto t = CoreS3.Touch.getDetail();
+    if (t.isPressed())
+    {
+      x = t.x;
+      y = t.y;
+      if (x < 0 || y < 0 || x >= screenW || y >= screenH)
+        return false;
+      return true;
+    }
+#endif
+    return false;
+  };
+
+  while (true)
+  {
+    boardLoop();
+    uint32_t nowMs = millis();
+    int16_t tx = 0, ty = 0;
+    bool touched = readTouchRaw(tx, ty);
+
+    if (touched)
+    {
+      KeyHit hit = hitTest(tx, ty);
+      if (!touchActive || hit.action != activeAction || hit.ch != activeChar)
+      {
+        activeAction = hit.action;
+        activeChar = hit.ch;
+        needsRedraw = true;
+      }
+      touchActive = true;
+      if (hit.action == KEY_CHAR && hit.ch != 0)
+      {
+        previewChar = hit.ch;
+        previewUntil = nowMs + 500;
+        needsRedraw = true;
+      }
+      else if (previewChar != 0)
+      {
+        previewChar = 0;
+        needsRedraw = true;
+      }
+    }
+    else if (touchActive && previousPressed)
+    {
+      if (activeAction == KEY_CHAR && activeChar != 0)
+      {
+        if (value.length() < maxLen)
+        {
+          value += activeChar;
+          if (shift && activeChar >= 'A' && activeChar <= 'Z')
+            shift = false;
+        }
+        previewChar = activeChar;
+        previewUntil = nowMs + 500;
+      }
+      else if (activeAction == KEY_MODE)
+      {
+        numericMode = !numericMode;
+        shift = false;
+      }
+      else if (activeAction == KEY_SHIFT)
+      {
+        shift = !shift;
+      }
+      else if (activeAction == KEY_SPACE)
+      {
+        if (value.length() < maxLen)
+          value += " ";
+      }
+      else if (activeAction == KEY_DEL)
+      {
+        if (value.length() > 0)
+          value.remove(value.length() - 1);
+      }
+      else if (activeAction == KEY_OK)
+      {
+        return true;
+      }
+      else if (activeAction == KEY_EXIT)
+      {
+        return false;
+      }
+
+      touchActive = false;
+      activeAction = KEY_NONE;
+      activeChar = 0;
+      needsRedraw = true;
+    }
+    else if (previewChar != 0 && nowMs >= previewUntil)
+    {
+      previewChar = 0;
+      needsRedraw = true;
+    }
+
+    if (needsRedraw)
+    {
+      drawKeyboard(previewChar != 0);
+      needsRedraw = false;
+    }
+
+    previousPressed = touched;
+    if (!touched)
+      delay(5);
+  }
+}
+
+bool Board320_240::promptWifiPassword(const char *ssid, String &outPassword, bool isOpenNetwork)
+{
+  if (isOpenNetwork)
+  {
+    outPassword = "";
+    return true;
+  }
+  String value = outPassword;
+  String title = String("Passwd for ") + ssid;
+  bool ok = promptKeyboard(title.c_str(), value, false, sizeof(liveData->settings.wifiPassword) - 1);
+  if (ok)
+    outPassword = value;
+  return ok;
+}
+
+bool Board320_240::canStatusMessageVisible()
+{
+  if (liveData->settings.commType != COMM_TYPE_CAN_COMMU)
+    return false;
+
+  String status = commInterface->getConnectStatus();
+  if (status == "")
+    return false;
+
+  if (dismissedCanStatusText != "" && status == dismissedCanStatusText)
+    return false;
+
+  // New status text arrived, clear previous dismissal.
+  if (dismissedCanStatusText != "" && status != dismissedCanStatusText)
+    dismissedCanStatusText = "";
+
+  return true;
+}
+
+bool Board320_240::canStatusMessageHitTest(int16_t x, int16_t y)
+{
+  if (!canStatusMessageVisible())
+    return false;
+  return (x >= 0 && x < 320 && y >= 185 && y < 235);
+}
+
+void Board320_240::dismissCanStatusMessage()
+{
+  if (liveData->settings.commType != COMM_TYPE_CAN_COMMU)
+    return;
+  String status = commInterface->getConnectStatus();
+  if (status != "")
+    dismissedCanStatusText = status;
 }
 
 void Board320_240::updateNetAvailability(bool success)

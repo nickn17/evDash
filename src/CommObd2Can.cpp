@@ -307,13 +307,33 @@ void CommObd2Can::sendPID(const uint32_t pid, const String &cmd)
   if (pid > 4095)
     is29bit = 1;
 
-  const uint8_t sndStat = CAN->sendMsgBuf(pid, is29bit, 8, txBuf); // 11 bit or 29 bit
+  uint8_t sndStat = 0xFF;
+  uint8_t sendTry = 0;
+  const uint8_t maxSendTries = 3;
+  for (; sendTry < maxSendTries; sendTry++)
+  {
+    sndStat = CAN->sendMsgBuf(pid, is29bit, 8, txBuf); // 11 bit or 29 bit
+    if (sndStat == CAN_OK)
+      break;
+    delay(1);
+  }
   if (sndStat == CAN_OK)
   {
-    syslog->infoNolf(DEBUG_COMM, "SENT ");
+    if (sendTry > 0)
+    {
+      syslog->infoNolf(DEBUG_COMM, "SENT retry ");
+      syslog->infoNolf(DEBUG_COMM, String(sendTry + 1));
+      syslog->infoNolf(DEBUG_COMM, " ");
+    }
+    else
+    {
+      syslog->infoNolf(DEBUG_COMM, "SENT ");
+    }
     sentCanData = true;
     lastDataSent = millis();
     connectAttempts = 3;
+    if (connectStatus == "Err sending frame")
+      connectStatus = "";
   }
   else
   {
@@ -354,10 +374,30 @@ void CommObd2Can::sendFlowControlFrame()
   byte is29bit = 0;
   if (lastPid > 4095)
     is29bit = 1;
-  const uint8_t sndStat = CAN->sendMsgBuf(lastPid, is29bit, 8, txBuf); // VW:29bit vs others:11 bit
+  uint8_t sndStat = 0xFF;
+  uint8_t sendTry = 0;
+  const uint8_t maxSendTries = 3;
+  for (; sendTry < maxSendTries; sendTry++)
+  {
+    sndStat = CAN->sendMsgBuf(lastPid, is29bit, 8, txBuf); // VW:29bit vs others:11 bit
+    if (sndStat == CAN_OK)
+      break;
+    delay(1);
+  }
   if (sndStat == CAN_OK)
   {
-    syslog->infoNolf(DEBUG_COMM, "Flow control frame sent ");
+    if (sendTry > 0)
+    {
+      syslog->infoNolf(DEBUG_COMM, "Flow control frame sent retry ");
+      syslog->infoNolf(DEBUG_COMM, String(sendTry + 1));
+      syslog->infoNolf(DEBUG_COMM, " ");
+    }
+    else
+    {
+      syslog->infoNolf(DEBUG_COMM, "Flow control frame sent ");
+    }
+    if (connectStatus == "Err sending flow fr.")
+      connectStatus = "";
   }
   else
   {

@@ -1,12 +1,26 @@
 # RELEASE NOTES
 
-### V4.1.16 2026-02-07
-- GPS: faster first fix by robust UART baud handling. evDash now auto-detects valid GNSS baud on boot and confirms/switches to a working speed.
-- GPS setup UX: when GPS module type is changed, default serial speed is auto-set (NEO-M8N = 9600, M5 GNSS = 38400) in both menu and web settings.
-- GPS diagnostics: clearer runtime logs for confirmed/auto-detected/fallback GNSS speed to simplify troubleshooting in the field.
-- Refactor: all `drawScene*` rendering functions were moved from `Board320_240.cpp` to new `Board320_240_display.cpp` for cleaner file structure.
-- Display fix: preserved original bitmap font rendering after the display-file split (small labels, digital speed/power, cell and debug text styles).
-- Speed screen UI: replaced the WiFi square with a WiFi icon, added a dedicated backup-link badge, and shifted GPS/SD + satellite indicators slightly right to keep spacing clean.
+### V4.2.0 2026-02-07
+- GPS: faster first fix via robust GNSS baud auto-detect/confirm; module type change now auto-sets default baud (NEO-M8N `9600`, M5 GNSS `38400`) and logs are clearer for troubleshooting.
+- Refactor/UI baseline: all `drawScene*` rendering moved to `Board320_240_display.cpp`, while original font styles (bitmap/digital) were preserved after the split.
+- Menu overhaul: smooth pixel drag scrolling, refreshed row styling/spacing, partial last-row rendering, right-side scrollbar, and cleaner back navigation icons.
+- Menu touch reliability: reserved 64x64 zones (`exit/parent`, `page up/down`) now consume taps, drag release no longer triggers accidental item click, and menu cursor/offset handling no longer jumps to stale positions.
+- Dynamic scan-list return: leaving BLE/WiFi scan lists now returns to the correct parent item (`Select OBD2 adapter` / `Scan WiFi networks`).
+- Screen carousel: bounded swipe carousel (`Main`..`Debug`) with live preview, ~30% release threshold, corrected swipe direction (left=next, right=previous), and reduced drag flicker.
+- Screen switching: classic left/right tap zones still cycle full screen set (including `SCREEN_BLANK`), while swipe carousel remains bounded.
+- Blank screen UX: switching to `SCREEN_BLANK` now shows black for 5s before LCD power-off.
+- CAN status UX: CAN status box is rounded (8px), tappable-to-dismiss, and dismiss touch no longer propagates to menu actions.
+- CAN communication stability: CAN TX now retries up to 3x (PID + flow-control) before reporting send error; helps reduce transient `Err sending frame` popups with threading enabled.
+- Dialogs: `Confirm action` and related modal flow were redesigned (rounded dialog + styled `YES/NO`) and fixed to prevent touch-release click-through to underlying menu items.
+- Cell screen: added paging for long packs (e.g., eGMP 192 cells) via top-left/top-right taps with `PG x/y` indicator.
+- Speed screen status icons: WiFi icon redesign (larger, with backup badge) plus cleaned top-bar spacing with GPS/SD/satellite indicators.
+- Speed screen vehicle/status visuals: top-view car is rounded and now shows door/hood/trunk + light/charging-port states; bottom brake indicator is redesigned as rear-car with integrated brake lights.
+- Speed screen battery indicators: min/max separator lines are now dashed; top dashed line animates when PTC is active; top-right BMS mode text is color-coded (`PTC`=red, `COOL`/`LTR`/`LTRCOOL`=cyan).
+- WiFi flow: added `Scan WiFi networks` with SSID list and on-device touch keyboard for connect/password entry.
+- WiFi keyboard: improved readability, reusable editor for `SSID`/`Passwd`/backup fields, hold-drag magnifier preview, delayed key preview hold, `ENTER` bottom-right, and `123`/`ABC` layout toggle.
+- WiFi/OBD2 behavior fixes: WiFi scan list now follows BLE-style list behavior and exits back to menu (no reboot); `OBD2 WIFI adapter [DEV]` no longer causes reboot loops when WiFi link is down.
+- Performance: while anonymous `Contribute` data is collected, UI now gets periodic redraw yields to avoid frozen-looking speed/GPS values.
+- Menu naming/structure cleanup: top-level `WiFi network` moved near top (`#2` after `Clear driving stats?`), `Others` renamed to `Others (SD card, GPS,...)`, `Adapter (CAN/OBD2)` to `OBD2/CAN adapter`, and `Board setup` to `M5stack board setup`.
 
 ### V4.1.15 2026-02-06
 - Sentry: autostop no longer blocked by stale door state when CAN responses stop.

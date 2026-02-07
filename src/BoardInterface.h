@@ -31,6 +31,7 @@ public:
   virtual void boardLoop() = 0; // touch
   virtual void mainLoop() = 0;  // buttons, menu
   virtual bool isButtonPressed(int button) { return false; };
+  virtual bool getTouch(int16_t &x, int16_t &y) { return false; }
   virtual void enterSleepMode(int secs) = 0;
   virtual bool skipAdapterScan() { return false; };
   bool carCommandAllowed() { return carInterface->commandAllowed(); }

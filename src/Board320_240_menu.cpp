@@ -448,9 +448,65 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     break;
   }
 
+  if (title.startsWith("<- "))
+  {
+    title = title.substring(3);
+  }
+
   title = ((prefix == "") ? "" : prefix + " ") + title + ((suffix == "") ? "" : " " + suffix);
 
   return title;
+}
+
+uint16_t Board320_240::menuItemsCountCurrent()
+{
+  uint16_t count = 0;
+  std::vector<String> customMenu = carInterface->customMenu(liveData->menuCurrent);
+  count += customMenu.size();
+  for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
+  {
+    if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
+    {
+      count++;
+    }
+  }
+  return count;
+}
+
+void Board320_240::menuScrollByPixels(int16_t deltaTopPx)
+{
+  const uint16_t totalItems = menuItemsCountCurrent();
+  if (totalItems == 0)
+  {
+    liveData->menuItemOffset = 0;
+    menuItemOffsetPx = 0;
+    return;
+  }
+
+  const int32_t totalHeight = int32_t(totalItems) * int32_t(menuItemHeight);
+  const int32_t viewHeight = tft.height();
+  if (totalHeight <= viewHeight)
+  {
+    liveData->menuItemOffset = 0;
+    menuItemOffsetPx = 0;
+    return;
+  }
+
+  int32_t scrollPx = int32_t(liveData->menuItemOffset) * int32_t(menuItemHeight) + int32_t(menuItemOffsetPx);
+  scrollPx -= deltaTopPx;
+  const int32_t maxScroll = totalHeight - viewHeight;
+  if (scrollPx < 0)
+    scrollPx = 0;
+  if (scrollPx > maxScroll)
+    scrollPx = maxScroll;
+
+  liveData->menuItemOffset = scrollPx / menuItemHeight;
+  menuItemOffsetPx = scrollPx % menuItemHeight;
+}
+
+uint16_t Board320_240::menuItemFromTouchY(int16_t touchY)
+{
+  return liveData->menuItemOffset + uint16_t((touchY + menuItemOffsetPx) / menuItemHeight);
 }
 
 /**
@@ -462,7 +518,14 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
  */
 void Board320_240::showMenu()
 {
-  uint16_t posY = 0, tmpCurrMenuItem = 0;
+  int16_t posY = 0;
+  uint16_t tmpCurrMenuItem = 0;
+  const bool allowHoverHighlight = !menuDragScrollActive;
+  const int16_t textPaddingX = 3;
+  const int16_t backIconW = 14;
+  const int16_t backTextGap = 10;
+  const int16_t highlightRadius = 8;
+  const int16_t textOffsetY = 2; // 2px down from previous layout
   int8_t idx, off = 2;
 
   liveData->menuVisible = true;
@@ -481,28 +544,89 @@ void Board320_240::showMenu()
   menuItemHeight = menuItemHeight * 1.5;
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
   menuVisibleCount = (int)(tft.height() / menuItemHeight);
+  const uint8_t menuVisibleCountWithPartial = (tft.height() + menuItemHeight - 1) / menuItemHeight;
 
-  if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCount)
-    liveData->menuItemOffset = liveData->menuItemSelected - menuVisibleCount + 1;
-  if (liveData->menuItemSelected < liveData->menuItemOffset)
-    liveData->menuItemOffset = liveData->menuItemSelected;
+  const uint16_t totalItemsCurrent = menuItemsCountCurrent();
+  const int32_t totalHeightCurrent = int32_t(totalItemsCurrent) * int32_t(menuItemHeight);
+  const int32_t viewHeightCurrent = tft.height();
+  if (totalItemsCurrent == 0 || totalHeightCurrent <= viewHeightCurrent)
+  {
+    liveData->menuItemOffset = 0;
+    menuItemOffsetPx = 0;
+    if (totalItemsCurrent == 0)
+      liveData->menuItemSelected = 0;
+  }
+  else
+  {
+    int32_t scrollPx = int32_t(liveData->menuItemOffset) * int32_t(menuItemHeight) + int32_t(menuItemOffsetPx);
+    const int32_t maxScroll = totalHeightCurrent - viewHeightCurrent;
+    if (scrollPx < 0)
+      scrollPx = 0;
+    if (scrollPx > maxScroll)
+      scrollPx = maxScroll;
+    liveData->menuItemOffset = scrollPx / menuItemHeight;
+    menuItemOffsetPx = scrollPx % menuItemHeight;
+  }
+
+  if (totalItemsCurrent > 0 && liveData->menuItemSelected >= totalItemsCurrent)
+  {
+    liveData->menuItemSelected = totalItemsCurrent - 1;
+  }
+
+  // Keep selected item visible only for item-based navigation.
+  // During drag scrolling we keep raw pixel offset and do not snap to cursor.
+  if (!menuDragScrollActive)
+  {
+    if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCountWithPartial)
+    {
+      liveData->menuItemOffset = liveData->menuItemSelected - menuVisibleCountWithPartial + 1;
+      menuItemOffsetPx = 0;
+      posY = 0;
+    }
+    if (liveData->menuItemSelected < liveData->menuItemOffset)
+    {
+      liveData->menuItemOffset = liveData->menuItemSelected;
+      menuItemOffsetPx = 0;
+      posY = 0;
+    }
+  }
+  posY = -int16_t(menuItemOffsetPx);
 
   // Print items
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
   {
-    if (liveData->menuCurrent == liveData->menuItems[i].parentId)
+    if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
     {
       if (tmpCurrMenuItem >= liveData->menuItemOffset)
       {
         bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-        // spr.fillRect(0, posY, 320, menuItemHeight, TFT_BLACK);
-        if (isMenuItemSelected)
+        bool isMenuItemHovered = allowHoverHighlight && (menuTouchHoverIndex == int16_t(tmpCurrMenuItem));
+        if (isMenuItemSelected || isMenuItemHovered)
         {
-          spr.fillRect(0, posY, 320, 2, TFT_WHITE);
-          spr.fillRect(0, posY + menuItemHeight - 2, 320, 2, TFT_WHITE);
+          uint16_t fillCol = isMenuItemSelected ? 0x2104 : 0x1082;
+          uint16_t borderCol = isMenuItemSelected ? TFT_CYAN : TFT_DARKGREY;
+          spr.fillRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, fillCol);
+          spr.drawRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, borderCol);
         }
-        spr.setTextColor(TFT_WHITE);
-        sprDrawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title).c_str(), 0, posY + off);
+        spr.setTextColor(isMenuItemHovered ? TFT_CYAN : TFT_WHITE);
+        bool isBackNavItem = (strncmp(liveData->menuItems[i].title, "<-", 2) == 0);
+        int16_t drawX = textPaddingX;
+        if (isBackNavItem && posY > -menuItemHeight && posY < tft.height())
+        {
+          uint16_t iconCol = isMenuItemHovered ? TFT_CYAN : TFT_WHITE;
+          int16_t cx = textPaddingX + backIconW;
+          int16_t cy = posY + menuItemHeight / 2 + 1;
+          // Bent enter-style arrow (back/parent indicator)
+          spr.drawLine(cx, cy - 6, cx, cy, iconCol);
+          spr.drawLine(cx, cy, textPaddingX + 2, cy, iconCol);
+          spr.drawLine(textPaddingX + 2, cy, textPaddingX + 6, cy - 4, iconCol);
+          spr.drawLine(textPaddingX + 2, cy, textPaddingX + 6, cy + 4, iconCol);
+          drawX += backIconW + backTextGap;
+        }
+        if (posY > -menuItemHeight && posY < tft.height())
+        {
+          sprDrawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title).c_str(), drawX, posY + off + textOffsetY);
+        }
         posY += menuItemHeight;
       }
       tmpCurrMenuItem++;
@@ -514,18 +638,58 @@ void Board320_240::showMenu()
     if (tmpCurrMenuItem >= liveData->menuItemOffset)
     {
       bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-      if (isMenuItemSelected)
+      bool isMenuItemHovered = allowHoverHighlight && (menuTouchHoverIndex == int16_t(tmpCurrMenuItem));
+      if (isMenuItemSelected || isMenuItemHovered)
       {
-        spr.fillRect(0, posY, 320, 2, TFT_WHITE);
-        spr.fillRect(0, posY + menuItemHeight - 2, 320, 2, TFT_WHITE);
+        uint16_t fillCol = isMenuItemSelected ? 0x2104 : 0x1082;
+        uint16_t borderCol = isMenuItemSelected ? TFT_CYAN : TFT_DARKGREY;
+        spr.fillRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, fillCol);
+        spr.drawRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, borderCol);
       }
-      // spr.fillRect(0, posY, 320, menuItemHeight + 2, isMenuItemSelected ? TFT_WHITE : TFT_BLACK);
-      spr.setTextColor(TFT_WHITE);
+      spr.setTextColor(isMenuItemHovered ? TFT_CYAN : TFT_WHITE);
       idx = customMenu.at(i).indexOf("=");
-      sprDrawString(customMenu.at(i).substring(idx + 1).c_str(), 0, posY + off);
+      if (posY > -menuItemHeight && posY < tft.height())
+      {
+        sprDrawString(customMenu.at(i).substring(idx + 1).c_str(), textPaddingX, posY + off + textOffsetY);
+      }
       posY += menuItemHeight;
     }
     tmpCurrMenuItem++;
+  }
+
+  // Slim right-side scrollbar for menu position feedback.
+  const int16_t scrollTrackX = 317;
+  const int16_t scrollTrackY = 2;
+  const int16_t scrollTrackW = 3;
+  const int16_t scrollTrackH = tft.height() - (scrollTrackY * 2);
+  const uint16_t scrollTrackColor = 0x2104; // subtle dark gray
+  const uint16_t scrollThumbColor = 0x5AEB; // softer cyan-blue
+  spr.fillRoundRect(scrollTrackX, scrollTrackY, scrollTrackW, scrollTrackH, 1, scrollTrackColor);
+
+  const uint16_t totalItems = totalItemsCurrent;
+  const int32_t totalHeight = int32_t(totalItems) * int32_t(menuItemHeight);
+  const int32_t viewHeight = tft.height();
+  if (totalHeight > viewHeight)
+  {
+    const int32_t maxScroll = totalHeight - viewHeight;
+    int32_t scrollPx = int32_t(liveData->menuItemOffset) * int32_t(menuItemHeight) + int32_t(menuItemOffsetPx);
+    if (scrollPx < 0)
+      scrollPx = 0;
+    if (scrollPx > maxScroll)
+      scrollPx = maxScroll;
+
+    int16_t thumbH = int16_t((int32_t(scrollTrackH) * viewHeight) / totalHeight);
+    if (thumbH < 14)
+      thumbH = 14;
+    if (thumbH > scrollTrackH)
+      thumbH = scrollTrackH;
+
+    const int16_t thumbTravel = scrollTrackH - thumbH;
+    int16_t thumbY = scrollTrackY;
+    if (maxScroll > 0 && thumbTravel > 0)
+      thumbY += int16_t((scrollPx * thumbTravel) / maxScroll);
+
+    spr.fillRoundRect(scrollTrackX, thumbY, scrollTrackW, thumbH, 1, scrollThumbColor);
   }
 
   spr.pushSprite(0, 0);
@@ -539,6 +703,7 @@ void Board320_240::hideMenu()
   liveData->menuVisible = false;
   liveData->menuCurrent = 0;
   liveData->menuItemSelected = 0;
+  menuTouchHoverIndex = -1;
   redrawScreen();
 }
 
@@ -564,6 +729,7 @@ void Board320_240::menuMove(bool forward, bool rotate)
     liveData->menuItemSelected = (liveData->menuItemSelected <= 0) ? (rotate ? tmpCount - 1 : 0)
                                                                    : liveData->menuItemSelected - 1;
   }
+  menuItemOffsetPx = 0;
   showMenu();
 }
 
@@ -581,7 +747,7 @@ void Board320_240::menuItemClick()
 
   for (i = 0; i < liveData->menuItemsCount; ++i)
   {
-    if (liveData->menuCurrent == liveData->menuItems[i].parentId)
+    if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
     {
       if (parentMenu == -1)
         parentMenu = liveData->menuItems[i].targetParentId;
@@ -619,6 +785,32 @@ void Board320_240::menuItemClick()
     syslog->print("Menu item: ");
     syslog->println(tmpMenuItem->id);
     printHeapMemory();
+    // WiFi scan list
+    if (tmpMenuItem->id >= LIST_OF_WIFI_1 && tmpMenuItem->id <= LIST_OF_WIFI_10)
+    {
+      uint8_t index = tmpMenuItem->id - LIST_OF_WIFI_1;
+      if (index < liveData->wifiScanCount && strlen(liveData->wifiScanSsid[index]) > 0)
+      {
+        String ssid = liveData->wifiScanSsid[index];
+        bool openNetwork = (liveData->wifiScanEnc[index] == WIFI_AUTH_OPEN);
+        String password = "";
+        if (!promptWifiPassword(ssid.c_str(), password, openNetwork))
+        {
+          showMenu();
+          return;
+        }
+        liveData->settings.wifiEnabled = 1;
+        ssid.toCharArray(liveData->settings.wifiSsid, sizeof(liveData->settings.wifiSsid));
+        password.toCharArray(liveData->settings.wifiPassword, sizeof(liveData->settings.wifiPassword));
+        saveSettings();
+        displayMessage("WiFi connecting", ssid.c_str());
+        wifiSetup();
+        showMenu();
+        return;
+      }
+      showMenu();
+      return;
+    }
     // Device list
     if (tmpMenuItem->id > LIST_OF_BLE_DEV_TOP && tmpMenuItem->id < MENU_LAST)
     {
@@ -994,6 +1186,10 @@ void Board320_240::menuItemClick()
       return;
       break;
     // Wifi menu
+    case MENU_WIFI_SCAN:
+      wifiScanToMenu();
+      return;
+      break;
     case MENU_WIFI_ENABLED:
       liveData->settings.wifiEnabled = (liveData->settings.wifiEnabled == 1) ? 0 : 1;
       showMenu();
@@ -1020,9 +1216,59 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_WIFI_SSID:
+    {
+      String value = String(liveData->settings.wifiSsid);
+      if (promptKeyboard("Change WiFi SSID", value, false, sizeof(liveData->settings.wifiSsid) - 1))
+      {
+        value.toCharArray(liveData->settings.wifiSsid, sizeof(liveData->settings.wifiSsid));
+        saveSettings();
+        if (liveData->settings.wifiEnabled == 1)
+          wifiSetup();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_WIFI_PASSWORD:
+    {
+      String value = String(liveData->settings.wifiPassword);
+      String title = String("Passwd for ") + String(liveData->settings.wifiSsid);
+      if (promptKeyboard(title.c_str(), value, false, sizeof(liveData->settings.wifiPassword) - 1))
+      {
+        value.toCharArray(liveData->settings.wifiPassword, sizeof(liveData->settings.wifiPassword));
+        saveSettings();
+        if (liveData->settings.wifiEnabled == 1)
+          wifiSetup();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_WIFI_SSID2:
+    {
+      String value = String(liveData->settings.wifiSsid2);
+      if (promptKeyboard("Change WiFi SSID2", value, false, sizeof(liveData->settings.wifiSsid2) - 1))
+      {
+        value.toCharArray(liveData->settings.wifiSsid2, sizeof(liveData->settings.wifiSsid2));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_WIFI_PASSWORD2:
+    {
+      String value = String(liveData->settings.wifiPassword2);
+      String title = String("Passwd for ") + String(liveData->settings.wifiSsid2);
+      if (promptKeyboard(title.c_str(), value, false, sizeof(liveData->settings.wifiPassword2) - 1))
+      {
+        value.toCharArray(liveData->settings.wifiPassword2, sizeof(liveData->settings.wifiPassword2));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_WIFI_ACTIVE:
     case MENU_WIFI_IPADDR:
       return;
@@ -1287,18 +1533,38 @@ void Board320_240::menuItemClick()
     else
     {
       // Parent menu
+      MENU_ID returnItemId = (MENU_ID)liveData->menuCurrent;
+      if (liveData->menuCurrent == LIST_OF_BLE_DEV)
+      {
+        returnItemId = MENU_ADAPTER_BLE_SELECT;
+      }
+      else if (liveData->menuCurrent == LIST_OF_WIFI_DEV)
+      {
+        returnItemId = MENU_WIFI_SCAN;
+      }
+
       liveData->menuItemSelected = 0;
+      bool foundReturnItem = false;
       for (i = 0; i < liveData->menuItemsCount; ++i)
       {
         if (parentMenu == liveData->menuItems[i].parentId)
         {
-          if (liveData->menuItems[i].id == liveData->menuCurrent)
+          if (liveData->menuItems[i].id == returnItemId)
+          {
+            foundReturnItem = true;
             break;
+          }
           liveData->menuItemSelected++;
         }
       }
+      if (!foundReturnItem)
+      {
+        liveData->menuItemSelected = 0;
+      }
 
       liveData->menuCurrent = parentMenu;
+      liveData->menuItemOffset = 0;
+      menuItemOffsetPx = 0;
       syslog->println(liveData->menuCurrent);
       showMenu();
     }

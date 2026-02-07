@@ -295,9 +295,18 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TR_DATUM);
   if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)
   {
+    uint16_t bmsStateColor = TFT_WHITE;
+    if (liveData->params.batteryManagementMode == BAT_MAN_MODE_PTC_HEATER)
+      bmsStateColor = TFT_RED;
+    else if (liveData->params.batteryManagementMode == BAT_MAN_MODE_COOLING ||
+             liveData->params.batteryManagementMode == BAT_MAN_MODE_LOW_TEMPERATURE_RANGE ||
+             liveData->params.batteryManagementMode == BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING)
+      bmsStateColor = TFT_CYAN;
+    spr.setTextColor(bmsStateColor);
     sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
             liveData->celsius2temperature(liveData->params.coolingWaterTempC));
     sprDrawString(tmpStr1, 319 - posx, posy);
+    spr.setTextColor(TFT_WHITE);
   }
 
   // Avg speed
@@ -364,9 +373,39 @@ void Board320_240::drawSceneSpeed()
   sprDrawString(tmpStr3, posx, posy);*/
 
   // RIGHT INFO
-  // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  spr.fillRect(210, 55, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
-  spr.fillRect(210, 120, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
+  // Battery "cold gate" detection
+  // Dashed separators around min/max cell block.
+  // Top dashed line animates ("marching") when PTC heater mode is active.
+  const int16_t sepX = 210;
+  const int16_t sepW = 110;
+  const int16_t sepTopY = 55;
+  const int16_t sepBottomY = 120;
+  const int16_t sepH = 5;
+  const int16_t dashLen = 8;
+  const int16_t gapLen = 4;
+  const int16_t dashPeriod = dashLen + gapLen;
+  const uint16_t topSepColor = (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED;
+  const uint16_t bottomSepColor = (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED;
+  const bool ptcActive = (liveData->params.batteryManagementMode == BAT_MAN_MODE_PTC_HEATER);
+  const int16_t topDashOffset = ptcActive ? int16_t((millis() / 120) % dashPeriod) : 0;
+
+  for (int16_t x = sepX - topDashOffset; x < sepX + sepW; x += dashPeriod)
+  {
+    int16_t drawX = (x < sepX) ? sepX : x;
+    int16_t drawW = x + dashLen - drawX;
+    if (drawX + drawW > sepX + sepW)
+      drawW = (sepX + sepW) - drawX;
+    if (drawW > 0)
+      spr.fillRect(drawX, sepTopY, drawW, sepH, topSepColor);
+  }
+  for (int16_t x = sepX; x < sepX + sepW; x += dashPeriod)
+  {
+    int16_t drawW = dashLen;
+    if (x + drawW > sepX + sepW)
+      drawW = (sepX + sepW) - x;
+    if (drawW > 0)
+      spr.fillRect(x, sepBottomY, drawW, sepH, bottomSepColor);
+  }
   spr.setTextColor(TFT_WHITE);
   sprSetFont(fontRobotoThin24);
   spr.setTextDatum(TR_DATUM);
@@ -394,9 +433,38 @@ void Board320_240::drawSceneSpeed()
   sprintf(tmpStr3, (liveData->params.batCellMinV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMinV);
   sprDrawString(tmpStr3, 280, 92);
 
-  // Brake lights
-  spr.fillRect(140, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-  spr.fillRect(180 - 18, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
+  // Rear car + brake lights
+  {
+    const int16_t rearW = 70;
+    const int16_t rearH = 22;
+    const int16_t rearX = (320 - rearW) / 2;
+    const int16_t rearY = 240 - rearH;
+    const uint16_t bodyColor = 0x4208;
+    const uint16_t lineColor = 0x5AEB;
+    const uint16_t lightOn = TFT_RED;
+    const uint16_t lightOff = TFT_DARKRED;
+    const bool brakeOn = liveData->params.brakeLights;
+    const uint16_t lightColor = brakeOn ? lightOn : lightOff;
+    const int16_t lightMargin = brakeOn ? 4 : 6;
+    const int16_t lightW = brakeOn ? 16 : 12;
+    const int16_t lightH = brakeOn ? 8 : 6;
+    const int16_t lightY = rearY + (brakeOn ? 3 : 4);
+    const int16_t lightRadius = brakeOn ? 3 : 2;
+    const int16_t leftLightX = rearX + lightMargin;
+    const int16_t rightLightX = rearX + rearW - lightMargin - lightW;
+
+    spr.fillRoundRect(rearX, rearY, rearW, rearH, 6, bodyColor);
+    spr.drawRoundRect(rearX, rearY, rearW, rearH, 6, lineColor);
+    spr.fillRoundRect(rearX + 8, rearY + 4, rearW - 16, 6, 3, lineColor);
+    spr.drawFastHLine(rearX + 6, rearY + rearH - 6, rearW - 12, lineColor);
+    spr.fillRoundRect(leftLightX, lightY, lightW, lightH, lightRadius, lightColor);
+    spr.fillRoundRect(rightLightX, lightY, lightW, lightH, lightRadius, lightColor);
+    if (brakeOn)
+    {
+      spr.fillRoundRect(leftLightX + 2, lightY + 2, lightW - 4, lightH - 4, 2, TFT_ORANGE);
+      spr.fillRoundRect(rightLightX + 2, lightY + 2, lightW - 4, lightH - 4, 2, TFT_ORANGE);
+    }
+  }
   // Lights
   uint16_t tmpWord;
   tmpWord = (liveData->params.headLights) ? TFT_GREEN : (liveData->params.autoLights) ? TFT_YELLOW
@@ -515,8 +583,93 @@ void Board320_240::drawSceneHud()
   sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
   tft.drawString(tmpStr3, 25, 180);
 
-  // Brake lights
-  tft.fillRect(0, 215, 320, 25, (liveData->params.brakeLights) ? TFT_DARKRED : TFT_BLACK);
+  // Rear car + brake lights
+  {
+    const int16_t rearW = 70;
+    const int16_t rearH = 22;
+    const int16_t rearX = (320 - rearW) / 2;
+    const int16_t rearY = 240 - rearH;
+    const uint16_t bodyColor = 0x4208;
+    const uint16_t lineColor = 0x5AEB;
+    const uint16_t lightOn = TFT_RED;
+    const uint16_t lightOff = TFT_DARKRED;
+    const bool brakeOn = liveData->params.brakeLights;
+    const uint16_t lightColor = brakeOn ? lightOn : lightOff;
+    const int16_t lightMargin = brakeOn ? 4 : 6;
+    const int16_t lightW = brakeOn ? 16 : 12;
+    const int16_t lightH = brakeOn ? 8 : 6;
+    const int16_t lightY = rearY + (brakeOn ? 3 : 4);
+    const int16_t lightRadius = brakeOn ? 3 : 2;
+    const int16_t leftLightX = rearX + lightMargin;
+    const int16_t rightLightX = rearX + rearW - lightMargin - lightW;
+
+    tft.fillRoundRect(rearX, rearY, rearW, rearH, 6, bodyColor);
+    tft.drawRoundRect(rearX, rearY, rearW, rearH, 6, lineColor);
+    tft.fillRoundRect(rearX + 8, rearY + 4, rearW - 16, 6, 3, lineColor);
+    tft.drawFastHLine(rearX + 6, rearY + rearH - 6, rearW - 12, lineColor);
+    tft.fillRoundRect(leftLightX, lightY, lightW, lightH, lightRadius, lightColor);
+    tft.fillRoundRect(rightLightX, lightY, lightW, lightH, lightRadius, lightColor);
+    if (brakeOn)
+    {
+      tft.fillRoundRect(leftLightX + 2, lightY + 2, lightW - 4, lightH - 4, 2, TFT_ORANGE);
+      tft.fillRoundRect(rightLightX + 2, lightY + 2, lightW - 4, lightH - 4, 2, TFT_ORANGE);
+    }
+  }
+}
+
+/**
+ * Number of visible battery cell values per page.
+ */
+uint16_t Board320_240::batteryCellsCellsPerPage()
+{
+  int32_t lastPosY = 64 - 16;
+  if (liveData->params.batModuleTempCount > 4)
+  {
+    uint16_t moduleRows = (liveData->params.batModuleTempCount + 7) / 8;
+    lastPosY = ((moduleRows - 1) * 13) + 32;
+  }
+
+  int32_t firstCellY = lastPosY + 16;
+  int32_t availableHeight = 240 - firstCellY;
+  uint16_t rowsPerPage = (availableHeight > 0) ? (availableHeight / 13) : 0;
+  if (rowsPerPage < 1)
+    rowsPerPage = 1;
+
+  return rowsPerPage * 8;
+}
+
+/**
+ * Number of pages for battery cell values.
+ */
+uint16_t Board320_240::batteryCellsPageCount()
+{
+  uint16_t cellsPerPage = batteryCellsCellsPerPage();
+  uint16_t cellCount = liveData->params.cellCount;
+  if (cellsPerPage == 0 || cellCount == 0)
+    return 1;
+
+  uint16_t pageCount = (cellCount + cellsPerPage - 1) / cellsPerPage;
+  return (pageCount == 0) ? 1 : pageCount;
+}
+
+/**
+ * Move battery cells page.
+ */
+void Board320_240::batteryCellsPageMove(bool forward)
+{
+  uint16_t pageCount = batteryCellsPageCount();
+  if (pageCount <= 1)
+  {
+    batteryCellsPage = 0;
+    return;
+  }
+
+  if (forward)
+    batteryCellsPage = (batteryCellsPage + 1 >= pageCount) ? 0 : (batteryCellsPage + 1);
+  else
+    batteryCellsPage = (batteryCellsPage == 0) ? (pageCount - 1) : (batteryCellsPage - 1);
+
+  redrawScreen();
 }
 
 /**
@@ -528,14 +681,13 @@ void Board320_240::drawSceneHud()
  */
 void Board320_240::drawSceneBatteryCells()
 {
-  int32_t posx, posy, lastPosY;
+  int32_t posx, posy;
+  int32_t lastPosY = 64 - 16;
 
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
   drawSmallCell(0, 0, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
   sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
   drawSmallCell(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-
-  lastPosY = 64 - 16;
 
   if (liveData->params.batModuleTempCount <= 4)
   {
@@ -570,6 +722,26 @@ void Board320_240::drawSceneBatteryCells()
   spr.setTextDatum(TL_DATUM); // Topleft
   spr.setTextSize(1);         // Size for small 5x7 font
 
+  uint16_t cellsPerPage = batteryCellsCellsPerPage();
+  uint16_t pageCount = batteryCellsPageCount();
+  if (batteryCellsPage >= pageCount)
+    batteryCellsPage = pageCount - 1;
+
+  uint16_t cellFirstIndex = batteryCellsPage * cellsPerPage;
+  uint16_t cellLastIndex = cellFirstIndex + cellsPerPage;
+  if (cellLastIndex > liveData->params.cellCount)
+    cellLastIndex = liveData->params.cellCount;
+
+  if (pageCount > 1)
+  {
+    spr.setTextDatum(TR_DATUM);
+    spr.setTextColor(TFT_CYAN);
+    sprSetFont(fontFont2);
+    sprintf(tmpStr4, "<PG %d/%d>", batteryCellsPage + 1, pageCount);
+    sprDrawString(tmpStr4, 318, 18);
+    spr.setTextDatum(TL_DATUM);
+  }
+
   // Find min and max val
   float minVal = -1, maxVal = -1;
   for (int i = 0; i < liveData->params.cellCount; i++)
@@ -583,12 +755,13 @@ void Board320_240::drawSceneBatteryCells()
   }
 
   // Draw cell matrix
-  for (int i = 0; i < liveData->params.cellCount; i++)
+  for (int i = cellFirstIndex; i < cellLastIndex; i++)
   {
     if (liveData->params.cellVoltage[i] == -1)
       continue;
-    posx = ((i % 8) * 40) + 4;
-    posy = ((floor(i / 8)) * 13) + lastPosY + 16; // 68;
+    int localIndex = i - cellFirstIndex;
+    posx = ((localIndex % 8) * 40) + 4;
+    posy = ((localIndex / 8) * 13) + lastPosY + 16;
     sprintf(tmpStr3, "%01.02f", liveData->params.cellVoltage[i]);
     spr.setTextColor(TFT_SILVER);
     if (liveData->params.cellVoltage[i] == minVal && minVal != maxVal)

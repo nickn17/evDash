@@ -2,16 +2,17 @@
 
 #include "config.h"
 
-#define MENU_SIZE 169
+#define MENU_SIZE 181
 
 MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
     {MENU_TOP_LEVEL, MENU_TOP_LEVEL, MENU_TOP_LEVEL, "<- exit menu"},
-    {MENU_CLEAR_STATS, MENU_TOP_LEVEL, MENU_NO_MENU, "Clear stats"},
+    {MENU_CLEAR_STATS, MENU_TOP_LEVEL, MENU_NO_MENU, "Clear driving stats"},
+    {MENU_WIFI, MENU_TOP_LEVEL, MENU_NO_MENU, "WiFi network"},
     {MENU_VEHICLE_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Vehicle type"},
-    {MENU_ADAPTER_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Adapter (CAN/OBD2)"},
-    {MENU_BOARD, MENU_TOP_LEVEL, MENU_NO_MENU, "Board setup"},
-    {MENU_OTHERS, MENU_TOP_LEVEL, MENU_NO_MENU, "Others"},
+    {MENU_ADAPTER_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "OBD2/CAN adapter"},
+    {MENU_BOARD, MENU_TOP_LEVEL, MENU_NO_MENU, "M5stack board setup"},
+    {MENU_OTHERS, MENU_TOP_LEVEL, MENU_NO_MENU, "Others (SD card, GPS,...)"},
     {MENU_UNITS, MENU_TOP_LEVEL, MENU_NO_MENU, "Units"},
     {MENU_FACTORY_RESET, MENU_TOP_LEVEL, MENU_NO_MENU, "Factory reset"},
     {MENU_SAVE_SETTINGS, MENU_TOP_LEVEL, MENU_NO_MENU, "Save settings"},
@@ -83,7 +84,6 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_LOAD_TEST_DATA, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Load demo (static) data..."},
 
     {MENU_OTHER_TOP, MENU_OTHERS, MENU_TOP_LEVEL, "<- parent menu"},
-    {MENU_WIFI, MENU_OTHERS, MENU_NO_MENU, "WiFi network"},
     {MENU_SDCARD, MENU_OTHERS, MENU_NO_MENU, "SD card"},
     {MENU_GPS, MENU_OTHERS, MENU_NO_MENU, "GPS"},
     {MENU_REMOTE_UPLOAD, MENU_OTHERS, MENU_NO_MENU, "Rem. Upload"},
@@ -108,7 +108,8 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_TEMPERATURE_UNIT, MENU_UNITS, MENU_NO_MENU, "Temperature"},
     {MENU_PRESSURE_UNIT, MENU_UNITS, MENU_NO_MENU, "Pressure"},
 
-    {MENU_WIFI_TOP, MENU_WIFI, MENU_OTHERS, "<- parent menu"},
+    {MENU_WIFI_TOP, MENU_WIFI, MENU_TOP_LEVEL, "<- parent menu"},
+    {MENU_WIFI_SCAN, MENU_WIFI, MENU_NO_MENU, "Scan WiFi networks"},
     {MENU_WIFI_ENABLED, MENU_WIFI, MENU_NO_MENU, "WiFi enabled"},
     {MENU_WIFI_HOTSPOT_WEBADMIN, MENU_WIFI, MENU_NO_MENU, "Enable hotspot+webadmin"},
     {MENU_WIFI_SSID, MENU_WIFI, MENU_NO_MENU, "[i] SSID:"},
@@ -117,7 +118,6 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_WIFI_SSID2, MENU_WIFI, MENU_NO_MENU, "[i] SSID2:"},
     {MENU_WIFI_PASSWORD2, MENU_WIFI, MENU_NO_MENU, "[i] Passwd2:"},
     {MENU_WIFI_NTP, MENU_WIFI, MENU_NO_MENU, "NTP sync:"},
-    {MENU_WIFI_ACTIVE, MENU_WIFI, MENU_NO_MENU, "[i] Active:"},
     {MENU_WIFI_IPADDR, MENU_WIFI, MENU_NO_MENU, "[i] IP addr:"},
 
     {MENU_SDCARD_TOP, MENU_SDCARD, MENU_OTHERS, "<- parent menu"},
@@ -196,5 +196,17 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {LIST_OF_BLE_8, LIST_OF_BLE_DEV, MENU_NO_MENU, "-"},
     {LIST_OF_BLE_9, LIST_OF_BLE_DEV, MENU_NO_MENU, "-"},
     {LIST_OF_BLE_10, LIST_OF_BLE_DEV, MENU_NO_MENU, "-"},
+
+    {LIST_OF_WIFI_DEV_TOP, LIST_OF_WIFI_DEV, MENU_WIFI, "WiFi network list"},
+    {LIST_OF_WIFI_1, LIST_OF_WIFI_DEV, MENU_WIFI, "<- parent menu"},
+    {LIST_OF_WIFI_2, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_3, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_4, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_5, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_6, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_7, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_8, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_9, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
+    {LIST_OF_WIFI_10, LIST_OF_WIFI_DEV, MENU_NO_MENU, "-"},
 
     {MENU_CAR_COMMANDS_TOP, MENU_CAR_COMMANDS, MENU_TOP_LEVEL, "<- parent menu"}};

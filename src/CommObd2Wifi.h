@@ -9,6 +9,8 @@ class CommObd2Wifi : public CommInterface
 
 protected:
   uint32_t PIN = 1234;
+  uint32_t lastWifiRetryMs = 0;
+  uint32_t lastTcpRetryMs = 0;
 
 public:
   void connectDevice() override;

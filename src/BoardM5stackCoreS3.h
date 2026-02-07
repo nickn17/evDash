@@ -19,6 +19,7 @@ public:
   void boardLoop() override;
   void mainLoop() override;
   bool isButtonPressed(int button) override;
+  bool getTouch(int16_t &x, int16_t &y) override;
   void enterSleepMode(int secs) override;
   bool skipAdapterScan() override;
   //  static void eventDisplay(Event &e);
