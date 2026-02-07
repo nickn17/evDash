@@ -60,6 +60,10 @@ protected:
   int firstReload = 0;
   uint8_t menuVisibleCount = 5;
   uint8_t menuItemHeight = 20;
+  uint8_t menuItemOffsetPx = 0;
+  bool menuDragScrollActive = false;
+  int16_t menuTouchHoverIndex = -1;
+  uint16_t batteryCellsPage = 0;
   time_t lastRedrawTime = 0;
   uint8_t currentBrightness = 255;
   // time in fwd mode for avg speed calc.
@@ -73,6 +77,9 @@ protected:
   time_t cachedNowEpoch = 0;
   struct tm cachedNow = {};
   float displayFps = 0;
+  bool modalDialogActive = false;
+  bool screenSwipePreviewActive = false;
+  String dismissedCanStatusText = "";
   bool lastChargingOn = false;
   QueueHandle_t netSendQueue = nullptr;
   TaskHandle_t netSendTaskHandle = nullptr;
@@ -124,11 +131,19 @@ public:
   void wifiSwitchToBackup();
   void uploadSdCardLogToEvDashServer();
   void queueAbrpSdLog(const char *payload, size_t length, time_t currentTime, uint64_t operationTimeSec, bool timeSyncWithGps);
+  bool wifiScanToMenu();
+  bool promptKeyboard(const char *title, String &value, bool mask, uint8_t maxLen = 63);
+  bool promptWifiPassword(const char *ssid, String &outPassword, bool isOpenNetwork);
+  bool canStatusMessageVisible();
+  bool canStatusMessageHitTest(int16_t x, int16_t y);
+  void dismissCanStatusMessage();
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;
   void displayMessage(const char *row1, const char *row2) override;
   bool confirmMessage(const char *row1, const char *row2) override;
+  bool drawActiveScreenToSprite();
+  void showScreenSwipePreview(int16_t deltaX);
   void redrawScreen() override;
   // Custom screens
   void drawBigCell(int32_t x, int32_t y, int32_t w, int32_t h, const char *text, const char *desc, uint16_t bgColor, uint16_t fgColor);
@@ -137,12 +152,18 @@ public:
   void drawSceneMain();
   void drawSceneSpeed();
   void drawSceneHud();
+  uint16_t batteryCellsCellsPerPage();
+  uint16_t batteryCellsPageCount();
+  void batteryCellsPageMove(bool forward);
   void drawSceneBatteryCells();
   void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY);
   void drawSceneChargingGraph();
   void drawSceneSoc10Table();
   void drawSceneDebug();
   // Menu
+  uint16_t menuItemsCountCurrent();
+  void menuScrollByPixels(int16_t deltaTopPx);
+  uint16_t menuItemFromTouchY(int16_t touchY);
   String menuItemText(int16_t menuItemId, String title);
   void showMenu() override;
   void hideMenu() override;

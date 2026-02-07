@@ -179,6 +179,21 @@ bool CommInterface::doNextQueueCommand()
       }
     }
 
+    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+    {
+      static uint32_t lastUiYieldMs = 0;
+      uint32_t nowMs = millis();
+      if (nowMs - lastUiYieldMs >= 200)
+      {
+        lastUiYieldMs = nowMs;
+        liveData->redrawScreenRequested = true;
+        if (board)
+        {
+          board->redrawScreen();
+        }
+      }
+    }
+
     // Queue optimizer
     commandAllowed = board->carCommandAllowed();
     liveData->commandQueueIndex++;

@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v4.1.13"
-#define APP_RELEASE_DATE "2026-02-04"
+#define APP_VERSION "v4.1.16"
+#define APP_RELEASE_DATE "2026-02-07"
 // TFT COLORS
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */
 #define TFT_NAVY 0x000F      /*   0,   0, 128 */
@@ -177,6 +177,7 @@ typedef enum
 
   // menu wifi
   MENU_WIFI_TOP = 3020,
+  MENU_WIFI_SCAN,
   MENU_WIFI_ENABLED,
   MENU_WIFI_HOTSPOT_WEBADMIN,
   MENU_WIFI_SSID,
@@ -275,6 +276,18 @@ typedef enum
   LIST_OF_BLE_8,
   LIST_OF_BLE_9,
   LIST_OF_BLE_10,
+  LIST_OF_WIFI_DEV = 11000,
+  LIST_OF_WIFI_DEV_TOP,
+  LIST_OF_WIFI_1,
+  LIST_OF_WIFI_2,
+  LIST_OF_WIFI_3,
+  LIST_OF_WIFI_4,
+  LIST_OF_WIFI_5,
+  LIST_OF_WIFI_6,
+  LIST_OF_WIFI_7,
+  LIST_OF_WIFI_8,
+  LIST_OF_WIFI_9,
+  LIST_OF_WIFI_10,
 
   // car commands menu
   MENU_CAR_COMMANDS_TOP = 12000,

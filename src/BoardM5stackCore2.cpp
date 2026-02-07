@@ -38,9 +38,24 @@ int16_t lastTouchX, lastTouchY;
 uint32_t lastTouchTime = 0;
 uint32_t lastTouchProcessedTime = 0;
 bool touchPressed = false;
+bool touchDragged = false;
+bool touchTracking = false;
+bool touchDragGestureActive = false;
+bool touchSwipeGestureActive = false;
+int16_t touchStartX = 0;
+int16_t touchStartY = 0;
+int16_t touchDragDeltaY = 0;
+int16_t touchDragDeltaYPrev = 0;
+int16_t touchSwipeDeltaX = 0;
+bool touchMenuVisible = false;
 bool btnAPressed = false;
 bool btnBPressed = false;
 bool btnCPressed = false;
+static BoardM5stackCore2 *core2Board = nullptr;
+
+static constexpr int16_t MENU_DRAG_THRESHOLD_PX = 6;
+static constexpr int16_t TOUCH_TAP_SLOP_PX = 8;
+static constexpr int16_t TOUCH_SWIPE_THRESHOLD_PX = 18;
 
 float accX = 0.0F; // Define variables for storing inertial sensor data
 float accY = 0.0F;
@@ -58,6 +73,8 @@ float temp = 0.0F;
  */
 void BoardM5stackCore2::initBoard()
 {
+  core2Board = this;
+
   pinButtonLeft = BUTTON_LEFT;
   pinButtonRight = BUTTON_RIGHT;
   pinButtonMiddle = BUTTON_MIDDLE;
@@ -102,7 +119,7 @@ void BoardM5stackCore2::afterSetup()
   syslog->println(" START -> BoardM5stackCore2::afterSetup ");
 
   // Touch screen zone
-  uint16_t events = (false) ? E_ALL : (E_ALL - E_MOVE); // Show all events, or everything but E_MOVE? Controlled with A button.
+  uint16_t events = E_ALL;
 
   M5.background.delHandlers();
   M5.background.tapTime = 50;
@@ -119,6 +136,35 @@ void BoardM5stackCore2::afterSetup()
  */
 bool BoardM5stackCore2::isButtonPressed(int button)
 {
+  touchMenuVisible = liveData->menuVisible;
+
+  if (liveData->menuVisible && touchTracking)
+  {
+    bool inUpperLeftZone = (lastTouchX < 64 && lastTouchY < 64);
+    bool inPageUpZone = (lastTouchX > 320 - 64 && lastTouchY < 64);
+    bool inPageDownZone = (lastTouchX > 320 - 64 && lastTouchY > 240 - 64);
+    bool inReservedZone = inUpperLeftZone || inPageUpZone || inPageDownZone;
+
+    uint16_t totalItems = menuItemsCountCurrent();
+    int16_t hoverIndex = (totalItems == 0 || inReservedZone) ? -1 : int16_t(menuItemFromTouchY(lastTouchY));
+    if (hoverIndex >= int16_t(totalItems))
+      hoverIndex = -1;
+    if (hoverIndex != menuTouchHoverIndex)
+    {
+      menuTouchHoverIndex = hoverIndex;
+      menuDragScrollActive = true;
+      showMenu();
+      menuDragScrollActive = false;
+    }
+  }
+  else if (liveData->menuVisible && menuTouchHoverIndex != -1 && !touchPressed)
+  {
+    menuTouchHoverIndex = -1;
+    menuDragScrollActive = true;
+    showMenu();
+    menuDragScrollActive = false;
+  }
+
   // All events
   if (touchPressed || btnAPressed || btnBPressed || btnCPressed)
   {
@@ -136,6 +182,8 @@ bool BoardM5stackCore2::isButtonPressed(int button)
         commInterface->resumeDevice();
       }
       touchPressed = false;
+      touchSwipeGestureActive = false;
+      touchSwipeDeltaX = 0;
       return true;
     }
   }
@@ -143,6 +191,21 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   // Touch screen
   if (touchPressed)
   {
+    if (modalDialogActive)
+    {
+      touchPressed = false;
+      return false;
+    }
+
+    bool menuDrag = touchDragged;
+    int16_t menuDragDeltaY = touchDragDeltaY;
+    touchDragged = false;
+    touchDragDeltaY = 0;
+    if (!menuDrag)
+    {
+      touchDragDeltaYPrev = 0;
+    }
+
     syslog->println("Touch event");
     liveData->continueWithCommandQueue();
     if (commInterface->isSuspended())
@@ -154,63 +217,141 @@ bool BoardM5stackCore2::isButtonPressed(int button)
     // Process action
     if (!liveData->menuVisible)
     {
+      const uint8_t firstCarouselScreen = SCREEN_DASH;
+      const uint8_t lastCarouselScreen = SCREEN_DEBUG;
+      int16_t swipeCommitThresholdPx = int16_t((tft.width() * 30) / 100);
+      if (swipeCommitThresholdPx < TOUCH_SWIPE_THRESHOLD_PX)
+        swipeCommitThresholdPx = TOUCH_SWIPE_THRESHOLD_PX;
       tft.setRotation(liveData->settings.displayRotation);
-      if (lastTouchY > 64 && lastTouchY < 150)
+      if (touchSwipeGestureActive)
       {
-        // lastTouchX < 120
-        if (lastTouchX < 120)
+        if (abs(touchSwipeDeltaX) >= swipeCommitThresholdPx)
         {
-          if (liveData->params.displayScreen == 0) // rotate screens
-            liveData->params.displayScreen = displayScreenCount - 1;
+          if (touchSwipeDeltaX > 0)
+          {
+            if (liveData->params.displayScreen > firstCarouselScreen &&
+                liveData->params.displayScreen <= lastCarouselScreen)
+              liveData->params.displayScreen--;
+          }
           else
-            liveData->params.displayScreen--;
-          setBrightness(); // Turn off display on screen 0
-          redrawScreen();
+          {
+            if (liveData->params.displayScreen >= firstCarouselScreen &&
+                liveData->params.displayScreen < lastCarouselScreen)
+              liveData->params.displayScreen++;
+          }
         }
-        // lastTouchX >= 120 && lastTouchX <= 200
-        if (lastTouchX >= 120 && lastTouchX <= 200)
+        touchSwipeGestureActive = false;
+        screenSwipePreviewActive = false;
+        touchSwipeDeltaX = 0;
+        setBrightness();
+        redrawScreen();
+      }
+      else
+      {
+        if (!menuDrag && canStatusMessageHitTest(lastTouchX, lastTouchY))
         {
-          showMenu();
-        }
-        // lastTouchX > 200
-        if (lastTouchX > 200)
-        {
-          liveData->params.displayScreen++;
-          if (liveData->params.displayScreen > displayScreenCount - 1)
-            liveData->params.displayScreen = 0; // rotate screens
-          setBrightness();                      // Turn off display on screen 0
+          dismissCanStatusMessage();
           redrawScreen();
+          return false;
+        }
+        bool cellSceneVisible = (liveData->params.displayScreen == SCREEN_CELLS || liveData->params.displayScreenAutoMode == SCREEN_CELLS);
+        if (cellSceneVisible && lastTouchY < 64)
+        {
+          // Cell screen paging: top-left = previous page, top-right = next page.
+          batteryCellsPageMove(lastTouchX >= 160);
+        }
+        else if (lastTouchY > 64 && lastTouchY < 150)
+        {
+          bool screenChanged = false;
+          // lastTouchX < 120
+          if (lastTouchX < 120)
+          {
+            if (liveData->params.displayScreen == 0)
+              liveData->params.displayScreen = displayScreenCount - 1;
+            else
+              liveData->params.displayScreen--;
+            screenChanged = true;
+          }
+          // lastTouchX >= 120 && lastTouchX <= 200
+          if (lastTouchX >= 120 && lastTouchX <= 200)
+          {
+            showMenu();
+          }
+          // lastTouchX > 200
+          if (lastTouchX > 200)
+          {
+            liveData->params.displayScreen++;
+            if (liveData->params.displayScreen > displayScreenCount - 1)
+              liveData->params.displayScreen = 0;
+            screenChanged = true;
+          }
+          if (screenChanged)
+          {
+            setBrightness();
+            redrawScreen();
+          }
         }
       }
     }
     else
     {
-      // Left top corner (up menu or exit menu)
-      if (lastTouchX < 64 && lastTouchY < 64)
+      bool inUpperLeftZone = (!menuDrag && lastTouchX < 64 && lastTouchY < 64);
+      bool inPageUpZone = (!menuDrag && lastTouchX > 320 - 64 && lastTouchY < 64);
+      bool inPageDownZone = (!menuDrag && lastTouchX > 320 - 64 && lastTouchY > 240 - 64);
+
+      if (inUpperLeftZone)
       {
+        menuTouchHoverIndex = -1;
         liveData->menuItemSelected = 0;
         menuItemClick();
       }
-      else // Right top corner - page up
-        if (lastTouchX > 320 - 64 && lastTouchY < 64)
+      else if (inPageUpZone)
+      {
+        menuTouchHoverIndex = -1;
+        for (uint8_t i = 0; i < menuVisibleCount; i++)
+          menuMove(false, false);
+        showMenu();
+      }
+      else if (inPageDownZone)
+      {
+        menuTouchHoverIndex = -1;
+        for (uint8_t i = 0; i < menuVisibleCount; i++)
+          menuMove(true, false);
+        showMenu();
+      }
+      else if (menuDrag) // Drag menu page (pixel scrolling)
+      {
+        int16_t delta = menuDragDeltaY - touchDragDeltaYPrev;
+        touchDragDeltaYPrev = menuDragDeltaY;
+        menuScrollByPixels(delta);
+        menuTouchHoverIndex = -1; // no hover highlight during drag
+        // Keep cursor near finger while dragging to avoid snap-back on release.
+        uint16_t totalItems = menuItemsCountCurrent();
+        if (totalItems > 0)
         {
-          for (uint8_t i = 0; i < menuVisibleCount; i++)
-            menuMove(false, false);
-          showMenu();
+          bool inUpperLeftZone = (lastTouchX < 64 && lastTouchY < 64);
+          bool inPageUpZone = (lastTouchX > 320 - 64 && lastTouchY < 64);
+          bool inPageDownZone = (lastTouchX > 320 - 64 && lastTouchY > 240 - 64);
+          if (!inUpperLeftZone && !inPageUpZone && !inPageDownZone)
+          {
+            uint16_t hoverItem = menuItemFromTouchY(lastTouchY);
+            if (hoverItem < totalItems)
+            {
+              liveData->menuItemSelected = hoverItem;
+            }
+          }
         }
-        else // Right bottom corne - page down
-          if (lastTouchX > 320 - 64 && lastTouchY > 240 - 64)
-          {
-            for (uint8_t i = 0; i < menuVisibleCount; i++)
-              menuMove(true, false);
-            showMenu();
-          }
-          else // Click item
-          {
-            liveData->menuItemSelected = liveData->menuItemOffset + uint16_t(lastTouchY / menuItemHeight);
-            showMenu();
-            menuItemClick();
-          }
+        menuDragScrollActive = true;
+        showMenu();
+        menuDragScrollActive = false;
+      }
+      else // Click item
+      {
+        menuTouchHoverIndex = -1;
+        liveData->menuItemSelected = menuItemFromTouchY(lastTouchY);
+        showMenu();
+        menuItemClick();
+      }
     }
   }
 
@@ -243,16 +384,72 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   return false;
 }
 
+bool BoardM5stackCore2::getTouch(int16_t &x, int16_t &y)
+{
+  if (!touchPressed)
+  {
+    return false;
+  }
+  x = lastTouchX;
+  y = lastTouchY;
+  touchPressed = false;
+  return true;
+}
+
 /**
  * Touch screen handler
  */
 void BoardM5stackCore2::eventDisplay(Event &e)
 {
-  if (e.type == E_TOUCH && (lastTouchX != e.to.x || lastTouchY != e.to.y))
+  if (e.type == E_TOUCH || e.type == E_MOVE || e.type == E_DRAGGED)
   {
     // syslog->println("E_TOUCH PRESSED");
+    if (!touchTracking)
+    {
+      touchStartX = e.to.x;
+      touchStartY = e.to.y;
+      touchDragDeltaY = 0;
+      touchDragged = false;
+      touchDragGestureActive = false;
+      touchSwipeGestureActive = false;
+      touchSwipeDeltaX = 0;
+      touchTracking = true;
+    }
     lastTouchX = e.to.x;
     lastTouchY = e.to.y;
+    int16_t dragX = lastTouchX - touchStartX;
+    int16_t dragY = lastTouchY - touchStartY;
+    touchDragDeltaY = dragY;
+    bool horizontalSwipeDrag = (!touchMenuVisible &&
+                                abs(dragX) > abs(dragY) &&
+                                (touchSwipeGestureActive || abs(dragX) >= TOUCH_SWIPE_THRESHOLD_PX));
+    if (horizontalSwipeDrag)
+    {
+      if (!touchSwipeGestureActive && core2Board != nullptr)
+      {
+        core2Board->screenSwipePreviewActive = true;
+      }
+      touchSwipeGestureActive = true;
+      if (abs(dragX) > abs(touchSwipeDeltaX))
+      {
+        touchSwipeDeltaX = dragX;
+      }
+      touchDragGestureActive = false;
+      touchDragged = false;
+      if (core2Board != nullptr)
+      {
+        core2Board->showScreenSwipePreview(dragX);
+      }
+    }
+    if (abs(dragY) >= MENU_DRAG_THRESHOLD_PX && abs(dragY) > abs(dragX))
+    {
+      touchDragged = true;
+      touchDragGestureActive = true;
+      if (touchMenuVisible)
+      {
+        touchPressed = true;
+      }
+    }
     lastTouchTime = millis();
   }
 
@@ -260,10 +457,45 @@ void BoardM5stackCore2::eventDisplay(Event &e)
   // strcmp(e.objName(), "background") == 0 &&
   if (e.type == E_RELEASE &&
       !touchPressed && !btnAPressed && !btnBPressed && !btnCPressed &&
-      lastTouchX == e.to.x && lastTouchY == e.to.y && lastTouchTime != 0)
+      lastTouchTime != 0)
   {
-    if (millis() - lastTouchTime > M5.background.tapTime &&
-        millis() - lastTouchProcessedTime > M5.background.longPressTime)
+    if (!touchTracking)
+    {
+      touchStartX = e.from.x;
+      touchStartY = e.from.y;
+    }
+    lastTouchX = e.to.x;
+    lastTouchY = e.to.y;
+    int16_t dragX = lastTouchX - touchStartX;
+    int16_t dragY = lastTouchY - touchStartY;
+    bool validTap = abs(dragX) <= TOUCH_TAP_SLOP_PX && abs(dragY) <= TOUCH_TAP_SLOP_PX;
+    if (touchDragGestureActive)
+    {
+      validTap = false;
+    }
+
+    bool horizontalSwipe = (!touchMenuVisible && touchSwipeGestureActive);
+    if (!horizontalSwipe)
+    {
+      horizontalSwipe = (!touchMenuVisible &&
+                         abs(dragX) >= TOUCH_SWIPE_THRESHOLD_PX &&
+                         abs(dragX) > abs(dragY));
+    }
+    if (horizontalSwipe)
+    {
+      touchSwipeGestureActive = true;
+      if (abs(dragX) > abs(touchSwipeDeltaX))
+      {
+        touchSwipeDeltaX = dragX;
+      }
+      touchDragged = false;
+      touchDragDeltaY = 0;
+      touchDragDeltaYPrev = 0;
+      validTap = false;
+      touchPressed = true;
+    }
+    else if (millis() - lastTouchTime > M5.background.tapTime &&
+             millis() - lastTouchProcessedTime > M5.background.longPressTime)
     {
       if (lastTouchY >= 240)
       {
@@ -278,12 +510,30 @@ void BoardM5stackCore2::eventDisplay(Event &e)
       }
       else
       {
-        touchPressed = true;
+        touchDragged = !validTap &&
+                       abs(dragY) >= MENU_DRAG_THRESHOLD_PX && abs(dragY) > abs(dragX);
+        touchDragDeltaY = dragY;
+        if (validTap)
+        {
+          touchPressed = true;
+        }
       }
 
       syslog->print("Touch pressed: ");
       syslog->println(e.objName());
     }
+
+  }
+  if (e.type == E_RELEASE)
+  {
+    if (core2Board != nullptr)
+    {
+      core2Board->screenSwipePreviewActive = false;
+    }
+    touchTracking = false;
+    touchDragGestureActive = false;
+    lastTouchTime = 0;
+    touchDragDeltaYPrev = 0;
   }
   /*
     syslog->printf("%-12s finger%d  %-18s (%3d, %3d) --> (%3d, %3d)   ",

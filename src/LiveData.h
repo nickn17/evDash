@@ -438,6 +438,10 @@ public:
   uint8_t menuItemOffset = 0;
   uint16_t scanningDeviceIndex = 0;
   MENU_ITEM *menuItems;
+  uint8_t wifiScanCount = 0;
+  char wifiScanSsid[10][33];
+  int8_t wifiScanRssi[10];
+  uint8_t wifiScanEnc[10];
 
   // Comm
   boolean commConnected = false;

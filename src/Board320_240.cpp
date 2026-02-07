@@ -301,7 +301,9 @@ void Board320_240::afterSetup()
 
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
-  if (!liveData->params.wifiApMode && liveData->settings.wifiEnabled == 1)
+  const bool wifiRequiredByAdapter = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI);
+  if (!liveData->params.wifiApMode &&
+      (liveData->settings.wifiEnabled == 1 || wifiRequiredByAdapter))
   {
     wifiSetup();
     printHeapMemory();
@@ -622,28 +624,75 @@ void Board320_240::turnOffScreen()
  * sprSetFont
  */
 #ifdef BOARD_M5STACK_CORE2
+static bool isEquivalentCore2Font(const GFXfont *a, const GFXfont *b)
+{
+  if (a == b)
+  {
+    return true;
+  }
+  if (a == nullptr || b == nullptr)
+  {
+    return false;
+  }
+  // GFX fonts in the M5 headers are header-defined constants (one copy per TU),
+  // so pointer equality may fail across .cpp files. Match by stable metadata.
+  return (a->first == b->first) && (a->last == b->last) && (a->yAdvance == b->yAdvance);
+}
+
 void Board320_240::sprSetFont(const GFXfont *f)
 {
-  lastFont = f;
-  if (lastFont == fontFont7 || lastFont == fontFont2)
+  if (isEquivalentCore2Font(f, fontFont7))
   {
-    spr.setTextFont(lastFont == fontFont7 ? 7 : 2);
+    lastFont = fontFont7;
+    spr.setTextFont(7);
+    return;
   }
-  else
+  if (isEquivalentCore2Font(f, fontFont2))
+  {
+    lastFont = fontFont2;
+    spr.setTextFont(2);
+    return;
+  }
+
+  lastFont = f;
+  if (f != nullptr)
   {
     spr.setFont(f);
   }
 }
 #endif // BOARD_M5STACK_CORE2
 #ifdef BOARD_M5STACK_CORES3
+static bool isEquivalentCoreS3Font(const lgfx::GFXfont *a, const lgfx::GFXfont *b)
+{
+  if (a == b)
+  {
+    return true;
+  }
+  if (a == nullptr || b == nullptr)
+  {
+    return false;
+  }
+  // Same reason as Core2 variant above.
+  return (a->first == b->first) && (a->last == b->last) && (a->yAdvance == b->yAdvance);
+}
+
 void Board320_240::sprSetFont(const lgfx::GFXfont *f)
 {
-  lastFont = f;
-  if (lastFont == fontFont7 || lastFont == fontFont2)
+  if (isEquivalentCoreS3Font(f, fontFont7))
   {
-    spr.setFont(lastFont == fontFont7 ? fontFont7bmp : fontFont2bmp);
+    lastFont = fontFont7;
+    spr.setFont(fontFont7bmp);
+    return;
   }
-  else
+  if (isEquivalentCoreS3Font(f, fontFont2))
+  {
+    lastFont = fontFont2;
+    spr.setFont(fontFont2bmp);
+    return;
+  }
+
+  lastFont = f;
+  if (f != nullptr)
   {
     spr.setFont(f);
   }
@@ -681,6 +730,7 @@ void Board320_240::tftDrawStringFont7(const char *string, int32_t poX, int32_t p
  */
 void Board320_240::setBrightness()
 {
+  static uint32_t blankScreenStartMs = 0;
   uint8_t lcdBrightnessPerc;
 
   lcdBrightnessPerc = liveData->settings.lcdBrightness;
@@ -690,9 +740,19 @@ void Board320_240::setBrightness()
   }
   if (liveData->params.displayScreen == SCREEN_BLANK)
   {
-    turnOffScreen();
+    const uint32_t nowMs = millis();
+    if (blankScreenStartMs == 0)
+    {
+      blankScreenStartMs = nowMs;
+      tft.fillScreen(TFT_BLACK);
+    }
+    if (nowMs - blankScreenStartMs >= 5000U)
+    {
+      turnOffScreen();
+    }
     return;
   }
+  blankScreenStartMs = 0;
   if (liveData->params.displayScreen == SCREEN_HUD)
   {
     lcdBrightnessPerc = 100;
@@ -731,34 +791,47 @@ void Board320_240::setBrightness()
  */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
-  uint16_t height = tft.height();
+  const uint16_t height = tft.height();
+  const uint16_t width = tft.width();
+  const bool hasRow2 = (row2 != NULL && row2[0] != '\0');
+  const int16_t dialogW = width - 24;
+  const int16_t dialogH = hasRow2 ? 106 : 82;
+  const int16_t dialogX = (width - dialogW) / 2;
+  int16_t dialogY = (height - dialogH) / 2 - 12;
+  if (dialogY < 6)
+    dialogY = 6;
+  const int16_t radius = 12;
+  const uint16_t bg = 0x18C3; // darker panel for better contrast
+  const uint16_t border = TFT_DARKGREY;
+  const uint16_t textColor = TFT_WHITE;
+
   syslog->print("Message: ");
   syslog->print(row1);
   syslog->print(" ");
   syslog->println(row2);
 
-  // Must draw directly without sprite (psramUsed check)
   if (liveData->params.spriteInit)
   {
-    spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
-    spr.setTextDatum(ML_DATUM);
-    spr.setTextColor(TFT_YELLOW, TFT_NAVY);
+    spr.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    spr.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    spr.setTextColor(textColor, bg);
+    spr.setTextDatum(TC_DATUM);
     sprSetFont(fontRobotoThin24);
-    spr.setTextDatum(BL_DATUM);
-    sprDrawString(row1, 0, height / 2);
-    sprDrawString(row2, 0, (height / 2) + 30);
+    sprDrawString(row1, width / 2, dialogY + 24);
+    if (hasRow2)
+      sprDrawString(row2, width / 2, dialogY + 56);
     spr.pushSprite(0, 0);
   }
   else
   {
-    tft.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
-    // tft.fillScreen(TFT_BLACK);
-    tft.setTextDatum(ML_DATUM);
-    tft.setTextColor(TFT_YELLOW, TFT_NAVY);
+    tft.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    tft.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    tft.setTextColor(textColor, bg);
+    tft.setTextDatum(TC_DATUM);
     tft.setFont(fontRobotoThin24);
-    tft.setTextDatum(BL_DATUM);
-    tft.drawString(row1, 0, height / 2);
-    tft.drawString(row2, 0, (height / 2) + 30);
+    tft.drawString(row1, width / 2, dialogY + 24);
+    if (hasRow2)
+      tft.drawString(row2, width / 2, dialogY + 56);
   }
 }
 
@@ -775,31 +848,93 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
  */
 bool Board320_240::confirmMessage(const char *row1, const char *row2)
 {
-  uint16_t height = tft.height();
+  const uint16_t height = tft.height();
+  const uint16_t width = tft.width();
+  const int16_t dialogW = width - 24;
+  const int16_t dialogH = 142;
+  const int16_t dialogX = (width - dialogW) / 2;
+  int16_t dialogY = (height - dialogH) / 2 - 12;
+  if (dialogY < 6)
+    dialogY = 6;
+  const int16_t radius = 12;
+  const uint16_t bg = 0x18C3; // darker panel for better contrast
+  const uint16_t border = TFT_DARKGREY;
+  const uint16_t textColor = TFT_WHITE;
+  const uint16_t yesBg = TFT_DARKGREEN;
+  const uint16_t noBg = TFT_DARKRED;
+  const int16_t btnW = 90;
+  const int16_t btnH = 42; // ~30% higher than original 32px
+  const int16_t btnY = dialogY + dialogH - btnH - 10;
+  const int16_t btnYesX = dialogX + 16;
+  const int16_t btnNoX = dialogX + dialogW - btnW - 16;
   syslog->print("Confirm: ");
   syslog->print(row1);
   syslog->print(" ");
   syslog->println(row2);
 
-  spr.fillRect(0, (height / 2) - 45, tft.width(), 90, TFT_NAVY);
-  spr.setTextDatum(ML_DATUM);
-  spr.setTextColor(TFT_YELLOW, TFT_NAVY);
-  sprSetFont(fontRobotoThin24);
-  spr.setTextDatum(BL_DATUM);
-  sprDrawString(row1, 0, height / 2);
-  sprDrawString(row2, 0, (height / 2) + 30);
-  spr.fillRect(0, height - 50, 100, 50, TFT_NAVY);
-  spr.fillRect(tft.width() - 100, height - 50, 100, 50, TFT_NAVY);
-  spr.setTextDatum(BL_DATUM);
-  sprDrawString("YES", 10, height - 10);
-  spr.setTextDatum(BR_DATUM);
-  sprDrawString("NO", tft.width() - 10, height - 10);
-  spr.pushSprite(0, 0);
+  if (liveData->params.spriteInit)
+  {
+    spr.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    spr.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    spr.setTextColor(textColor, bg);
+    spr.setTextDatum(TC_DATUM);
+    sprSetFont(fontRobotoThin24);
+    sprDrawString(row1, width / 2, dialogY + 22);
+    sprDrawString(row2, width / 2, dialogY + 56);
+
+    spr.fillRoundRect(btnYesX, btnY, btnW, btnH, 8, yesBg);
+    spr.drawRoundRect(btnYesX, btnY, btnW, btnH, 8, border);
+    spr.fillRoundRect(btnNoX, btnY, btnW, btnH, 8, noBg);
+    spr.drawRoundRect(btnNoX, btnY, btnW, btnH, 8, border);
+
+    spr.setTextColor(TFT_WHITE, yesBg);
+    spr.setTextDatum(MC_DATUM);
+    sprDrawString("YES", btnYesX + btnW / 2, btnY + btnH / 2 + 1);
+    spr.setTextColor(TFT_WHITE, noBg);
+    sprDrawString("NO", btnNoX + btnW / 2, btnY + btnH / 2 + 1);
+    spr.pushSprite(0, 0);
+  }
+  else
+  {
+    tft.fillRoundRect(dialogX, dialogY, dialogW, dialogH, radius, bg);
+    tft.drawRoundRect(dialogX, dialogY, dialogW, dialogH, radius, border);
+    tft.setTextColor(textColor, bg);
+    tft.setTextDatum(TC_DATUM);
+    tft.setFont(fontRobotoThin24);
+    tft.drawString(row1, width / 2, dialogY + 22);
+    tft.drawString(row2, width / 2, dialogY + 56);
+
+    tft.fillRoundRect(btnYesX, btnY, btnW, btnH, 8, yesBg);
+    tft.drawRoundRect(btnYesX, btnY, btnW, btnH, 8, border);
+    tft.fillRoundRect(btnNoX, btnY, btnW, btnH, 8, noBg);
+    tft.drawRoundRect(btnNoX, btnY, btnW, btnH, 8, border);
+
+    tft.setTextColor(TFT_WHITE, yesBg);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("YES", btnYesX + btnW / 2, btnY + btnH / 2 + 1);
+    tft.setTextColor(TFT_WHITE, noBg);
+    tft.drawString("NO", btnNoX + btnW / 2, btnY + btnH / 2 + 1);
+  }
 
   bool res = false;
+  modalDialogActive = true;
   for (uint16_t i = 0; i < 2000 * 100; i++)
   {
     boardLoop();
+    int16_t tx = 0, ty = 0;
+    if (getTouch(tx, ty))
+    {
+      if (tx >= btnYesX && tx <= (btnYesX + btnW) && ty >= btnY && ty <= (btnY + btnH))
+      {
+        res = true;
+        break;
+      }
+      if (tx >= btnNoX && tx <= (btnNoX + btnW) && ty >= btnY && ty <= (btnY + btnH))
+      {
+        res = false;
+        break;
+      }
+    }
     if (isButtonPressed(pinButtonLeft))
     {
       res = true;
@@ -811,6 +946,7 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
       break;
     }
   }
+  modalDialogActive = false;
   return res;
 }
 
@@ -928,1017 +1064,12 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
   sprDrawString(bottomright, posx, posy);
 }
 
-/**
- * Draws the main screen (screen 1) with live vehicle data.
- *
- * This shows the most important live data values in a grid layout.
- * It includes:
- * - Tire pressures and temperatures
- * - Battery power usage
- * - State of charge percentage
- * - Battery current
- * - Battery voltage
- * - Minimum battery cell voltage
- * - Battery temperature
- * - Auxiliary battery percentage
- * - Auxiliary battery current
- * - Auxiliary battery voltage
- * - Indoor and outdoor temperatures
- */
-void Board320_240::drawSceneMain()
-{
-  // Tire pressure
-  char pressureStr[4] = "bar";
-  char temperatureStr[2] = "C";
-  if (liveData->settings.pressureUnit != 'b')
-    strcpy(pressureStr, "psi");
-  if (liveData->settings.temperatureUnit != 'c')
-    strcpy(temperatureStr, "F");
-  if (liveData->params.tireFrontLeftPressureBar == -1)
-  {
-    sprintf(tmpStr1, "n/a %s", pressureStr);
-    sprintf(tmpStr2, "n/a %s", pressureStr);
-    sprintf(tmpStr3, "n/a %s", pressureStr);
-    sprintf(tmpStr4, "n/a %s", pressureStr);
-  }
-  else
-  {
-    sprintf(tmpStr1, "%01.01f%s %02.00f%s", liveData->bar2pressure(liveData->params.tireFrontLeftPressureBar), pressureStr, liveData->celsius2temperature(liveData->params.tireFrontLeftTempC), temperatureStr);
-    sprintf(tmpStr2, "%02.00f%s %01.01f%s", liveData->celsius2temperature(liveData->params.tireFrontRightTempC), temperatureStr, liveData->bar2pressure(liveData->params.tireFrontRightPressureBar), pressureStr);
-    sprintf(tmpStr3, "%01.01f%s %02.00f%s", liveData->bar2pressure(liveData->params.tireRearLeftPressureBar), pressureStr, liveData->celsius2temperature(liveData->params.tireRearLeftTempC), temperatureStr);
-    sprintf(tmpStr4, "%02.00f%s %01.01f%s", liveData->celsius2temperature(liveData->params.tireRearRightTempC), temperatureStr, liveData->bar2pressure(liveData->params.tireRearRightPressureBar), pressureStr);
-  }
-  showTires(1, 0, 2, 1, tmpStr1, tmpStr2, tmpStr3, tmpStr4, TFT_BLACK);
-
-  // Added later - kwh total in tires box
-  // TODO: refactoring
-  spr.setTextDatum(TL_DATUM);
-  spr.setTextColor(TFT_GREEN);
-  sprSetFont(fontFont2);
-  sprintf(tmpStr1, ((liveData->params.cumulativeEnergyChargedKWh == -1) ? "CEC: n/a" : "C: %01.01f +%01.01fkWh"), liveData->params.cumulativeEnergyChargedKWh, liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
-  sprDrawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 30);
-  spr.setTextColor(TFT_YELLOW);
-  sprintf(tmpStr1, ((liveData->params.cumulativeEnergyDischargedKWh == -1) ? "CED: n/a" : "D: %01.01f -%01.01fkWh"), liveData->params.cumulativeEnergyDischargedKWh, liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart);
-  sprDrawString(tmpStr1, (1 * 80) + 4, (0 * 60) + 44);
-
-  // batPowerKwh100 on roads, else batPowerAmp
-  if (liveData->params.speedKmh > 20 ||
-      (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20 && liveData->params.gpsSat >= 4))
-  {
-    sprintf(tmpStr1, (liveData->params.batPowerKwh100 == -1 ? "n/a" : "%01.01f"), liveData->km2distance(liveData->params.batPowerKwh100));
-    drawBigCell(1, 1, 2, 2, tmpStr1, ((liveData->settings.distanceUnit == 'k') ? "POWER KWH/100KM" : "POWER KWH/100MI"), (liveData->params.batPowerKwh100 >= 0 ? TFT_DARKGREEN2 : (liveData->params.batPowerKwh100 < -30.0 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
-  }
-  else
-  {
-    // batPowerAmp on chargers (under 10kmh)
-    sprintf(tmpStr1, (liveData->params.batPowerKw == -1000) ? "---" : "%01.01f", liveData->params.batPowerKw);
-    drawBigCell(1, 1, 2, 2, tmpStr1, "POWER KW", (liveData->params.batPowerKw >= 0 ? TFT_DARKGREEN2 : (liveData->params.batPowerKw <= -30 ? TFT_RED : TFT_DARKRED)), TFT_WHITE);
-  }
-
-  // socPerc
-  sprintf(tmpStr1, (liveData->params.socPerc == -1 ? "n/a" : "%01.00f%%"), liveData->params.socPerc);
-  sprintf(tmpStr2, (liveData->params.sohPerc == -1) ? "SOC/SOH?" : (liveData->params.sohPerc == 100.0 ? "SOC/H%01.00f%%" : "SOC/H%01.01f%%"), liveData->params.sohPerc);
-  drawBigCell(0, 0, 1, 1, ((liveData->params.socPerc == 255) ? "---" : tmpStr1), tmpStr2,
-              (liveData->params.socPerc < 10 || (liveData->params.sohPerc != -1 && liveData->params.sohPerc < 100) ? TFT_RED : (liveData->params.socPerc > 80 ? TFT_DARKGREEN2 : TFT_DEFAULT_BK)), TFT_WHITE);
-
-  // batPowerAmp
-  sprintf(tmpStr1, (liveData->params.batPowerAmp == -1000) ? "n/a" : (abs(liveData->params.batPowerAmp) > 9.9 ? "%01.00f" : "%01.01f"), liveData->params.batPowerAmp);
-  drawBigCell(0, 1, 1, 1, tmpStr1, "CURRENT A", (liveData->params.batPowerAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
-
-  // batVoltage
-  sprintf(tmpStr1, (liveData->params.batVoltage == -1) ? "n/a" : "%03.00f", liveData->params.batVoltage);
-  drawBigCell(0, 2, 1, 1, tmpStr1, "VOLTAGE", TFT_DEFAULT_BK, TFT_WHITE);
-
-  // batCellMinV
-  sprintf(tmpStr1, "%01.02f", liveData->params.batCellMaxV - liveData->params.batCellMinV);
-  sprintf(tmpStr2, (liveData->params.batCellMinV == -1) ? "CELLS" : "CELLS %01.02f", liveData->params.batCellMinV);
-  drawBigCell(0, 3, 1, 1, (liveData->params.batCellMaxV - liveData->params.batCellMinV == 0.00 ? "OK" : tmpStr1), tmpStr2, TFT_DEFAULT_BK, TFT_WHITE);
-
-  // batTempC
-  sprintf(tmpStr1, (liveData->params.batMinC == -100) ? "n/a" : ((liveData->settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), liveData->celsius2temperature(liveData->params.batMinC));
-  sprintf(tmpStr2, (liveData->params.batMaxC == -100) ? "BAT.TEMP" : ((liveData->settings.temperatureUnit == 'c') ? "BATT. %01.00fC" : "BATT. %01.01fF"), liveData->celsius2temperature(liveData->params.batMaxC));
-  drawBigCell(1, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-
-  // batHeaterC
-  sprintf(tmpStr1, (liveData->params.batHeaterC == -100) ? "n/a" : ((liveData->settings.temperatureUnit == 'c') ? "%01.00f" : "%01.01f"), liveData->celsius2temperature(liveData->params.batHeaterC));
-  drawBigCell(2, 3, 1, 1, tmpStr1, "BAT.HEAT", TFT_TEMP, TFT_WHITE);
-
-  // Aux perc / temp
-  if (liveData->settings.carType == CAR_BMW_I3_2014)
-  { // TODO: use invalid auxPerc value as decision point here?
-    sprintf(tmpStr1, "%01.00f", liveData->params.auxTemperature);
-    drawBigCell(3, 0, 1, 1, tmpStr1, "AUX TEMP.", (liveData->params.auxTemperature < 5 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
-  }
-  else
-  {
-    sprintf(tmpStr1, (liveData->params.auxPerc == -1) ? "n/a" : "%01.00f%%", liveData->params.auxPerc);
-    drawBigCell(3, 0, 1, 1, tmpStr1, "AUX BAT.", (liveData->params.auxPerc < 60 ? TFT_RED : TFT_DEFAULT_BK), TFT_WHITE);
-  }
-
-  // Aux amp
-  sprintf(tmpStr1, (liveData->params.auxCurrentAmp == -1000) ? "n/a" : (abs(liveData->params.auxCurrentAmp) > 9.9 ? "%01.00f" : "%01.01f"), liveData->params.auxCurrentAmp);
-  drawBigCell(3, 1, 1, 1, tmpStr1, "AUX AMPS", (liveData->params.auxCurrentAmp >= 0 ? TFT_DARKGREEN2 : TFT_DARKRED), TFT_WHITE);
-
-  // auxVoltage
-  sprintf(tmpStr1, (liveData->params.auxVoltage == -1) ? "n/a" : "%01.01f", liveData->params.auxVoltage);
-  drawBigCell(3, 2, 1, 1, tmpStr1, "AUX VOLTS", (liveData->params.auxVoltage < 12.1 ? TFT_RED : (liveData->params.auxVoltage < 12.6 ? TFT_ORANGE : TFT_DEFAULT_BK)), TFT_WHITE);
-
-  // indoorTemperature
-  sprintf(tmpStr1, (liveData->params.indoorTemperature == -100) ? "n/a" : "%01.01f", liveData->celsius2temperature(liveData->params.indoorTemperature));
-  sprintf(tmpStr2, (liveData->params.outdoorTemperature == -100) ? "IN/OUT" : "IN/OUT%01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature));
-  drawBigCell(3, 3, 1, 1, tmpStr1, tmpStr2, TFT_TEMP, TFT_WHITE);
-}
 
 /**
- * Draws the speed and energy usage related screen. (Screen 2)
- *
- * This displays the current speed, average speed, energy usage,
- * odometer, trip meter, and other driving related metrics.
- *
- * It handles formatting and coloring based on value thresholds.
+ * Draw currently selected screen into `spr` without pushing it to TFT.
  */
-void Board320_240::drawSceneSpeed()
+bool Board320_240::drawActiveScreenToSprite()
 {
-  int32_t posx, posy;
-
-  posx = 320 / 2;
-  posy = 40;
-  spr.setTextDatum(TR_DATUM);
-  spr.setTextColor(TFT_WHITE);
-
-  // Stopped CAN command queue
-  if (liveData->params.stopCommandQueueTime != 0)
-  {
-    sprintf(tmpStr1, "%s%d", (liveData->params.stopCommandQueue ? "QS " : "QR "), (liveData->params.currentTime - liveData->params.stopCommandQueueTime));
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, 0, 40);
-  }
-  if (liveData->params.stopCommandQueue)
-  {
-    sprSetFont(fontRobotoThin24);
-    spr.setTextColor(TFT_RED);
-    spr.setTextDatum(TL_DATUM);
-    sprDrawString("SENTRY ON", 90, 100);
-    sprSetFont(fontFont2);
-    spr.setTextColor(TFT_WHITE);
-    spr.setTextDatum(TL_DATUM);
-    sprintf(tmpStr1, "GPSw:%u GYw:%u", liveData->params.gpsWakeCount, liveData->params.gyroWakeCount);
-    sprDrawString(tmpStr1, 90, 130);
-    if (liveData->params.speedKmhGPS < 0)
-    {
-      snprintf(tmpStr2, sizeof(tmpStr2), "GPS:-- SAT:%u", liveData->params.gpsSat);
-    }
-    else
-    {
-      snprintf(tmpStr2, sizeof(tmpStr2), "GPS:%03.0f SAT:%u", liveData->params.speedKmhGPS, liveData->params.gpsSat);
-    }
-    sprDrawString(tmpStr2, 90, 145);
-    if (liveData->params.auxVoltage == -1)
-    {
-      snprintf(tmpStr3, sizeof(tmpStr3), "AUX: --.-V");
-    }
-    else
-    {
-      snprintf(tmpStr3, sizeof(tmpStr3), "AUX:%04.1fV", liveData->params.auxVoltage);
-    }
-    sprDrawString(tmpStr3, 90, 160);
-    if (liveData->params.motionWakeLocked)
-    {
-      sprDrawString("Touch to wake", 90, 175);
-    }
-    return;
-  }
-
-  // Speed or charging data
-  if (liveData->params.chargingOn)
-  {
-    // Charging voltage, current, time
-    posy = 40;
-    sprSetFont(fontRobotoThin24);
-    spr.setTextDatum(TR_DATUM); // Top center
-    spr.setTextColor(TFT_WHITE);
-    time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
-    if ((diffTime / 60) > 99)
-      sprintf(tmpStr3, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
-    else
-      sprintf(tmpStr3, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
-    sprDrawString(tmpStr3, 200, posy);
-    posy += 24;
-    sprintf(tmpStr3, (liveData->params.batVoltage == -1000) ? "n/a V" : "%01.01f V", liveData->params.batVoltage);
-    sprDrawString(tmpStr3, 200, posy);
-    posy += 24;
-    sprintf(tmpStr3, (liveData->params.batPowerAmp == -1000) ? "n/a A" : "%01.01f A", liveData->params.batPowerAmp);
-    sprDrawString(tmpStr3, 200, posy);
-    posy += 24;
-    if (diffTime > 5)
-    {
-      sprintf(tmpStr3, "avg.%01.01f kW", ((liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart) * (3600 / diffTime)));
-      sprDrawString(tmpStr3, 200, posy);
-    }
-  }
-  else
-  {
-    // Speed
-    spr.setTextSize(2);
-    sprintf(tmpStr3, "%01.00f", liveData->km2distance((((liveData->params.speedKmhGPS > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_GPS) ? liveData->params.speedKmhGPS : ((((liveData->params.speedKmh > 10 && liveData->settings.carSpeedType == CAR_SPEED_TYPE_AUTO) || liveData->settings.carSpeedType == CAR_SPEED_TYPE_CAR)) ? liveData->params.speedKmh : 0))));
-    sprSetFont(fontFont7);
-    sprDrawString(tmpStr3, 200, posy);
-  }
-
-  posy = 140;
-  spr.setTextDatum(TR_DATUM); // Top center
-  spr.setTextSize(1);
-  if ((liveData->params.speedKmh > 25 || (liveData->params.speedKmhGPS > 25 && liveData->params.gpsSat >= 4)) && liveData->params.batPowerKw < 0)
-  {
-    sprintf(tmpStr3, (liveData->params.batPowerKwh100 == -1000) ? "n/a" : "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
-    sprSetFont(fontFont2);
-    sprDrawString("kWh/100km", 200, posy + 46);
-  }
-  else
-  {
-    sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a" : "%01.01f", liveData->params.batPowerKw);
-    sprSetFont(fontFont2);
-    sprDrawString("kW", 200, posy + 48);
-  }
-  sprSetFont(fontFont7);
-  sprDrawString(tmpStr3, 200, posy);
-
-  // Bottom 2 numbers with charged/discharged kWh from start
-  sprSetFont(fontRobotoThin24);
-  spr.setTextColor(TFT_WHITE);
-  posx = 0;
-  posy = 0;
-  spr.setTextDatum(TL_DATUM);
-  sprintf(tmpStr3, (liveData->params.odoKm == -1) ? "n/a km" : ((liveData->settings.distanceUnit == 'k') ? "%01.00fkm" : "%01.00fmi"), liveData->km2distance(liveData->params.odoKm));
-  sprDrawString(tmpStr3, posx, posy);
-  sprintf(tmpStr3, "N");
-  if (liveData->params.forwardDriveMode)
-  {
-    if (liveData->params.odoKm > 0 && liveData->params.odoKmStart > 0 &&
-        (liveData->params.odoKm - liveData->params.odoKmStart) > 0 && liveData->params.speedKmhGPS < 150)
-    {
-      sprintf(tmpStr3, ((liveData->settings.distanceUnit == 'k') ? "%01.00f" : "%01.00f"), liveData->km2distance(liveData->params.odoKm - liveData->params.odoKmStart));
-    }
-    else
-    {
-      sprintf(tmpStr3, "D");
-    }
-  }
-  else if (liveData->params.reverseDriveMode)
-  {
-    sprintf(tmpStr3, "R");
-  }
-  if (liveData->params.chargingOn)
-  {
-    sprintf(tmpStr3, "AC/DC");
-  }
-  if (liveData->params.chargerACconnected)
-  {
-    sprintf(tmpStr3, "AC");
-  }
-  if (liveData->params.chargerDCconnected)
-  {
-    sprintf(tmpStr3, "DC");
-  }
-  sprDrawString(tmpStr3, posx, posy + 20);
-
-  spr.setTextDatum(TR_DATUM);
-  if (liveData->params.batteryManagementMode != BAT_MAN_MODE_NOT_IMPLEMENTED)
-  {
-    sprintf(tmpStr1, "%s %01.00f", liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode).c_str(),
-            liveData->celsius2temperature(liveData->params.coolingWaterTempC));
-    sprDrawString(tmpStr1, 319 - posx, posy);
-  }
-
-  // Avg speed
-  posy = 60;
-  sprintf(tmpStr3, "%01.00f", liveData->params.avgSpeedKmh);
-  spr.setTextDatum(TL_DATUM);
-  sprDrawString(tmpStr3, posx, posy);
-  sprSetFont(fontFont2);
-  sprDrawString("avg.km/h", 0, posy + 20);
-  posy += 40;
-
-  // AUX voltage
-  if (liveData->params.auxVoltage > 5 && liveData->params.speedKmh < 100 && liveData->params.speedKmhGPS < 100)
-  {
-    if (liveData->params.auxPerc != -1)
-    {
-      sprintf(tmpStr3, "%01.00f", liveData->params.auxPerc);
-      spr.setTextDatum(TL_DATUM);
-      sprSetFont(fontRobotoThin24);
-      sprDrawString(tmpStr3, posx, posy);
-      sprSetFont(fontFont2);
-      sprDrawString("aux %", 0, posy + 20);
-      posy += 40;
-    }
-    sprintf(tmpStr3, "%01.01f", liveData->params.auxVoltage);
-    spr.setTextDatum(TL_DATUM);
-    sprSetFont(fontRobotoThin24);
-    sprDrawString(tmpStr3, posx, posy);
-    sprSetFont(fontFont2);
-    sprDrawString("aux V", 0, posy + 20);
-    posy += 40;
-  }
-
-  // Bottom info
-  // Cummulative regen/power
-  posy = 240;
-  sprintf(tmpStr3, "-%01.01f +%01.01f", liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart,
-          liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart);
-  spr.setTextDatum(BL_DATUM);
-  sprSetFont(fontRobotoThin24);
-  sprDrawString(tmpStr3, posx, posy);
-  sprSetFont(fontFont2);
-  sprDrawString("cons./regen.kWh", 0, 240 - 28);
-  posx = 319;
-  float kwh100a = 0;
-  float kwh100b = 0;
-  if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
-    kwh100a = ((100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart) -
-                       (liveData->params.cumulativeEnergyChargedKWh - liveData->params.cumulativeEnergyChargedKWhStart))) /
-               (liveData->params.odoKm - liveData->params.odoKmStart));
-  if (liveData->params.odoKm != -1 && liveData->params.odoKm != -1 && liveData->params.odoKm != liveData->params.odoKmStart)
-    kwh100b = ((100 * ((liveData->params.cumulativeEnergyDischargedKWh - liveData->params.cumulativeEnergyDischargedKWhStart))) /
-               (liveData->params.odoKm - liveData->params.odoKmStart));
-  sprintf(tmpStr3, "%01.01f/%01.01f", kwh100a, kwh100b);
-  spr.setTextDatum(BR_DATUM);
-  sprSetFont(fontFont2);
-  sprDrawString("avg.kWh/100km", posx, 240 - 28);
-  sprSetFont(fontRobotoThin24);
-  sprDrawString(tmpStr3, posx, posy);
-  // Bat.power
-  /*posx = 320 / 2;
-  sprintf(tmpStr3, (liveData->params.batPowerKw == -1000) ? "n/a kw" : "%01.01fkw", liveData->params.batPowerKw);
-  spr.setTextDatum(BC_DATUM);
-  sprDrawString(tmpStr3, posx, posy);*/
-
-  // RIGHT INFO
-  // Battery "cold gate" detection - red < 15C (43KW limit), <25 (blue - 55kW limit), green all ok
-  spr.fillRect(210, 55, 110, 5, (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
-  spr.fillRect(210, 120, 110, 5, (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED);
-  spr.setTextColor(TFT_WHITE);
-  sprSetFont(fontRobotoThin24);
-  spr.setTextDatum(TR_DATUM);
-  sprintf(tmpStr3, (liveData->params.batMaxC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
-  sprDrawString(tmpStr3, 319, 66);
-  sprintf(tmpStr3, (liveData->params.batMinC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
-  sprDrawString(tmpStr3, 319, 92);
-  if (liveData->params.motor1Rpm > 0 || liveData->params.motor2Rpm > 0)
-  {
-    sprintf(tmpStr3, "%01.01f/%01.01fkr", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
-    sprDrawString(tmpStr3, 319, 26);
-  }
-  else if (liveData->params.outdoorTemperature != -100)
-  {
-    sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature)); //, liveData->celsius2temperature(liveData->params.motorTempC));
-    sprDrawString(tmpStr3, 319, 26);
-  }
-
-  // Min.Cell V
-  spr.setTextDatum(TR_DATUM);
-  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
-  sprintf(tmpStr3, (liveData->params.batCellMaxV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMaxV);
-  sprDrawString(tmpStr3, 280, 66);
-  spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
-  sprintf(tmpStr3, (liveData->params.batCellMinV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMinV);
-  sprDrawString(tmpStr3, 280, 92);
-
-  // Brake lights
-  spr.fillRect(140, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-  spr.fillRect(180 - 18, 240 - 16, 18, 12, (liveData->params.brakeLights) ? TFT_RED : TFT_BLACK);
-  // Lights
-  uint16_t tmpWord;
-  tmpWord = (liveData->params.headLights) ? TFT_GREEN : (liveData->params.autoLights) ? TFT_YELLOW
-                                                    : (liveData->params.dayLights)    ? TFT_BLUE
-                                                                                      : TFT_BLACK;
-  spr.fillRect(145, 26, 20, 4, tmpWord);
-  spr.fillRect(170, 26, 20, 4, tmpWord);
-
-  // Soc%, bat.kWh
-  spr.setTextColor((liveData->params.socPerc <= 15) ? TFT_RED : (liveData->params.socPerc > 80 || (liveData->params.socPerc == -1 && liveData->params.socPerc > 80)) ? TFT_YELLOW
-                                                                                                                                                                     : TFT_GREEN);
-  spr.setTextDatum(BR_DATUM);
-  sprintf(tmpStr3, (liveData->params.socPerc == -1) ? "n/a" : "%01.00f", liveData->params.socPerc);
-  sprSetFont(fontOrbitronLight32);
-  sprDrawString(tmpStr3, 285, 165);
-  sprSetFont(fontOrbitronLight24);
-  sprDrawString("%", 319, 155);
-  if (liveData->params.socPerc > 0)
-  {
-    float capacity = liveData->params.batteryTotalAvailableKWh * (liveData->params.socPerc / 100);
-    // calibration for Niro/Kona, real available capacity is ~66.5kWh, 0-10% ~6.2kWh, 90-100% ~7.2kWh
-    if (liveData->settings.carType == CAR_KIA_ENIRO_2020_64 || liveData->settings.carType == CAR_HYUNDAI_KONA_2020_64 || liveData->settings.carType == CAR_KIA_ESOUL_2020_64)
-    {
-      capacity = (liveData->params.socPerc * 0.615) * (1 + (liveData->params.socPerc * 0.0008));
-    }
-    spr.setTextColor(TFT_WHITE);
-    sprSetFont(fontOrbitronLight32);
-    sprintf(tmpStr3, "%01.00f", capacity);
-    sprDrawString(tmpStr3, 285, 200);
-    sprSetFont(fontOrbitronLight24);
-    sprintf(tmpStr3, ".%d", int(10 * (capacity - (int)capacity)));
-    sprDrawString(tmpStr3, 319, 200);
-    spr.setTextColor(TFT_SILVER);
-    sprSetFont(fontFont2);
-    sprDrawString("kWh", 319, 174);
-  }
-}
-
-/**
- * Draws the heads-up display (HUD) scene on the board's 320x240 display.
- *
- * The HUD shows key driving information like speed, power, SOC. It is
- * optimized for vertical orientation while driving.
- */
-void Board320_240::drawSceneHud()
-{
-  float batColor;
-
-  // Change rotation to vertical & mirror
-  if (tft.getRotation() != 7)
-  {
-    tft.setRotation(7);
-    tft.fillScreen(TFT_BLACK);
-  }
-
-  if (liveData->commConnected && firstReload < 3)
-  {
-    tft.fillScreen(TFT_BLACK);
-    firstReload++;
-  }
-
-  tft.setTextDatum(TR_DATUM);             // top-right alignment
-  tft.setTextColor(TFT_WHITE, TFT_BLACK); // foreground, background text color
-
-  // Draw speed
-  tft.setTextSize(3);
-  sprintf(tmpStr3, "0");
-    if (liveData->params.speedKmhGPS > 10 && liveData->params.gpsSat >= 4)
-  {
-    tft.fillRect(0, 210, 320, 30, TFT_BLACK);
-    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
-    lastSpeedKmh = liveData->params.speedKmhGPS;
-  }
-  else if (liveData->params.speedKmh > 10)
-  {
-    if (liveData->params.speedKmh != lastSpeedKmh)
-    {
-      tft.fillRect(0, 210, 320, 30, TFT_BLACK);
-      sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmh));
-      lastSpeedKmh = liveData->params.speedKmh;
-    }
-  }
-  else
-  {
-    sprintf(tmpStr3, "0");
-  }
-  tft.setFont(fontFont7);
-  tftDrawStringFont7(tmpStr3, 319, 0);
-
-  // Draw power kWh/100km (>25kmh) else kW
-  tft.setTextSize(1);
-  if (liveData->params.speedKmh > 25 && liveData->params.batPowerKw < 0)
-  {
-    sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.batPowerKwh100));
-  }
-  else
-  {
-    sprintf(tmpStr3, "%01.01f", liveData->params.batPowerKw);
-  }
-  tft.fillRect(181, 149, 150, 50, TFT_BLACK);
-  tft.setFont(fontFont7);
-  tftDrawStringFont7(tmpStr3, 320, 150);
-
-  // Draw soc%
-  sprintf(tmpStr3, "%01.00f%c", liveData->params.socPerc, '%');
-  tft.setFont(fontFont7);
-  tftDrawStringFont7(tmpStr3, 160, 150);
-
-  // Cold gate battery
-  batColor = (liveData->params.batTempC >= 15) ? ((liveData->params.batTempC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED;
-  tft.fillRect(0, 70, 50, 140, batColor);
-  tft.fillRect(15, 60, 20, 10, batColor);
-  tft.setTextColor(TFT_WHITE, batColor);
-  tft.setFont(fontRobotoThin24);
-  tft.setTextDatum(MC_DATUM);
-  sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batTempC));
-  tft.drawString(tmpStr3, 25, 180);
-
-  // Brake lights
-  tft.fillRect(0, 215, 320, 25, (liveData->params.brakeLights) ? TFT_DARKRED : TFT_BLACK);
-}
-
-/**
- * Draws the battery cells screen. (Screen 3)
- *
- * Displays the heater, inlet, and module temperatures.
- * Then displays the voltage for each cell.
- * Cell colors indicate temperature or min/max voltage.
- */
-void Board320_240::drawSceneBatteryCells()
-{
-  int32_t posx, posy, lastPosY;
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
-  drawSmallCell(0, 0, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_CYAN);
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batInletC), char(127));
-  drawSmallCell(1, 0, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-
-  lastPosY = 64 - 16;
-
-  if (liveData->params.batModuleTempCount <= 4)
-  {
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[0]), char(127));
-    drawSmallCell(0, 1, 1, 1, tmpStr1, "MO1", TFT_TEMP, (liveData->params.batModuleTempC[0] >= 15) ? ((liveData->params.batModuleTempC[0] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[1]), char(127));
-    drawSmallCell(1, 1, 1, 1, tmpStr1, "MO2", TFT_TEMP, (liveData->params.batModuleTempC[1] >= 15) ? ((liveData->params.batModuleTempC[1] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[2]), char(127));
-    drawSmallCell(2, 1, 1, 1, tmpStr1, "MO3", TFT_TEMP, (liveData->params.batModuleTempC[2] >= 15) ? ((liveData->params.batModuleTempC[2] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-    sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[3]), char(127));
-    drawSmallCell(3, 1, 1, 1, tmpStr1, "MO4", TFT_TEMP, (liveData->params.batModuleTempC[3] >= 15) ? ((liveData->params.batModuleTempC[3] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED);
-  }
-  else
-  {
-    // Ioniq (up to 12 cells)
-    for (uint16_t i = 0; i < liveData->params.batModuleTempCount; i++)
-    {
-      if (/*liveData->params.batModuleTempC[i] == 0 && */ liveData->params.batModuleTempC[i] == -100)
-        continue;
-      posx = (((i - 0) % 8) * 40);
-      posy = lastPosY = ((floor((i - 0) / 8)) * 13) + 32;
-      // spr.fillRect(x * 80, y * 32, ((w) * 80), ((h) * 32),  bgColor);
-      spr.setTextSize(1); // Size for small 5x7 font
-      spr.setTextDatum(TL_DATUM);
-      spr.setTextColor(((liveData->params.batModuleTempC[i] >= 15) ? ((liveData->params.batModuleTempC[i] >= 25) ? TFT_GREEN : TFT_BLUE) : TFT_RED));
-      sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"), liveData->celsius2temperature(liveData->params.batModuleTempC[i]), char(127));
-      sprSetFont(fontFont2);
-      sprDrawString(tmpStr1, posx + 4, posy);
-    }
-  }
-
-  spr.setTextDatum(TL_DATUM); // Topleft
-  spr.setTextSize(1);         // Size for small 5x7 font
-
-  // Find min and max val
-  float minVal = -1, maxVal = -1;
-  for (int i = 0; i < liveData->params.cellCount; i++)
-  {
-    if ((liveData->params.cellVoltage[i] < minVal || minVal == -1) && liveData->params.cellVoltage[i] != -1)
-      minVal = liveData->params.cellVoltage[i];
-    if ((liveData->params.cellVoltage[i] > maxVal || maxVal == -1) && liveData->params.cellVoltage[i] != -1)
-      maxVal = liveData->params.cellVoltage[i];
-    /*if (liveData->params.cellVoltage[i] > 0 && i > liveData->params.cellCount + 1)
-      liveData->params.cellCount = i + 1;*/
-  }
-
-  // Draw cell matrix
-  for (int i = 0; i < liveData->params.cellCount; i++)
-  {
-    if (liveData->params.cellVoltage[i] == -1)
-      continue;
-    posx = ((i % 8) * 40) + 4;
-    posy = ((floor(i / 8)) * 13) + lastPosY + 16; // 68;
-    sprintf(tmpStr3, "%01.02f", liveData->params.cellVoltage[i]);
-    spr.setTextColor(TFT_SILVER);
-    if (liveData->params.cellVoltage[i] == minVal && minVal != maxVal)
-      spr.setTextColor(TFT_RED);
-    if (liveData->params.cellVoltage[i] == maxVal && minVal != maxVal)
-      spr.setTextColor(TFT_GREEN);
-    // Battery cell imbalance detetection
-    if (liveData->params.cellVoltage[i] > 1.5 && liveData->params.cellVoltage[i] < 3.0)
-      spr.setTextColor(TFT_WHITE, TFT_RED);
-    sprSetFont(fontFont2);
-    sprDrawString(tmpStr3, posx, posy);
-  }
-}
-
-/**
- * Charging graph (Screen 4)
- */
-void Board320_240::drawSceneChargingGraph()
-{
-  int zeroX = 0;
-  int zeroY = 238;
-  int mulX = 3;   // 100% = 300px
-  float mulY = 2; // 100kW = 200px
-  int maxKw = 75;
-  uint16_t color;
-
-  // Determine the maximum kW value to scale the Y-axis properly
-  for (int i = 0; i <= 100; i++)
-  {
-    if (liveData->params.chargingGraphMaxKw[i] > maxKw)
-    {
-      maxKw = liveData->params.chargingGraphMaxKw[i];
-    }
-  }
-
-  // Round up maxKw to the next multiple of 10
-  maxKw = ((maxKw + 9) / 10) * 10;
-  maxKw = 200;
-  // Recalculate the Y-axis multiplier based on the actual maxKw
-  mulY = 160.0f / maxKw;
-
-  spr.fillSprite(TFT_BLACK);
-
-  // Display basic information cells
-  sprintf(tmpStr1, "%01.00f", liveData->params.socPerc);
-  drawSmallCell(0, 0, 1, 1, tmpStr1, "SOC", TFT_TEMP, TFT_CYAN);
-
-  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerKw);
-  drawSmallCell(1, 0, 1, 1, tmpStr1, "POWER kW", TFT_TEMP, TFT_CYAN);
-
-  sprintf(tmpStr1, "%01.01f", liveData->params.batPowerAmp);
-  drawSmallCell(2, 0, 1, 1, tmpStr1, "CURRENT A", TFT_TEMP, TFT_CYAN);
-
-  sprintf(tmpStr1, "%03.00f", liveData->params.batVoltage);
-  drawSmallCell(3, 0, 1, 1, tmpStr1, "VOLTAGE", TFT_TEMP, TFT_CYAN);
-
-  // Temperature related cells
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
-          liveData->celsius2temperature(liveData->params.batHeaterC), char(127));
-  drawSmallCell(0, 1, 1, 1, tmpStr1, "HEATER", TFT_TEMP, TFT_RED);
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
-          liveData->celsius2temperature(liveData->params.batInletC), char(127));
-  drawSmallCell(1, 1, 1, 1, tmpStr1, "BAT.INLET", TFT_TEMP, TFT_CYAN);
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
-          liveData->celsius2temperature(liveData->params.batMinC), char(127));
-  drawSmallCell(2, 1, 1, 1, tmpStr1, "BAT.MIN", (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? TFT_DARKGREEN2 : TFT_BLUE) : TFT_RED, TFT_CYAN);
-
-  sprintf(tmpStr1, ((liveData->settings.temperatureUnit == 'c') ? "%01.00f%cC" : "%01.01f%cF"),
-          liveData->celsius2temperature(liveData->params.outdoorTemperature), char(127));
-  drawSmallCell(3, 1, 1, 1, tmpStr1, "OUT.TEMP.", TFT_TEMP, TFT_CYAN);
-
-  spr.setTextColor(TFT_SILVER);
-  sprSetFont(fontFont2);
-
-  // Draw vertical grid lines every 10% (X-axis)
-  for (int i = 0; i <= 100; i += 10)
-  {
-    color = (i == 0 || i == 50 || i == 100) ? TFT_DARKRED : TFT_DARKRED2;
-    spr.drawFastVLine(zeroX + (i * mulX), zeroY - (maxKw * mulY), maxKw * mulY, color);
-  }
-
-  // Draw horizontal grid lines every 10kW (Y-axis)
-  spr.setTextDatum(ML_DATUM);
-  for (int i = 0; i <= maxKw; i += (maxKw > 150 ? 20 : 10))
-  {
-    color = ((i % 50) == 0 || i == 0) ? TFT_DARKRED : TFT_DARKRED2;
-    spr.drawFastHLine(zeroX, zeroY - (i * mulY), 100 * mulX, color);
-
-    sprintf(tmpStr1, "%d", i);
-    sprDrawString(tmpStr1, zeroX + (100 * mulX) + (i > 100 ? 0 : 3), zeroY - (i * mulY));
-  }
-
-  // Draw real-time values (temperature and kW lines)
-  for (int i = 0; i <= 100; i++)
-  {
-    if (liveData->params.chargingGraphBatMinTempC[i] > -10)
-      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphBatMinTempC[i] * mulY), mulX, TFT_BLUE);
-
-    if (liveData->params.chargingGraphBatMaxTempC[i] > -10)
-      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphBatMaxTempC[i] * mulY), mulX, TFT_BLUE);
-
-    if (liveData->params.chargingGraphWaterCoolantTempC[i] > -10)
-      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphWaterCoolantTempC[i] * mulY), mulX, TFT_PURPLE);
-
-    if (liveData->params.chargingGraphHeaterTempC[i] > -10)
-      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphHeaterTempC[i] * mulY), mulX, TFT_RED);
-
-    if (liveData->params.chargingGraphMinKw[i] > 0)
-      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphMinKw[i] * mulY), mulX, TFT_GREENYELLOW);
-
-    if (liveData->params.chargingGraphMaxKw[i] > 0)
-      spr.drawFastHLine(zeroX + (i * mulX) - (mulX / 2), zeroY - (liveData->params.chargingGraphMaxKw[i] * mulY), mulX, TFT_YELLOW);
-  }
-
-  // Print the charging time
-  time_t diffTime = liveData->params.currentTime - liveData->params.chargingStartTime;
-  if ((diffTime / 60) > 99)
-    sprintf(tmpStr1, "%02ld:%02ld:%02ld", (diffTime / 3600) % 24, (diffTime / 60) % 60, diffTime % 60);
-  else
-    sprintf(tmpStr1, "%02ld:%02ld", (diffTime / 60), diffTime % 60);
-
-  spr.setTextDatum(TL_DATUM);
-  spr.setTextColor(TFT_SILVER);
-  sprDrawString(tmpStr1, 0, zeroY - (maxKw * mulY));
-}
-/**
- * Draws the SOC 10% table screen. (screen 5)
- *
- * Displays discharge consumption and characteristics from 100% to 4% SOC,
- * in 10% increments. Calculates differences between SOC levels for discharge
- * energy consumed, charge energy consumed, odometer distance, and speed.
- * Prints totals for 0-100% and estimated available capacity.
- */
-void Board320_240::drawSceneSoc10Table()
-{
-  int zeroY = 2;
-  float diffCec, diffCed, diffOdo = -1;
-  float firstCed = -1, lastCed = -1, diffCed0to5 = 0;
-  float firstCec = -1, lastCec = -1, diffCec0to5 = 0;
-  float firstOdo = -1, lastOdo = -1, diffOdo0to5 = 0;
-  float diffTime;
-
-  spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextColor(TFT_SILVER);
-  spr.setTextDatum(TL_DATUM);
-  sprSetFont(fontFont2);
-  sprDrawString("CONSUMPTION | DISCH.100%->4% SOC", 2, zeroY);
-
-  spr.setTextDatum(TR_DATUM);
-
-  sprSetFont(fontFont2);
-  sprDrawString("dis./char.kWh", 128, zeroY + (1 * 15));
-  sprDrawString(((liveData->settings.distanceUnit == 'k') ? "km" : "mi"), 160, zeroY + (1 * 15));
-  sprDrawString("kWh100", 224, zeroY + (1 * 15));
-  sprDrawString("avg.speed", 310, zeroY + (1 * 15));
-
-  for (int i = 0; i <= 10; i++)
-  {
-    sprintf(tmpStr1, "%d%%", (i == 0) ? 5 : i * 10);
-    sprDrawString(tmpStr1, 32, zeroY + ((12 - i) * 15));
-
-    firstCed = (liveData->params.soc10ced[i] != -1) ? liveData->params.soc10ced[i] : firstCed;
-    lastCed = (lastCed == -1 && liveData->params.soc10ced[i] != -1) ? liveData->params.soc10ced[i] : lastCed;
-    firstCec = (liveData->params.soc10cec[i] != -1) ? liveData->params.soc10cec[i] : firstCec;
-    lastCec = (lastCec == -1 && liveData->params.soc10cec[i] != -1) ? liveData->params.soc10cec[i] : lastCec;
-    firstOdo = (liveData->params.soc10odo[i] != -1) ? liveData->params.soc10odo[i] : firstOdo;
-    lastOdo = (lastOdo == -1 && liveData->params.soc10odo[i] != -1) ? liveData->params.soc10odo[i] : lastOdo;
-
-    if (i != 10)
-    {
-      diffCec = (liveData->params.soc10cec[i + 1] != -1 && liveData->params.soc10cec[i] != -1) ? (liveData->params.soc10cec[i] - liveData->params.soc10cec[i + 1]) : 0;
-      diffCed = (liveData->params.soc10ced[i + 1] != -1 && liveData->params.soc10ced[i] != -1) ? (liveData->params.soc10ced[i + 1] - liveData->params.soc10ced[i]) : 0;
-      diffOdo = (liveData->params.soc10odo[i + 1] != -1 && liveData->params.soc10odo[i] != -1) ? (liveData->params.soc10odo[i] - liveData->params.soc10odo[i + 1]) : -1;
-      diffTime = (liveData->params.soc10time[i + 1] != -1 && liveData->params.soc10time[i] != -1) ? (liveData->params.soc10time[i] - liveData->params.soc10time[i + 1]) : -1;
-      if (diffCec != 0)
-      {
-        sprintf(tmpStr1, "+%01.01f", diffCec);
-        sprDrawString(tmpStr1, 128, zeroY + ((12 - i) * 15));
-        diffCec0to5 = (i == 0) ? diffCec : diffCec0to5;
-      }
-      if (diffCed != 0)
-      {
-        sprintf(tmpStr1, "%01.01f", diffCed);
-        sprDrawString(tmpStr1, 80, zeroY + ((12 - i) * 15));
-        diffCed0to5 = (i == 0) ? diffCed : diffCed0to5;
-      }
-      if (diffOdo != -1)
-      {
-        sprintf(tmpStr1, "%01.00f", liveData->km2distance(diffOdo));
-        sprDrawString(tmpStr1, 160, zeroY + ((12 - i) * 15));
-        diffOdo0to5 = (i == 0) ? diffOdo : diffOdo0to5;
-        if (diffTime > 0)
-        {
-          sprintf(tmpStr1, "%01.01f", liveData->km2distance(diffOdo) / (diffTime / 3600));
-          sprDrawString(tmpStr1, 310, zeroY + ((12 - i) * 15));
-        }
-      }
-      if (diffOdo > 0 && diffCed != 0)
-      {
-        sprintf(tmpStr1, "%01.1f", (-diffCed * 100.0 / liveData->km2distance(diffOdo)));
-        sprDrawString(tmpStr1, 224, zeroY + ((12 - i) * 15));
-      }
-    }
-
-    if (diffOdo == -1 && liveData->params.soc10odo[i] != -1)
-    {
-      sprintf(tmpStr1, "%01.00f", liveData->km2distance(liveData->params.soc10odo[i]));
-      sprDrawString(tmpStr1, 160, zeroY + ((12 - i) * 15));
-    }
-  }
-
-  sprDrawString("0%", 32, zeroY + (13 * 15));
-  sprDrawString("0-5% is calculated (same) as 5-10%", 310, zeroY + (13 * 15));
-
-  sprDrawString("TOT.", 32, zeroY + (14 * 15));
-  diffCed = (lastCed != -1 && firstCed != -1) ? firstCed - lastCed + diffCed0to5 : 0;
-  sprintf(tmpStr1, "%01.01f", diffCed);
-  sprDrawString(tmpStr1, 80, zeroY + (14 * 15));
-  diffCec = (lastCec != -1 && firstCec != -1) ? lastCec - firstCec + diffCec0to5 : 0;
-  sprintf(tmpStr1, "+%01.01f", diffCec);
-  sprDrawString(tmpStr1, 128, zeroY + (14 * 15));
-  diffOdo = (lastOdo != -1 && firstOdo != -1) ? lastOdo - firstOdo + diffOdo0to5 : 0;
-  sprintf(tmpStr1, "%01.00f", liveData->km2distance(diffOdo));
-  sprDrawString(tmpStr1, 160, zeroY + (14 * 15));
-  sprintf(tmpStr1, "AVAIL.CAP: %01.01f kWh", -diffCed - diffCec);
-  sprDrawString(tmpStr1, 310, zeroY + (14 * 15));
-}
-
-/**
- * Draws debug information to the screen. (screen 6)
- *
- * Displays diagnostic values for debugging purposes:
- * - App version
- * - Settings version
- * - Frames per second
- * - Wifi status
- * - Remote upload module status
- * - SD card status
- * - Voltmeter status
- * - Sleep mode
- * - GPS status
- * - Current time
- */
-void Board320_240::drawSceneDebug()
-{
-  String tmpStr;
-
-  spr.setTextFont(2);
-  spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextColor(TFT_SILVER);
-  spr.setTextDatum(TL_DATUM);
-  sprSetFont(fontFont2);
-  spr.setCursor(0, 0);
-
-  /* Spotzify [SE]: Diagnostic values I would love to have :
-FPS, or more specific time for one total loop of program.
-COMMU stats
-GPS stats
-Time and date
-GSM status
-ABRP status
-SD status*/
-
-  // BASIC INFO
-  spr.print("APP ");
-  spr.print(APP_VERSION);
-  spr.print(" | Settings v");
-  spr.print(liveData->settings.settingsVersion);
-  spr.print(" | FPS ");
-  spr.println(displayFps);
-
-  // TODO Cartype liveData->settings.carType - translate car number to string
-  // TODO Adapter type liveData->settings.commType == COMM_TYPE_OBD2BLE4
-  // TODO data from adapter
-
-  // WIFI
-  spr.print("WIFI ");
-  spr.print(liveData->settings.wifiEnabled == 1 ? "ON" : "OFF");
-  // if (liveData->params.isWifiBackupLive == true)
-  spr.print(" IP ");
-  spr.print(WiFi.localIP().toString());
-  spr.print(" SSID ");
-  spr.println(liveData->settings.wifiSsid);
-
-  // REMOTE UPLOAD
-  spr.print("REMOTE UPLOAD ");
-  switch (liveData->settings.remoteUploadModuleType)
-  {
-  case REMOTE_UPLOAD_OFF:
-    spr.print("OFF");
-    break;
-  case REMOTE_UPLOAD_WIFI:
-    spr.print("WIFI");
-    break;
-  default:
-    spr.print("unknown");
-  }
-
-  spr.println("");
-  spr.print("CarMode: ");
-  spr.println(liveData->params.carMode);
-
-  spr.print("VIN: ");
-  spr.println(liveData->params.carVin);
-
-  spr.print("Power (kW): ");
-  spr.println(liveData->params.batPowerKw * -1);
-
-  spr.print("ignitionOn: ");
-  spr.println(liveData->params.ignitionOn == 1 ? "ON" : "OFF");
-
-  spr.print("chargingOn: ");
-  spr.println(liveData->params.chargingOn == 1 ? "ON" : "OFF");
-
-  spr.print("AC charger connected: ");
-  spr.println(liveData->params.chargerACconnected == 1 ? "ON" : "OFF");
-
-  spr.print("DC charger connected: ");
-  spr.println(liveData->params.chargerDCconnected == 1 ? "ON" : "OFF");
-
-  spr.print("Forward drive mode: : ");
-  spr.println(liveData->params.forwardDriveMode == 1 ? "ON" : "OFF");
-
-  spr.print("Reverse drive mode: : ");
-  spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
-
-  /*
-    jsonData["power"] = liveData->params.batPowerKw * -1;
-      jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
-
-    bool ignitionOn;
-    bool chargingOn;
-    bool chargerACconnected;
-    bool chargerDCconnected;
-    bool forwardDriveMode;
-    bool reverseDriveMode;
-    bool parkModeOrNeutral;
-    */
-
-  // TODO sent status, ms from last sent
-  // spr.println("");
-
-  // SDCARD
-  spr.print("SDCARD ");
-  spr.print((liveData->settings.sdcardEnabled == 0) ? "OFF" : (strlen(liveData->params.sdcardFilename) != 0) ? "WRITE"
-                                                          : (liveData->params.sdcardInit)                    ? "READY"
-                                                                                                             : "MOUNTED");
-  spr.print(" used ");
-  spr.print(SD.usedBytes() / 1048576);
-  spr.print("/");
-  spr.print(SD.totalBytes() / 1048576);
-  spr.println("MB");
-
-  // VOLTMETER INA3221
-  spr.print("VOLTMETER ");
-  spr.println(liveData->settings.voltmeterEnabled == 1 ? "ON" : "OFF");
-  if (liveData->settings.voltmeterEnabled == 1)
-  {
-    syslog->print("ch1:");
-    syslog->print(ina3221.getBusVoltage_V(1));
-    syslog->print("V\t ch2:");
-    syslog->print(ina3221.getBusVoltage_V(2));
-    syslog->print("V\t ch3:");
-    syslog->print(ina3221.getBusVoltage_V(3));
-    syslog->println("V");
-    syslog->print("ch1:");
-    syslog->print(ina3221.getCurrent_mA(1));
-    syslog->print("mA\t ch2:");
-    syslog->print(ina3221.getCurrent_mA(2));
-    syslog->print("mA\t ch3:");
-    syslog->print(ina3221.getCurrent_mA(3));
-    syslog->println("mA");
-  }
-
-  // SLEEP MODE
-  spr.print("SLEEP MODE ");
-  switch (liveData->settings.sleepModeLevel)
-  {
-  case SLEEP_MODE_OFF:
-    spr.print("OFF");
-    break;
-  case SLEEP_MODE_SCREEN_ONLY:
-    spr.print("SCREEN ONLY");
-    break;
-  default:
-    spr.print("UNKNOWN");
-  }
-  spr.println("");
-
-  // GPS
-  spr.print("GPS ");
-  spr.print(liveData->params.gpsValid ? "OK" : "-");
-  if (liveData->params.gpsValid)
-  {
-    spr.print(" ");
-    spr.print(liveData->params.gpsLat);
-    spr.print("/");
-    spr.print(liveData->params.gpsLon);
-    spr.print(" alt ");
-    spr.print(liveData->params.gpsAlt);
-    spr.print("m sat ");
-    spr.print(liveData->params.gpsSat);
-  }
-  spr.println("");
-
-  // CURRENT TIME
-  spr.print("TIME ");
-  spr.print(liveData->params.ntpTimeSet == 1 ? " NTP " : "");
-  spr.print(liveData->params.currTimeSyncWithGps == 1 ? "GPS " : "");
-  struct tm now = cachedNow;
-  if (cachedNowEpoch == 0)
-  {
-    sprintf(tmpStr1, "-- -- -- --:--:--");
-  }
-  else
-  {
-    sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
-  }
-  spr.println(tmpStr1);
-}
-
-/**
- * Modify menu item text
- */
-void Board320_240::redrawScreen()
-{
-  lastRedrawTime = liveData->params.currentTime;
-  liveData->redrawScreenRequested = false;
-
-  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
-  {
-    return;
-  }
-  if (redrawScreenIsRunning)
-  {
-    return;
-  }
-  redrawScreenIsRunning = true;
 
   // Headlights reminders
   if (!testDataMode && liveData->settings.headlightsReminder == 1 && liveData->params.forwardDriveMode &&
@@ -1949,9 +1080,7 @@ void Board320_240::redrawScreen()
     spr.setTextColor(TFT_WHITE);
     spr.setTextDatum(MC_DATUM);
     sprDrawString("! LIGHTS OFF !", 160, 120);
-    spr.pushSprite(0, 0);
-    redrawScreenIsRunning = false;
-    return;
+    return true;
   }
 
   spr.fillSprite(TFT_BLACK);
@@ -2021,29 +1150,30 @@ void Board320_240::redrawScreen()
   // Skip following lines for HUD display mode
   if (liveData->params.displayScreen == SCREEN_HUD)
   {
-    redrawScreenIsRunning = false;
-    return;
+    return false;
   }
 
   // GPS state
   if ((gpsHwUart != NULL || liveData->params.gpsSat > 0) && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED))
   {
-    spr.fillCircle(160, 10, 8, (liveData->params.gpsValid) ? TFT_GREEN : TFT_RED);
-    spr.fillCircle(160, 10, 6, TFT_BLACK);
+    const int gpsIndicatorX = 168;
+    spr.fillCircle(gpsIndicatorX, 10, 8, (liveData->params.gpsValid) ? TFT_GREEN : TFT_RED);
+    spr.fillCircle(gpsIndicatorX, 10, 6, TFT_BLACK);
     spr.setTextSize(1);
     spr.setTextColor((liveData->params.gpsValid) ? TFT_GREEN : TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "%d", liveData->params.gpsSat);
     sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, 174, 2);
+    sprDrawString(tmpStr1, gpsIndicatorX + 14, 2);
   }
 
   // SDCARD recording
   // liveData->params.sdcardRecording
   if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1)
   {
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
+    const int sdIndicatorX = (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 168 : 310;
+    spr.fillCircle(sdIndicatorX, 10, 4, TFT_BLACK);
+    spr.fillCircle(sdIndicatorX, 10, 3,
                    (liveData->params.sdcardInit) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
     );
   }
@@ -2076,18 +1206,27 @@ void Board320_240::redrawScreen()
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
-      spr.fillRect(140, 7, 7, 7,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
-      );
+      const uint16_t wifiColor =
+          (WiFi.status() == WL_CONNECTED)
+              ? ((liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */)
+              : TFT_RED; /* wifi not connected */
+
+      // WiFi icon (upper arcs + center dot), tuned to be ~20% larger.
+      const int wifiCx = 146;
+      const int wifiCy = 11;
+      const int wifiOuterR = 10;
+      const int wifiMidR = 6;
+      const int wifiInnerR = 4;
+      spr.drawCircle(wifiCx, wifiCy, wifiOuterR, wifiColor);
+      spr.drawCircle(wifiCx, wifiCy, wifiMidR, wifiColor);
+      spr.drawCircle(wifiCx, wifiCy, wifiInnerR, wifiColor);
+      spr.fillRect(wifiCx - (wifiOuterR + 1), wifiCy, (wifiOuterR + 1) * 2 + 1, wifiOuterR + 2, TFT_BLACK); // keep only upper arcs
+      spr.fillCircle(wifiCx, wifiCy + 3, 2, wifiColor);
+
       if (liveData->params.isWifiBackupLive)
       {
-        spr.fillRect(140, 0, 7, 3,
-                     (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >=
-                                                        liveData->params.currentTime)
-                                                           ? TFT_GREEN  /* last request was 200 OK */
-                                                           : TFT_YELLOW /* wifi connected but not send */
-                                                     : TFT_RED          /* wifi not connected */
-        );
+        // Backup link badge.
+        spr.fillCircle(wifiCx + 11, 2, 2, wifiColor);
       }
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)
@@ -2101,26 +1240,82 @@ void Board320_240::redrawScreen()
   // Door status
   if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
   {
-    if (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen || liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen)
+    const bool showCarIcon = (liveData->params.trunkDoorOpen || liveData->params.leftFrontDoorOpen || liveData->params.rightFrontDoorOpen ||
+                              liveData->params.leftRearDoorOpen || liveData->params.rightRearDoorOpen || liveData->params.hoodDoorOpen);
+    if (showCarIcon)
     {
-      spr.fillRect(40 + 5, 40, 50 - 10, 90, 0x4208);
-      spr.fillRect(40, 40 + 5, 50, 90 - 10, 0x4208);
-      spr.fillCircle(40 + 5, 40 + 5, 5, 0x4208);
-      spr.fillCircle(40 + 50 - 6, 40 + 5, 5, 0x4208);
-      spr.fillCircle(40 + 5, 40 + 90 - 6, 5, 0x4208);
-      spr.fillCircle(40 + 50 - 6, 40 + 90 - 6, 5, 0x4208);
+      const int16_t carX = 40;
+      const int16_t carY = 40;
+      const int16_t carW = 50;
+      const int16_t carH = 90;
+      const int16_t bodyX = carX + 3;
+      const int16_t bodyY = carY + 6;
+      const int16_t bodyW = carW - 6;
+      const int16_t bodyH = carH - 12;
+      const uint16_t bodyColor = 0x4208;
+      const uint16_t cabinColor = 0x3186;
+      const uint16_t glassColor = 0x7BEF;
+      const uint16_t lineColor = 0x5AEB;
+
+      // Top-view silhouette
+      spr.fillRoundRect(bodyX, bodyY, bodyW, bodyH, 10, bodyColor);
+      spr.drawRoundRect(bodyX, bodyY, bodyW, bodyH, 10, lineColor);
+      spr.fillRoundRect(bodyX + 8, bodyY + 14, bodyW - 16, bodyH - 28, 8, cabinColor);
+      spr.drawRoundRect(bodyX + 8, bodyY + 14, bodyW - 16, bodyH - 28, 8, lineColor);
+      spr.fillRoundRect(bodyX + 10, bodyY + 18, bodyW - 20, 12, 4, glassColor);
+      spr.fillRoundRect(bodyX + 10, bodyY + bodyH - 30, bodyW - 20, 12, 4, glassColor);
+      spr.drawFastVLine(bodyX + (bodyW / 2), bodyY + 20, bodyH - 40, lineColor);
+      spr.fillRoundRect(bodyX - 3, bodyY + 22, 3, 10, 2, lineColor);
+      spr.fillRoundRect(bodyX + bodyW, bodyY + 22, 3, 10, 2, lineColor);
+      spr.drawFastHLine(bodyX + 2, bodyY + 24, 6, lineColor);
+      spr.drawFastHLine(bodyX + 2, bodyY + bodyH - 24, 6, lineColor);
+      spr.drawFastHLine(bodyX + bodyW - 8, bodyY + 24, 6, lineColor);
+      spr.drawFastHLine(bodyX + bodyW - 8, bodyY + bodyH - 24, 6, lineColor);
+
+      // Light indicators
+      if (liveData->params.brakeLights)
+      {
+        spr.fillRoundRect(bodyX + 5, bodyY + bodyH, 10, 6, 2, TFT_RED);
+        spr.fillRoundRect(bodyX + bodyW - 15, bodyY + bodyH, 10, 6, 2, TFT_RED);
+      }
+      if (liveData->params.headLights || liveData->params.dayLights)
+      {
+        const uint16_t headColor = liveData->params.headLights ? TFT_YELLOW : TFT_GOLD;
+        spr.fillRoundRect(bodyX + 5, bodyY - 6, 10, 6, 2, headColor);
+        spr.fillRoundRect(bodyX + bodyW - 15, bodyY - 6, 10, 6, 2, headColor);
+      }
+
+      // Charging door
+      if (liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
+      {
+        uint16_t doorColor = TFT_GREEN;
+        if (liveData->params.chargerACconnected && liveData->params.chargerDCconnected)
+          doorColor = TFT_MAGENTA;
+        else if (liveData->params.chargerDCconnected)
+          doorColor = TFT_BLUE;
+        const int16_t doorX = bodyX + bodyW + 2;
+        const int16_t doorY = bodyY + bodyH / 2 - 6;
+        spr.fillRoundRect(doorX, doorY, 10, 12, 2, doorColor);
+        spr.drawRoundRect(doorX, doorY, 10, 12, 2, lineColor);
+        if (liveData->params.chargingOn)
+        {
+          spr.drawFastVLine(doorX + 5, doorY + 2, 8, TFT_WHITE);
+          spr.drawFastHLine(doorX + 3, doorY + 6, 4, TFT_WHITE);
+        }
+      }
+
       if (liveData->params.trunkDoorOpen)
-        spr.fillRect(45, 36, 40, 20, TFT_GOLD);
+        spr.fillRoundRect(bodyX + 6, bodyY - 10, bodyW - 12, 10, 3, TFT_GOLD);
       if (liveData->params.leftFrontDoorOpen)
-        spr.fillRect(20, 60, 20, 4, TFT_GOLD);
-      if (liveData->params.leftRearDoorOpen)
-        spr.fillRect(90, 60, 20, 4, TFT_GOLD);
+        spr.fillRoundRect(bodyX - 14, bodyY + 20, 12, 18, 3, TFT_GOLD);
       if (liveData->params.rightFrontDoorOpen)
-        spr.fillRect(20, 90, 20, 4, TFT_GOLD);
+        spr.fillRoundRect(bodyX - 14, bodyY + bodyH - 38, 12, 18, 3, TFT_GOLD);
+      if (liveData->params.leftRearDoorOpen)
+        spr.fillRoundRect(bodyX + bodyW + 2, bodyY + 20, 12, 18, 3, TFT_GOLD);
       if (liveData->params.rightRearDoorOpen)
-        spr.fillRect(90, 90, 20, 4, TFT_GOLD);
+        spr.fillRoundRect(bodyX + bodyW + 2, bodyY + bodyH - 38, 12, 18, 3, TFT_GOLD);
       if (liveData->params.hoodDoorOpen)
-        spr.fillRect(45, 120, 40, 15, TFT_GOLD);
+        spr.fillRoundRect(bodyX + 6, bodyY + bodyH, bodyW - 12, 10, 3, TFT_GOLD);
     }
   }
   else
@@ -2140,6 +1335,7 @@ void Board320_240::redrawScreen()
   }
 
   bool statusBoxUsed = false;
+  constexpr int16_t statusBoxRadius = 8;
 
   // BLE not connected
   if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
@@ -2160,11 +1356,11 @@ void Board320_240::redrawScreen()
   }
   else
     // CAN not connected
-    if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface->getConnectStatus() != "")
+    if (canStatusMessageVisible())
     {
       // Print message
-      spr.fillRect(0, 185, 320, 50, TFT_BLACK);
-      spr.drawRect(0, 185, 320, 50, TFT_WHITE);
+      spr.fillRoundRect(0, 185, 320, 50, statusBoxRadius, TFT_BLACK);
+      spr.drawRoundRect(0, 185, 320, 50, statusBoxRadius, TFT_WHITE);
       spr.setTextSize(1);
       spr.setTextDatum(TL_DATUM);
       spr.setTextColor(TFT_WHITE);
@@ -2190,8 +1386,107 @@ void Board320_240::redrawScreen()
     statusBoxUsed = true;
   }
 
-  spr.pushSprite(0, 0);
+  return true;
+}
 
+void Board320_240::redrawScreen()
+{
+  lastRedrawTime = liveData->params.currentTime;
+  liveData->redrawScreenRequested = false;
+
+  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
+  {
+    return;
+  }
+  if (redrawScreenIsRunning)
+  {
+    return;
+  }
+  redrawScreenIsRunning = true;
+
+  if (drawActiveScreenToSprite())
+  {
+    spr.pushSprite(0, 0);
+  }
+
+  redrawScreenIsRunning = false;
+}
+
+void Board320_240::showScreenSwipePreview(int16_t deltaX)
+{
+  static int16_t lastPreviewDeltaX = 0;
+  static uint32_t lastPreviewMs = 0;
+  const uint8_t firstCarouselScreen = SCREEN_DASH;
+  const uint8_t lastCarouselScreen = SCREEN_DEBUG;
+  if (liveData->menuVisible || currentBrightness == 0 || !liveData->params.spriteInit)
+  {
+    return;
+  }
+  if (redrawScreenIsRunning)
+  {
+    return;
+  }
+  if (liveData->params.displayScreen == SCREEN_HUD)
+  {
+    return;
+  }
+
+  if (deltaX > 319)
+    deltaX = 319;
+  else if (deltaX < -319)
+    deltaX = -319;
+
+  if (deltaX == 0)
+  {
+    lastPreviewDeltaX = 0;
+    return;
+  }
+
+  const uint32_t nowMs = millis();
+  const bool deltaChangedEnough = (abs(deltaX - lastPreviewDeltaX) >= 2);
+  const bool frameElapsed = (nowMs - lastPreviewMs) >= 16;
+  if (!deltaChangedEnough && !frameElapsed)
+  {
+    return;
+  }
+  lastPreviewDeltaX = deltaX;
+  lastPreviewMs = nowMs;
+
+  const uint8_t originalScreen = liveData->params.displayScreen;
+  if (originalScreen < firstCarouselScreen || originalScreen > lastCarouselScreen)
+  {
+    return;
+  }
+  if ((deltaX > 0 && originalScreen == firstCarouselScreen) ||
+      (deltaX < 0 && originalScreen == lastCarouselScreen))
+  {
+    return;
+  }
+
+  const uint8_t originalAutoMode = liveData->params.displayScreenAutoMode;
+  const uint8_t adjacentScreen = (deltaX > 0) ? (originalScreen - 1) : (originalScreen + 1);
+
+  redrawScreenIsRunning = true;
+
+  tft.setRotation(liveData->settings.displayRotation);
+
+  liveData->params.displayScreen = originalScreen;
+  liveData->params.displayScreenAutoMode = originalAutoMode;
+  if (drawActiveScreenToSprite())
+  {
+    spr.pushSprite(deltaX, 0);
+  }
+
+  liveData->params.displayScreen = adjacentScreen;
+  liveData->params.displayScreenAutoMode = originalAutoMode;
+  if (drawActiveScreenToSprite())
+  {
+    const int16_t adjacentX = deltaX + ((deltaX > 0) ? -320 : 320);
+    spr.pushSprite(adjacentX, 0);
+  }
+
+  liveData->params.displayScreen = originalScreen;
+  liveData->params.displayScreenAutoMode = originalAutoMode;
   redrawScreenIsRunning = false;
 }
 
@@ -2280,6 +1575,10 @@ void Board320_240::xTaskAbrpSdLogLoop(void *pvParameters)
   {
     if (boardObj->abrpSdLogQueue != nullptr && xQueueReceive(boardObj->abrpSdLogQueue, &entry, portMAX_DELAY) == pdTRUE)
     {
+      if (boardObj->liveData->params.stopCommandQueue)
+      {
+        continue;
+      }
       if (!boardObj->liveData->params.sdcardInit || !boardObj->liveData->params.sdcardRecording)
       {
         continue;
@@ -2805,7 +2104,7 @@ void Board320_240::mainLoop()
   // Descrease loop fps
   if (liveData->params.stopCommandQueue)
   {
-    delay(250);
+    delay(1000);
   }
 
   // Automatic sleep after inactivity
@@ -2830,8 +2129,10 @@ void Board320_240::mainLoop()
     }
   }
 
-  // force redraw (min 1 sec update)
-  if (liveData->params.currentTime - lastRedrawTime >= 1 || liveData->redrawScreenRequested)
+  // force redraw (min 1 sec update; slower while in Sentry)
+  const time_t redrawIntervalSec = liveData->params.stopCommandQueue ? 2 : 1;
+  if (!screenSwipePreviewActive &&
+      (liveData->params.currentTime - lastRedrawTime >= redrawIntervalSec || liveData->redrawScreenRequested))
   {
     redrawScreen();
   }
@@ -3304,6 +2605,583 @@ void Board320_240::wifiSwitchToMain()
   WiFi.begin(liveData->settings.wifiSsid, liveData->settings.wifiPassword);
   liveData->params.isWifiBackupLive = false;
   liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+}
+
+bool Board320_240::wifiScanToMenu()
+{
+  displayMessage("Scanning WiFi...", "");
+  WiFi.enableSTA(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true, true);
+  delay(200);
+
+  int found = WiFi.scanNetworks();
+  liveData->wifiScanCount = 0;
+
+  for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
+  {
+    if (liveData->menuItems[i].id >= LIST_OF_WIFI_1 && liveData->menuItems[i].id <= LIST_OF_WIFI_10)
+    {
+      strlcpy(liveData->menuItems[i].title, "-", sizeof(liveData->menuItems[i].title));
+    }
+  }
+
+  if (found <= 0)
+  {
+    displayMessage("WiFi scan", "No networks found");
+    delay(1500);
+    showMenu();
+    return false;
+  }
+
+  for (int i = 0; i < found && liveData->wifiScanCount < 10; i++)
+  {
+    String ssid = WiFi.SSID(i);
+    if (ssid.length() == 0)
+      continue;
+
+    int8_t rssi = WiFi.RSSI(i);
+    uint8_t enc = WiFi.encryptionType(i);
+    uint8_t slot = liveData->wifiScanCount;
+
+    ssid.toCharArray(liveData->wifiScanSsid[slot], sizeof(liveData->wifiScanSsid[slot]));
+    liveData->wifiScanRssi[slot] = rssi;
+    liveData->wifiScanEnc[slot] = enc;
+
+    String label = ssid;
+    label += " ";
+    label += String(rssi);
+    label += "dBm";
+    if (enc != WIFI_AUTH_OPEN)
+      label += " *";
+
+    for (uint16_t m = 0; m < liveData->menuItemsCount; ++m)
+    {
+      if (liveData->menuItems[m].id == (LIST_OF_WIFI_1 + slot))
+      {
+        label.toCharArray(liveData->menuItems[m].title, sizeof(liveData->menuItems[m].title));
+        break;
+      }
+    }
+
+    liveData->wifiScanCount++;
+  }
+
+  liveData->menuVisible = true;
+  liveData->menuCurrent = LIST_OF_WIFI_DEV;
+  liveData->menuItemSelected = 0;
+  liveData->menuItemOffset = 0;
+  showMenu();
+  return true;
+}
+
+bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, uint8_t maxLen)
+{
+  const int16_t screenW = tft.width();
+  const int16_t screenH = tft.height();
+  const int16_t topBtnY = 4;
+  const int16_t topBtnH = 24;
+  const int16_t topExitW = 50;
+  const int16_t topExitX = 6;
+  const int16_t titleY = 6;
+  const int16_t titleX = topExitX + topExitW + 8;
+  const int16_t inputY = 32;
+  const int16_t inputH = 34;
+  const int16_t keyW = 30;
+  const int16_t gap = 2;
+  const int16_t rowsY = inputY + inputH + 8;
+  const int16_t keyboardRows = 5;
+  const int16_t modeW = 48;
+  const int16_t shiftW = 56;
+  const int16_t spaceW = 98;
+  const int16_t bkspW = 52;
+  const int16_t okW = 58;
+  int16_t keyH = (screenH - 6 - rowsY - (keyboardRows - 1) * gap) / keyboardRows;
+  if (keyH < 26)
+    keyH = 26;
+
+  enum KeyAction : uint8_t
+  {
+    KEY_NONE = 0,
+    KEY_CHAR,
+    KEY_MODE,
+    KEY_SHIFT,
+    KEY_SPACE,
+    KEY_DEL,
+    KEY_OK,
+    KEY_EXIT
+  };
+  struct KeyHit
+  {
+    KeyAction action;
+    char ch;
+  };
+
+  struct KeyRows
+  {
+    const char *row[4];
+    uint8_t len[4];
+  };
+
+  bool shift = false;
+  bool numericMode = false;
+  bool touchActive = false;
+  KeyAction activeAction = KEY_NONE;
+  char activeChar = 0;
+  char previewChar = 0;
+  uint32_t previewUntil = 0;
+  bool needsRedraw = true;
+
+  auto loadRows = [&](KeyRows &rows) {
+    if (!numericMode)
+    {
+      rows.row[0] = shift ? "QWERTYUIOP" : "qwertyuiop";
+      rows.len[0] = 10;
+      rows.row[1] = shift ? "ASDFGHJKL" : "asdfghjkl";
+      rows.len[1] = 9;
+      rows.row[2] = shift ? "ZXCVBNM" : "zxcvbnm";
+      rows.len[2] = 7;
+      rows.row[3] = "@._-/:;!?+";
+      rows.len[3] = 10;
+      return;
+    }
+
+    rows.row[0] = "1234567890";
+    rows.len[0] = 10;
+    if (!shift)
+    {
+      rows.row[1] = "!@#$%^&*()";
+      rows.len[1] = 10;
+      rows.row[2] = "-_=+[]{}";
+      rows.len[2] = 8;
+      rows.row[3] = ".,:;/?\\|";
+      rows.len[3] = 8;
+    }
+    else
+    {
+      rows.row[1] = "~`<>\"'()";
+      rows.len[1] = 8;
+      rows.row[2] = "{}[]+=-_";
+      rows.len[2] = 8;
+      rows.row[3] = "#$%&*@!?";
+      rows.len[3] = 8;
+    }
+  };
+
+  auto hitTest = [&](int16_t tx, int16_t ty) -> KeyHit {
+    if (ty >= topBtnY && ty <= topBtnY + topBtnH)
+    {
+      if (tx >= topExitX && tx <= topExitX + topExitW)
+      {
+        KeyHit hit = {KEY_EXIT, 0};
+        return hit;
+      }
+    }
+
+    KeyRows rows = {};
+    loadRows(rows);
+
+    for (int r = 0; r < 4; r++)
+    {
+      int len = rows.len[r];
+      int rowWidth = len * keyW + (len - 1) * gap;
+      int x0 = (screenW - rowWidth) / 2;
+      int y0 = rowsY + r * (keyH + gap);
+      if (ty < y0 || ty > y0 + keyH || tx < x0 || tx > x0 + rowWidth)
+        continue;
+      int col = (tx - x0) / (keyW + gap);
+      if (col < 0 || col >= len)
+        continue;
+      KeyHit hit = {KEY_CHAR, rows.row[r][col]};
+      return hit;
+    }
+
+    int ctrlY = rowsY + 4 * (keyH + gap);
+    int totalW = modeW + shiftW + spaceW + bkspW + okW + gap * 4;
+    int x = (screenW - totalW) / 2;
+    int modeX = x;
+    int shiftX = modeX + modeW + gap;
+    int spaceX = shiftX + shiftW + gap;
+    int bkspX = spaceX + spaceW + gap;
+    int okX = bkspX + bkspW + gap;
+
+    if (ty >= ctrlY && ty <= ctrlY + keyH)
+    {
+      if (tx >= modeX && tx <= modeX + modeW)
+      {
+        KeyHit hit = {KEY_MODE, 0};
+        return hit;
+      }
+      if (tx >= shiftX && tx <= shiftX + shiftW)
+      {
+        KeyHit hit = {KEY_SHIFT, 0};
+        return hit;
+      }
+      if (tx >= spaceX && tx <= spaceX + spaceW)
+      {
+        KeyHit hit = {KEY_SPACE, 0};
+        return hit;
+      }
+      if (tx >= bkspX && tx <= bkspX + bkspW)
+      {
+        KeyHit hit = {KEY_DEL, 0};
+        return hit;
+      }
+      if (tx >= okX && tx <= okX + okW)
+      {
+        KeyHit hit = {KEY_OK, 0};
+        return hit;
+      }
+    }
+
+    KeyHit hit = {KEY_NONE, 0};
+    return hit;
+  };
+
+  auto drawKeyboard = [&](bool showPreview) {
+    if (liveData->params.spriteInit)
+    {
+      spr.fillSprite(TFT_BLACK);
+    }
+    else
+    {
+      tft.fillScreen(TFT_BLACK);
+    }
+
+    auto drawRect = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t bg, uint16_t fg) {
+      if (liveData->params.spriteInit)
+      {
+        spr.fillRoundRect(x, y, w, h, 4, bg);
+        spr.drawRoundRect(x, y, w, h, 4, fg);
+      }
+      else
+      {
+        tft.fillRoundRect(x, y, w, h, 4, bg);
+        tft.drawRoundRect(x, y, w, h, 4, fg);
+      }
+    };
+
+    auto drawText = [&](const char *text, int16_t x, int16_t y, bool bigFont) {
+      if (liveData->params.spriteInit)
+      {
+        sprSetFont(bigFont ? fontRobotoThin24 : fontFont2);
+        spr.setTextColor(TFT_WHITE);
+        spr.setTextDatum(MC_DATUM);
+        sprDrawString(text, x, y);
+      }
+      else
+      {
+        tft.setFont(bigFont ? fontRobotoThin24 : fontFont2);
+        tft.setTextColor(TFT_WHITE);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(text, x, y);
+      }
+    };
+
+    auto drawLinePrim = [&](int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
+      if (liveData->params.spriteInit)
+      {
+        spr.drawLine(x0, y0, x1, y1, col);
+      }
+      else
+      {
+        tft.drawLine(x0, y0, x1, y1, col);
+      }
+    };
+
+    auto drawEnterIcon = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col) {
+      // Simple bent "enter" arrow.
+      int16_t cx = x + w / 2 + 7;
+      int16_t top = y + 6;
+      int16_t mid = y + h / 2 + 1;
+      drawLinePrim(cx, top, cx, mid, col);
+      drawLinePrim(cx, mid, x + 10, mid, col);
+      drawLinePrim(x + 10, mid, x + 14, mid - 4, col);
+      drawLinePrim(x + 10, mid, x + 14, mid + 4, col);
+    };
+
+    auto isActive = [&](KeyAction action, char ch) -> bool {
+      return touchActive && activeAction == action && activeChar == ch;
+    };
+
+    drawRect(topExitX, topBtnY, topExitW, topBtnH, isActive(KEY_EXIT, 0) ? TFT_RED : 0x1082, isActive(KEY_EXIT, 0) ? TFT_CYAN : 0x39E7);
+    drawText("EXIT", topExitX + topExitW / 2, topBtnY + topBtnH / 2 - 1, false);
+
+    if (liveData->params.spriteInit)
+    {
+      // Keep title style consistent with keyboard text style.
+      sprSetFont(fontFont2);
+      spr.setTextColor(TFT_WHITE);
+      spr.setTextDatum(TL_DATUM);
+      sprDrawString(title, titleX, titleY);
+    }
+    else
+    {
+      tft.setFont(fontFont2);
+      tft.setTextColor(TFT_WHITE);
+      tft.setTextDatum(TL_DATUM);
+      tft.drawString(title, titleX, titleY);
+    }
+
+    String display = value;
+    if (mask)
+    {
+      display = "";
+      for (size_t i = 0; i < value.length(); i++)
+        display += "*";
+    }
+
+    drawRect(6, inputY, screenW - 12, inputH, 0x0841, TFT_CYAN);
+    if (liveData->params.spriteInit)
+    {
+      sprSetFont(fontRobotoThin24);
+      spr.setTextColor(TFT_WHITE);
+      spr.setTextDatum(TL_DATUM);
+      sprDrawString(display.c_str(), 10, inputY + 7);
+    }
+    else
+    {
+      tft.setFont(fontRobotoThin24);
+      tft.setTextColor(TFT_WHITE);
+      tft.setTextDatum(TL_DATUM);
+      tft.drawString(display.c_str(), 10, inputY + 6);
+    }
+
+    KeyRows rows = {};
+    loadRows(rows);
+
+    for (int r = 0; r < 4; r++)
+    {
+      int len = rows.len[r];
+      int rowWidth = len * keyW + (len - 1) * gap;
+      int x0 = (screenW - rowWidth) / 2;
+      int y0 = rowsY + r * (keyH + gap);
+      for (int c = 0; c < len; c++)
+      {
+        char key[2] = {rows.row[r][c], 0};
+        int x = x0 + c * (keyW + gap);
+        bool active = isActive(KEY_CHAR, rows.row[r][c]);
+        drawRect(x, y0, keyW, keyH, active ? 0x001B : 0x1082, active ? TFT_CYAN : 0x39E7);
+        drawText(key, x + keyW / 2, y0 + keyH / 2 - 2, true);
+      }
+    }
+
+    int ctrlY = rowsY + 4 * (keyH + gap);
+    int totalW = modeW + shiftW + spaceW + bkspW + okW + gap * 4;
+    int x = (screenW - totalW) / 2;
+    drawRect(x, ctrlY, modeW, keyH, isActive(KEY_MODE, 0) ? 0x001B : 0x1082, isActive(KEY_MODE, 0) ? TFT_CYAN : 0x39E7);
+    drawText(numericMode ? "abc" : "123", x + modeW / 2, ctrlY + keyH / 2 - 2, false);
+    x += modeW + gap;
+    drawRect(x, ctrlY, shiftW, keyH, isActive(KEY_SHIFT, 0) ? 0x001B : (shift ? TFT_BLUE : 0x1082),
+             isActive(KEY_SHIFT, 0) ? TFT_CYAN : 0x39E7);
+    drawText("SHIFT", x + shiftW / 2, ctrlY + keyH / 2 - 2, false);
+    x += shiftW + gap;
+    drawRect(x, ctrlY, spaceW, keyH, isActive(KEY_SPACE, 0) ? 0x001B : 0x1082, isActive(KEY_SPACE, 0) ? TFT_CYAN : 0x39E7);
+    drawText("SPACE", x + spaceW / 2, ctrlY + keyH / 2 - 2, false);
+    x += spaceW + gap;
+    drawRect(x, ctrlY, bkspW, keyH, isActive(KEY_DEL, 0) ? 0x001B : 0x1082, isActive(KEY_DEL, 0) ? TFT_CYAN : 0x39E7);
+    drawText("DEL", x + bkspW / 2, ctrlY + keyH / 2 - 2, false);
+    x += bkspW + gap;
+    drawRect(x, ctrlY, okW, keyH, isActive(KEY_OK, 0) ? TFT_GREEN : TFT_DARKGREEN2, isActive(KEY_OK, 0) ? TFT_CYAN : 0x39E7);
+    drawEnterIcon(x, ctrlY, okW, keyH, TFT_WHITE);
+
+    if (showPreview && previewChar != 0)
+    {
+      const int16_t bubbleW = 144;
+      const int16_t bubbleH = 68;
+      const int16_t bubbleX = (screenW - bubbleW) / 2;
+      const int16_t bubbleY = 4;
+      char previewText[2] = {previewChar, 0};
+      drawRect(bubbleX, bubbleY, bubbleW, bubbleH, 0x52AA, 0x7BEF);
+      if (liveData->params.spriteInit)
+      {
+        sprSetFont(fontOrbitronLight32);
+        spr.setTextColor(TFT_WHITE);
+        spr.setTextDatum(MC_DATUM);
+        sprDrawString(previewText, bubbleX + bubbleW / 2, bubbleY + bubbleH / 2 + 1);
+      }
+      else
+      {
+        tft.setFont(fontOrbitronLight32);
+        tft.setTextColor(TFT_WHITE);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(previewText, bubbleX + bubbleW / 2, bubbleY + bubbleH / 2 + 1);
+      }
+    }
+
+    if (liveData->params.spriteInit)
+      spr.pushSprite(0, 0);
+  };
+
+  drawKeyboard(false);
+  bool previousPressed = false;
+
+  auto readTouchRaw = [&](int16_t &x, int16_t &y) -> bool {
+#ifdef BOARD_M5STACK_CORE2
+    if (M5.Touch.ispressed() && M5.Touch.points > 0 && M5.Touch.point[0].valid())
+    {
+      x = M5.Touch.point[0].x;
+      y = M5.Touch.point[0].y;
+      if (x < 0 || y < 0 || x >= screenW || y >= screenH)
+        return false;
+      return true;
+    }
+#endif
+#ifdef BOARD_M5STACK_CORES3
+    auto t = CoreS3.Touch.getDetail();
+    if (t.isPressed())
+    {
+      x = t.x;
+      y = t.y;
+      if (x < 0 || y < 0 || x >= screenW || y >= screenH)
+        return false;
+      return true;
+    }
+#endif
+    return false;
+  };
+
+  while (true)
+  {
+    boardLoop();
+    uint32_t nowMs = millis();
+    int16_t tx = 0, ty = 0;
+    bool touched = readTouchRaw(tx, ty);
+
+    if (touched)
+    {
+      KeyHit hit = hitTest(tx, ty);
+      if (!touchActive || hit.action != activeAction || hit.ch != activeChar)
+      {
+        activeAction = hit.action;
+        activeChar = hit.ch;
+        needsRedraw = true;
+      }
+      touchActive = true;
+      if (hit.action == KEY_CHAR && hit.ch != 0)
+      {
+        previewChar = hit.ch;
+        previewUntil = nowMs + 500;
+        needsRedraw = true;
+      }
+      else if (previewChar != 0)
+      {
+        previewChar = 0;
+        needsRedraw = true;
+      }
+    }
+    else if (touchActive && previousPressed)
+    {
+      if (activeAction == KEY_CHAR && activeChar != 0)
+      {
+        if (value.length() < maxLen)
+        {
+          value += activeChar;
+          if (shift && activeChar >= 'A' && activeChar <= 'Z')
+            shift = false;
+        }
+        previewChar = activeChar;
+        previewUntil = nowMs + 500;
+      }
+      else if (activeAction == KEY_MODE)
+      {
+        numericMode = !numericMode;
+        shift = false;
+      }
+      else if (activeAction == KEY_SHIFT)
+      {
+        shift = !shift;
+      }
+      else if (activeAction == KEY_SPACE)
+      {
+        if (value.length() < maxLen)
+          value += " ";
+      }
+      else if (activeAction == KEY_DEL)
+      {
+        if (value.length() > 0)
+          value.remove(value.length() - 1);
+      }
+      else if (activeAction == KEY_OK)
+      {
+        return true;
+      }
+      else if (activeAction == KEY_EXIT)
+      {
+        return false;
+      }
+
+      touchActive = false;
+      activeAction = KEY_NONE;
+      activeChar = 0;
+      needsRedraw = true;
+    }
+    else if (previewChar != 0 && nowMs >= previewUntil)
+    {
+      previewChar = 0;
+      needsRedraw = true;
+    }
+
+    if (needsRedraw)
+    {
+      drawKeyboard(previewChar != 0);
+      needsRedraw = false;
+    }
+
+    previousPressed = touched;
+    if (!touched)
+      delay(5);
+  }
+}
+
+bool Board320_240::promptWifiPassword(const char *ssid, String &outPassword, bool isOpenNetwork)
+{
+  if (isOpenNetwork)
+  {
+    outPassword = "";
+    return true;
+  }
+  String value = outPassword;
+  String title = String("Passwd for ") + ssid;
+  bool ok = promptKeyboard(title.c_str(), value, false, sizeof(liveData->settings.wifiPassword) - 1);
+  if (ok)
+    outPassword = value;
+  return ok;
+}
+
+bool Board320_240::canStatusMessageVisible()
+{
+  if (liveData->settings.commType != COMM_TYPE_CAN_COMMU)
+    return false;
+
+  String status = commInterface->getConnectStatus();
+  if (status == "")
+    return false;
+
+  if (dismissedCanStatusText != "" && status == dismissedCanStatusText)
+    return false;
+
+  // New status text arrived, clear previous dismissal.
+  if (dismissedCanStatusText != "" && status != dismissedCanStatusText)
+    dismissedCanStatusText = "";
+
+  return true;
+}
+
+bool Board320_240::canStatusMessageHitTest(int16_t x, int16_t y)
+{
+  if (!canStatusMessageVisible())
+    return false;
+  return (x >= 0 && x < 320 && y >= 185 && y < 235);
+}
+
+void Board320_240::dismissCanStatusMessage()
+{
+  if (liveData->settings.commType != COMM_TYPE_CAN_COMMU)
+    return;
+  String status = commInterface->getConnectStatus();
+  if (status != "")
+    dismissedCanStatusText = status;
 }
 
 void Board320_240::updateNetAvailability(bool success)
@@ -3784,6 +3662,10 @@ void Board320_240::queueAbrpSdLog(const char *payload, size_t length, time_t cur
   {
     return;
   }
+  if (liveData->params.stopCommandQueue)
+  {
+    return;
+  }
 
   AbrpLogEntry entry{};
   entry.length = (length >= sizeof(entry.payload)) ? sizeof(entry.payload) - 1 : length;
@@ -3818,7 +3700,7 @@ bool Board320_240::netContributeData()
 // Only for core2
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
   // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
-  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
+  if (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
     syslog->println("Contributing anonymous data...");
@@ -3922,13 +3804,118 @@ void Board320_240::initGPS()
   syslog->println(liveData->settings.gpsHwSerialPort);
 
   gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
-  if (liveData->settings.gpsHwSerialPort == 2)
+  auto beginGpsUart = [&](unsigned long baud) {
+    if (liveData->settings.gpsHwSerialPort == 2)
+    {
+      gpsHwUart->begin(baud, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    }
+    else
+    {
+      gpsHwUart->begin(baud);
+    }
+    delay(120);
+    while (gpsHwUart->available())
+    {
+      gpsHwUart->read();
+    }
+  };
+
+  auto hasValidNmea = [&](uint32_t timeoutMs) -> bool {
+    TinyGPSPlus probeGps;
+    const uint32_t startMs = millis();
+    while (millis() - startMs < timeoutMs)
+    {
+      while (gpsHwUart->available())
+      {
+        int ch = gpsHwUart->read();
+        if (ch >= 0)
+        {
+          probeGps.encode(static_cast<char>(ch));
+        }
+      }
+      if (probeGps.passedChecksum() > 0)
+      {
+        return true;
+      }
+      delay(5);
+    }
+    return false;
+  };
+
+  unsigned long detectedBaud = liveData->settings.gpsSerialPortSpeed;
+  unsigned long baudCandidates[4] = {0, 0, 0, 0};
+  uint8_t baudCandidateCount = 0;
+
+  auto pushBaudCandidate = [&](unsigned long baud) {
+    if (baud == 0)
+    {
+      return;
+    }
+    for (uint8_t i = 0; i < baudCandidateCount; i++)
+    {
+      if (baudCandidates[i] == baud)
+      {
+        return;
+      }
+    }
+    if (baudCandidateCount < (sizeof(baudCandidates) / sizeof(baudCandidates[0])))
+    {
+      baudCandidates[baudCandidateCount++] = baud;
+    }
+  };
+
+  pushBaudCandidate(liveData->settings.gpsSerialPortSpeed);
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
   {
-    gpsHwUart->begin(liveData->settings.gpsSerialPortSpeed, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(115200);
+    pushBaudCandidate(9600);
+  }
+  else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
+  {
+    pushBaudCandidate(9600);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(115200);
   }
   else
   {
-    gpsHwUart->begin(liveData->settings.gpsSerialPortSpeed);
+    pushBaudCandidate(9600);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(115200);
+  }
+
+  bool baudDetected = false;
+  for (uint8_t i = 0; i < baudCandidateCount; i++)
+  {
+    beginGpsUart(baudCandidates[i]);
+    if (hasValidNmea(1500))
+    {
+      detectedBaud = baudCandidates[i];
+      baudDetected = true;
+      break;
+    }
+  }
+
+  if (!baudDetected)
+  {
+    detectedBaud = liveData->settings.gpsSerialPortSpeed;
+    beginGpsUart(detectedBaud);
+    syslog->print("GPS baud auto-detect failed, using configured speed: ");
+    syslog->println(detectedBaud);
+  }
+  else
+  {
+    if (detectedBaud != liveData->settings.gpsSerialPortSpeed)
+    {
+      syslog->print("GPS baud auto-detected: ");
+      syslog->println(detectedBaud);
+      liveData->settings.gpsSerialPortSpeed = detectedBaud;
+    }
+    else
+    {
+      syslog->print("GPS baud confirmed: ");
+      syslog->println(detectedBaud);
+    }
   }
 
   // M5 GPS MODULE with int.&ext. antenna (u-blox NEO-M8N)
