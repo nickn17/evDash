@@ -4,6 +4,8 @@
 - GPS: faster first fix by robust UART baud handling. evDash now auto-detects valid GNSS baud on boot and confirms/switches to a working speed.
 - GPS setup UX: when GPS module type is changed, default serial speed is auto-set (NEO-M8N = 9600, M5 GNSS = 38400) in both menu and web settings.
 - GPS diagnostics: clearer runtime logs for confirmed/auto-detected/fallback GNSS speed to simplify troubleshooting in the field.
+- Refactor: all `drawScene*` rendering functions were moved from `Board320_240.cpp` to new `Board320_240_display.cpp` for cleaner file structure.
+- Display fix: preserved original bitmap font rendering after the display-file split (small labels, digital speed/power, cell and debug text styles).
 
 ### V4.1.15 2026-02-06
 - Sentry: autostop no longer blocked by stale door state when CAN responses stop.
