@@ -1082,22 +1082,24 @@ void Board320_240::redrawScreen()
   // GPS state
   if ((gpsHwUart != NULL || liveData->params.gpsSat > 0) && (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED))
   {
-    spr.fillCircle(160, 10, 8, (liveData->params.gpsValid) ? TFT_GREEN : TFT_RED);
-    spr.fillCircle(160, 10, 6, TFT_BLACK);
+    const int gpsIndicatorX = 168;
+    spr.fillCircle(gpsIndicatorX, 10, 8, (liveData->params.gpsValid) ? TFT_GREEN : TFT_RED);
+    spr.fillCircle(gpsIndicatorX, 10, 6, TFT_BLACK);
     spr.setTextSize(1);
     spr.setTextColor((liveData->params.gpsValid) ? TFT_GREEN : TFT_WHITE);
     spr.setTextDatum(TL_DATUM);
     sprintf(tmpStr1, "%d", liveData->params.gpsSat);
     sprSetFont(fontFont2);
-    sprDrawString(tmpStr1, 174, 2);
+    sprDrawString(tmpStr1, gpsIndicatorX + 14, 2);
   }
 
   // SDCARD recording
   // liveData->params.sdcardRecording
   if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1)
   {
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 4, TFT_BLACK);
-    spr.fillCircle((liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 160 : 310, 10, 3,
+    const int sdIndicatorX = (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 168 : 310;
+    spr.fillCircle(sdIndicatorX, 10, 4, TFT_BLACK);
+    spr.fillCircle(sdIndicatorX, 10, 3,
                    (liveData->params.sdcardInit) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
     );
   }
@@ -1130,18 +1132,24 @@ void Board320_240::redrawScreen()
   {
     if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
     {
-      spr.fillRect(140, 7, 7, 7,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
-      );
+      const uint16_t wifiColor =
+          (WiFi.status() == WL_CONNECTED)
+              ? ((liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */)
+              : TFT_RED; /* wifi not connected */
+
+      // WiFi icon (upper arcs + center dot) in place of the previous square.
+      const int wifiCx = 146;
+      const int wifiCy = 11;
+      spr.drawCircle(wifiCx, wifiCy, 6, wifiColor);
+      spr.drawCircle(wifiCx, wifiCy, 4, wifiColor);
+      spr.drawCircle(wifiCx, wifiCy, 2, wifiColor);
+      spr.fillRect(wifiCx - 7, wifiCy, 15, 8, TFT_BLACK); // keep only upper arcs
+      spr.fillCircle(wifiCx, wifiCy + 1, 1, wifiColor);
+
       if (liveData->params.isWifiBackupLive)
       {
-        spr.fillRect(140, 0, 7, 3,
-                     (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >=
-                                                        liveData->params.currentTime)
-                                                           ? TFT_GREEN  /* last request was 200 OK */
-                                                           : TFT_YELLOW /* wifi connected but not send */
-                                                     : TFT_RED          /* wifi not connected */
-        );
+        // Backup link badge.
+        spr.fillCircle(wifiCx + 7, 2, 2, wifiColor);
       }
     }
     else if (liveData->params.displayScreen != SCREEN_BLANK)

@@ -6,6 +6,7 @@
 - GPS diagnostics: clearer runtime logs for confirmed/auto-detected/fallback GNSS speed to simplify troubleshooting in the field.
 - Refactor: all `drawScene*` rendering functions were moved from `Board320_240.cpp` to new `Board320_240_display.cpp` for cleaner file structure.
 - Display fix: preserved original bitmap font rendering after the display-file split (small labels, digital speed/power, cell and debug text styles).
+- Speed screen UI: replaced the WiFi square with a WiFi icon, added a dedicated backup-link badge, and shifted GPS/SD + satellite indicators slightly right to keep spacing clean.
 
 ### V4.1.15 2026-02-06
 - Sentry: autostop no longer blocked by stale door state when CAN responses stop.
