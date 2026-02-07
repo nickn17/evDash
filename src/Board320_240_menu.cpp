@@ -931,6 +931,14 @@ void Board320_240::menuItemClick()
       break;
     case MENU_GPS_MODULE_TYPE:
       liveData->settings.gpsModuleType = (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS) ? GPS_MODULE_TYPE_NONE : liveData->settings.gpsModuleType + 1;
+      if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
+      {
+        liveData->settings.gpsSerialPortSpeed = 9600;
+      }
+      else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
+      {
+        liveData->settings.gpsSerialPortSpeed = 38400;
+      }
       showMenu();
       return;
       break;

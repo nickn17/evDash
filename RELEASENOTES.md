@@ -1,11 +1,24 @@
 # RELEASE NOTES
 
+### V4.1.16 2026-02-07
+- GPS: faster first fix by robust UART baud handling. evDash now auto-detects valid GNSS baud on boot and confirms/switches to a working speed.
+- GPS setup UX: when GPS module type is changed, default serial speed is auto-set (NEO-M8N = 9600, M5 GNSS = 38400) in both menu and web settings.
+- GPS diagnostics: clearer runtime logs for confirmed/auto-detected/fallback GNSS speed to simplify troubleshooting in the field.
+
+### V4.1.15 2026-02-06
+- Sentry: autostop no longer blocked by stale door state when CAN responses stop.
+- Auto brightness: periodic recalculation during parking so sunrise updates without new GPS fix.
+- Sentry: AUX voltage shown only when data is fresh (INA <= 15s, CAN <= 5s).
+- Sentry: reduce loop rate and redraw to lower idle load (1s loop delay, 2s redraw).
+- Sentry: stop ABRP SD card logging while suspended.
+
+### V4.1.14 2026-02-05
+- Contribute uploads now send when WiFi is connected, regardless of "Remote upload type".
+
 ### V4.1.13 2026-02-05
 - eGMP: add detailed UDS logging for 3E/1003/command with NRC decode.
 - eGMP: add safe test mode for single ECU/DID (UDS 22 only).
 - eGMP 58/63 packs: prefer 220105 temp bytes for module temps + sanity-filter temps (reject < -40 or > 120) to prevent spikes in min/max and inlet/heater.
-- Sentry: autostop no longer blocked by stale door state when CAN responses stop.
-- Auto brightness: periodic recalculation during parking so sunrise updates without new GPS fix.
 
 ### V4.1.12 2026-02-04
 - Sentry wake tuning: higher gyro wake limit plus periodic reset while parked.

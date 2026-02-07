@@ -484,7 +484,23 @@ void handleSet()
   else if (key == "rightHandDrive")
     liveDataWebInt->settings.rightHandDrive = value.toInt() ? 1 : 0;
   else if (key == "gpsModuleType")
+  {
     liveDataWebInt->settings.gpsModuleType = value.toInt();
+    if (liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
+    {
+      liveDataWebInt->settings.gpsSerialPortSpeed = 9600;
+      note = "Saved (GPS speed auto-set to 9600, reboot required)";
+    }
+    else if (liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
+    {
+      liveDataWebInt->settings.gpsSerialPortSpeed = 38400;
+      note = "Saved (GPS speed auto-set to 38400, reboot required)";
+    }
+    else
+    {
+      note = "Saved (reboot required)";
+    }
+  }
   else if (key == "gpsHwSerialPort")
     liveDataWebInt->settings.gpsHwSerialPort = value.toInt();
   else if (key == "gpsSerialPortSpeed")

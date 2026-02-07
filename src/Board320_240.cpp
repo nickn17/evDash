@@ -1093,7 +1093,21 @@ void Board320_240::drawSceneSpeed()
       snprintf(tmpStr2, sizeof(tmpStr2), "GPS:%03.0f SAT:%u", liveData->params.speedKmhGPS, liveData->params.gpsSat);
     }
     sprDrawString(tmpStr2, 90, 145);
-    if (liveData->params.auxVoltage == -1)
+    bool auxFresh = false;
+    if (liveData->params.auxVoltage != -1 && liveData->params.currentTime != 0)
+    {
+      if (liveData->settings.voltmeterEnabled == 1)
+      {
+        const time_t auxFreshWindowInaSec = 15;
+        auxFresh = (liveData->params.currentTime - liveData->params.lastVoltageReadTime <= auxFreshWindowInaSec);
+      }
+      else
+      {
+        const time_t auxFreshWindowCanSec = 5;
+        auxFresh = (liveData->params.currentTime - liveData->params.lastCanbusResponseTime <= auxFreshWindowCanSec);
+      }
+    }
+    if (!auxFresh)
     {
       snprintf(tmpStr3, sizeof(tmpStr3), "AUX: --.-V");
     }
@@ -2280,6 +2294,10 @@ void Board320_240::xTaskAbrpSdLogLoop(void *pvParameters)
   {
     if (boardObj->abrpSdLogQueue != nullptr && xQueueReceive(boardObj->abrpSdLogQueue, &entry, portMAX_DELAY) == pdTRUE)
     {
+      if (boardObj->liveData->params.stopCommandQueue)
+      {
+        continue;
+      }
       if (!boardObj->liveData->params.sdcardInit || !boardObj->liveData->params.sdcardRecording)
       {
         continue;
@@ -2805,7 +2823,7 @@ void Board320_240::mainLoop()
   // Descrease loop fps
   if (liveData->params.stopCommandQueue)
   {
-    delay(250);
+    delay(1000);
   }
 
   // Automatic sleep after inactivity
@@ -2830,8 +2848,9 @@ void Board320_240::mainLoop()
     }
   }
 
-  // force redraw (min 1 sec update)
-  if (liveData->params.currentTime - lastRedrawTime >= 1 || liveData->redrawScreenRequested)
+  // force redraw (min 1 sec update; slower while in Sentry)
+  const time_t redrawIntervalSec = liveData->params.stopCommandQueue ? 2 : 1;
+  if (liveData->params.currentTime - lastRedrawTime >= redrawIntervalSec || liveData->redrawScreenRequested)
   {
     redrawScreen();
   }
@@ -3784,6 +3803,10 @@ void Board320_240::queueAbrpSdLog(const char *payload, size_t length, time_t cur
   {
     return;
   }
+  if (liveData->params.stopCommandQueue)
+  {
+    return;
+  }
 
   AbrpLogEntry entry{};
   entry.length = (length >= sizeof(entry.payload)) ? sizeof(entry.payload) - 1 : length;
@@ -3818,7 +3841,7 @@ bool Board320_240::netContributeData()
 // Only for core2
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
   // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
-  if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1 &&
+  if (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
     syslog->println("Contributing anonymous data...");
@@ -3922,13 +3945,118 @@ void Board320_240::initGPS()
   syslog->println(liveData->settings.gpsHwSerialPort);
 
   gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
-  if (liveData->settings.gpsHwSerialPort == 2)
+  auto beginGpsUart = [&](unsigned long baud) {
+    if (liveData->settings.gpsHwSerialPort == 2)
+    {
+      gpsHwUart->begin(baud, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    }
+    else
+    {
+      gpsHwUart->begin(baud);
+    }
+    delay(120);
+    while (gpsHwUart->available())
+    {
+      gpsHwUart->read();
+    }
+  };
+
+  auto hasValidNmea = [&](uint32_t timeoutMs) -> bool {
+    TinyGPSPlus probeGps;
+    const uint32_t startMs = millis();
+    while (millis() - startMs < timeoutMs)
+    {
+      while (gpsHwUart->available())
+      {
+        int ch = gpsHwUart->read();
+        if (ch >= 0)
+        {
+          probeGps.encode(static_cast<char>(ch));
+        }
+      }
+      if (probeGps.passedChecksum() > 0)
+      {
+        return true;
+      }
+      delay(5);
+    }
+    return false;
+  };
+
+  unsigned long detectedBaud = liveData->settings.gpsSerialPortSpeed;
+  unsigned long baudCandidates[4] = {0, 0, 0, 0};
+  uint8_t baudCandidateCount = 0;
+
+  auto pushBaudCandidate = [&](unsigned long baud) {
+    if (baud == 0)
+    {
+      return;
+    }
+    for (uint8_t i = 0; i < baudCandidateCount; i++)
+    {
+      if (baudCandidates[i] == baud)
+      {
+        return;
+      }
+    }
+    if (baudCandidateCount < (sizeof(baudCandidates) / sizeof(baudCandidates[0])))
+    {
+      baudCandidates[baudCandidateCount++] = baud;
+    }
+  };
+
+  pushBaudCandidate(liveData->settings.gpsSerialPortSpeed);
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
   {
-    gpsHwUart->begin(liveData->settings.gpsSerialPortSpeed, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(115200);
+    pushBaudCandidate(9600);
+  }
+  else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
+  {
+    pushBaudCandidate(9600);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(115200);
   }
   else
   {
-    gpsHwUart->begin(liveData->settings.gpsSerialPortSpeed);
+    pushBaudCandidate(9600);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(115200);
+  }
+
+  bool baudDetected = false;
+  for (uint8_t i = 0; i < baudCandidateCount; i++)
+  {
+    beginGpsUart(baudCandidates[i]);
+    if (hasValidNmea(1500))
+    {
+      detectedBaud = baudCandidates[i];
+      baudDetected = true;
+      break;
+    }
+  }
+
+  if (!baudDetected)
+  {
+    detectedBaud = liveData->settings.gpsSerialPortSpeed;
+    beginGpsUart(detectedBaud);
+    syslog->print("GPS baud auto-detect failed, using configured speed: ");
+    syslog->println(detectedBaud);
+  }
+  else
+  {
+    if (detectedBaud != liveData->settings.gpsSerialPortSpeed)
+    {
+      syslog->print("GPS baud auto-detected: ");
+      syslog->println(detectedBaud);
+      liveData->settings.gpsSerialPortSpeed = detectedBaud;
+    }
+    else
+    {
+      syslog->print("GPS baud confirmed: ");
+      syslog->println(detectedBaud);
+    }
   }
 
   // M5 GPS MODULE with int.&ext. antenna (u-blox NEO-M8N)
