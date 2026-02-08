@@ -1170,6 +1170,7 @@ void Board320_240::menuItemClick()
       if (liveData->settings.contributeData == 0)
       {
         liveData->params.contributeStatus = CONTRIBUTE_NONE;
+        contributeStatusSinceMs = 0;
         liveData->clearContributeRawFrames();
       }
       showMenu();
@@ -1177,7 +1178,25 @@ void Board320_240::menuItemClick()
       break;
     case MENU_REMOTE_UPLOAD_CONTRIBUTE_ONCE:
       syslog->println("CONTRIBUTE_WAITING");
+      // Manual contribute request should bypass temporary net backoff.
+      liveData->params.netAvailable = true;
+      liveData->params.netLastFailureTime = 0;
+      liveData->params.netFailureStartTime = 0;
+      liveData->params.netFailureCount = 0;
+      liveData->params.lastContributeSent = liveData->params.currentTime;
       liveData->params.contributeStatus = CONTRIBUTE_WAITING;
+      contributeStatusSinceMs = millis();
+      if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
+          liveData->settings.commType == COMM_TYPE_CAN_COMMU &&
+          commInterface != nullptr)
+      {
+        const String canStatus = commInterface->getConnectStatus();
+        if (canStatus.indexOf("No MCP2515") != -1)
+        {
+          syslog->println("No MCP2515 detected, sending contribute once immediately");
+          liveData->params.contributeStatus = CONTRIBUTE_READY_TO_SEND;
+        }
+      }
       break;
     case MENU_REMOTE_UPLOAD_LOGS_TO_EVDASH_SERVER:
       uploadSdCardLogToEvDashServer();
