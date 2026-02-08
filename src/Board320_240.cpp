@@ -1194,14 +1194,11 @@ bool Board320_240::drawActiveScreenToSprite()
       statusBoxUsed = true;
     }
 
-  const bool netFailureRecent = (liveData->params.netLastFailureTime != 0 &&
-                                 liveData->params.currentTime >= liveData->params.netLastFailureTime &&
-                                 (liveData->params.currentTime - liveData->params.netLastFailureTime) <= kNetFailureStaleResetSec);
   if (!statusBoxUsed && liveData->settings.wifiEnabled == 1 &&
-      WiFi.status() == WL_CONNECTED && !liveData->params.netAvailable && netFailureRecent)
+      WiFi.status() == WL_CONNECTED && netStatusMessageVisible())
   {
-    spr.fillRect(0, 185, 320, 50, TFT_BLACK);
-    spr.drawRect(0, 185, 320, 50, TFT_WHITE);
+    spr.fillRoundRect(0, 185, 320, 50, statusBoxRadius, TFT_BLACK);
+    spr.drawRoundRect(0, 185, 320, 50, statusBoxRadius, TFT_WHITE);
     spr.setTextSize(1);
     spr.setTextDatum(TL_DATUM);
     spr.setTextColor(TFT_WHITE);
@@ -1597,9 +1594,13 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
 {
   DynamicJsonDocument jsonData(24576);
   const time_t nowTime = liveData->params.currentTime;
+  const String contributeKey = ensureContributeKey();
+  const String hardwareDeviceId = getHardwareDeviceId();
 
   jsonData["ver"] = 2;
   jsonData["ts"] = nowTime;
+  jsonData["key"] = contributeKey;
+  jsonData["deviceId"] = hardwareDeviceId;
   jsonData["carType"] = getCarModelAbrpStr(liveData->settings.carType);
   jsonData["carVin"] = liveData->params.carVin;
   jsonData["stoppedCan"] = liveData->params.stopCommandQueue;
@@ -1643,7 +1644,7 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
     jsonData["lat"] = roundToPrecision(liveData->params.gpsLat, 100000.0f);
     jsonData["lon"] = roundToPrecision(liveData->params.gpsLon, 100000.0f);
   }
-  jsonData["token"] = liveData->settings.contributeToken;
+  jsonData["token"] = contributeKey;
 
   JsonArray motion = jsonData.createNestedArray("motion");
   const uint8_t motionStartIndex = (contributeMotionSampleCount == kContributeSampleSlots) ? contributeMotionSampleNext : 0;
@@ -3395,18 +3396,96 @@ bool Board320_240::canStatusMessageVisible()
 
 bool Board320_240::canStatusMessageHitTest(int16_t x, int16_t y)
 {
-  if (!canStatusMessageVisible())
+  if (!canStatusMessageVisible() && !netStatusMessageVisible())
     return false;
   return (x >= 0 && x < 320 && y >= 185 && y < 235);
 }
 
 void Board320_240::dismissCanStatusMessage()
 {
-  if (liveData->settings.commType != COMM_TYPE_CAN_COMMU)
-    return;
-  String status = commInterface->getConnectStatus();
-  if (status != "")
-    dismissedCanStatusText = status;
+  if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
+  {
+    String status = commInterface->getConnectStatus();
+    if (status != "")
+      dismissedCanStatusText = status;
+  }
+
+  if (netStatusMessageVisible())
+  {
+    dismissedNetFailureTime = liveData->params.netLastFailureTime;
+  }
+}
+
+bool Board320_240::netStatusMessageVisible() const
+{
+  if (liveData->params.netAvailable)
+    return false;
+  if (liveData->params.netLastFailureTime == 0)
+    return false;
+  if (liveData->params.currentTime < liveData->params.netLastFailureTime)
+    return false;
+  if ((liveData->params.currentTime - liveData->params.netLastFailureTime) > kNetFailureStaleResetSec)
+    return false;
+  if (dismissedNetFailureTime != 0 && dismissedNetFailureTime == liveData->params.netLastFailureTime)
+    return false;
+  return true;
+}
+
+bool Board320_240::isContributeKeyValid(const char *key) const
+{
+  if (key == nullptr)
+    return false;
+
+  String normalized = String(key);
+  normalized.trim();
+  if (normalized.length() < 12)
+    return false;
+  if (normalized == "empty" || normalized == "not_set")
+    return false;
+
+  for (uint16_t i = 0; i < normalized.length(); i++)
+  {
+    const char ch = normalized.charAt(i);
+    if (ch <= ' ' || ch > '~')
+      return false;
+  }
+
+  return true;
+}
+
+String Board320_240::ensureContributeKey()
+{
+  String key = String(liveData->settings.contributeToken);
+  key.trim();
+  if (isContributeKeyValid(key.c_str()))
+  {
+    return key;
+  }
+
+  const uint64_t efuse = ESP.getEfuseMac();
+  const uint32_t rnd = esp_random();
+  const uint32_t nowMs = millis();
+  char generated[sizeof(liveData->settings.contributeToken)] = {0};
+  snprintf(generated, sizeof(generated), "k%08lX%08lX%08lX", (uint32_t)(efuse & 0xFFFFFFFFULL), (uint32_t)rnd, nowMs);
+  key = String(generated);
+  key.toCharArray(liveData->settings.contributeToken, sizeof(liveData->settings.contributeToken));
+  saveSettings();
+  syslog->print("Generated contribute key: ");
+  syslog->println(key);
+  return key;
+}
+
+String Board320_240::getHardwareDeviceId() const
+{
+  const uint64_t efuse = ESP.getEfuseMac();
+  char deviceId[24] = {0};
+#ifdef BOARD_M5STACK_CORES3
+  const char *prefix = "cores3-";
+#else
+  const char *prefix = "core2-";
+#endif
+  snprintf(deviceId, sizeof(deviceId), "%s%04lX%08lX", prefix, (uint32_t)((efuse >> 32) & 0xFFFFU), (uint32_t)(efuse & 0xFFFFFFFFULL));
+  return String(deviceId);
 }
 
 void Board320_240::updateNetAvailability(bool success)
@@ -3417,6 +3496,7 @@ void Board320_240::updateNetAvailability(bool success)
     liveData->params.netLastFailureTime = 0;
     liveData->params.netFailureStartTime = 0;
     liveData->params.netFailureCount = 0;
+    dismissedNetFailureTime = 0;
   }
   else
   {
@@ -3452,6 +3532,7 @@ void Board320_240::netLoop()
     liveData->params.netLastFailureTime = 0;
     liveData->params.netFailureStartTime = 0;
     liveData->params.netFailureCount = 0;
+    dismissedNetFailureTime = 0;
   }
 
   // Avoid stale "Net unavailable" state when no internet uploader is effectively active.
@@ -3498,6 +3579,7 @@ void Board320_240::netLoop()
     liveData->params.netLastFailureTime = 0;
     liveData->params.netFailureStartTime = 0;
     liveData->params.netFailureCount = 0;
+    dismissedNetFailureTime = 0;
   }
   else if (wifiReady && liveData->params.netAvailable == false &&
            liveData->params.netLastFailureTime != 0 &&
@@ -3509,6 +3591,7 @@ void Board320_240::netLoop()
     liveData->params.netLastFailureTime = 0;
     liveData->params.netFailureStartTime = 0;
     liveData->params.netFailureCount = 0;
+    dismissedNetFailureTime = 0;
   }
 
   bool netBackoffActive = (!liveData->params.netAvailable &&
@@ -3577,6 +3660,23 @@ void Board320_240::netLoop()
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
     liveData->params.contributeStatus = CONTRIBUTE_WAITING;
+    contributeStatusSinceMs = millis();
+  }
+  bool allowContributeWaitFallback = false;
+  if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface != nullptr)
+  {
+    const String canStatus = commInterface->getConnectStatus();
+    allowContributeWaitFallback = (canStatus.indexOf("No MCP2515") != -1);
+  }
+  if (netReady && liveData->settings.contributeData == 1 &&
+      liveData->params.contributeStatus == CONTRIBUTE_WAITING &&
+      liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
+      allowContributeWaitFallback &&
+      contributeStatusSinceMs != 0 &&
+      (millis() - contributeStatusSinceMs) >= kContributeWaitFallbackMs)
+  {
+    syslog->println("contributeStatus ... waiting timeout fallback to ready");
+    liveData->params.contributeStatus = CONTRIBUTE_READY_TO_SEND;
   }
   if (netReady && liveData->settings.contributeData == 1 &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
@@ -3591,9 +3691,11 @@ void Board320_240::netLoop()
 bool Board320_240::netSendData(bool sendAbrp)
 {
   int64_t startTime2 = esp_timer_get_time();
-  uint16_t rc = 0;
+  int rc = 0;
   const bool netDebug = liveData->settings.debugLevel >= DEBUG_GSM;
   const bool wifiReady = (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED);
+  const String contributeKey = ensureContributeKey();
+  const String hardwareDeviceId = getHardwareDeviceId();
 
   if (liveData->params.socPerc < 0)
   {
@@ -3636,6 +3738,8 @@ bool Board320_240::netSendData(bool sendAbrp)
     StaticJsonDocument<768> jsonData;
 
     jsonData["apikey"] = liveData->settings.remoteApiKey;
+    jsonData["deviceKey"] = contributeKey;
+    jsonData["deviceId"] = hardwareDeviceId;
     jsonData["carType"] = liveData->settings.carType;
     jsonData["ignitionOn"] = liveData->params.ignitionOn;
     jsonData["chargingOn"] = liveData->params.chargingOn;
@@ -3979,7 +4083,7 @@ void Board320_240::queueAbrpSdLog(const char *payload, size_t length, time_t cur
  **/
 bool Board320_240::netContributeData()
 {
-  uint16_t rc = 0;
+  int rc = 0;
 
 // Only for core2
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
@@ -3988,12 +4092,16 @@ bool Board320_240::netContributeData()
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
     syslog->println("Contributing anonymous data...");
+    const String contributeKey = ensureContributeKey();
+    const String hardwareDeviceId = getHardwareDeviceId();
 
     WiFiClientSecure client;
     HTTPClient http;
     client.setInsecure();
     http.begin(client, "https://evdash.next176.sk/api/index.php");
-    http.setConnectTimeout(1000);
+    http.setConnectTimeout(5000);
+    http.setTimeout(15000);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     http.addHeader("Content-Type", "application/json");
     String payloadForPost;
     const bool useJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
@@ -4014,6 +4122,8 @@ bool Board320_240::netContributeData()
       }
       if (liveData->contributeDataJson.charAt(liveData->contributeDataJson.length() - 1) != '}')
       {
+        liveData->contributeDataJson += "\"key\": \"" + contributeKey + "\", ";
+        liveData->contributeDataJson += "\"deviceId\": \"" + hardwareDeviceId + "\", ";
         liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
         liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
         liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
@@ -4047,40 +4157,81 @@ bool Board320_240::netContributeData()
           liveData->contributeDataJson += "\"gpsSpeed\": " + String(liveData->params.speedKmhGPS, 0) + ", ";
         }
 
-        liveData->contributeDataJson += "\"token\": \"" + String(liveData->settings.contributeToken) + "\"";
+        liveData->contributeDataJson += "\"token\": \"" + contributeKey + "\"";
         liveData->contributeDataJson += "}";
       }
       payloadForPost = liveData->contributeDataJson;
     }
 
+    if (payloadForPost.length() < 2 || payloadForPost.charAt(0) != '{' || payloadForPost.charAt(payloadForPost.length() - 1) != '}')
+    {
+      syslog->println("Contribute payload invalid, skipping send");
+      updateNetAvailability(false);
+      http.end();
+      client.stop();
+      return false;
+    }
+    syslog->print("Contribute payload bytes: ");
+    syslog->println(payloadForPost.length());
+
     rc = http.POST(payloadForPost);
+    String responsePayload = "";
+    if (rc > 0)
+    {
+      responsePayload = http.getString();
+    }
+    http.end();
+    client.stop();
+
     if (rc == HTTP_CODE_OK)
     {
-      // Request successful
-      liveData->params.contributeStatus = CONTRIBUTE_NONE;
-      if (!useJsonV2)
-      {
-        liveData->contributeDataJson = "{"; // begin json
-      }
-      String payload = http.getString();
-      syslog->println("HTTP Response (api.next176.sk): " + payload);
-      updateNetAvailability(true);
+      bool responseAccepted = true;
+      syslog->println("HTTP Response (evdash.next176.sk): " + responsePayload);
 
-      StaticJsonDocument<200> doc;
-      DeserializationError error = deserializeJson(doc, payload);
+      StaticJsonDocument<256> doc;
+      DeserializationError error = deserializeJson(doc, responsePayload);
       if (!error)
       {
-        // const char* t = root["token"];
+        const char *status = doc["status"];
+        if (status != nullptr && strcmp(status, "ok") != 0)
+        {
+          responseAccepted = false;
+          syslog->print("Contribute rejected by server: ");
+          syslog->println(status);
+        }
+
         const char *token = doc["token"];
-        if (strcmp(liveData->settings.contributeToken, token) != 0 && strlen(token) > 10)
+        if (token != nullptr && strlen(token) > 10 &&
+            strcmp(liveData->settings.contributeToken, token) != 0)
         {
           syslog->print("Assigned token: ");
           syslog->println(token);
-          strcpy(liveData->settings.contributeToken, doc["token"]);
+          strncpy(liveData->settings.contributeToken, token, sizeof(liveData->settings.contributeToken) - 1);
+          liveData->settings.contributeToken[sizeof(liveData->settings.contributeToken) - 1] = '\0';
           saveSettings();
         }
+      }
+      else
+      {
+        // Keep upload as successful even when payload is non-JSON due proxy/WAF text.
+        syslog->print("Contribute response parse error: ");
+        syslog->println(error.c_str());
+      }
 
+      if (responseAccepted)
+      {
+        liveData->params.contributeStatus = CONTRIBUTE_NONE;
+        contributeStatusSinceMs = 0;
+        if (!useJsonV2)
+        {
+          liveData->contributeDataJson = "{"; // begin json
+        }
         liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
+        updateNetAvailability(true);
+      }
+      else
+      {
+        updateNetAvailability(false);
       }
     }
     else
@@ -4088,6 +4239,13 @@ bool Board320_240::netContributeData()
       // Failed...
       syslog->print("HTTP POST error: ");
       syslog->println(rc);
+      syslog->print("HTTP POST error text: ");
+      syslog->println(HTTPClient::errorToString(rc).c_str());
+      syslog->print("WiFi status/IP/GW/DNS: ");
+      syslog->println(String(WiFi.status()) + " / " +
+                      WiFi.localIP().toString() + " / " +
+                      WiFi.gatewayIP().toString() + " / " +
+                      WiFi.dnsIP(0).toString());
       updateNetAvailability(false);
     }
   }
@@ -4321,7 +4479,7 @@ void Board320_240::uploadSdCardLogToEvDashServer()
   WiFiClientSecure client;
   HTTPClient http;
   String uploadedStr;
-  uint16_t rc = 0;
+  int rc = 0;
   uint32_t part, sz, uploaded, cntLogs, cntUploaded;
   bool errorUploadFile;
   char *buff = (char *)malloc(16384);
@@ -4353,7 +4511,11 @@ void Board320_240::uploadSdCardLogToEvDashServer()
           displayMessage(fileName.c_str(), uploadedStr.c_str());
 
           client.setInsecure();
-          http.begin(client, "https://evdash.next176.sk/api/upload.php?token=" + String(liveData->settings.contributeToken) +
+          const String contributeKey = ensureContributeKey();
+          const String hardwareDeviceId = getHardwareDeviceId();
+          http.begin(client, "https://evdash.next176.sk/api/upload.php?token=" + contributeKey +
+                                 "&key=" + contributeKey +
+                                 "&deviceId=" + hardwareDeviceId +
                                  "&filename=" + String(entry.name()) + "&part=" + String(part));
           http.setConnectTimeout(1000);
           rc = http.POST((uint8_t *)buff, sz);

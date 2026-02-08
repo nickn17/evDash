@@ -1,5 +1,16 @@
 # RELEASE NOTES
 
+### V4.2.3 2026-02-08
+- Contribute upload reliability fixes: increased HTTPS timeouts, redirect handling, payload sanity checks, and better HTTP error logging to diagnose `WiFi OK / Net temporarily unavailable` cases.
+- Contribute identity compatibility finalized: backend is token-first again (legacy devices stay compatible), while `key`/`deviceKey` are accepted as aliases; API response remains legacy `status + token`.
+- Stable hardware ID support kept: `deviceId` in payload is parsed and stored as `hwDeviceId` on backend (fallback pairing when useful).
+- Contribute `v2` still includes `token` (primary ID) and also carries `key` + `deviceId` for cross-version/client compatibility.
+- `Contribute once` behavior improved:
+  - In `No MCP2515` state it sends immediately (no CAN wait).
+  - With active OBD2/CAN it keeps original behavior and sends only after full CAN queue collection.
+- Manual `Contribute once` now bypasses temporary network backoff, and HTTP error diagnostics now show real negative `HTTPClient` codes (instead of wrapped `65535`) plus WiFi/IP/GW/DNS context.
+- Net status popup UI updated to match CAN status style (rounded box) and can now be dismissed by touch in the same way as CAN status messages.
+
 ### V4.2.2 2026-02-08
 - Contribute JSON `v2`: new compact payload with shorter keys (`soh`, `powKw`, `batV`, `auxA`, ...), plus `motion` and `charging` sections sampled every 5 seconds (up to 12 samples / minute).
 - Added charging transition events in contribute `v2`: `chargingStart` and `chargingEnd` now include SOC, battery V/A, min/max cell values, min cell index, battery min/max temperature, `cecKWh`, `cedKWh`.

@@ -80,6 +80,7 @@ protected:
   bool modalDialogActive = false;
   bool screenSwipePreviewActive = false;
   String dismissedCanStatusText = "";
+  time_t dismissedNetFailureTime = 0;
   bool lastChargingOn = false;
   QueueHandle_t netSendQueue = nullptr;
   TaskHandle_t netSendTaskHandle = nullptr;
@@ -93,6 +94,7 @@ protected:
   static constexpr uint8_t kContributeSampleSlots = 12;
   static constexpr time_t kContributeSampleIntervalSec = 5;
   static constexpr time_t kContributeSampleWindowSec = 60;
+  static constexpr uint32_t kContributeWaitFallbackMs = 4000;
   struct ContributeMotionSample
   {
     time_t time = 0;
@@ -135,11 +137,16 @@ protected:
   uint8_t contributeChargingSampleNext = 0;
   time_t lastContributeSampleTime = 0;
   time_t lastContributeSdRecordTime = 0;
+  uint32_t contributeStatusSinceMs = 0;
   ContributeChargingEvent contributeLastBeforeCharge = {};
   ContributeChargingEvent contributeLastDuringCharge = {};
   ContributeChargingEvent contributeChargingStartEvent = {};
   ContributeChargingEvent contributeChargingEndEvent = {};
   void updateNetAvailability(bool success);
+  bool netStatusMessageVisible() const;
+  bool isContributeKeyValid(const char *key) const;
+  String ensureContributeKey();
+  String getHardwareDeviceId() const;
   void recordContributeSample();
   ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;
   void handleContributeChargingTransitions();
