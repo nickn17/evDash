@@ -381,7 +381,7 @@ void Board320_240::drawSceneSpeed()
   const int16_t cellMaxTextY = 66;
   const int16_t cellMinTextY = 92;
   const int16_t sepTopY = cellMaxTextY - 11;    // Above max cell V text.
-  const int16_t sepBottomY = cellMinTextY + 13; // Below min cell V text.
+  const int16_t sepBottomY = cellMinTextY + 28; // Below min cell V text.
   const int16_t sepH = 5;
   const int16_t dashLen = 8;
   const int16_t gapLen = 4;
@@ -539,7 +539,7 @@ void Board320_240::drawSceneHud()
   // Draw speed
   tft.setTextSize(3);
   sprintf(tmpStr3, "0");
-    if (liveData->params.speedKmhGPS > 10 && liveData->params.gpsSat >= 4)
+  if (liveData->params.speedKmhGPS > 10 && liveData->params.gpsSat >= 4)
   {
     tft.fillRect(0, 210, 320, 30, TFT_BLACK);
     sprintf(tmpStr3, "%01.00f", liveData->km2distance(liveData->params.speedKmhGPS));
