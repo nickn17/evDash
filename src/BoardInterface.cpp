@@ -117,7 +117,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 18;
+  liveData->settings.settingsVersion = 22;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -169,7 +169,7 @@ void BoardInterface::loadSettings()
   liveData->settings.remoteUploadIntervalSec = 60;
   liveData->settings.sleepModeIntervalSec = 30;
   liveData->settings.sleepModeShutdownHrs = 72;
-  liveData->settings.remoteUploadModuleType = REMOTE_UPLOAD_OFF;
+  liveData->settings.remoteUploadModuleType = REMOTE_UPLOAD_WIFI;
   liveData->settings.remoteUploadAbrpIntervalSec = 0;
   tmpStr = "empty";
   tmpStr.toCharArray(liveData->settings.abrpApiToken, tmpStr.length() + 1);
@@ -225,6 +225,9 @@ void BoardInterface::loadSettings()
   // v21
   liveData->settings.settingsVersion = 21;
   liveData->settings.carSpeedType = CAR_SPEED_TYPE_AUTO;
+  // v22
+  liveData->settings.settingsVersion = 22;
+  liveData->settings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -312,7 +315,7 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.remoteUploadIntervalSec = 60;
         liveData->tmpSettings.sleepModeIntervalSec = 30;
         liveData->tmpSettings.sleepModeShutdownHrs = 72;
-        liveData->tmpSettings.remoteUploadModuleType = REMOTE_UPLOAD_OFF;
+        liveData->tmpSettings.remoteUploadModuleType = REMOTE_UPLOAD_WIFI;
       }
       if (liveData->tmpSettings.settingsVersion == 9)
       {
@@ -401,6 +404,11 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.settingsVersion = 21;
         liveData->tmpSettings.carSpeedType = CAR_SPEED_TYPE_AUTO;
       }
+      if (liveData->tmpSettings.settingsVersion == 21)
+      {
+        liveData->tmpSettings.settingsVersion = 22;
+        liveData->tmpSettings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -409,6 +417,19 @@ void BoardInterface::loadSettings()
 
     // Apply settings from flash if needed
     liveData->settings = liveData->tmpSettings;
+  }
+
+  if (liveData->settings.contributeJsonType != CONTRIBUTE_JSON_TYPE_V1 &&
+      liveData->settings.contributeJsonType != CONTRIBUTE_JSON_TYPE_V2)
+  {
+    liveData->settings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
+    saveSettings();
+  }
+
+  if (liveData->settings.remoteUploadModuleType != REMOTE_UPLOAD_WIFI)
+  {
+    liveData->settings.remoteUploadModuleType = REMOTE_UPLOAD_WIFI;
+    saveSettings();
   }
 
   syslog->setDebugLevel(liveData->settings.debugLevel);

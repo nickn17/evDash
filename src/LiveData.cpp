@@ -188,10 +188,51 @@ void LiveData::initParams()
     params.chargingGraphWaterCoolantTempC[i] = -100;
   }
   params.contributeStatus = CONTRIBUTE_NONE;
+  clearContributeRawFrames();
 
   // Menu
   menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);
   menuItems = menuItemsSource;
+}
+
+void LiveData::clearContributeRawFrames()
+{
+  contributeRawFrameCount = 0;
+  for (uint8_t i = 0; i < kContributeRawFrameMax; i++)
+  {
+    contributeRawFrames[i].key[0] = '\0';
+    contributeRawFrames[i].value[0] = '\0';
+    contributeRawFrames[i].latencyMs = 0;
+  }
+}
+
+void LiveData::addContributeRawFrame(const String &key, const String &value, unsigned long latencyMs)
+{
+  if (key.length() == 0 || value.length() == 0)
+  {
+    return;
+  }
+
+  for (uint8_t i = 0; i < contributeRawFrameCount; i++)
+  {
+    if (strcmp(contributeRawFrames[i].key, key.c_str()) == 0)
+    {
+      value.toCharArray(contributeRawFrames[i].value, sizeof(contributeRawFrames[i].value));
+      contributeRawFrames[i].latencyMs = (latencyMs > 65535UL) ? 65535 : static_cast<uint16_t>(latencyMs);
+      return;
+    }
+  }
+
+  if (contributeRawFrameCount >= kContributeRawFrameMax)
+  {
+    return;
+  }
+
+  ContributeRawFrame &entry = contributeRawFrames[contributeRawFrameCount];
+  key.toCharArray(entry.key, sizeof(entry.key));
+  value.toCharArray(entry.value, sizeof(entry.value));
+  entry.latencyMs = (latencyMs > 65535UL) ? 65535 : static_cast<uint16_t>(latencyMs);
+  contributeRawFrameCount++;
 }
 
 /**

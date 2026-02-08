@@ -397,6 +397,8 @@ typedef struct
   // 2 - GNSS Module https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
   // == settings version 21
   uint8_t carSpeedType; // 0 - automatic (car/gps), 1 - only from car, 2 - only from gps
+  // == settings version 22
+  uint8_t contributeJsonType; // 1 - legacy raw queue-loop payload, 2 - minute snapshots with 5s samples
   //
 } SETTINGS_STRUC;
 
@@ -430,6 +432,15 @@ public:
   String packetFilteredData = "";
   unsigned long lastCommandLatencyMs = 0;
   String contributeDataJson = "";
+  static constexpr uint8_t kContributeRawFrameMax = 96;
+  struct ContributeRawFrame
+  {
+    char key[24];
+    char value[192];
+    uint16_t latencyMs;
+  };
+  ContributeRawFrame contributeRawFrames[kContributeRawFrameMax];
+  uint8_t contributeRawFrameCount = 0;
   // Menu
   bool menuVisible = false;
   uint8_t menuItemsCount;
@@ -480,4 +491,6 @@ public:
   void clearDrivingAndChargingStats(int newCarMode);
   void prepareForStopCommandQueue();
   void continueWithCommandQueue();
+  void clearContributeRawFrames();
+  void addContributeRawFrame(const String &key, const String &value, unsigned long latencyMs);
 };

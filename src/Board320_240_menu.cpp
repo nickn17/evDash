@@ -159,25 +159,10 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
     break;
   case MENU_REMOTE_UPLOAD:
-    sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);
-    suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1;
     break;
   case MENU_REMOTE_UPLOAD_UART:
     sprintf(tmpStr1, "[HW UART=%d]", liveData->settings.gprsHwSerialPort);
     suffix = (liveData->settings.gprsHwSerialPort == 255) ? "[off]" : tmpStr1;
-    break;
-  case MENU_REMOTE_UPLOAD_TYPE:
-    switch (liveData->settings.remoteUploadModuleType)
-    {
-    case REMOTE_UPLOAD_OFF:
-      suffix = "[OFF]";
-      break;
-    case REMOTE_UPLOAD_WIFI:
-      suffix = "[WIFI]";
-      break;
-    default:
-      suffix = "[unknown]";
-    }
     break;
   case MENU_REMOTE_UPLOAD_API_INTERVAL:
     sprintf(tmpStr1, "[%d sec]", liveData->settings.remoteUploadIntervalSec);
@@ -353,6 +338,10 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   //
   case MENU_SDCARD_ENABLED:
     sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 1) ? "on" : "off");
+    suffix = tmpStr1;
+    break;
+  case MENU_SDCARD_JSON_TYPE:
+    sprintf(tmpStr1, "[v%d]", (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1) ? 1 : 2);
     suffix = tmpStr1;
     break;
   case MENU_SDCARD_AUTOSTARTLOG:
@@ -1005,6 +994,17 @@ void Board320_240::menuItemClick()
       ESP.restart();
       break;
     case MENU_ADAPTER_OBD2_NAME:
+    {
+      String value = String(liveData->settings.obd2Name);
+      if (promptKeyboard("BLE4 adapter name", value, false, sizeof(liveData->settings.obd2Name) - 1))
+      {
+        value.toCharArray(liveData->settings.obd2Name, sizeof(liveData->settings.obd2Name));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_ADAPTER_OBD2_IP:
     case MENU_ADAPTER_OBD2_PORT:
       return;
@@ -1083,12 +1083,6 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_REMOTE_UPLOAD_TYPE:
-      // liveData->settings.remoteUploadModuleType = 0; //Currently only one module is supported (0 = SIM800L)
-      liveData->settings.remoteUploadModuleType = (liveData->settings.remoteUploadModuleType == 1) ? REMOTE_UPLOAD_OFF : liveData->settings.remoteUploadModuleType + 1;
-      showMenu();
-      return;
-      break;
     case MENU_REMOTE_UPLOAD_API_INTERVAL:
       liveData->settings.remoteUploadIntervalSec = (liveData->settings.remoteUploadIntervalSec == 120) ? 0 : liveData->settings.remoteUploadIntervalSec + 10;
       liveData->settings.remoteUploadAbrpIntervalSec = 0;
@@ -1108,6 +1102,76 @@ void Board320_240::menuItemClick()
       break;
     case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
       liveData->settings.mqttEnabled = (liveData->settings.mqttEnabled == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_REMOTE_UPLOAD_MQTT_SERVER:
+    {
+      String value = String(liveData->settings.mqttServer);
+      if (promptKeyboard("MQTT server", value, false, sizeof(liveData->settings.mqttServer) - 1))
+      {
+        value.toCharArray(liveData->settings.mqttServer, sizeof(liveData->settings.mqttServer));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_REMOTE_UPLOAD_MQTT_ID:
+    {
+      String value = String(liveData->settings.mqttId);
+      if (promptKeyboard("MQTT id", value, false, sizeof(liveData->settings.mqttId) - 1))
+      {
+        value.toCharArray(liveData->settings.mqttId, sizeof(liveData->settings.mqttId));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_REMOTE_UPLOAD_MQTT_USERNAME:
+    {
+      String value = String(liveData->settings.mqttUsername);
+      if (promptKeyboard("MQTT user", value, false, sizeof(liveData->settings.mqttUsername) - 1))
+      {
+        value.toCharArray(liveData->settings.mqttUsername, sizeof(liveData->settings.mqttUsername));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_REMOTE_UPLOAD_MQTT_PASSWORD:
+    {
+      String value = String(liveData->settings.mqttPassword);
+      if (promptKeyboard("MQTT passwd", value, false, sizeof(liveData->settings.mqttPassword) - 1))
+      {
+        value.toCharArray(liveData->settings.mqttPassword, sizeof(liveData->settings.mqttPassword));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_REMOTE_UPLOAD_MQTT_TOPIC:
+    {
+      String value = String(liveData->settings.mqttPubTopic);
+      if (promptKeyboard("MQTT topic", value, false, sizeof(liveData->settings.mqttPubTopic) - 1))
+      {
+        value.toCharArray(liveData->settings.mqttPubTopic, sizeof(liveData->settings.mqttPubTopic));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_REMOTE_UPLOAD_CONTRIBUTE_ANONYMOUS_DATA_TO_EVDASH_DEV_TEAM:
+      liveData->settings.contributeData = (liveData->settings.contributeData == 1) ? 0 : 1;
+      if (liveData->settings.contributeData == 0)
+      {
+        liveData->params.contributeStatus = CONTRIBUTE_NONE;
+        liveData->clearContributeRawFrames();
+      }
       showMenu();
       return;
       break;
@@ -1279,6 +1343,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_SDCARD_JSON_TYPE:
+      liveData->settings.contributeJsonType = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1) ? CONTRIBUTE_JSON_TYPE_V2 : CONTRIBUTE_JSON_TYPE_V1;
+      showMenu();
+      return;
+      break;
     case MENU_SDCARD_AUTOSTARTLOG:
       liveData->settings.sdcardAutstartLog = (liveData->settings.sdcardAutstartLog == 1) ? 0 : 1;
       showMenu();
@@ -1358,23 +1427,14 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_SDCARD_SAVE_CONSOLE_TO_SDCARD:
-
-      if (liveData->settings.sdcardEnabled == 1 && !liveData->params.sdcardInit)
+    case MENU_SDCARD_ERASE_LOGS:
+      if (!confirmMessage("Confirm action", "Erase all SD logs?"))
       {
-
-        displayMessage("SDCARD", "Mounting SD...");
-        sdcardMount();
-      }
-      if (liveData->settings.sdcardEnabled == 1 && liveData->params.sdcardInit)
-      {
-        syslog->info(DEBUG_NONE, "Save console output to sdcard started.");
-        displayMessage("SDCARD", "Console to SD enable");
-        syslog->setLogToSdcard(true);
-        hideMenu();
+        showMenu();
         return;
-        break;
       }
+      showMenu();
+      sdcardEraseLogs();
       showMenu();
       return;
       break;
