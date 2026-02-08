@@ -90,7 +90,61 @@ protected:
   uint32_t maxMainLoopDuringNetSendMs = 0;
   QueueHandle_t abrpSdLogQueue = nullptr;
   TaskHandle_t abrpSdLogTaskHandle = nullptr;
+  static constexpr uint8_t kContributeSampleSlots = 12;
+  static constexpr time_t kContributeSampleIntervalSec = 5;
+  static constexpr time_t kContributeSampleWindowSec = 60;
+  struct ContributeMotionSample
+  {
+    time_t time = 0;
+    float lat = -1.0f;
+    float lon = -1.0f;
+    float speedKmh = -1.0f;
+    float headingDeg = -1.0f;
+    float cellMinV = -1.0f;
+    float cellMaxV = -1.0f;
+    uint8_t cellMinNo = 255;
+  };
+  struct ContributeChargingSample
+  {
+    time_t time = 0;
+    float soc = -1.0f;
+    float batV = -1.0f;
+    float batA = -1000.0f;
+    float powKw = -1000.0f;
+  };
+  struct ContributeChargingEvent
+  {
+    bool valid = false;
+    time_t time = 0;
+    float soc = -1.0f;
+    float batV = -1.0f;
+    float batA = -1000.0f;
+    float cellMinV = -1.0f;
+    float cellMaxV = -1.0f;
+    uint8_t cellMinNo = 255;
+    float batMinC = -100.0f;
+    float batMaxC = -100.0f;
+    float cecKWh = -1.0f;
+    float cedKWh = -1.0f;
+  };
+  ContributeMotionSample contributeMotionSamples[kContributeSampleSlots] = {};
+  ContributeChargingSample contributeChargingSamples[kContributeSampleSlots] = {};
+  uint8_t contributeMotionSampleCount = 0;
+  uint8_t contributeMotionSampleNext = 0;
+  uint8_t contributeChargingSampleCount = 0;
+  uint8_t contributeChargingSampleNext = 0;
+  time_t lastContributeSampleTime = 0;
+  time_t lastContributeSdRecordTime = 0;
+  ContributeChargingEvent contributeLastBeforeCharge = {};
+  ContributeChargingEvent contributeLastDuringCharge = {};
+  ContributeChargingEvent contributeChargingStartEvent = {};
+  ContributeChargingEvent contributeChargingEndEvent = {};
   void updateNetAvailability(bool success);
+  void recordContributeSample();
+  ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;
+  void handleContributeChargingTransitions();
+  bool buildContributePayloadV2(String &outJson);
+  void syncContributeRelativeTimes(time_t offset);
 
 public:
   byte pinButtonLeft = 0;
@@ -116,6 +170,7 @@ public:
   // SD card
   bool sdcardMount() override;
   void sdcardToggleRecording() override;
+  void sdcardEraseLogs();
   // GPS
   void initGPS();
   void syncGPS();

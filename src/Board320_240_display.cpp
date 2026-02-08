@@ -378,8 +378,10 @@ void Board320_240::drawSceneSpeed()
   // Top dashed line animates ("marching") when PTC heater mode is active.
   const int16_t sepX = 210;
   const int16_t sepW = 110;
-  const int16_t sepTopY = 55;
-  const int16_t sepBottomY = 120;
+  const int16_t cellMaxTextY = 66;
+  const int16_t cellMinTextY = 92;
+  const int16_t sepTopY = cellMaxTextY - 11;    // Above max cell V text.
+  const int16_t sepBottomY = cellMinTextY + 13; // Below min cell V text.
   const int16_t sepH = 5;
   const int16_t dashLen = 8;
   const int16_t gapLen = 4;
@@ -387,7 +389,11 @@ void Board320_240::drawSceneSpeed()
   const uint16_t topSepColor = (liveData->params.batMaxC >= 15) ? ((liveData->params.batMaxC >= 25) ? ((liveData->params.batMaxC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED;
   const uint16_t bottomSepColor = (liveData->params.batMinC >= 15) ? ((liveData->params.batMinC >= 25) ? ((liveData->params.batMinC >= 35) ? TFT_YELLOW : TFT_DARKGREEN2) : TFT_BLUE) : TFT_RED;
   const bool ptcActive = (liveData->params.batteryManagementMode == BAT_MAN_MODE_PTC_HEATER);
+  const bool ltrCoolActive = (liveData->params.batteryManagementMode == BAT_MAN_MODE_LOW_TEMPERATURE_RANGE ||
+                              liveData->params.batteryManagementMode == BAT_MAN_MODE_COOLING ||
+                              liveData->params.batteryManagementMode == BAT_MAN_MODE_LOW_TEMPERATURE_RANGE_COOLING);
   const int16_t topDashOffset = ptcActive ? int16_t((millis() / 120) % dashPeriod) : 0;
+  const int16_t bottomDashOffset = ltrCoolActive ? int16_t((millis() / 120) % dashPeriod) : 0;
 
   for (int16_t x = sepX - topDashOffset; x < sepX + sepW; x += dashPeriod)
   {
@@ -398,21 +404,22 @@ void Board320_240::drawSceneSpeed()
     if (drawW > 0)
       spr.fillRect(drawX, sepTopY, drawW, sepH, topSepColor);
   }
-  for (int16_t x = sepX; x < sepX + sepW; x += dashPeriod)
+  for (int16_t x = sepX - bottomDashOffset; x < sepX + sepW; x += dashPeriod)
   {
-    int16_t drawW = dashLen;
-    if (x + drawW > sepX + sepW)
-      drawW = (sepX + sepW) - x;
+    int16_t drawX = (x < sepX) ? sepX : x;
+    int16_t drawW = x + dashLen - drawX;
+    if (drawX + drawW > sepX + sepW)
+      drawW = (sepX + sepW) - drawX;
     if (drawW > 0)
-      spr.fillRect(x, sepBottomY, drawW, sepH, bottomSepColor);
+      spr.fillRect(drawX, sepBottomY, drawW, sepH, bottomSepColor);
   }
   spr.setTextColor(TFT_WHITE);
   sprSetFont(fontRobotoThin24);
   spr.setTextDatum(TR_DATUM);
   sprintf(tmpStr3, (liveData->params.batMaxC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
-  sprDrawString(tmpStr3, 319, 66);
+  sprDrawString(tmpStr3, 319, cellMaxTextY);
   sprintf(tmpStr3, (liveData->params.batMinC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
-  sprDrawString(tmpStr3, 319, 92);
+  sprDrawString(tmpStr3, 319, cellMinTextY);
   if (liveData->params.motor1Rpm > 0 || liveData->params.motor2Rpm > 0)
   {
     sprintf(tmpStr3, "%01.01f/%01.01fkr", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
@@ -428,10 +435,10 @@ void Board320_240::drawSceneSpeed()
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, (liveData->params.batCellMaxV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMaxV);
-  sprDrawString(tmpStr3, 280, 66);
+  sprDrawString(tmpStr3, 280, cellMaxTextY);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
   sprintf(tmpStr3, (liveData->params.batCellMinV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMinV);
-  sprDrawString(tmpStr3, 280, 92);
+  sprDrawString(tmpStr3, 280, cellMinTextY);
 
   // Rear car + brake lights
   {
@@ -847,13 +854,14 @@ void Board320_240::drawSceneChargingGraph()
 
   // Draw horizontal grid lines every 10kW (Y-axis)
   spr.setTextDatum(ML_DATUM);
+  const int16_t rightYAxisLabelOffsetX = -2;
   for (int i = 0; i <= maxKw; i += (maxKw > 150 ? 20 : 10))
   {
     color = ((i % 50) == 0 || i == 0) ? TFT_DARKRED : TFT_DARKRED2;
     spr.drawFastHLine(zeroX, zeroY - (i * mulY), 100 * mulX, color);
 
     sprintf(tmpStr1, "%d", i);
-    sprDrawString(tmpStr1, zeroX + (100 * mulX) + (i > 100 ? 0 : 3), zeroY - (i * mulY));
+    sprDrawString(tmpStr1, zeroX + (100 * mulX) + (i > 100 ? 0 : 3) + rightYAxisLabelOffsetX, zeroY - (i * mulY));
   }
 
   // Draw real-time values (temperature and kW lines)

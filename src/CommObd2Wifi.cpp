@@ -16,6 +16,7 @@ namespace
 {
   constexpr uint32_t kWifiRetryIntervalMs = 8000;
   constexpr uint32_t kTcpRetryIntervalMs = 1500;
+  constexpr uint32_t kObdCommandTimeoutMs = 2500;
 
   bool wifiSsidConfigured(const LiveData *liveData)
   {
@@ -36,6 +37,10 @@ void CommObd2Wifi::connectDevice()
   liveData->commConnected = false;
   lastWifiRetryMs = 0;
   lastTcpRetryMs = 0;
+  lastDataSent = 0;
+  liveData->responseRow = "";
+  liveData->responseRowMerged = "";
+  liveData->canSendNextAtCommand = false;
 
   WiFi.enableSTA(true);
   WiFi.mode(WIFI_STA);
@@ -59,6 +64,9 @@ void CommObd2Wifi::disconnectDevice()
   client.stop();
   liveData->commConnected = false;
   liveData->obd2ready = true;
+  lastDataSent = 0;
+  liveData->responseRow = "";
+  liveData->responseRowMerged = "";
 }
 
 /**
@@ -168,9 +176,14 @@ void CommObd2Wifi::mainLoop()
 
     connectStatus = "Connected...";
     syslog->println("We are now connected to the Wifi device.");
+    client.setNoDelay(true);
     liveData->commConnected = true;
     liveData->obd2ready = false;
     lastTcpRetryMs = 0;
+    lastDataSent = 0;
+    liveData->responseRow = "";
+    liveData->responseRowMerged = "";
+    liveData->canSendNextAtCommand = false;
 
     // Print message
     board->displayMessage(" > Processing init AT cmds", "");
@@ -188,29 +201,85 @@ void CommObd2Wifi::mainLoop()
     return;
   }
 
+  auto finalizeResponse = [this]() {
+    String row = liveData->responseRow;
+    row.trim();
+    if (row.length() > 0 && row != ">")
+    {
+      liveData->responseRow = row;
+      parseResponse();
+    }
+    liveData->responseRow = "";
+  };
+
+  auto handlePrompt = [this, &finalizeResponse]() {
+    finalizeResponse();
+    if (liveData->responseRowMerged != "")
+    {
+      syslog->infoNolf(DEBUG_COMM, "merged:");
+      syslog->info(DEBUG_COMM, liveData->responseRowMerged);
+      parseRowMerged();
+    }
+    liveData->responseRowMerged = "";
+    liveData->lastCommandLatencyMs = (lastDataSent == 0) ? 0 : (millis() - lastDataSent);
+    lastDataSent = 0;
+    liveData->canSendNextAtCommand = true;
+  };
+
   while (client.available())
   {
     char ch = client.read();
+
+    if (ch == '>')
+    {
+      handlePrompt();
+      continue;
+    }
+
     if (ch == '\r' || ch == '\n' || ch == '\0')
     {
-      if (liveData->responseRow != "")
-        parseResponse();
-      liveData->responseRow = "";
+      if (liveData->responseRow == ">")
+      {
+        liveData->responseRow = "";
+        handlePrompt();
+        continue;
+      }
+      finalizeResponse();
     }
     else
     {
       liveData->responseRow += ch;
-      if (liveData->responseRow == ">")
+    }
+  }
+
+  if (!liveData->canSendNextAtCommand && lastDataSent != 0)
+  {
+    uint32_t timeoutMs = liveData->rxTimeoutMs;
+    if (timeoutMs < kObdCommandTimeoutMs)
+    {
+      timeoutMs = kObdCommandTimeoutMs;
+    }
+
+    if ((unsigned long)(millis() - lastDataSent) > timeoutMs)
+    {
+      syslog->info(DEBUG_COMM, "WiFi OBD timeout. Continue with next command.");
+      String row = liveData->responseRow;
+      row.trim();
+      if (row.length() > 0 && row != ">")
       {
-        if (liveData->responseRowMerged != "")
-        {
-          syslog->infoNolf(DEBUG_COMM, "merged:");
-          syslog->info(DEBUG_COMM, liveData->responseRowMerged);
-          parseRowMerged();
-        }
-        liveData->responseRowMerged = "";
-        liveData->canSendNextAtCommand = true;
+        liveData->responseRow = row;
+        parseResponse();
       }
+      if (liveData->responseRowMerged != "")
+      {
+        parseRowMerged();
+      }
+      liveData->responseRow = "";
+      liveData->responseRowMerged = "";
+      liveData->lastCommandLatencyMs = millis() - lastDataSent;
+      lastDataSent = 0;
+      liveData->canSendNextAtCommand = true;
+      connectStatus = "OBD2 timeout";
     }
   }
 }
@@ -220,10 +289,11 @@ void CommObd2Wifi::mainLoop()
  */
 void CommObd2Wifi::executeCommand(String cmd)
 {
-  cmd.replace(" ", "");
   String tmpStr = cmd + '\r';
   if (liveData->commConnected)
   {
+    lastDataSent = millis();
+    liveData->lastCommandLatencyMs = 0;
     client.print(tmpStr);
   }
 }
@@ -238,6 +308,9 @@ void CommObd2Wifi::suspendDevice()
   liveData->commConnected = false;
   liveData->obd2ready = false;
   client.stop();
+  lastDataSent = 0;
+  liveData->responseRow = "";
+  liveData->responseRowMerged = "";
   connectStatus = "Suspended";
 }
 
@@ -249,7 +322,11 @@ void CommObd2Wifi::resumeDevice()
   suspendedDevice = false;
   lastWifiRetryMs = 0;
   lastTcpRetryMs = 0;
+  lastDataSent = 0;
   liveData->obd2ready = true;
   liveData->commConnected = false;
+  liveData->responseRow = "";
+  liveData->responseRowMerged = "";
+  liveData->canSendNextAtCommand = false;
   connectStatus = "Resumed";
 }

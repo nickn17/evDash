@@ -175,11 +175,16 @@ bool CommInterface::doNextQueueCommand()
         syslog->println("contributeStatus ... collecting data");
 
         liveData->params.contributeStatus = CONTRIBUTE_COLLECTING;
-        liveData->contributeDataJson = "{"; // begin json
+        liveData->clearContributeRawFrames();
+        if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1)
+        {
+          liveData->contributeDataJson = "{"; // begin json
+        }
       }
     }
 
-    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
+    if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING &&
+        liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1)
     {
       static uint32_t lastUiYieldMs = 0;
       uint32_t nowMs = millis();
@@ -265,20 +270,43 @@ void CommInterface::parseRowMerged()
   if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
   {
     String contributeKey = liveData->currentAtshRequest + "_" + liveData->commandRequest;
-    liveData->contributeDataJson += "\"" + contributeKey + "\": \"" + liveData->responseRowMerged + "\", ";
-    liveData->contributeDataJson += "\"" + contributeKey + "_ms\": \"" + String(liveData->lastCommandLatencyMs) + "\", ";
+    if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1)
+    {
+      liveData->contributeDataJson += "\"" + contributeKey + "\": \"" + liveData->responseRowMerged + "\", ";
+      liveData->contributeDataJson += "\"" + contributeKey + "_ms\": \"" + String(liveData->lastCommandLatencyMs) + "\", ";
+    }
+    else if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2)
+    {
+      liveData->addContributeRawFrame(contributeKey, liveData->responseRowMerged, liveData->lastCommandLatencyMs);
+    }
+
     if (liveData->packetFilteredPending)
     {
-      liveData->contributeDataJson += "\"packet_filtered_command\": \"" + liveData->packetFilteredCommand + "\", ";
-      liveData->contributeDataJson += "\"packet_filtered_id\": \"" + liveData->packetFilteredId + "\", ";
-      if (liveData->packetFilteredData.length())
-        liveData->contributeDataJson += "\"packet_filtered_data\": \"" + liveData->packetFilteredData + "\", ";
+      if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1)
+      {
+        liveData->contributeDataJson += "\"packet_filtered_command\": \"" + liveData->packetFilteredCommand + "\", ";
+        liveData->contributeDataJson += "\"packet_filtered_id\": \"" + liveData->packetFilteredId + "\", ";
+        if (liveData->packetFilteredData.length())
+          liveData->contributeDataJson += "\"packet_filtered_data\": \"" + liveData->packetFilteredData + "\", ";
+      }
+      else if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2)
+      {
+        liveData->addContributeRawFrame("packet_filtered_command", liveData->packetFilteredCommand, 0);
+        liveData->addContributeRawFrame("packet_filtered_id", liveData->packetFilteredId, 0);
+        if (liveData->packetFilteredData.length())
+        {
+          liveData->addContributeRawFrame("packet_filtered_data", liveData->packetFilteredData, 0);
+        }
+      }
       liveData->packetFilteredPending = false;
       liveData->packetFilteredCommand = "";
       liveData->packetFilteredId = "";
       liveData->packetFilteredData = "";
     }
-    syslog->println(liveData->contributeDataJson);
+    if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1)
+    {
+      syslog->println(liveData->contributeDataJson);
+    }
   }
 
   // Record previous response

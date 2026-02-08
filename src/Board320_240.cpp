@@ -69,6 +69,7 @@ namespace
   };
 
   constexpr uint32_t kNetRetryIntervalSec = 30;
+  constexpr uint32_t kNetFailureStaleResetSec = 300;
   constexpr uint32_t kNetFailureFallbackSec = 180;
   constexpr uint16_t kNetFailureFallbackCount = 3;
   constexpr size_t kAbrpPayloadBufferSize = 768;
@@ -165,6 +166,15 @@ namespace
       return false;
     }
     return isGpsCoordSane(liveData->params.gpsLat, liveData->params.gpsLon);
+  }
+
+  float roundToPrecision(float value, float multiplier)
+  {
+    if (!isfinite(value))
+    {
+      return value;
+    }
+    return roundf(value * multiplier) / multiplier;
   }
 } // namespace
 
@@ -404,186 +414,6 @@ void Board320_240::afterSetup()
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   liveData->params.booting = false;
-}
-
-/**
- * OTA Update
- */
-void Board320_240::otaUpdate()
-{
-// Only for core2
-#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-#include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
-
-  printHeapMemory();
-
-  String url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/m5stack-core2/evDash.ino.bin";
-  // url = "https://raw.githubusercontent.com/nickn17/evDash/master/dist/ttgo-t4-v13/evDash.ino.bin";
-
-  if (!WiFi.isConnected())
-  {
-    displayMessage("No WiFi connection.", "");
-    delay(2000);
-    return;
-  }
-
-  if (!url.startsWith("https://"))
-  {
-    displayMessage("URL must start with 'https://'", "");
-    delay(2000);
-    return;
-  }
-
-  displayMessage("Downloading OTA...", "");
-  url = url.substring(8);
-
-  String host, file;
-  uint16_t port;
-  int16_t first_slash_pos = url.indexOf("/");
-  if (first_slash_pos == -1)
-  {
-    host = url;
-    file = "/";
-  }
-  else
-  {
-    host = url.substring(0, first_slash_pos);
-    file = url.substring(first_slash_pos);
-  }
-  int16_t colon = host.indexOf(":");
-
-  if (colon == -1)
-  {
-    port = 443;
-  }
-  else
-  {
-    host = host.substring(0, colon);
-    port = host.substring(colon + 1).toInt();
-  }
-
-  WiFiClientSecure client;
-  client.setTimeout(20000);
-  client.setCACert(root_cert);
-
-  int contentLength = 0;
-
-  if (!client.connect(host.c_str(), port))
-  {
-    printHeapMemory();
-    displayMessage("Connection failed.", "");
-    delay(2000);
-    return;
-  }
-
-  client.print(String("GET ") + file + " HTTP/1.1\r\n" +
-               "Host: " + host + "\r\n" +
-               "Cache-Control: no-cache\r\n" +
-               "Connection: close\r\n\r\n");
-
-  unsigned long timeout = millis();
-  while (!client.available())
-  {
-    if (millis() - timeout > 10000)
-    {
-      displayMessage("Client Timeout", "");
-      client.stop();
-      delay(2000);
-      return;
-    }
-  }
-
-  /**
-   * Processes the HTTP response from the server.
-   * Checks if the response code is 200 OK, otherwise prints the error response.
-   * Breaks out of the loop when an empty line is reached, indicating the end of the headers.
-   */
-  while (client.available())
-  {
-    String line = client.readStringUntil('\n');
-    line.trim();
-    if (!line.length())
-      break; // empty line, assume headers done
-
-    if (line.startsWith("HTTP/1.1"))
-    {
-      String http_response = line.substring(line.indexOf(" ") + 1);
-      http_response.trim();
-      if (http_response.indexOf("200") == -1)
-      {
-        syslog->println(http_response);
-        displayMessage("Got response: must be 200", "");
-        // displayMessage("Got response: \"" + http_response + "\", must be 200", http_response);
-        delay(2000);
-        return;
-      }
-    }
-
-    if (line.startsWith("Content-Length: "))
-    {
-      contentLength = atoi(line.substring(line.indexOf(":") + 1).c_str());
-      if (contentLength <= 0)
-      {
-        displayMessage("Content-Length zero", "");
-        delay(2000);
-        return;
-      }
-    }
-
-    if (line.startsWith("Content-Type: "))
-    {
-      String contentType = line.substring(line.indexOf(":") + 1);
-      contentType.trim();
-      if (contentType != "application/octet-stream")
-      {
-        displayMessage("Content-Type must be", "application/octet-stream");
-        delay(2000);
-        return;
-      }
-    }
-  }
-
-  /**
-   * Attempts to begin an OTA update, checking for errors.
-   * Displays an error message if there is not enough space to begin the update.
-   */
-  displayMessage("Installing OTA...", "");
-  if (!Update.begin(contentLength))
-  {
-    printHeapMemory();
-    syslog->printf("Error: %i, malloc %i bytes\n", Update.getError(), SPI_FLASH_SEC_SIZE);
-    syslog->print("contentLength: ");
-    syslog->println(contentLength);
-    displayMessage("Not enough space", "to begin OTA");
-    client.flush();
-    delay(2000);
-    return;
-  }
-
-  displayMessage("Writing stream...", "Please wait!");
-  /*size_t written =*/Update.writeStream(client);
-
-  displayMessage("End...", "");
-  if (!Update.end())
-  {
-    displayMessage("Downloading error", "");
-    delay(2000);
-    return;
-  }
-
-  displayMessage("Is finished?", "");
-  if (!Update.isFinished())
-  {
-    displayMessage("Update not finished.", "Something went wrong.");
-    delay(2000);
-    return;
-  }
-
-  displayMessage("OTA installed.", "Reboot device.");
-  delay(2000);
-  ESP.restart();
-
-#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 }
 
 /**
@@ -1178,15 +1008,7 @@ bool Board320_240::drawActiveScreenToSprite()
     );
   }
 
-  int tmp_send_interval = 0;
-  if (liveData->settings.remoteUploadIntervalSec > 0)
-  {
-    tmp_send_interval = liveData->settings.remoteUploadIntervalSec;
-  }
-  else if (liveData->settings.remoteUploadAbrpIntervalSec > 0)
-  {
-    tmp_send_interval = liveData->settings.remoteUploadAbrpIntervalSec;
-  }
+  const uint8_t wifiOkWindowSec = 15;
 
   // Ignition ON, Gyro motion
   if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
@@ -1208,7 +1030,7 @@ bool Board320_240::drawActiveScreenToSprite()
     {
       const uint16_t wifiColor =
           (WiFi.status() == WL_CONNECTED)
-              ? ((liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */)
+              ? ((liveData->params.lastSuccessNetSendTime + wifiOkWindowSec >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */)
               : TFT_RED; /* wifi not connected */
 
       // WiFi icon (upper arcs + center dot), tuned to be ~20% larger.
@@ -1232,7 +1054,7 @@ bool Board320_240::drawActiveScreenToSprite()
     else if (liveData->params.displayScreen != SCREEN_BLANK)
     {
       spr.fillRect(308, 0, 5, 5,
-                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + tmp_send_interval >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
+                   (WiFi.status() == WL_CONNECTED) ? (liveData->params.lastSuccessNetSendTime + wifiOkWindowSec >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */ : TFT_RED /* wifi not connected */
       );
     }
   }
@@ -1372,8 +1194,11 @@ bool Board320_240::drawActiveScreenToSprite()
       statusBoxUsed = true;
     }
 
+  const bool netFailureRecent = (liveData->params.netLastFailureTime != 0 &&
+                                 liveData->params.currentTime >= liveData->params.netLastFailureTime &&
+                                 (liveData->params.currentTime - liveData->params.netLastFailureTime) <= kNetFailureStaleResetSec);
   if (!statusBoxUsed && liveData->settings.wifiEnabled == 1 &&
-      WiFi.status() == WL_CONNECTED && !liveData->params.netAvailable)
+      WiFi.status() == WL_CONNECTED && !liveData->params.netAvailable && netFailureRecent)
   {
     spr.fillRect(0, 185, 320, 50, TFT_BLACK);
     spr.drawRect(0, 185, 320, 50, TFT_WHITE);
@@ -1664,6 +1489,308 @@ void Board320_240::boardLoop()
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 }
 
+void Board320_240::recordContributeSample()
+{
+  const time_t nowTime = liveData->params.currentTime;
+  if (nowTime <= 0)
+  {
+    return;
+  }
+  if (lastContributeSampleTime != 0 && (nowTime - lastContributeSampleTime) < kContributeSampleIntervalSec)
+  {
+    return;
+  }
+  lastContributeSampleTime = nowTime;
+
+  ContributeMotionSample motionSample{};
+  motionSample.time = nowTime;
+  if (isGpsFixUsable(liveData))
+  {
+    motionSample.lat = roundToPrecision(liveData->params.gpsLat, 100000.0f);
+    motionSample.lon = roundToPrecision(liveData->params.gpsLon, 100000.0f);
+  }
+  float currentSpeedKmh = liveData->params.speedKmh;
+  if (currentSpeedKmh < 0 && liveData->params.speedKmhGPS >= 0)
+  {
+    currentSpeedKmh = liveData->params.speedKmhGPS;
+  }
+  motionSample.speedKmh = roundToPrecision(currentSpeedKmh, 10.0f);
+  if (liveData->params.gpsHeadingDeg >= 0)
+  {
+    motionSample.headingDeg = roundToPrecision(liveData->params.gpsHeadingDeg, 1.0f);
+  }
+  motionSample.cellMinV = roundToPrecision(liveData->params.batCellMinV, 1000.0f);
+  motionSample.cellMaxV = roundToPrecision(liveData->params.batCellMaxV, 1000.0f);
+  motionSample.cellMinNo = liveData->params.batCellMinVNo;
+
+  contributeMotionSamples[contributeMotionSampleNext] = motionSample;
+  contributeMotionSampleNext = (contributeMotionSampleNext + 1) % kContributeSampleSlots;
+  if (contributeMotionSampleCount < kContributeSampleSlots)
+  {
+    contributeMotionSampleCount++;
+  }
+
+  ContributeChargingSample chargingSample{};
+  chargingSample.time = nowTime;
+  chargingSample.soc = roundToPrecision(liveData->params.socPerc, 10.0f);
+  chargingSample.batV = roundToPrecision(liveData->params.batVoltage, 10.0f);
+  chargingSample.batA = roundToPrecision(liveData->params.batPowerAmp, 10.0f);
+  chargingSample.powKw = roundToPrecision(liveData->params.batPowerKw, 1000.0f);
+
+  contributeChargingSamples[contributeChargingSampleNext] = chargingSample;
+  contributeChargingSampleNext = (contributeChargingSampleNext + 1) % kContributeSampleSlots;
+  if (contributeChargingSampleCount < kContributeSampleSlots)
+  {
+    contributeChargingSampleCount++;
+  }
+}
+
+Board320_240::ContributeChargingEvent Board320_240::captureContributeChargingEventSnapshot(time_t eventTime) const
+{
+  ContributeChargingEvent event{};
+  event.valid = true;
+  event.time = eventTime;
+  event.soc = roundToPrecision(liveData->params.socPerc, 10.0f);
+  event.batV = roundToPrecision(liveData->params.batVoltage, 10.0f);
+  event.batA = roundToPrecision(liveData->params.batPowerAmp, 10.0f);
+  event.cellMinV = roundToPrecision(liveData->params.batCellMinV, 1000.0f);
+  event.cellMaxV = roundToPrecision(liveData->params.batCellMaxV, 1000.0f);
+  event.cellMinNo = liveData->params.batCellMinVNo;
+  event.batMinC = roundToPrecision(liveData->params.batMinC, 10.0f);
+  event.batMaxC = roundToPrecision(liveData->params.batMaxC, 10.0f);
+  event.cecKWh = roundToPrecision(liveData->params.cumulativeEnergyChargedKWh, 1000.0f);
+  event.cedKWh = roundToPrecision(liveData->params.cumulativeEnergyDischargedKWh, 1000.0f);
+  return event;
+}
+
+void Board320_240::handleContributeChargingTransitions()
+{
+  const time_t nowTime = liveData->params.currentTime;
+  ContributeChargingEvent snapshot = captureContributeChargingEventSnapshot(nowTime);
+
+  if (liveData->params.chargingOn)
+  {
+    contributeLastDuringCharge = snapshot;
+  }
+  else
+  {
+    contributeLastBeforeCharge = snapshot;
+  }
+
+  if (liveData->params.chargingOn && !lastChargingOn)
+  {
+    ContributeChargingEvent startEvent = contributeLastBeforeCharge.valid ? contributeLastBeforeCharge : snapshot;
+    startEvent.valid = true;
+    startEvent.time = nowTime;
+    contributeChargingStartEvent = startEvent;
+  }
+  if (!liveData->params.chargingOn && lastChargingOn)
+  {
+    ContributeChargingEvent endEvent = contributeLastDuringCharge.valid ? contributeLastDuringCharge : snapshot;
+    endEvent.valid = true;
+    endEvent.time = nowTime;
+    contributeChargingEndEvent = endEvent;
+  }
+}
+
+bool Board320_240::buildContributePayloadV2(String &outJson)
+{
+  DynamicJsonDocument jsonData(24576);
+  const time_t nowTime = liveData->params.currentTime;
+
+  jsonData["ver"] = 2;
+  jsonData["ts"] = nowTime;
+  jsonData["carType"] = getCarModelAbrpStr(liveData->settings.carType);
+  jsonData["carVin"] = liveData->params.carVin;
+  jsonData["stoppedCan"] = liveData->params.stopCommandQueue;
+  jsonData["ign"] = liveData->params.ignitionOn;
+  jsonData["chg"] = liveData->params.chargingOn;
+  jsonData["chgAc"] = liveData->params.chargerACconnected;
+  jsonData["chgDc"] = liveData->params.chargerDCconnected;
+  jsonData["soc"] = roundToPrecision(liveData->params.socPerc, 10.0f);
+  if (liveData->params.socPercBms != -1)
+  {
+    jsonData["socBms"] = roundToPrecision(liveData->params.socPercBms, 10.0f);
+  }
+  jsonData["soh"] = roundToPrecision(liveData->params.sohPerc, 10.0f);
+  jsonData["powKw"] = roundToPrecision(liveData->params.batPowerKw, 1000.0f);
+  jsonData["powKwh100"] = roundToPrecision(liveData->params.batPowerKwh100, 1000.0f);
+  jsonData["batV"] = roundToPrecision(liveData->params.batVoltage, 10.0f);
+  jsonData["batA"] = roundToPrecision(liveData->params.batPowerAmp, 10.0f);
+  jsonData["auxV"] = roundToPrecision(liveData->params.auxVoltage, 10.0f);
+  jsonData["auxA"] = roundToPrecision(liveData->params.auxCurrentAmp, 10.0f);
+  jsonData["batMinC"] = roundToPrecision(liveData->params.batMinC, 10.0f);
+  jsonData["batMaxC"] = roundToPrecision(liveData->params.batMaxC, 10.0f);
+  jsonData["inC"] = roundToPrecision(liveData->params.indoorTemperature, 10.0f);
+  jsonData["outC"] = roundToPrecision(liveData->params.outdoorTemperature, 10.0f);
+  jsonData["spd"] = roundToPrecision(liveData->params.speedKmh, 10.0f);
+  if (liveData->params.speedKmhGPS >= 0)
+  {
+    jsonData["gpsSpd"] = roundToPrecision(liveData->params.speedKmhGPS, 10.0f);
+  }
+  if (liveData->params.gpsHeadingDeg >= 0)
+  {
+    jsonData["hdg"] = roundToPrecision(liveData->params.gpsHeadingDeg, 1.0f);
+  }
+  jsonData["odoKm"] = roundToPrecision(liveData->params.odoKm, 10.0f);
+  jsonData["cMinV"] = roundToPrecision(liveData->params.batCellMinV, 1000.0f);
+  jsonData["cMaxV"] = roundToPrecision(liveData->params.batCellMaxV, 1000.0f);
+  jsonData["cMinNo"] = liveData->params.batCellMinVNo;
+  jsonData["cecKWh"] = roundToPrecision(liveData->params.cumulativeEnergyChargedKWh, 1000.0f);
+  jsonData["cedKWh"] = roundToPrecision(liveData->params.cumulativeEnergyDischargedKWh, 1000.0f);
+  if (isGpsFixUsable(liveData))
+  {
+    jsonData["lat"] = roundToPrecision(liveData->params.gpsLat, 100000.0f);
+    jsonData["lon"] = roundToPrecision(liveData->params.gpsLon, 100000.0f);
+  }
+  jsonData["token"] = liveData->settings.contributeToken;
+
+  JsonArray motion = jsonData.createNestedArray("motion");
+  const uint8_t motionStartIndex = (contributeMotionSampleCount == kContributeSampleSlots) ? contributeMotionSampleNext : 0;
+  for (uint8_t i = 0; i < contributeMotionSampleCount; i++)
+  {
+    uint8_t sampleIndex = (motionStartIndex + i) % kContributeSampleSlots;
+    const ContributeMotionSample &sample = contributeMotionSamples[sampleIndex];
+    if (sample.time == 0)
+    {
+      continue;
+    }
+    const time_t sampleAge = nowTime - sample.time;
+    if (sampleAge < 0 || sampleAge > kContributeSampleWindowSec)
+    {
+      continue;
+    }
+    JsonObject row = motion.createNestedObject();
+    row["t"] = static_cast<int32_t>(sample.time - nowTime);
+    row["lat"] = sample.lat;
+    row["lon"] = sample.lon;
+    row["spd"] = sample.speedKmh;
+    row["hdg"] = sample.headingDeg;
+    row["cMinV"] = sample.cellMinV;
+    row["cMaxV"] = sample.cellMaxV;
+    row["cMinNo"] = sample.cellMinNo;
+  }
+
+  JsonArray charging = jsonData.createNestedArray("charging");
+  const uint8_t chargingStartIndex = (contributeChargingSampleCount == kContributeSampleSlots) ? contributeChargingSampleNext : 0;
+  for (uint8_t i = 0; i < contributeChargingSampleCount; i++)
+  {
+    uint8_t sampleIndex = (chargingStartIndex + i) % kContributeSampleSlots;
+    const ContributeChargingSample &sample = contributeChargingSamples[sampleIndex];
+    if (sample.time == 0)
+    {
+      continue;
+    }
+    const time_t sampleAge = nowTime - sample.time;
+    if (sampleAge < 0 || sampleAge > kContributeSampleWindowSec)
+    {
+      continue;
+    }
+    JsonObject row = charging.createNestedObject();
+    row["t"] = static_cast<int32_t>(sample.time - nowTime);
+    row["soc"] = sample.soc;
+    row["batV"] = sample.batV;
+    row["batA"] = sample.batA;
+    row["powKw"] = sample.powKw;
+  }
+
+  if (contributeChargingStartEvent.valid)
+  {
+    const time_t eventAge = nowTime - contributeChargingStartEvent.time;
+    if (eventAge >= 0 && eventAge <= kContributeSampleWindowSec)
+    {
+      JsonObject chargingStart = jsonData.createNestedObject("chargingStart");
+      chargingStart["time"] = contributeChargingStartEvent.time;
+      chargingStart["soc"] = contributeChargingStartEvent.soc;
+      chargingStart["batV"] = contributeChargingStartEvent.batV;
+      chargingStart["batA"] = contributeChargingStartEvent.batA;
+      chargingStart["cMinV"] = contributeChargingStartEvent.cellMinV;
+      chargingStart["cMaxV"] = contributeChargingStartEvent.cellMaxV;
+      chargingStart["cMinNo"] = contributeChargingStartEvent.cellMinNo;
+      chargingStart["batMinC"] = contributeChargingStartEvent.batMinC;
+      chargingStart["batMaxC"] = contributeChargingStartEvent.batMaxC;
+      chargingStart["cecKWh"] = contributeChargingStartEvent.cecKWh;
+      chargingStart["cedKWh"] = contributeChargingStartEvent.cedKWh;
+    }
+  }
+
+  if (contributeChargingEndEvent.valid)
+  {
+    const time_t eventAge = nowTime - contributeChargingEndEvent.time;
+    if (eventAge >= 0 && eventAge <= kContributeSampleWindowSec)
+    {
+      JsonObject chargingEnd = jsonData.createNestedObject("chargingEnd");
+      chargingEnd["time"] = contributeChargingEndEvent.time;
+      chargingEnd["soc"] = contributeChargingEndEvent.soc;
+      chargingEnd["batV"] = contributeChargingEndEvent.batV;
+      chargingEnd["batA"] = contributeChargingEndEvent.batA;
+      chargingEnd["cMinV"] = contributeChargingEndEvent.cellMinV;
+      chargingEnd["cMaxV"] = contributeChargingEndEvent.cellMaxV;
+      chargingEnd["cMinNo"] = contributeChargingEndEvent.cellMinNo;
+      chargingEnd["batMinC"] = contributeChargingEndEvent.batMinC;
+      chargingEnd["batMaxC"] = contributeChargingEndEvent.batMaxC;
+      chargingEnd["cecKWh"] = contributeChargingEndEvent.cecKWh;
+      chargingEnd["cedKWh"] = contributeChargingEndEvent.cedKWh;
+    }
+  }
+
+  for (uint8_t i = 0; i < liveData->contributeRawFrameCount; i++)
+  {
+    const LiveData::ContributeRawFrame &raw = liveData->contributeRawFrames[i];
+    if (raw.key[0] == '\0' || raw.value[0] == '\0')
+    {
+      continue;
+    }
+
+    jsonData[String(raw.key)] = raw.value;
+    jsonData[String(raw.key) + "_ms"] = String(raw.latencyMs);
+  }
+
+  outJson = "";
+  size_t payloadLen = serializeJson(jsonData, outJson);
+  return payloadLen > 0;
+}
+
+void Board320_240::syncContributeRelativeTimes(time_t offset)
+{
+  if (offset == 0)
+  {
+    return;
+  }
+
+  for (uint8_t i = 0; i < kContributeSampleSlots; i++)
+  {
+    if (contributeMotionSamples[i].time != 0)
+    {
+      contributeMotionSamples[i].time += offset;
+    }
+    if (contributeChargingSamples[i].time != 0)
+    {
+      contributeChargingSamples[i].time += offset;
+    }
+  }
+
+  auto syncEventTime = [offset](ContributeChargingEvent &event) {
+    if (event.valid && event.time != 0)
+    {
+      event.time += offset;
+    }
+  };
+  syncEventTime(contributeLastBeforeCharge);
+  syncEventTime(contributeLastDuringCharge);
+  syncEventTime(contributeChargingStartEvent);
+  syncEventTime(contributeChargingEndEvent);
+
+  if (lastContributeSampleTime != 0)
+  {
+    lastContributeSampleTime += offset;
+  }
+  if (lastContributeSdRecordTime != 0)
+  {
+    lastContributeSdRecordTime += offset;
+  }
+}
+
 /**
  * Main loop - primary thread
  */
@@ -1893,25 +2020,31 @@ void Board320_240::mainLoop()
 
   // SD card recording
   int64_t startTime5 = esp_timer_get_time();
-  if (!liveData->params.stopCommandQueue && liveData->params.sdcardInit && liveData->params.sdcardRecording && liveData->params.sdcardCanNotify &&
+  const bool sdcardJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
+  const bool sdcardWriteTick = sdcardJsonV2 ? true : liveData->params.sdcardCanNotify;
+  if (!liveData->params.stopCommandQueue && liveData->params.sdcardInit && liveData->params.sdcardRecording && sdcardWriteTick &&
       (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
   {
     const size_t sdcardFlushSize = 2048;
     const uint32_t sdcardIntervalMs = static_cast<uint32_t>(liveData->settings.sdcardLogIntervalSec) * 1000U;
+    const char *sdcardOpFilenameFmt = sdcardJsonV2 ? "/%llu_v2.json" : "/%llu.json";
+    const char *sdcardGpsFilenameFmt = sdcardJsonV2 ? "/%y%m%d%H%M_v2.json" : "/%y%m%d%H%M.json";
+    const size_t sdcardGpsFilenameMinLength = sdcardJsonV2 ? 18 : 15;
+
     // create filename
     if (liveData->params.operationTimeSec > 0 && strlen(liveData->params.sdcardFilename) == 0)
     {
-      sprintf(liveData->params.sdcardFilename, "/%llu.json", uint64_t(liveData->params.operationTimeSec / 60));
+      sprintf(liveData->params.sdcardFilename, sdcardOpFilenameFmt, uint64_t(liveData->params.operationTimeSec / 60));
       syslog->print("Log filename by opTimeSec: ");
       syslog->println(liveData->params.sdcardFilename);
     }
-    if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardFilename) < 15)
+    if (liveData->params.currTimeSyncWithGps && strlen(liveData->params.sdcardFilename) < sdcardGpsFilenameMinLength)
     {
       if (cachedNowEpoch == 0)
       {
         getLocalTime(&now, 0);
       }
-      strftime(liveData->params.sdcardFilename, sizeof(liveData->params.sdcardFilename), "/%y%m%d%H%M.json", &now);
+      strftime(liveData->params.sdcardFilename, sizeof(liveData->params.sdcardFilename), sdcardGpsFilenameFmt, &now);
       syslog->print("Log filename by GPS: ");
       syslog->println(liveData->params.sdcardFilename);
     }
@@ -1920,20 +2053,38 @@ void Board320_240::mainLoop()
     if (strlen(liveData->params.sdcardFilename) != 0)
     {
       liveData->params.sdcardCanNotify = false;
-      String jsonLine;
-      serializeParamsToJson(jsonLine);
-      jsonLine += ",\n";
-      sdcardRecordBuffer += jsonLine;
+      if (sdcardJsonV2)
+      {
+        const bool minuteTick = (lastContributeSdRecordTime == 0) ||
+                                ((liveData->params.currentTime - lastContributeSdRecordTime) >= kContributeSampleWindowSec);
+        if (minuteTick)
+        {
+          String jsonLine;
+          if (buildContributePayloadV2(jsonLine))
+          {
+            jsonLine += ",\n";
+            sdcardRecordBuffer += jsonLine;
+            lastContributeSdRecordTime = liveData->params.currentTime;
+          }
+        }
+      }
+      else
+      {
+        String jsonLine;
+        serializeParamsToJson(jsonLine);
+        jsonLine += ",\n";
+        sdcardRecordBuffer += jsonLine;
+      }
 
       const bool timeToFlush = (sdcardIntervalMs > 0U) && ((nowMs - liveData->params.sdcardLastFlushMs) >= sdcardIntervalMs);
       const bool sizeToFlush = sdcardRecordBuffer.length() >= sdcardFlushSize;
-      if (timeToFlush || sizeToFlush)
+      if ((timeToFlush || sizeToFlush) && sdcardRecordBuffer.length() > 0)
       {
         File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
         if (!file)
         {
           syslog->println("Failed to open file for appending");
-          File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
+          file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
         }
         if (!file)
         {
@@ -2179,7 +2330,9 @@ void Board320_240::mainLoop()
   {
     liveData->params.chargingStartTime = liveData->params.currentTime;
   }
+  handleContributeChargingTransitions();
   lastChargingOn = liveData->params.chargingOn;
+  recordContributeSample();
 
   if (liveData->params.chargingOn && liveData->params.carMode != CAR_MODE_CHARGING)
   {
@@ -2248,6 +2401,7 @@ void Board320_240::setGpsTime(uint16_t year, uint8_t month, uint8_t day, uint8_t
  */
 void Board320_240::syncTimes(time_t newTime)
 {
+  const time_t offset = newTime - liveData->params.currentTime;
   time_t *timeParams[] = {
       &liveData->params.chargingStartTime,
       &liveData->params.lastRemoteApiSent,
@@ -2271,6 +2425,8 @@ void Board320_240::syncTimes(time_t newTime)
       *param = newTime - (liveData->params.currentTime - *param);
     }
   }
+
+  syncContributeRelativeTimes(offset);
 
   // Reset avg speed counter
   lastForwardDriveModeStart = 0;
@@ -2365,6 +2521,7 @@ void Board320_240::sdcardToggleRecording()
   {
     liveData->params.sdcardCanNotify = true;
     liveData->params.sdcardLastFlushMs = millis();
+    lastContributeSdRecordTime = 0;
   }
   else
   {
@@ -2374,7 +2531,7 @@ void Board320_240::sdcardToggleRecording()
       if (!file)
       {
         syslog->println("Failed to open file for appending");
-        File file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
+        file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
       }
       if (!file)
       {
@@ -2391,6 +2548,74 @@ void Board320_240::sdcardToggleRecording()
     String tmpStr = "";
     tmpStr.toCharArray(liveData->params.sdcardFilename, tmpStr.length() + 1);
   }
+}
+
+void Board320_240::sdcardEraseLogs()
+{
+  if (!liveData->settings.sdcardEnabled || !sdcardMount())
+  {
+    displayMessage("SDCARD", "Not mounted");
+    delay(2000);
+    return;
+  }
+
+  if (liveData->params.sdcardRecording)
+  {
+    sdcardToggleRecording();
+  }
+
+  File dir = SD.open("/");
+  if (!dir || !dir.isDirectory())
+  {
+    displayMessage("SDCARD", "Open root failed");
+    delay(2000);
+    return;
+  }
+
+  uint16_t removed = 0;
+  uint16_t failed = 0;
+  while (true)
+  {
+    File entry = dir.openNextFile(FILE_READ);
+    if (!entry)
+    {
+      break;
+    }
+
+    const bool isDir = entry.isDirectory();
+    String fileName = String(entry.name());
+    entry.close();
+
+    if (isDir)
+    {
+      continue;
+    }
+
+    if (!fileName.endsWith(".json"))
+    {
+      continue;
+    }
+
+    if (SD.remove(fileName.c_str()))
+    {
+      removed++;
+    }
+    else
+    {
+      failed++;
+    }
+  }
+  dir.close();
+
+  sdcardRecordBuffer = "";
+  String tmpStr = "";
+  tmpStr.toCharArray(liveData->params.sdcardFilename, tmpStr.length() + 1);
+  tmpStr.toCharArray(liveData->params.sdcardAbrpFilename, tmpStr.length() + 1);
+
+  String msg1 = "Logs erased: " + String(removed);
+  String msg2 = (failed == 0) ? "Done" : "Failed: " + String(failed);
+  displayMessage(msg1.c_str(), msg2.c_str());
+  delay(2000);
 }
 
 /**
@@ -3228,6 +3453,64 @@ void Board320_240::netLoop()
     liveData->params.netFailureStartTime = 0;
     liveData->params.netFailureCount = 0;
   }
+
+  // Avoid stale "Net unavailable" state when no internet uploader is effectively active.
+  const auto remoteApiConfigured = [this]() -> bool {
+    if (liveData->settings.remoteUploadIntervalSec == 0)
+    {
+      return false;
+    }
+    const char *url = liveData->settings.remoteApiUrl;
+    if (url == nullptr || url[0] == '\0')
+    {
+      return false;
+    }
+    if (strcmp(url, "not_set") == 0)
+    {
+      return false;
+    }
+    return strstr(url, "http") != nullptr;
+  }();
+
+  const auto abrpConfigured = [this]() -> bool {
+    if (liveData->settings.remoteUploadAbrpIntervalSec == 0)
+    {
+      return false;
+    }
+    const char *token = liveData->settings.abrpApiToken;
+    if (token == nullptr || token[0] == '\0')
+    {
+      return false;
+    }
+    if (strcmp(token, "empty") == 0 || strcmp(token, "not_set") == 0)
+    {
+      return false;
+    }
+    return true;
+  }();
+
+  const bool contributeConfigured = (liveData->settings.contributeData == 1 && !liveData->params.stopCommandQueue);
+  const bool internetTasksActive = remoteApiConfigured || abrpConfigured || contributeConfigured;
+
+  if (wifiReady && !internetTasksActive)
+  {
+    liveData->params.netAvailable = true;
+    liveData->params.netLastFailureTime = 0;
+    liveData->params.netFailureStartTime = 0;
+    liveData->params.netFailureCount = 0;
+  }
+  else if (wifiReady && liveData->params.netAvailable == false &&
+           liveData->params.netLastFailureTime != 0 &&
+           liveData->params.currentTime >= liveData->params.netLastFailureTime &&
+           (liveData->params.currentTime - liveData->params.netLastFailureTime) > kNetFailureStaleResetSec)
+  {
+    // Last error is too old, clear status and wait for the next real send attempt.
+    liveData->params.netAvailable = true;
+    liveData->params.netLastFailureTime = 0;
+    liveData->params.netFailureStartTime = 0;
+    liveData->params.netFailureCount = 0;
+  }
+
   bool netBackoffActive = (!liveData->params.netAvailable &&
                            liveData->params.netLastFailureTime != 0 &&
                            (liveData->params.currentTime - liveData->params.netLastFailureTime) < kNetRetryIntervalSec);
@@ -3289,7 +3572,8 @@ void Board320_240::netLoop()
 
   // Contribute anonymous data
   if (netReady && liveData->settings.contributeData == 1 &&
-      liveData->params.contributeStatus == CONTRIBUTE_NONE && liveData->params.currentTime - liveData->params.lastContributeSent > 60)
+      liveData->params.contributeStatus == CONTRIBUTE_NONE &&
+      (liveData->params.currentTime - liveData->params.lastContributeSent) >= kContributeSampleWindowSec)
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
     liveData->params.contributeStatus = CONTRIBUTE_WAITING;
@@ -3711,53 +3995,73 @@ bool Board320_240::netContributeData()
     http.begin(client, "https://evdash.next176.sk/api/index.php");
     http.setConnectTimeout(1000);
     http.addHeader("Content-Type", "application/json");
-
-    if (liveData->contributeDataJson.charAt(liveData->contributeDataJson.length() - 1) != '}')
+    String payloadForPost;
+    const bool useJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
+    if (useJsonV2)
     {
-
-      liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
-      liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
-      liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
-      liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
-      liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
-      liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
-      liveData->contributeDataJson += "\"socPerc\": " + String(liveData->params.socPerc, 0) + ", ";
-      if (liveData->params.socPercBms != -1)
-        liveData->contributeDataJson += "\"socPercBms\": " + String(liveData->params.socPercBms, 0) + ", ";
-      liveData->contributeDataJson += "\"sohPerc\": " + String(liveData->params.sohPerc, 0) + ", ";
-      liveData->contributeDataJson += "\"batPowerKw\": " + String(liveData->params.batPowerKw, 3) + ", ";
-      liveData->contributeDataJson += "\"batPowerKwh100\": " + String(liveData->params.batPowerKwh100, 3) + ", ";
-      liveData->contributeDataJson += "\"batVoltage\": " + String(liveData->params.batVoltage, 0) + ", ";
-      liveData->contributeDataJson += "\"batCurrentAmp\": " + String(liveData->params.batPowerAmp, 0) + ", ";
-      liveData->contributeDataJson += "\"auxVoltage\": " + String(liveData->params.auxVoltage, 0) + ", ";
-      liveData->contributeDataJson += "\"auxCurrentAmp\": " + String(liveData->params.auxCurrentAmp, 0) + ", ";
-      liveData->contributeDataJson += "\"batMinC\": " + String(liveData->params.batMinC, 0) + ", ";
-      liveData->contributeDataJson += "\"batMaxC\": " + String(liveData->params.batMaxC, 0) + ", ";
-      liveData->contributeDataJson += "\"inTemp\": " + String(liveData->params.indoorTemperature, 0) + ", ";
-      liveData->contributeDataJson += "\"extTemp\": " + String(liveData->params.outdoorTemperature, 0) + ", ";
-      liveData->contributeDataJson += "\"speedKmh\": " + String(liveData->params.speedKmh, 0) + ", ";
-      liveData->contributeDataJson += "\"odoKm\": " + String(liveData->params.odoKm, 0) + ", ";
-      liveData->contributeDataJson += "\"cecKWh\": " + String(liveData->params.cumulativeEnergyChargedKWh, 3) + ", ";
-      liveData->contributeDataJson += "\"cedKWh\": " + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + ", ";
-      // Send GPS data via GPRS (if enabled && valid)
-      if (isGpsFixUsable(liveData))
+      if (!buildContributePayloadV2(payloadForPost))
       {
-        liveData->contributeDataJson += "\"gpsLat\": " + String(liveData->params.gpsLat, 5) + ", ";
-        liveData->contributeDataJson += "\"gpsLon\": " + String(liveData->params.gpsLon, 5) + ", ";
-        liveData->contributeDataJson += "\"gpsAlt\": \"" + String(liveData->params.gpsAlt, 0) + "\", ";
-        liveData->contributeDataJson += "\"gpsSpeed\": " + String(liveData->params.speedKmhGPS, 0) + ", ";
+        syslog->println("Failed to build contribute v2 payload");
+        updateNetAvailability(false);
+        return false;
       }
+    }
+    else
+    {
+      if (liveData->contributeDataJson.length() == 0)
+      {
+        liveData->contributeDataJson = "{";
+      }
+      if (liveData->contributeDataJson.charAt(liveData->contributeDataJson.length() - 1) != '}')
+      {
+        liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
+        liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
+        liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
+        liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
+        liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
+        liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
+        liveData->contributeDataJson += "\"socPerc\": " + String(liveData->params.socPerc, 0) + ", ";
+        if (liveData->params.socPercBms != -1)
+          liveData->contributeDataJson += "\"socPercBms\": " + String(liveData->params.socPercBms, 0) + ", ";
+        liveData->contributeDataJson += "\"sohPerc\": " + String(liveData->params.sohPerc, 0) + ", ";
+        liveData->contributeDataJson += "\"batPowerKw\": " + String(liveData->params.batPowerKw, 3) + ", ";
+        liveData->contributeDataJson += "\"batPowerKwh100\": " + String(liveData->params.batPowerKwh100, 3) + ", ";
+        liveData->contributeDataJson += "\"batVoltage\": " + String(liveData->params.batVoltage, 0) + ", ";
+        liveData->contributeDataJson += "\"batCurrentAmp\": " + String(liveData->params.batPowerAmp, 0) + ", ";
+        liveData->contributeDataJson += "\"auxVoltage\": " + String(liveData->params.auxVoltage, 0) + ", ";
+        liveData->contributeDataJson += "\"auxCurrentAmp\": " + String(liveData->params.auxCurrentAmp, 0) + ", ";
+        liveData->contributeDataJson += "\"batMinC\": " + String(liveData->params.batMinC, 0) + ", ";
+        liveData->contributeDataJson += "\"batMaxC\": " + String(liveData->params.batMaxC, 0) + ", ";
+        liveData->contributeDataJson += "\"inTemp\": " + String(liveData->params.indoorTemperature, 0) + ", ";
+        liveData->contributeDataJson += "\"extTemp\": " + String(liveData->params.outdoorTemperature, 0) + ", ";
+        liveData->contributeDataJson += "\"speedKmh\": " + String(liveData->params.speedKmh, 0) + ", ";
+        liveData->contributeDataJson += "\"odoKm\": " + String(liveData->params.odoKm, 0) + ", ";
+        liveData->contributeDataJson += "\"cecKWh\": " + String(liveData->params.cumulativeEnergyChargedKWh, 3) + ", ";
+        liveData->contributeDataJson += "\"cedKWh\": " + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + ", ";
+        // Send GPS data via GPRS (if enabled && valid)
+        if (isGpsFixUsable(liveData))
+        {
+          liveData->contributeDataJson += "\"gpsLat\": " + String(liveData->params.gpsLat, 5) + ", ";
+          liveData->contributeDataJson += "\"gpsLon\": " + String(liveData->params.gpsLon, 5) + ", ";
+          liveData->contributeDataJson += "\"gpsAlt\": \"" + String(liveData->params.gpsAlt, 0) + "\", ";
+          liveData->contributeDataJson += "\"gpsSpeed\": " + String(liveData->params.speedKmhGPS, 0) + ", ";
+        }
 
-      liveData->contributeDataJson += "\"token\": \"" + String(liveData->settings.contributeToken) + "\"";
-      liveData->contributeDataJson += "}";
+        liveData->contributeDataJson += "\"token\": \"" + String(liveData->settings.contributeToken) + "\"";
+        liveData->contributeDataJson += "}";
+      }
+      payloadForPost = liveData->contributeDataJson;
     }
 
-    rc = http.POST(liveData->contributeDataJson);
+    rc = http.POST(payloadForPost);
     if (rc == HTTP_CODE_OK)
     {
       // Request successful
       liveData->params.contributeStatus = CONTRIBUTE_NONE;
-      liveData->contributeDataJson = "{"; // begin json
+      if (!useJsonV2)
+      {
+        liveData->contributeDataJson = "{"; // begin json
+      }
       String payload = http.getString();
       syslog->println("HTTP Response (api.next176.sk): " + payload);
       updateNetAvailability(true);

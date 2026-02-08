@@ -1,5 +1,25 @@
 # RELEASE NOTES
 
+### V4.2.2 2026-02-08
+- Contribute JSON `v2`: new compact payload with shorter keys (`soh`, `powKw`, `batV`, `auxA`, ...), plus `motion` and `charging` sections sampled every 5 seconds (up to 12 samples / minute).
+- Added charging transition events in contribute `v2`: `chargingStart` and `chargingEnd` now include SOC, battery V/A, min/max cell values, min cell index, battery min/max temperature, `cecKWh`, `cedKWh`.
+- Contribute JSON `v2` naming cleanup for backend alignment: `stoppedCan`, `spd`/`gpsSpd`/`hdg`, `cMinV`/`cMaxV`/`cMinNo`; `apikey` removed from `v2`, and raw ECU keys (`<ecu>_<did>` + `_ms`) are appended in the same payload.
+- SD card logging now supports JSON mode switch:
+  - `v1`: legacy per-loop logging (existing behavior).
+  - `v2`: minute snapshots using the new contribute `v2` payload; filenames use `_v2.json` suffix.
+- Menu updates (`Others -> SD card`):
+  - Added `Json type [v1/v2]` (default `v2` for new devices and after factory reset).
+  - Removed `Save console to SD card`.
+- Settings upgraded to version 22 with migration and validation for the new JSON mode field.
+- OBD2 WiFi adapter (`[DEV]`) communication hardened: better prompt parsing (`>`), command latency tracking, and timeout recovery so command queue does not get stuck waiting for prompt forever.
+- OTA update over WiFi fixed: OTA now downloads board-specific binary path (`core2 v1.0`, `core2 v1.1`, `CoreS3`), follows HTTPS redirects, and supports missing `Content-Length` responses.
+- Menu (`Others`): `Rem. Upload` renamed to `Remote upload`, and adapter-type suffix (`[WIFI]`) removed from this item.
+- Menu (`Remote upload`): fixed `Contribute anon.data` toggle so it reliably switches `on/off` without unintended reboot.
+- Menu (`OBD2/CAN adapter`): `Select OBD2 adapter` renamed/moved to `Select BLE4 OBD2 adapter` after `OBD2 Bluetooth4 (BLE4)`.
+- Speed screen battery separators: top dashed line animation remains for `PTC`; bottom dashed line now animates for `LTR`, `COOL`, and `LTRCOOL` battery-management modes.
+- Net status: fixed stale `Net temporarily unavailable` message when WiFi stays connected but no internet upload task is active (or last failure is old).
+- Added browser flashing page (`https://evdash.next176.sk/webflasher/`) for all supported boards.
+
 ### V4.2.0 2026-02-07
 - GPS: faster first fix via robust GNSS baud auto-detect/confirm; module type change now auto-sets default baud (NEO-M8N `9600`, M5 GNSS `38400`) and logs are clearer for troubleshooting.
 - Refactor/UI baseline: all `drawScene*` rendering moved to `Board320_240_display.cpp`, while original font styles (bitmap/digital) were preserved after the split.
