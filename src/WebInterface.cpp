@@ -1,6 +1,6 @@
 /*
 This C++ code is setting up a web interface for an EV dashboard application.
-It includes header files for various functionality like WiFi, HTTP, and a web server. It defines ssid and password constants for connecting to a specific WiFi network.
+It includes header files for various functionality like WiFi, HTTP, and a web webServer-> It defines ssid and password constants for connecting to a specific WiFi network.
 An ESP32WebServer object is created to handle HTTP requests on port 80. Some IP address constants are defined for the local network configuration.
 Pointers to LiveData and BoardInterface objects are declared, which seem to represent data and hardware access classes used elsewhere in the app.
 The getOffOnText function takes a boolean state parameter and returns an HTML span tag with styling to display that state as "ON" or "off". This is likely used to neatly format boolean values on the web interface.
@@ -20,7 +20,7 @@ So in summary, this sets up a web server to display a dashboard page with live d
 char ssid[] = "evdash";
 char password[] = "evaccess";
 
-ESP32WebServer server(80);
+ESP32WebServer *webServer = nullptr;
 IPAddress ip(192, 168, 0, 1);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
@@ -115,7 +115,12 @@ String getOffOnText(uint8_t state)
  **/
 void handleRoot()
 {
+  if (webServer == nullptr)
+  {
+    return;
+  }
   String text;
+  text.reserve(12288);
   char tmpStr1[20];
 
   // Render html5
@@ -161,7 +166,6 @@ void handleRoot()
   text += "<tr><td>OBD2 BLE4 Tx UUID</td><td><input data-key='charTxUUID' value='" + htmlEscape(String(liveDataWebInt->settings.charTxUUID)) + "'></td></tr>";
   text += "<tr><td>OBD2 BLE4 Rx UUID</td><td><input data-key='charRxUUID' value='" + htmlEscape(String(liveDataWebInt->settings.charRxUUID)) + "'></td></tr>";
   text += "<tr><td>Disable command optimizer (log all cells)</td><td><input type='checkbox' data-key='disableCommandOptimizer'" + checkedAttr(liveDataWebInt->settings.disableCommandOptimizer) + "></td></tr>";
-  text += "<tr><td>CAN threading (very unstable)</td><td><input type='checkbox' data-key='threading'" + checkedAttr(liveDataWebInt->settings.threading) + "></td></tr>";
   text += "<tr><td>CAN queue autostop</td><td><input type='checkbox' data-key='commandQueueAutoStop'" + checkedAttr(liveDataWebInt->settings.commandQueueAutoStop) + "></td></tr>";
   text += "<tr><td>OBD2 name (BT3)</td><td><input data-key='obd2Name' value='" + htmlEscape(String(liveDataWebInt->settings.obd2Name)) + "'></td></tr>";
   text += "<tr><td>OBD2 WIFI IP</td><td><input data-key='obd2WifiIp' value='" + htmlEscape(String(liveDataWebInt->settings.obd2WifiIp)) + "'></td></tr>";
@@ -370,7 +374,7 @@ void handleRoot()
   text += "</body></html>";
 
   // Send page to client
-  server.send(200, "text/html", text);
+  webServer->send(200, "text/html", text);
 }
 
 /**
@@ -378,21 +382,25 @@ void handleRoot()
 */
 void handleNotFound()
 {
+  if (webServer == nullptr)
+  {
+    return;
+  }
   String message = "File Not Found\n\n";
   message += "URI: ";
-  message += server.uri();
+  message += webServer->uri();
   message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += (webServer->method() == HTTP_GET) ? "GET" : "POST";
   message += "\nArguments: ";
-  message += server.args();
+  message += webServer->args();
   message += "\n";
 
-  for (uint8_t i = 0; i < server.args(); i++)
+  for (uint8_t i = 0; i < webServer->args(); i++)
   {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+    message += " " + webServer->argName(i) + ": " + webServer->arg(i) + "\n";
   }
 
-  server.send(404, "text/plain", message);
+  webServer->send(404, "text/plain", message);
 }
 
 template <size_t N>
@@ -403,14 +411,18 @@ void setCharField(const String &value, char (&dest)[N])
 
 void handleSet()
 {
-  if (!server.hasArg("key"))
+  if (webServer == nullptr)
   {
-    server.send(400, "text/plain", "ERR missing key");
+    return;
+  }
+  if (!webServer->hasArg("key"))
+  {
+    webServer->send(400, "text/plain", "ERR missing key");
     return;
   }
 
-  String key = server.arg("key");
-  String value = server.hasArg("value") ? server.arg("value") : "";
+  String key = webServer->arg("key");
+  String value = webServer->hasArg("value") ? webServer->arg("value") : "";
   String note = "";
   bool ok = true;
 
@@ -447,8 +459,6 @@ void handleSet()
     setCharField(value, liveDataWebInt->settings.charRxUUID);
   else if (key == "disableCommandOptimizer")
     liveDataWebInt->settings.disableCommandOptimizer = value.toInt() ? 1 : 0;
-  else if (key == "threading")
-    liveDataWebInt->settings.threading = value.toInt() ? 1 : 0;
   else if (key == "commandQueueAutoStop")
     liveDataWebInt->settings.commandQueueAutoStop = value.toInt() ? 1 : 0;
   else if (key == "obd2Name")
@@ -575,50 +585,62 @@ void handleSet()
 
   if (!ok)
   {
-    server.send(400, "text/plain", "ERR unknown key");
+    webServer->send(400, "text/plain", "ERR unknown key");
     return;
   }
 
   boardWebInt->saveSettings();
   if (note.length() > 0)
-    server.send(200, "text/plain", "OK:" + note);
+    webServer->send(200, "text/plain", "OK:" + note);
   else
-    server.send(200, "text/plain", "OK");
+    webServer->send(200, "text/plain", "OK");
 }
 
 void handleAction()
 {
-  String cmd = server.hasArg("cmd") ? server.arg("cmd") : "";
+  if (webServer == nullptr)
+  {
+    return;
+  }
+  String cmd = webServer->hasArg("cmd") ? webServer->arg("cmd") : "";
   if (cmd == "reboot")
   {
-    server.send(200, "text/plain", "OK");
+    webServer->send(200, "text/plain", "OK");
     ESP.restart();
     return;
   }
   if (cmd == "shutdown")
   {
-    server.send(200, "text/plain", "OK");
+    webServer->send(200, "text/plain", "OK");
     boardWebInt->enterSleepMode(0);
     return;
   }
   if (cmd == "saveSettings")
   {
     boardWebInt->saveSettings();
-    server.send(200, "text/plain", "OK");
+    webServer->send(200, "text/plain", "OK");
     return;
   }
 
-  server.send(400, "text/plain", "ERR unknown action");
+  webServer->send(400, "text/plain", "ERR unknown action");
 }
 
 void handleBleScan()
 {
+  if (webServer == nullptr)
+  {
+    return;
+  }
   boardWebInt->scanDevices = true;
-  server.send(200, "text/plain", "OK");
+  webServer->send(200, "text/plain", "OK");
 }
 
 void handleBleDevices()
 {
+  if (webServer == nullptr)
+  {
+    return;
+  }
   String json = "{\"devices\":[";
   bool first = true;
   for (uint16_t i = 0; i < liveDataWebInt->menuItemsCount; ++i)
@@ -636,7 +658,7 @@ void handleBleDevices()
             jsonEscape(String(liveDataWebInt->menuItems[i].title)) + "\"}";
   }
   json += "]}";
-  server.send(200, "application/json", json);
+  webServer->send(200, "application/json", json);
 }
 
 /**
@@ -646,6 +668,16 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
 {
   liveDataWebInt = pLiveData;
   boardWebInt = pBoard;
+
+  if (webServer == nullptr)
+  {
+    webServer = new ESP32WebServer(80);
+    if (webServer == nullptr)
+    {
+      syslog->println("Failed to allocate web server");
+      return;
+    }
+  }
 
   liveDataWebInt->params.wifiApMode = true;
 
@@ -660,13 +692,13 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
   syslog->println(WiFi.softAPIP());
 
   // Enable webserver
-  server.on("/", handleRoot);
-  server.on("/set", handleSet);
-  server.on("/action", handleAction);
-  server.on("/ble-scan", handleBleScan);
-  server.on("/ble-devices", handleBleDevices);
-  server.onNotFound(handleNotFound);
-  server.begin();
+  webServer->on("/", handleRoot);
+  webServer->on("/set", handleSet);
+  webServer->on("/action", handleAction);
+  webServer->on("/ble-scan", handleBleScan);
+  webServer->on("/ble-devices", handleBleDevices);
+  webServer->onNotFound(handleNotFound);
+  webServer->begin();
   Serial.println("HTTP server started");
 }
 
@@ -675,5 +707,8 @@ void WebInterface::init(LiveData *pLiveData, BoardInterface *pBoard)
 */
 void WebInterface::mainLoop()
 {
-  server.handleClient();
+  if (webServer != nullptr)
+  {
+    webServer->handleClient();
+  }
 }

@@ -1,5 +1,19 @@
 # RELEASE NOTES
 
+### V4.3.0 2026-02-09
+- API endpoints migrated: contribute posts to `https://api.evdash.eu/v1/contribute`, SD log upload posts to `https://api.evdash.eu/v1/contribute/upload`.
+- Web Flasher links updated to `https://www.evdash.eu/webflasher/`.
+- Contribute JSON `v2` timestamp cleanup: `ts` uses `YYMMDDHHIISS` (e.g. `200509093307`); removed `tsUnix` and `tsDate`.
+- Contribute JSON `v2` identity cleanup: payload now uses `key` only (duplicate `token` removed).
+- Contribute JSON `v2` device identity upgraded: `deviceId` is now a stable UUID-like HW ID derived from efuse MAC.
+- Contribute JSON `v2` payload compacting: `stoppedCan`, `ign`, `chg`, `chgAc`, `chgDc` are encoded as `0/1`.
+- Contribute JSON `v2` motion cleanup: samples without valid GPS coordinates are skipped; `motion` is omitted when no valid samples exist.
+- SD log upload reliability: fixed log discovery when active filename is empty and changed active-log exclusion to exact filename match (for both `v1` and `v2` logs).
+- Network scheduler cleanup: `Remote send tick` / `ABRP send tick` run only when target upload is configured, reducing false `Net temporarily unavailable`.
+- Contribute stability on low-memory devices: tuned HTTPS timeouts, capped `v2` raw-frame upload, reduced retry/fallback pressure, and optional BLE memory release on boot when BLE4 is not used.
+- Top-level menu `App version` no longer triggers OTA.
+- CAN reconnect policy relaxed: no-response threshold increased to 20s with an additional 20s grace period after `init_can()`.
+
 ### V4.2.3 2026-02-08
 - Contribute upload reliability fixes: increased HTTPS timeouts, redirect handling, payload sanity checks, and better HTTP error logging to diagnose `WiFi OK / Net temporarily unavailable` cases.
 - Contribute identity compatibility finalized: backend is token-first again (legacy devices stay compatible), while `key`/`deviceKey` are accepted as aliases; API response remains legacy `status + token`.
@@ -29,7 +43,7 @@
 - Menu (`OBD2/CAN adapter`): `Select OBD2 adapter` renamed/moved to `Select BLE4 OBD2 adapter` after `OBD2 Bluetooth4 (BLE4)`.
 - Speed screen battery separators: top dashed line animation remains for `PTC`; bottom dashed line now animates for `LTR`, `COOL`, and `LTRCOOL` battery-management modes.
 - Net status: fixed stale `Net temporarily unavailable` message when WiFi stays connected but no internet upload task is active (or last failure is old).
-- Added browser flashing page (`https://evdash.next176.sk/webflasher/`) for all supported boards.
+- Added browser flashing page (`https://www.evdash.eu/webflasher/`) for all supported boards.
 
 ### V4.2.0 2026-02-07
 - GPS: faster first fix via robust GNSS baud auto-detect/confirm; module type change now auto-sets default baud (NEO-M8N `9600`, M5 GNSS `38400`) and logs are clearer for troubleshooting.

@@ -428,6 +428,10 @@ void BoardM5stackCoreS3::boardLoop()
     menuDragScrollActive = false;
   }
 
+  const bool touchMoveGesture =
+      t.wasDragStart() || t.isDragging() || t.wasDragged() ||
+      t.wasFlickStart() || t.isFlicking() || t.wasFlicked();
+
   if (t.wasClicked())
   {
     if (touchSwipeGestureActive)
@@ -456,7 +460,7 @@ void BoardM5stackCoreS3::boardLoop()
       touchPressed = true;
     }
   }
-  else if (liveData->menuVisible && t.wasDragged())
+  else if (liveData->menuVisible && touchMoveGesture)
   {
     int16_t dragX = t.distanceX();
     int16_t dragY = t.distanceY();
@@ -470,7 +474,7 @@ void BoardM5stackCoreS3::boardLoop()
       touchPressed = true;
     }
   }
-  else if (!liveData->menuVisible && t.wasDragged())
+  else if (!liveData->menuVisible && touchMoveGesture)
   {
     int16_t dragX = t.distanceX();
     int16_t dragY = t.distanceY();
@@ -490,12 +494,14 @@ void BoardM5stackCoreS3::boardLoop()
       showScreenSwipePreview(dragX);
     }
   }
-  if (t.state == 0 || t.state == 2 || t.state == 14)
+  const bool touchReleased = t.wasReleased();
+  const bool touchIdle = (t.state == m5::touch_state_t::none);
+  if (touchIdle || touchReleased)
   {
     screenSwipePreviewActive = false;
     touchDragGestureActive = false;
     touchDragDeltaYPrev = 0;
-    if (touchSwipeGestureActive && !touchPressed && (t.state == 2 || t.state == 14))
+    if (touchSwipeGestureActive && !touchPressed && touchReleased)
     {
       touchPressed = true;
     }

@@ -3,7 +3,7 @@
 ## Quick installation from binary files
 
 ### Option 1: evDash Web Flasher (recommended for users)
-- Open https://evdash.next176.sk/webflasher/
+- Open https://www.evdash.eu/webflasher/
 - Use Chrome/Edge on desktop and a USB data cable.
 - Select the correct board profile and click `INSTALL`.
 

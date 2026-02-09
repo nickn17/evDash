@@ -14,6 +14,8 @@ protected:
   time_t lastDataSent;
   int8_t connectAttempts = 3;
   String connectStatus = "";
+  // Keep CAN reconnect threshold above transient network/UI stalls.
+  static constexpr time_t kCanNoResponseWarnSec = 20;
   // CAN response comparer
   int8_t canComparerRecordIndex = -1;  // 0..3, -1 (disabled recording)
   uint32_t canComparerRecordQueueLoop; // Request to record specified params.queueLoopCounter

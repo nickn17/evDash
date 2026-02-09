@@ -45,6 +45,7 @@ So in summary, it initializes the core display and hardware functionality, retri
 #include <WiFiClientSecure.h> //To be able to use https with ABRP api server
 #include <Update.h>
 #include <math.h>
+#include <esp_heap_caps.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
@@ -63,11 +64,6 @@ WebInterface *webInterface = nullptr;
 
 namespace
 {
-  struct NetSendJob
-  {
-    bool sendAbrp;
-  };
-
   constexpr uint32_t kNetRetryIntervalSec = 30;
   constexpr uint32_t kNetFailureStaleResetSec = 300;
   constexpr uint32_t kNetFailureFallbackSec = 180;
@@ -80,15 +76,18 @@ namespace
   constexpr uint32_t kGpsShortJumpWindowSec = 5;
   constexpr uint32_t kGpsReacquireAfterSec = 900;
   constexpr uint32_t kMotionWakeResetSec = 900;
-
-  struct AbrpLogEntry
-  {
-    char payload[kAbrpPayloadBufferSize];
-    size_t length;
-    time_t currentTime;
-    uint64_t operationTimeSec;
-    bool timeSyncWithGps;
-  };
+  constexpr size_t kContributeJsonDocCapacity = 12288;
+  constexpr uint8_t kContributeRawFrameUploadMax = 24;
+  constexpr bool kContributeIncludeRawLatency = false;
+  constexpr bool kContributeRetryOnceOnFail = false;
+  constexpr bool kContributeRawTlsFallbackOnTlsMem = false;
+  constexpr bool kContributeEnableTcpProbe = false;
+  constexpr bool kContributeHttpFallbackOnTlsMem = false;
+  constexpr uint16_t kContributeHttpsConnectTimeoutMs = 4000;
+  constexpr uint16_t kContributeHttpsIoTimeoutMs = 4500;
+  constexpr uint16_t kContributeHttpConnectTimeoutMs = 2000;
+  constexpr uint16_t kContributeHttpReadTimeoutMs = 3500;
+  constexpr size_t kContributeResponseBufferCap = 2048;
 
   size_t encodeQuotes(char *dest, size_t destSize, const char *source)
   {
@@ -175,6 +174,134 @@ namespace
       return value;
     }
     return roundf(value * multiplier) / multiplier;
+  }
+
+  float normalizeHeadingDeg(float headingDeg)
+  {
+    if (!isfinite(headingDeg))
+    {
+      return -1.0f;
+    }
+    // Some GPS modules provide tenths without decimal point (e.g. 1715 => 171.5 deg).
+    if (headingDeg > 360.0f && headingDeg <= 3600.0f)
+    {
+      headingDeg /= 10.0f;
+    }
+    while (headingDeg < 0.0f)
+    {
+      headingDeg += 360.0f;
+    }
+    while (headingDeg >= 360.0f)
+    {
+      headingDeg -= 360.0f;
+    }
+    return headingDeg;
+  }
+
+  String formatTimestampYyMmDdHhIiSs(time_t timestamp)
+  {
+    if (timestamp <= 0)
+    {
+      return "";
+    }
+    struct tm tmValue;
+    if (localtime_r(&timestamp, &tmValue) == nullptr)
+    {
+      return "";
+    }
+    char out[16] = {0};
+    snprintf(out, sizeof(out), "%02d%02d%02d%02d%02d%02d",
+             (tmValue.tm_year + 1900) % 100,
+             tmValue.tm_mon + 1,
+             tmValue.tm_mday,
+             tmValue.tm_hour,
+             tmValue.tm_min,
+             tmValue.tm_sec);
+    return String(out);
+  }
+
+  String normalizeDeviceIdForApi(const String &deviceId)
+  {
+    String normalized = "";
+    normalized.reserve(deviceId.length());
+    for (size_t i = 0; i < deviceId.length(); i++)
+    {
+      const char ch = deviceId.charAt(i);
+      if (ch >= '0' && ch <= '9')
+      {
+        normalized += ch;
+      }
+      else if (ch >= 'A' && ch <= 'F')
+      {
+        normalized += ch;
+      }
+      else if (ch >= 'a' && ch <= 'f')
+      {
+        normalized += static_cast<char>(ch - ('a' - 'A'));
+      }
+    }
+    if (normalized.length() == 32)
+    {
+      return normalized;
+    }
+    return deviceId;
+  }
+
+  bool hasContributeRawFrames(const LiveData *liveData)
+  {
+    if (liveData == nullptr)
+    {
+      return false;
+    }
+    for (uint8_t i = 0; i < liveData->contributeRawFrameCount; i++)
+    {
+      const LiveData::ContributeRawFrame &raw = liveData->contributeRawFrames[i];
+      if (raw.key[0] != '\0' && raw.value[0] != '\0')
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isContributeV2SnapshotEffectivelyEmpty(const LiveData *liveData)
+  {
+    if (liveData == nullptr)
+    {
+      return true;
+    }
+    if (liveData->params.getValidResponse)
+    {
+      return false;
+    }
+    if (isGpsFixUsable(liveData))
+    {
+      return false;
+    }
+    if (liveData->params.ignitionOn || liveData->params.chargingOn ||
+        liveData->params.chargerACconnected || liveData->params.chargerDCconnected)
+    {
+      return false;
+    }
+    if (hasContributeRawFrames(liveData))
+    {
+      return false;
+    }
+    if (liveData->params.socPerc >= 0 || liveData->params.sohPerc >= 0 ||
+        liveData->params.batPowerKw > -999.0f || liveData->params.batPowerKwh100 >= 0 ||
+        liveData->params.batVoltage >= 0 || liveData->params.batPowerAmp > -999.0f ||
+        liveData->params.auxVoltage >= 0 || liveData->params.auxCurrentAmp > -999.0f ||
+        liveData->params.batMinC > -100.0f || liveData->params.batMaxC > -100.0f ||
+        liveData->params.indoorTemperature > -100.0f || liveData->params.outdoorTemperature > -100.0f ||
+        liveData->params.speedKmh >= 0 || liveData->params.odoKm >= 0 ||
+        liveData->params.batCellMinV >= 0 || liveData->params.batCellMaxV >= 0 ||
+        liveData->params.batCellMinVNo != 255 ||
+        liveData->params.cumulativeEnergyChargedKWh >= 0 ||
+        liveData->params.cumulativeEnergyDischargedKWh >= 0)
+    {
+      return false;
+    }
+    return true;
   }
 } // namespace
 
@@ -345,68 +472,8 @@ void Board320_240::afterSetup()
   printHeapMemory();
   tft.fillScreen(TFT_SILVER);
 
-  // Threading
-  // Comm via thread (ble/can)
-  if (liveData->settings.threading)
-  {
-    syslog->println("xTaskCreate/xTaskCommLoop - COMM via thread (ble/can)");
-    if (commMutex == nullptr)
-    {
-      commMutex = xSemaphoreCreateMutex();
-      if (commMutex == nullptr)
-      {
-        syslog->println("Failed to create comm mutex");
-      }
-    }
-#if defined(ESP32) && defined(ARDUINO_RUNNING_CORE)
-    const BaseType_t taskResult = xTaskCreatePinnedToCore(
-        xTaskCommLoop,
-        "xTaskCommLoop",
-        32768,
-        (void *)this,
-        2,
-        &commTaskHandle,
-        (ARDUINO_RUNNING_CORE == 0) ? 1 : 0);
-    if (taskResult != pdPASS)
-    {
-      syslog->println("Failed to create comm task (pinned)");
-    }
-#else
-    xTaskCreate(xTaskCommLoop, "xTaskCommLoop", 32768, (void *)this, 2, &commTaskHandle);
-#endif
-  }
-  else
-  {
-    syslog->println("COMM without threading (ble/can)");
-  }
-
-  if (netSendQueue == nullptr)
-  {
-    netSendQueue = xQueueCreate(4, sizeof(NetSendJob));
-    if (netSendQueue != nullptr)
-    {
-      syslog->println("xTaskCreate/xTaskNetSendLoop - NET send via thread");
-      xTaskCreate(xTaskNetSendLoop, "xTaskNetSendLoop", 16384, (void *)this, 1, &netSendTaskHandle);
-    }
-    else
-    {
-      syslog->println("Failed to create net send queue");
-    }
-  }
-
-  if (abrpSdLogQueue == nullptr)
-  {
-    abrpSdLogQueue = xQueueCreate(4, sizeof(AbrpLogEntry));
-    if (abrpSdLogQueue != nullptr)
-    {
-      syslog->println("xTaskCreate/xTaskAbrpSdLogLoop - ABRP SD log via thread");
-      xTaskCreate(xTaskAbrpSdLogLoop, "xTaskAbrpSdLogLoop", 8192, (void *)this, 1, &abrpSdLogTaskHandle);
-    }
-    else
-    {
-      syslog->println("Failed to create ABRP SD log queue");
-    }
-  }
+  syslog->println("COMM in main loop (threading removed)");
+  syslog->println("NET send in main loop (queue/task removed)");
 
   showTime();
   tft.fillScreen(TFT_GREEN);
@@ -1333,117 +1400,6 @@ void Board320_240::printHeapMemory()
 }
 
 /**
- * Task that continuously calls the communication loop function.
- * This allows the communication code to run asynchronously in the background.
- *
- * @param pvParameters Pointer to the BoardInterface instance.
- */
-void Board320_240::xTaskCommLoop(void *pvParameters)
-{
-  // LiveData * liveData = (LiveData *) pvParameters;
-  BoardInterface *boardObj = (BoardInterface *)pvParameters;
-  while (1)
-  {
-    Board320_240 *board = static_cast<Board320_240 *>(boardObj);
-    if (board->commMutex == nullptr || xSemaphoreTake(board->commMutex, pdMS_TO_TICKS(20)) == pdTRUE)
-    {
-      boardObj->commLoop();
-      if (board->commMutex != nullptr)
-      {
-        xSemaphoreGive(board->commMutex);
-      }
-    }
-    vTaskDelay(pdMS_TO_TICKS(5));
-  }
-}
-
-/**
- * Task that performs network sends outside the UI loop.
- *
- * @param pvParameters Pointer to the Board320_240 instance.
- */
-void Board320_240::xTaskNetSendLoop(void *pvParameters)
-{
-  Board320_240 *boardObj = (Board320_240 *)pvParameters;
-  NetSendJob job{};
-  while (1)
-  {
-    if (boardObj->netSendQueue != nullptr && xQueueReceive(boardObj->netSendQueue, &job, portMAX_DELAY) == pdTRUE)
-    {
-      boardObj->netSendInProgress = true;
-      boardObj->maxMainLoopDuringNetSendMs = 0;
-      int64_t startTime = esp_timer_get_time();
-      boardObj->netSendData(job.sendAbrp);
-      int64_t endTime = esp_timer_get_time();
-      boardObj->lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
-      boardObj->netSendInProgress = false;
-      syslog->info(DEBUG_COMM, "Net send done");
-      syslog->info(DEBUG_COMM, "Net send duration (ms): " + String(boardObj->lastNetSendDurationMs));
-      syslog->info(DEBUG_COMM, "Max mainLoop during send (ms): " + String(boardObj->maxMainLoopDuringNetSendMs));
-    }
-  }
-}
-
-/**
- * Task that writes ABRP JSON logs to SD card.
- *
- * @param pvParameters Pointer to the Board320_240 instance.
- */
-void Board320_240::xTaskAbrpSdLogLoop(void *pvParameters)
-{
-  Board320_240 *boardObj = (Board320_240 *)pvParameters;
-  AbrpLogEntry entry{};
-  while (1)
-  {
-    if (boardObj->abrpSdLogQueue != nullptr && xQueueReceive(boardObj->abrpSdLogQueue, &entry, portMAX_DELAY) == pdTRUE)
-    {
-      if (boardObj->liveData->params.stopCommandQueue)
-      {
-        continue;
-      }
-      if (!boardObj->liveData->params.sdcardInit || !boardObj->liveData->params.sdcardRecording)
-      {
-        continue;
-      }
-
-      struct tm now;
-      time_t logTime = entry.currentTime;
-      localtime_r(&logTime, &now);
-
-      if (entry.operationTimeSec > 0 && strlen(boardObj->liveData->params.sdcardAbrpFilename) == 0)
-      {
-        sprintf(boardObj->liveData->params.sdcardAbrpFilename, "/%llu.abrp.json", entry.operationTimeSec / 60);
-      }
-      if (entry.timeSyncWithGps && strlen(boardObj->liveData->params.sdcardAbrpFilename) < 20)
-      {
-        strftime(boardObj->liveData->params.sdcardAbrpFilename, sizeof(boardObj->liveData->params.sdcardAbrpFilename), "/%y%m%d%H%M.abrp.json", &now);
-      }
-
-      if (strlen(boardObj->liveData->params.sdcardAbrpFilename) != 0)
-      {
-        File file = SD.open(boardObj->liveData->params.sdcardAbrpFilename, FILE_APPEND);
-        if (!file)
-        {
-          syslog->println("Failed to open file for appending");
-          file = SD.open(boardObj->liveData->params.sdcardAbrpFilename, FILE_WRITE);
-        }
-        if (!file)
-        {
-          syslog->println("Failed to create file");
-        }
-        if (file)
-        {
-          syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
-          file.write((const uint8_t *)entry.payload, entry.length);
-          file.print(",\n");
-          file.close();
-        }
-      }
-    }
-  }
-}
-
-/**
  * commLoop function - This function runs the main communication loop.
  * It calls the commInterface's mainLoop() method to read data from
  * BLE and CAN interfaces. This allows the communication code to run
@@ -1503,6 +1459,7 @@ void Board320_240::recordContributeSample()
   motionSample.time = nowTime;
   if (isGpsFixUsable(liveData))
   {
+    motionSample.hasGpsFix = true;
     motionSample.lat = roundToPrecision(liveData->params.gpsLat, 100000.0f);
     motionSample.lon = roundToPrecision(liveData->params.gpsLon, 100000.0f);
   }
@@ -1514,7 +1471,7 @@ void Board320_240::recordContributeSample()
   motionSample.speedKmh = roundToPrecision(currentSpeedKmh, 10.0f);
   if (liveData->params.gpsHeadingDeg >= 0)
   {
-    motionSample.headingDeg = roundToPrecision(liveData->params.gpsHeadingDeg, 1.0f);
+    motionSample.headingDeg = roundToPrecision(liveData->params.gpsHeadingDeg, 10.0f);
   }
   motionSample.cellMinV = roundToPrecision(liveData->params.batCellMinV, 1000.0f);
   motionSample.cellMaxV = roundToPrecision(liveData->params.batCellMaxV, 1000.0f);
@@ -1527,18 +1484,21 @@ void Board320_240::recordContributeSample()
     contributeMotionSampleCount++;
   }
 
-  ContributeChargingSample chargingSample{};
-  chargingSample.time = nowTime;
-  chargingSample.soc = roundToPrecision(liveData->params.socPerc, 10.0f);
-  chargingSample.batV = roundToPrecision(liveData->params.batVoltage, 10.0f);
-  chargingSample.batA = roundToPrecision(liveData->params.batPowerAmp, 10.0f);
-  chargingSample.powKw = roundToPrecision(liveData->params.batPowerKw, 1000.0f);
-
-  contributeChargingSamples[contributeChargingSampleNext] = chargingSample;
-  contributeChargingSampleNext = (contributeChargingSampleNext + 1) % kContributeSampleSlots;
-  if (contributeChargingSampleCount < kContributeSampleSlots)
+  if (liveData->params.chargingOn)
   {
-    contributeChargingSampleCount++;
+    ContributeChargingSample chargingSample{};
+    chargingSample.time = nowTime;
+    chargingSample.soc = roundToPrecision(liveData->params.socPerc, 10.0f);
+    chargingSample.batV = roundToPrecision(liveData->params.batVoltage, 10.0f);
+    chargingSample.batA = roundToPrecision(liveData->params.batPowerAmp, 10.0f);
+    chargingSample.powKw = roundToPrecision(liveData->params.batPowerKw, 1000.0f);
+
+    contributeChargingSamples[contributeChargingSampleNext] = chargingSample;
+    contributeChargingSampleNext = (contributeChargingSampleNext + 1) % kContributeSampleSlots;
+    if (contributeChargingSampleCount < kContributeSampleSlots)
+    {
+      contributeChargingSampleCount++;
+    }
   }
 }
 
@@ -1590,24 +1550,35 @@ void Board320_240::handleContributeChargingTransitions()
   }
 }
 
-bool Board320_240::buildContributePayloadV2(String &outJson)
+bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsForSd)
 {
-  DynamicJsonDocument jsonData(24576);
+  (void)useReadableTsForSd;
+  DynamicJsonDocument jsonData(kContributeJsonDocCapacity);
   const time_t nowTime = liveData->params.currentTime;
   const String contributeKey = ensureContributeKey();
-  const String hardwareDeviceId = getHardwareDeviceId();
+  const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
+  const String readableTs = formatTimestampYyMmDdHhIiSs(nowTime);
 
   jsonData["ver"] = 2;
-  jsonData["ts"] = nowTime;
+  if (readableTs.length() == 12)
+  {
+    jsonData["ts"] = readableTs;
+  }
+  else
+  {
+    jsonData["ts"] = "000000000000";
+  }
   jsonData["key"] = contributeKey;
   jsonData["deviceId"] = hardwareDeviceId;
+  jsonData["apiKey"] = liveData->settings.remoteApiKey;
+  jsonData["register"] = 1;
   jsonData["carType"] = getCarModelAbrpStr(liveData->settings.carType);
   jsonData["carVin"] = liveData->params.carVin;
-  jsonData["stoppedCan"] = liveData->params.stopCommandQueue;
-  jsonData["ign"] = liveData->params.ignitionOn;
-  jsonData["chg"] = liveData->params.chargingOn;
-  jsonData["chgAc"] = liveData->params.chargerACconnected;
-  jsonData["chgDc"] = liveData->params.chargerDCconnected;
+  jsonData["stoppedCan"] = liveData->params.stopCommandQueue ? 1 : 0;
+  jsonData["ign"] = liveData->params.ignitionOn ? 1 : 0;
+  jsonData["chg"] = liveData->params.chargingOn ? 1 : 0;
+  jsonData["chgAc"] = liveData->params.chargerACconnected ? 1 : 0;
+  jsonData["chgDc"] = liveData->params.chargerDCconnected ? 1 : 0;
   jsonData["soc"] = roundToPrecision(liveData->params.socPerc, 10.0f);
   if (liveData->params.socPercBms != -1)
   {
@@ -1631,7 +1602,7 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
   }
   if (liveData->params.gpsHeadingDeg >= 0)
   {
-    jsonData["hdg"] = roundToPrecision(liveData->params.gpsHeadingDeg, 1.0f);
+    jsonData["hdg"] = roundToPrecision(liveData->params.gpsHeadingDeg, 10.0f);
   }
   jsonData["odoKm"] = roundToPrecision(liveData->params.odoKm, 10.0f);
   jsonData["cMinV"] = roundToPrecision(liveData->params.batCellMinV, 1000.0f);
@@ -1644,9 +1615,7 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
     jsonData["lat"] = roundToPrecision(liveData->params.gpsLat, 100000.0f);
     jsonData["lon"] = roundToPrecision(liveData->params.gpsLon, 100000.0f);
   }
-  jsonData["token"] = contributeKey;
-
-  JsonArray motion = jsonData.createNestedArray("motion");
+  JsonArray motion;
   const uint8_t motionStartIndex = (contributeMotionSampleCount == kContributeSampleSlots) ? contributeMotionSampleNext : 0;
   for (uint8_t i = 0; i < contributeMotionSampleCount; i++)
   {
@@ -1661,6 +1630,14 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
     {
       continue;
     }
+    if (!sample.hasGpsFix)
+    {
+      continue;
+    }
+    if (motion.isNull())
+    {
+      motion = jsonData.createNestedArray("motion");
+    }
     JsonObject row = motion.createNestedObject();
     row["t"] = static_cast<int32_t>(sample.time - nowTime);
     row["lat"] = sample.lat;
@@ -1672,27 +1649,30 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
     row["cMinNo"] = sample.cellMinNo;
   }
 
-  JsonArray charging = jsonData.createNestedArray("charging");
-  const uint8_t chargingStartIndex = (contributeChargingSampleCount == kContributeSampleSlots) ? contributeChargingSampleNext : 0;
-  for (uint8_t i = 0; i < contributeChargingSampleCount; i++)
+  if (liveData->params.chargingOn)
   {
-    uint8_t sampleIndex = (chargingStartIndex + i) % kContributeSampleSlots;
-    const ContributeChargingSample &sample = contributeChargingSamples[sampleIndex];
-    if (sample.time == 0)
+    JsonArray charging = jsonData.createNestedArray("charging");
+    const uint8_t chargingStartIndex = (contributeChargingSampleCount == kContributeSampleSlots) ? contributeChargingSampleNext : 0;
+    for (uint8_t i = 0; i < contributeChargingSampleCount; i++)
     {
-      continue;
+      uint8_t sampleIndex = (chargingStartIndex + i) % kContributeSampleSlots;
+      const ContributeChargingSample &sample = contributeChargingSamples[sampleIndex];
+      if (sample.time == 0)
+      {
+        continue;
+      }
+      const time_t sampleAge = nowTime - sample.time;
+      if (sampleAge < 0 || sampleAge > kContributeSampleWindowSec)
+      {
+        continue;
+      }
+      JsonObject row = charging.createNestedObject();
+      row["t"] = static_cast<int32_t>(sample.time - nowTime);
+      row["soc"] = sample.soc;
+      row["batV"] = sample.batV;
+      row["batA"] = sample.batA;
+      row["powKw"] = sample.powKw;
     }
-    const time_t sampleAge = nowTime - sample.time;
-    if (sampleAge < 0 || sampleAge > kContributeSampleWindowSec)
-    {
-      continue;
-    }
-    JsonObject row = charging.createNestedObject();
-    row["t"] = static_cast<int32_t>(sample.time - nowTime);
-    row["soc"] = sample.soc;
-    row["batV"] = sample.batV;
-    row["batA"] = sample.batA;
-    row["powKw"] = sample.powKw;
   }
 
   if (contributeChargingStartEvent.valid)
@@ -1735,6 +1715,8 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
     }
   }
 
+  uint8_t rawAdded = 0;
+  uint8_t rawDropped = 0;
   for (uint8_t i = 0; i < liveData->contributeRawFrameCount; i++)
   {
     const LiveData::ContributeRawFrame &raw = liveData->contributeRawFrames[i];
@@ -1743,8 +1725,28 @@ bool Board320_240::buildContributePayloadV2(String &outJson)
       continue;
     }
 
+    if (rawAdded >= kContributeRawFrameUploadMax)
+    {
+      rawDropped++;
+      continue;
+    }
+
     jsonData[String(raw.key)] = raw.value;
-    jsonData[String(raw.key) + "_ms"] = String(raw.latencyMs);
+    if (kContributeIncludeRawLatency)
+    {
+      jsonData[String(raw.key) + "_ms"] = String(raw.latencyMs);
+    }
+    rawAdded++;
+  }
+
+  if (rawDropped > 0)
+  {
+    jsonData["rawDrop"] = rawDropped;
+  }
+
+  if (jsonData.overflowed())
+  {
+    syslog->println("Contribute JSON overflow (stability mode): payload fields trimmed");
   }
 
   outJson = "";
@@ -1801,10 +1803,6 @@ void Board320_240::mainLoop()
   const uint32_t loopDurationMs = (millis() - mainLoopStart);
   displayFps = (loopDurationMs == 0 ? 0 : (1000.0f / loopDurationMs));
   mainLoopStart = millis();
-  if (netSendInProgress && loopDurationMs > maxMainLoopDuringNetSendMs)
-  {
-    maxMainLoopDuringNetSendMs = loopDurationMs;
-  }
 
   // board loop
   boardLoop();
@@ -2061,7 +2059,7 @@ void Board320_240::mainLoop()
         if (minuteTick)
         {
           String jsonLine;
-          if (buildContributePayloadV2(jsonLine))
+          if (buildContributePayloadV2(jsonLine, true))
           {
             jsonLine += ",\n";
             sdcardRecordBuffer += jsonLine;
@@ -2208,14 +2206,7 @@ void Board320_240::mainLoop()
     liveData->continueWithCommandQueue();
     if (commInterface->isSuspended())
     {
-      if (commMutex == nullptr || xSemaphoreTake(commMutex, pdMS_TO_TICKS(20)) == pdTRUE)
-      {
-        commInterface->resumeDevice();
-        if (commMutex != nullptr)
-        {
-          xSemaphoreGive(commMutex);
-        }
-      }
+      commInterface->resumeDevice();
     }
   }
   // Stop command queue
@@ -2242,14 +2233,7 @@ void Board320_240::mainLoop()
        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.0)))
   {
     liveData->params.stopCommandQueue = true;
-    if (commMutex == nullptr || xSemaphoreTake(commMutex, pdMS_TO_TICKS(20)) == pdTRUE)
-    {
-      commInterface->suspendDevice();
-      if (commMutex != nullptr)
-      {
-        xSemaphoreGive(commMutex);
-      }
-    }
+    commInterface->suspendDevice();
     syslog->println("CAN Command queue stopped...");
   }
 
@@ -2273,13 +2257,7 @@ void Board320_240::mainLoop()
   }
 
   // Read data from BLE/CAN
-  if (!liveData->settings.threading)
-  {
-    if (!liveData->params.stopCommandQueue && !commInterface->isSuspended())
-    {
-      commInterface->mainLoop();
-    }
-  }
+  commLoop();
 
   // force redraw (min 1 sec update; slower while in Sentry)
   const time_t redrawIntervalSec = liveData->params.stopCommandQueue ? 2 : 1;
@@ -2739,7 +2717,7 @@ void Board320_240::syncGPS()
   }
   if (gps.course.isValid() && liveData->params.gpsSat >= 4)
   {
-    liveData->params.gpsHeadingDeg = gps.course.deg();
+    liveData->params.gpsHeadingDeg = normalizeHeadingDeg(gps.course.deg());
   }
   else
   {
@@ -3477,15 +3455,35 @@ String Board320_240::ensureContributeKey()
 
 String Board320_240::getHardwareDeviceId() const
 {
-  const uint64_t efuse = ESP.getEfuseMac();
-  char deviceId[24] = {0};
+  const uint64_t efuse = (ESP.getEfuseMac() & 0xFFFFFFFFFFFFULL);
+  const uint32_t uuidPart1 = static_cast<uint32_t>((efuse >> 16) & 0xFFFFFFFFULL);
+  const uint16_t uuidPart2 = static_cast<uint16_t>(efuse & 0xFFFFU);
+  const uint16_t uuidPart3 = static_cast<uint16_t>(((efuse >> 32) & 0x0FFFU) | 0x4000U); // UUID version 4 layout
+  const uint16_t uuidPart4 = static_cast<uint16_t>(((efuse >> 20) & 0x3FFFU) | 0x8000U); // UUID variant 1 layout
 #ifdef BOARD_M5STACK_CORES3
-  const char *prefix = "cores3-";
+  const uint8_t boardTag = 0x03U;
 #else
-  const char *prefix = "core2-";
+  const uint8_t boardTag = 0x02U;
 #endif
-  snprintf(deviceId, sizeof(deviceId), "%s%04lX%08lX", prefix, (uint32_t)((efuse >> 32) & 0xFFFFU), (uint32_t)(efuse & 0xFFFFFFFFULL));
+  const uint64_t uuidPart5 = ((efuse ^ (static_cast<uint64_t>(boardTag) << 40)) & 0xFFFFFFFFFFFFULL);
+  char deviceId[40] = {0};
+  snprintf(deviceId, sizeof(deviceId), "%08lX-%04X-%04X-%04X-%012llX",
+           uuidPart1, uuidPart2, uuidPart3, uuidPart4, uuidPart5);
   return String(deviceId);
+}
+
+void Board320_240::addWifiTransferredBytes(size_t bytes)
+{
+  if (bytes == 0)
+  {
+    return;
+  }
+  if (bytes > (UINT32_MAX - wifiTransferredBytes))
+  {
+    wifiTransferredBytes = UINT32_MAX;
+    return;
+  }
+  wifiTransferredBytes += static_cast<uint32_t>(bytes);
 }
 
 void Board320_240::updateNetAvailability(bool success)
@@ -3516,7 +3514,7 @@ void Board320_240::updateNetAvailability(bool success)
 /**
  * Net loop, send data over net
  * Checks if WiFi is connected, syncs NTP if needed, sends data to remote API if interval elapsed,
- * sends data to ABRP if interval elapsed, contributes anonymous data if enabled.
+ * sends data to ABRP if interval elapsed, contributes data if enabled.
  */
 void Board320_240::netLoop()
 {
@@ -3570,7 +3568,7 @@ void Board320_240::netLoop()
     return true;
   }();
 
-  const bool contributeConfigured = (liveData->settings.contributeData == 1 && !liveData->params.stopCommandQueue);
+  const bool contributeConfigured = (liveData->settings.contributeData == 1);
   const bool internetTasksActive = remoteApiConfigured || abrpConfigured || contributeConfigured;
 
   if (wifiReady && !internetTasksActive)
@@ -3606,61 +3604,48 @@ void Board320_240::netLoop()
   }
 
   // Upload to custom API
-  if (netReady && liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec &&
-      liveData->settings.remoteUploadIntervalSec != 0)
+  if (netReady && remoteApiConfigured &&
+      liveData->params.currentTime - liveData->params.lastRemoteApiSent > liveData->settings.remoteUploadIntervalSec)
   {
     liveData->params.lastRemoteApiSent = liveData->params.currentTime;
     syslog->info(DEBUG_COMM, "Remote send tick");
-    if (netSendQueue != nullptr)
-    {
-      NetSendJob job{false};
-      if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
-      {
-        NetSendJob discard{};
-        xQueueReceive(netSendQueue, &discard, 0);
-        if (xQueueSend(netSendQueue, &job, 0) != pdTRUE)
-        {
-          syslog->info(DEBUG_COMM, "Net send queue full, dropping remote send");
-        }
-      }
-    }
+    int64_t startTime = esp_timer_get_time();
+    netSendData(false);
+    int64_t endTime = esp_timer_get_time();
+    lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
   }
 
   // Upload to ABRP
-  if (netReady && liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec &&
-      liveData->settings.remoteUploadAbrpIntervalSec != 0)
+  if (netReady && abrpConfigured &&
+      liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec)
   {
     syslog->info(DEBUG_COMM, "ABRP send tick");
-    if (netSendQueue != nullptr)
-    {
-      const bool netSendBusy = netSendInProgress || (uxQueueMessagesWaiting(netSendQueue) > 0);
-      if (netSendBusy)
-      {
-        syslog->info(DEBUG_COMM, "Net send busy, skipping ABRP enqueue");
-      }
-      else
-      {
-        NetSendJob job{true};
-        if (xQueueSend(netSendQueue, &job, 0) == pdTRUE)
-        {
-          liveData->params.lastAbrpSent = liveData->params.currentTime;
-        }
-        else
-        {
-          syslog->info(DEBUG_COMM, "Net send queue full, dropping ABRP send");
-        }
-      }
-    }
+    liveData->params.lastAbrpSent = liveData->params.currentTime;
+    int64_t startTime = esp_timer_get_time();
+    netSendData(true);
+    int64_t endTime = esp_timer_get_time();
+    lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
   }
 
-  // Contribute anonymous data
+  // Contribute data
+  const uint32_t nowMs = millis();
+  if (liveData->settings.contributeData == 0)
+  {
+    liveData->params.contributeStatus = CONTRIBUTE_NONE;
+    contributeStatusSinceMs = 0;
+    nextContributeCycleAtMs = 0;
+  }
+  if (nextContributeCycleAtMs == 0)
+  {
+    nextContributeCycleAtMs = nowMs;
+  }
   if (netReady && liveData->settings.contributeData == 1 &&
       liveData->params.contributeStatus == CONTRIBUTE_NONE &&
-      (liveData->params.currentTime - liveData->params.lastContributeSent) >= kContributeSampleWindowSec)
+      static_cast<int32_t>(nowMs - nextContributeCycleAtMs) >= 0)
   {
     liveData->params.lastContributeSent = liveData->params.currentTime;
     liveData->params.contributeStatus = CONTRIBUTE_WAITING;
-    contributeStatusSinceMs = millis();
+    contributeStatusSinceMs = nowMs;
   }
   bool allowContributeWaitFallback = false;
   if (liveData->settings.commType == COMM_TYPE_CAN_COMMU && commInterface != nullptr)
@@ -3695,7 +3680,7 @@ bool Board320_240::netSendData(bool sendAbrp)
   const bool netDebug = liveData->settings.debugLevel >= DEBUG_GSM;
   const bool wifiReady = (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED);
   const String contributeKey = ensureContributeKey();
-  const String hardwareDeviceId = getHardwareDeviceId();
+  const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
 
   if (liveData->params.socPerc < 0)
   {
@@ -3874,6 +3859,7 @@ bool Board320_240::netSendData(bool sendAbrp)
         http.begin(wClient, liveData->settings.remoteApiUrl);
         http.setConnectTimeout(500);
         http.addHeader("Content-Type", "application/json");
+        addWifiTransferredBytes(strlen(payload));
         rc = http.POST(payload);
         http.end();
       }
@@ -3997,6 +3983,7 @@ bool Board320_240::netSendData(bool sendAbrp)
       http.setConnectTimeout(1000);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       const size_t bodyLength = static_cast<size_t>(dtaLength);
+      addWifiTransferredBytes(bodyLength);
       rc = http.POST((uint8_t *)dta, bodyLength);
 
       if (rc == HTTP_CODE_OK)
@@ -4046,7 +4033,7 @@ bool Board320_240::netSendData(bool sendAbrp)
 
 void Board320_240::queueAbrpSdLog(const char *payload, size_t length, time_t currentTime, uint64_t operationTimeSec, bool timeSyncWithGps)
 {
-  if (abrpSdLogQueue == nullptr || payload == nullptr)
+  if (payload == nullptr || length == 0)
   {
     return;
   }
@@ -4054,29 +4041,53 @@ void Board320_240::queueAbrpSdLog(const char *payload, size_t length, time_t cur
   {
     return;
   }
-
-  AbrpLogEntry entry{};
-  entry.length = (length >= sizeof(entry.payload)) ? sizeof(entry.payload) - 1 : length;
-  memcpy(entry.payload, payload, entry.length);
-  entry.payload[entry.length] = '\0';
-  entry.currentTime = currentTime;
-  entry.operationTimeSec = operationTimeSec;
-  entry.timeSyncWithGps = timeSyncWithGps;
-
-  if (xQueueSend(abrpSdLogQueue, &entry, 0) != pdTRUE)
+  if (!liveData->params.sdcardInit || !liveData->params.sdcardRecording)
   {
-    AbrpLogEntry discard{};
-    xQueueReceive(abrpSdLogQueue, &discard, 0);
-    if (xQueueSend(abrpSdLogQueue, &entry, 0) != pdTRUE)
-    {
-      syslog->info(DEBUG_SDCARD, "ABRP SD log queue full, dropping log entry");
-    }
+    return;
   }
+
+  struct tm now;
+  time_t logTime = currentTime;
+  localtime_r(&logTime, &now);
+
+  if (operationTimeSec > 0 && strlen(liveData->params.sdcardAbrpFilename) == 0)
+  {
+    sprintf(liveData->params.sdcardAbrpFilename, "/%llu.abrp.json", operationTimeSec / 60);
+  }
+  if (timeSyncWithGps && strlen(liveData->params.sdcardAbrpFilename) < 20)
+  {
+    strftime(liveData->params.sdcardAbrpFilename, sizeof(liveData->params.sdcardAbrpFilename), "/%y%m%d%H%M.abrp.json", &now);
+  }
+
+  if (strlen(liveData->params.sdcardAbrpFilename) == 0)
+  {
+    return;
+  }
+
+  File file = SD.open(liveData->params.sdcardAbrpFilename, FILE_APPEND);
+  if (!file)
+  {
+    syslog->println("Failed to open ABRP file for appending");
+    file = SD.open(liveData->params.sdcardAbrpFilename, FILE_WRITE);
+  }
+  if (!file)
+  {
+    syslog->println("Failed to create ABRP file");
+    return;
+  }
+
+  const size_t writeLen = file.write((const uint8_t *)payload, length);
+  if (writeLen != length)
+  {
+    syslog->println("ABRP SD write truncated");
+  }
+  file.print(",\n");
+  file.close();
 }
 
 /**
- * Contributes anonymous usage data if enabled in settings.
- * Sends data via WiFi to https://evdash.next176.sk/api/index.php.
+ * Contributes usage data if enabled in settings.
+ * Sends data via WiFi to https://api.evdash.eu/v1/contribute.
  * Data includes vehicle info, location, temps, voltages, etc.
  * Receives a contribute token if successful.
  * Only called for M5Stack Core2 boards.
@@ -4087,30 +4098,36 @@ bool Board320_240::netContributeData()
 
 // Only for core2
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-  // Contribute anonymous data (evdash.next176.sk/api) to project author (nick.n17@gmail.com)
+  // Contribute data (api.evdash.eu/v1/contribute) to project author (nick.n17@gmail.com)
   if (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
-    syslog->println("Contributing anonymous data...");
+    syslog->println("Contribute data...");
+    const char *contributeHost = "api.evdash.eu";
+    const char *contributeUrl = "https://api.evdash.eu/v1/contribute";
+    const char *contributePath = "/v1/contribute";
     const String contributeKey = ensureContributeKey();
-    const String hardwareDeviceId = getHardwareDeviceId();
-
-    WiFiClientSecure client;
-    HTTPClient http;
-    client.setInsecure();
-    http.begin(client, "https://evdash.next176.sk/api/index.php");
-    http.setConnectTimeout(5000);
-    http.setTimeout(15000);
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    http.addHeader("Content-Type", "application/json");
+    const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
     String payloadForPost;
+    auto scheduleNextContributeCycle = [&]() {
+      liveData->params.contributeStatus = CONTRIBUTE_NONE;
+      contributeStatusSinceMs = 0;
+      nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
+    };
     const bool useJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
     if (useJsonV2)
     {
-      if (!buildContributePayloadV2(payloadForPost))
+      if (!buildContributePayloadV2(payloadForPost, false))
       {
         syslog->println("Failed to build contribute v2 payload");
+        scheduleNextContributeCycle();
         updateNetAvailability(false);
+        return false;
+      }
+      if (isContributeV2SnapshotEffectivelyEmpty(liveData))
+      {
+        syslog->println("Contribute v2 empty snapshot, skipping send");
+        scheduleNextContributeCycle();
         return false;
       }
     }
@@ -4157,6 +4174,7 @@ bool Board320_240::netContributeData()
           liveData->contributeDataJson += "\"gpsSpeed\": " + String(liveData->params.speedKmhGPS, 0) + ", ";
         }
 
+        liveData->contributeDataJson += "\"register\": 1, ";
         liveData->contributeDataJson += "\"token\": \"" + contributeKey + "\"";
         liveData->contributeDataJson += "}";
       }
@@ -4166,27 +4184,370 @@ bool Board320_240::netContributeData()
     if (payloadForPost.length() < 2 || payloadForPost.charAt(0) != '{' || payloadForPost.charAt(payloadForPost.length() - 1) != '}')
     {
       syslog->println("Contribute payload invalid, skipping send");
+      scheduleNextContributeCycle();
       updateNetAvailability(false);
-      http.end();
-      client.stop();
       return false;
     }
     syslog->print("Contribute payload bytes: ");
     syslog->println(payloadForPost.length());
+    syslog->print("Heap intFree/intLargest/psram: ");
+    syslog->println(String(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                    String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                    String(ESP.getFreePsram()));
 
-    rc = http.POST(payloadForPost);
     String responsePayload = "";
-    if (rc > 0)
+    int lastTlsErrCode = 0;
+    String lastTlsErrText = "";
+    auto postContributePayload = [&](String &outResponse, uint8_t attemptNo) -> int {
+      const uint32_t startedMs = millis();
+      lastTlsErrCode = 0;
+      lastTlsErrText = "";
+      WiFiClientSecure client;
+      HTTPClient http;
+      client.setInsecure();
+      client.setHandshakeTimeout((kContributeHttpsConnectTimeoutMs + 999) / 1000);
+      client.setTimeout((kContributeHttpsIoTimeoutMs + 999) / 1000);
+      const bool beginOk = http.begin(client, contributeUrl);
+      if (!beginOk)
+      {
+        syslog->print("Contribute POST attempt ");
+        syslog->print(attemptNo);
+        syslog->println(": http.begin failed");
+        outResponse = "";
+        return -1;
+      }
+      http.setConnectTimeout(kContributeHttpsConnectTimeoutMs);
+      http.setTimeout(kContributeHttpsIoTimeoutMs);
+      http.useHTTP10(true);
+      http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
+      http.addHeader("Content-Type", "application/json");
+      http.addHeader("Connection", "close");
+      addWifiTransferredBytes(payloadForPost.length());
+      const int postRc = http.POST((uint8_t *)payloadForPost.c_str(), payloadForPost.length());
+      const uint32_t elapsedMs = millis() - startedMs;
+      syslog->print("Contribute POST attempt ");
+      syslog->print(attemptNo);
+      syslog->print(" rc=");
+      syslog->print(postRc);
+      syslog->print(" (");
+      syslog->print(elapsedMs);
+      syslog->println("ms)");
+      outResponse = "";
+      if (postRc > 0)
+      {
+        outResponse = http.getString();
+      }
+      else
+      {
+        char tlsErrBuf[160] = {0};
+        lastTlsErrCode = client.lastError(tlsErrBuf, sizeof(tlsErrBuf));
+        lastTlsErrText = String(tlsErrBuf);
+        syslog->print("Contribute TLS lastError: ");
+        syslog->print(lastTlsErrCode);
+        syslog->print(" ");
+        syslog->println(tlsErrBuf);
+        syslog->print("Heap intFree/intLargest/psram: ");
+        syslog->println(String(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                        String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                        String(ESP.getFreePsram()));
+      }
+      http.end();
+      client.stop();
+      return postRc;
+    };
+
+    auto postContributePayloadRawTls = [&](String &outResponse, const IPAddress &ip, uint8_t attemptNo) -> int {
+      const uint32_t startedMs = millis();
+      outResponse = "";
+      lastTlsErrCode = 0;
+      lastTlsErrText = "";
+
+      WiFiClientSecure client;
+      client.setInsecure();
+      client.setHandshakeTimeout((kContributeHttpsConnectTimeoutMs + 999) / 1000);
+      client.setTimeout((kContributeHttpsIoTimeoutMs + 999) / 1000);
+
+      if (!client.connect(ip, 443, kContributeHttpsConnectTimeoutMs))
+      {
+        char tlsErrBuf[160] = {0};
+        lastTlsErrCode = client.lastError(tlsErrBuf, sizeof(tlsErrBuf));
+        lastTlsErrText = String(tlsErrBuf);
+        const uint32_t elapsedMs = millis() - startedMs;
+        syslog->print("Contribute RAW TLS attempt ");
+        syslog->print(attemptNo);
+        syslog->print(" connect failed (");
+        syslog->print(elapsedMs);
+        syslog->println("ms)");
+        syslog->print("Contribute TLS lastError: ");
+        syslog->print(lastTlsErrCode);
+        syslog->print(" ");
+        syslog->println(tlsErrBuf);
+        client.stop();
+        return -1;
+      }
+
+      String headers = String("POST ") + contributePath + " HTTP/1.0\r\n" +
+                       "Host: " + contributeHost + "\r\n" +
+                       "Content-Type: application/json\r\n" +
+                       "Connection: close\r\n" +
+                       "Content-Length: " + String(payloadForPost.length()) + "\r\n\r\n";
+
+      addWifiTransferredBytes(headers.length() + payloadForPost.length());
+      client.print(headers);
+      const size_t written = client.write((const uint8_t *)payloadForPost.c_str(), payloadForPost.length());
+      if (written != payloadForPost.length())
+      {
+        syslog->print("Contribute RAW TLS payload short write: ");
+        syslog->print(written);
+        syslog->print("/");
+        syslog->println(payloadForPost.length());
+      }
+
+      String rawResponse = "";
+      const uint32_t readTimeoutMs = kContributeHttpsIoTimeoutMs;
+      uint32_t lastDataMs = millis();
+      while ((millis() - lastDataMs) < readTimeoutMs)
+      {
+        while (client.available())
+        {
+          const char nextChar = static_cast<char>(client.read());
+          if (rawResponse.length() < kContributeResponseBufferCap)
+          {
+            rawResponse += nextChar;
+          }
+          lastDataMs = millis();
+        }
+        if (!client.connected())
+        {
+          break;
+        }
+        delay(2);
+      }
+
+      int statusCode = -1;
+      const int lineEnd = rawResponse.indexOf("\r\n");
+      if (lineEnd > 0)
+      {
+        const String statusLine = rawResponse.substring(0, lineEnd);
+        const int sp1 = statusLine.indexOf(' ');
+        if (sp1 > 0)
+        {
+          const int sp2 = statusLine.indexOf(' ', sp1 + 1);
+          if (sp2 > sp1)
+          {
+            statusCode = statusLine.substring(sp1 + 1, sp2).toInt();
+          }
+          else
+          {
+            statusCode = statusLine.substring(sp1 + 1).toInt();
+          }
+        }
+      }
+
+      const int bodyPos = rawResponse.indexOf("\r\n\r\n");
+      if (bodyPos >= 0)
+      {
+        outResponse = rawResponse.substring(bodyPos + 4);
+      }
+      else
+      {
+        outResponse = rawResponse;
+      }
+
+      const uint32_t elapsedMs = millis() - startedMs;
+      syslog->print("Contribute RAW TLS attempt ");
+      syslog->print(attemptNo);
+      syslog->print(" rc=");
+      syslog->print(statusCode);
+      syslog->print(" (");
+      syslog->print(elapsedMs);
+      syslog->println("ms)");
+
+      client.stop();
+      return statusCode;
+    };
+
+    auto postContributePayloadHttp = [&](String &outResponse, uint8_t attemptNo) -> int {
+      const uint32_t startedMs = millis();
+      outResponse = "";
+
+      WiFiClient client;
+      client.setTimeout((kContributeHttpReadTimeoutMs + 999) / 1000);
+
+      if (!client.connect(contributeHost, 80, kContributeHttpConnectTimeoutMs))
+      {
+        const uint32_t elapsedMs = millis() - startedMs;
+        syslog->print("Contribute HTTP fallback attempt ");
+        syslog->print(attemptNo);
+        syslog->print(" connect failed (");
+        syslog->print(elapsedMs);
+        syslog->println("ms)");
+        client.stop();
+        return -1;
+      }
+
+      String headers = String("POST ") + contributePath + " HTTP/1.0\r\n" +
+                       "Host: " + contributeHost + "\r\n" +
+                       "Content-Type: application/json\r\n" +
+                       "Connection: close\r\n" +
+                       "Content-Length: " + String(payloadForPost.length()) + "\r\n\r\n";
+
+      addWifiTransferredBytes(headers.length() + payloadForPost.length());
+      client.print(headers);
+      const size_t written = client.write((const uint8_t *)payloadForPost.c_str(), payloadForPost.length());
+      if (written != payloadForPost.length())
+      {
+        syslog->print("Contribute HTTP fallback payload short write: ");
+        syslog->print(written);
+        syslog->print("/");
+        syslog->println(payloadForPost.length());
+      }
+
+      String rawResponse = "";
+      const uint32_t readTimeoutMs = kContributeHttpReadTimeoutMs;
+      uint32_t lastDataMs = millis();
+      while ((millis() - lastDataMs) < readTimeoutMs)
+      {
+        while (client.available())
+        {
+          const char nextChar = static_cast<char>(client.read());
+          if (rawResponse.length() < kContributeResponseBufferCap)
+          {
+            rawResponse += nextChar;
+          }
+          lastDataMs = millis();
+        }
+        if (!client.connected())
+        {
+          break;
+        }
+        delay(2);
+      }
+
+      int statusCode = -1;
+      const int lineEnd = rawResponse.indexOf("\r\n");
+      if (lineEnd > 0)
+      {
+        const String statusLine = rawResponse.substring(0, lineEnd);
+        const int sp1 = statusLine.indexOf(' ');
+        if (sp1 > 0)
+        {
+          const int sp2 = statusLine.indexOf(' ', sp1 + 1);
+          if (sp2 > sp1)
+          {
+            statusCode = statusLine.substring(sp1 + 1, sp2).toInt();
+          }
+          else
+          {
+            statusCode = statusLine.substring(sp1 + 1).toInt();
+          }
+        }
+      }
+
+      const int bodyPos = rawResponse.indexOf("\r\n\r\n");
+      if (bodyPos >= 0)
+      {
+        outResponse = rawResponse.substring(bodyPos + 4);
+      }
+      else
+      {
+        outResponse = rawResponse;
+      }
+
+      const uint32_t elapsedMs = millis() - startedMs;
+      syslog->print("Contribute HTTP fallback attempt ");
+      syslog->print(attemptNo);
+      syslog->print(" rc=");
+      syslog->print(statusCode);
+      syslog->print(" (");
+      syslog->print(elapsedMs);
+      syslog->println("ms)");
+
+      client.stop();
+      return statusCode;
+    };
+
+    rc = postContributePayload(responsePayload, 1);
+    bool tlsMemIssue = (lastTlsErrCode == -16 || lastTlsErrText.indexOf("Memory allocation failed") != -1);
+    IPAddress resolvedHost;
+    int dnsRc = 0;
+    if (rc < 0)
     {
-      responsePayload = http.getString();
+      dnsRc = WiFi.hostByName(contributeHost, resolvedHost);
+      syslog->print("Contribute DNS ");
+      syslog->print(contributeHost);
+      syslog->print(": ");
+      if (dnsRc == 1)
+      {
+        syslog->println(resolvedHost.toString());
+      }
+      else
+      {
+        syslog->println("resolve_failed");
+      }
+      syslog->print("WiFi RSSI/ch/BSSID: ");
+      syslog->println(String(WiFi.RSSI()) + " / " + String(WiFi.channel()) + " / " + WiFi.BSSIDstr());
+      if (dnsRc == 1 && kContributeEnableTcpProbe)
+      {
+        WiFiClient tcpProbe;
+        const uint32_t tcpStartedMs = millis();
+        const int tcpRc = tcpProbe.connect(resolvedHost, 443, 2000);
+        const uint32_t tcpElapsedMs = millis() - tcpStartedMs;
+        syslog->print("Contribute TCP probe ");
+        syslog->print(resolvedHost.toString());
+        syslog->print(":443 rc=");
+        syslog->print(tcpRc);
+        syslog->print(" (");
+        syslog->print(tcpElapsedMs);
+        syslog->println("ms)");
+        tcpProbe.stop();
+      }
+      if (!tlsMemIssue)
+      {
+        if (kContributeRetryOnceOnFail)
+        {
+          syslog->println("Retry contribute POST once...");
+          delay(250);
+          rc = postContributePayload(responsePayload, 2);
+          tlsMemIssue = (lastTlsErrCode == -16 || lastTlsErrText.indexOf("Memory allocation failed") != -1);
+        }
+        else
+        {
+          syslog->println("Contribute HTTPS retry disabled (stability mode)");
+        }
+      }
+      else
+      {
+        syslog->println("Contribute HTTPS retry skipped (TLS memory issue on attempt 1)");
+      }
     }
-    http.end();
-    client.stop();
+
+    if (kContributeRawTlsFallbackOnTlsMem && rc < 0 && tlsMemIssue && dnsRc == 1)
+    {
+      syslog->println("Contribute TLS memory workaround: raw TLS POST to resolved IP...");
+      rc = postContributePayloadRawTls(responsePayload, resolvedHost, 3);
+      tlsMemIssue = (lastTlsErrCode == -16 || lastTlsErrText.indexOf("Memory allocation failed") != -1);
+    }
+
+    if (kContributeHttpFallbackOnTlsMem && rc < 0 && tlsMemIssue)
+    {
+      syslog->println("Contribute TLS memory workaround: plain HTTP fallback...");
+      rc = postContributePayloadHttp(responsePayload, 4);
+      if (rc > 0)
+      {
+        tlsMemIssue = false;
+      }
+    }
+
+    if (rc < 0 && tlsMemIssue)
+    {
+      syslog->println("Contribute HTTPS TLS memory issue detected in low-memory mode.");
+    }
 
     if (rc == HTTP_CODE_OK)
     {
       bool responseAccepted = true;
-      syslog->println("HTTP Response (evdash.next176.sk): " + responsePayload);
+      syslog->println("HTTP Response (" + String(contributeHost) + "): " + responsePayload);
 
       StaticJsonDocument<256> doc;
       DeserializationError error = deserializeJson(doc, responsePayload);
@@ -4220,8 +4581,7 @@ bool Board320_240::netContributeData()
 
       if (responseAccepted)
       {
-        liveData->params.contributeStatus = CONTRIBUTE_NONE;
-        contributeStatusSinceMs = 0;
+        scheduleNextContributeCycle();
         if (!useJsonV2)
         {
           liveData->contributeDataJson = "{"; // begin json
@@ -4231,21 +4591,42 @@ bool Board320_240::netContributeData()
       }
       else
       {
+        scheduleNextContributeCycle();
         updateNetAvailability(false);
       }
     }
     else
     {
       // Failed...
-      syslog->print("HTTP POST error: ");
-      syslog->println(rc);
-      syslog->print("HTTP POST error text: ");
-      syslog->println(HTTPClient::errorToString(rc).c_str());
+      if (rc > 0)
+      {
+        syslog->print("HTTP POST status: ");
+        syslog->println(rc);
+        if (responsePayload.length() > 0)
+        {
+          String responsePreview = responsePayload;
+          responsePreview.replace('\r', ' ');
+          responsePreview.replace('\n', ' ');
+          if (responsePreview.length() > 180)
+          {
+            responsePreview = responsePreview.substring(0, 180) + "...";
+          }
+          syslog->println("HTTP Response preview (" + String(contributeHost) + "): " + responsePreview);
+        }
+      }
+      else
+      {
+        syslog->print("HTTP POST error: ");
+        syslog->println(rc);
+        syslog->print("HTTP POST error text: ");
+        syslog->println(HTTPClient::errorToString(rc).c_str());
+      }
       syslog->print("WiFi status/IP/GW/DNS: ");
       syslog->println(String(WiFi.status()) + " / " +
                       WiFi.localIP().toString() + " / " +
                       WiFi.gatewayIP().toString() + " / " +
                       WiFi.dnsIP(0).toString());
+      scheduleNextContributeCycle();
       updateNetAvailability(false);
     }
   }
@@ -4480,12 +4861,18 @@ void Board320_240::uploadSdCardLogToEvDashServer()
   HTTPClient http;
   String uploadedStr;
   int rc = 0;
-  uint32_t part, sz, uploaded, cntLogs, cntUploaded;
+  uint32_t part, uploaded, cntLogs, cntUploaded;
   bool errorUploadFile;
-  char *buff = (char *)malloc(16384);
+  constexpr size_t kUploadChunkSize = 1024;
+  uint8_t buff[kUploadChunkSize];
 
   displayMessage("Upload logs to server", "No files found");
   cntLogs = cntUploaded = 0;
+  String activeLogFilename = String(liveData->params.sdcardFilename);
+  if (activeLogFilename.length() > 0 && activeLogFilename.charAt(0) != '/')
+  {
+    activeLogFilename = "/" + activeLogFilename;
+  }
 
   while (true)
   {
@@ -4498,12 +4885,14 @@ void Board320_240::uploadSdCardLogToEvDashServer()
     {
       fileName = "/";
       fileName += entry.name();
-      if (fileName.indexOf(".json") != -1 && fileName.indexOf(liveData->params.sdcardFilename) == -1)
+      const bool isJsonLog = fileName.endsWith(".json");
+      const bool isActiveLog = (activeLogFilename.length() > 0 && fileName == activeLogFilename);
+      if (isJsonLog && !isActiveLog)
       {
         cntLogs++;
         displayMessage(fileName.c_str(), "Uploading...");
-        memset(buff, 0, sizeof(buff));
-        while ((sz = entry.readBytes(buff, 16383)) > 0)
+        size_t sz = 0;
+        while ((sz = entry.read(buff, sizeof(buff))) > 0)
         {
           errorUploadFile = false;
           syslog->println("Part:" + String(part) + "\tSize:" + String(sz));
@@ -4512,13 +4901,17 @@ void Board320_240::uploadSdCardLogToEvDashServer()
 
           client.setInsecure();
           const String contributeKey = ensureContributeKey();
-          const String hardwareDeviceId = getHardwareDeviceId();
-          http.begin(client, "https://evdash.next176.sk/api/upload.php?token=" + contributeKey +
-                                 "&key=" + contributeKey +
+          const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
+          const String registerApiKey = String(liveData->settings.remoteApiKey);
+          http.begin(client, "https://api.evdash.eu/v1/contribute/upload?key=" + contributeKey +
                                  "&deviceId=" + hardwareDeviceId +
+                                 "&apiKey=" + registerApiKey +
+                                 "&register=1" +
                                  "&filename=" + String(entry.name()) + "&part=" + String(part));
           http.setConnectTimeout(1000);
-          rc = http.POST((uint8_t *)buff, sz);
+          http.setTimeout(2500);
+          addWifiTransferredBytes(sz);
+          rc = http.POST(buff, sz);
           uploaded += sz;
           if (rc == HTTP_CODE_OK)
           {
@@ -4537,7 +4930,6 @@ void Board320_240::uploadSdCardLogToEvDashServer()
             break;
           }
           part++;
-          memset(buff, 0, sizeof(buff));
         }
 
         displayMessage(fileName.c_str(), (errorUploadFile ? "Upload error..." : "Uploaded..."));
@@ -4553,5 +4945,4 @@ void Board320_240::uploadSdCardLogToEvDashServer()
 
   uploadedStr = String(cntUploaded) + " of " + String(cntLogs);
   displayMessage("Uploaded", uploadedStr.c_str());
-  free(buff);
 }

@@ -6,9 +6,6 @@
 #include <SD.h>
 #include <SPI.h>
 #include "SDL_Arduino_INA3221.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
-#include <freertos/task.h>
 
 #ifdef BOARD_M5STACK_CORE2
 #include <M5Core2.h>
@@ -82,22 +79,17 @@ protected:
   String dismissedCanStatusText = "";
   time_t dismissedNetFailureTime = 0;
   bool lastChargingOn = false;
-  QueueHandle_t netSendQueue = nullptr;
-  TaskHandle_t netSendTaskHandle = nullptr;
-  TaskHandle_t commTaskHandle = nullptr;
-  SemaphoreHandle_t commMutex = nullptr;
-  volatile bool netSendInProgress = false;
   uint32_t lastNetSendDurationMs = 0;
-  uint32_t maxMainLoopDuringNetSendMs = 0;
-  QueueHandle_t abrpSdLogQueue = nullptr;
-  TaskHandle_t abrpSdLogTaskHandle = nullptr;
+  uint32_t wifiTransferredBytes = 0;
   static constexpr uint8_t kContributeSampleSlots = 12;
   static constexpr time_t kContributeSampleIntervalSec = 5;
   static constexpr time_t kContributeSampleWindowSec = 60;
+  static constexpr uint32_t kContributeCycleIntervalMs = static_cast<uint32_t>(kContributeSampleWindowSec) * 1000U;
   static constexpr uint32_t kContributeWaitFallbackMs = 4000;
   struct ContributeMotionSample
   {
     time_t time = 0;
+    bool hasGpsFix = false;
     float lat = -1.0f;
     float lon = -1.0f;
     float speedKmh = -1.0f;
@@ -138,6 +130,7 @@ protected:
   time_t lastContributeSampleTime = 0;
   time_t lastContributeSdRecordTime = 0;
   uint32_t contributeStatusSinceMs = 0;
+  uint32_t nextContributeCycleAtMs = 0;
   ContributeChargingEvent contributeLastBeforeCharge = {};
   ContributeChargingEvent contributeLastDuringCharge = {};
   ContributeChargingEvent contributeChargingStartEvent = {};
@@ -147,10 +140,11 @@ protected:
   bool isContributeKeyValid(const char *key) const;
   String ensureContributeKey();
   String getHardwareDeviceId() const;
+  void addWifiTransferredBytes(size_t bytes);
   void recordContributeSample();
   ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;
   void handleContributeChargingTransitions();
-  bool buildContributePayloadV2(String &outJson);
+  bool buildContributePayloadV2(String &outJson, bool useReadableTsForSd = false);
   void syncContributeRelativeTimes(time_t offset);
 
 public:
@@ -166,9 +160,6 @@ public:
   //
   void initBoard() override;
   void afterSetup() override;
-  static void xTaskCommLoop(void *pvParameters);
-  static void xTaskNetSendLoop(void *pvParameters);
-  static void xTaskAbrpSdLogLoop(void *pvParameters);
   void commLoop() override;
   void boardLoop() override;
   void mainLoop() override;

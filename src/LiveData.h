@@ -378,7 +378,7 @@ typedef struct
     192.168.0.74 23 - obdkey
   */
   // == settings version 17
-  uint8_t contributeData;   // Contribute anonymous data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
+  uint8_t contributeData;   // Contribute data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
   char contributeToken[32]; // Unique token for device
   uint8_t mqttEnabled;      // Enabled mqtt connection
   char mqttServer[64];      // Mqtt server
@@ -448,7 +448,7 @@ public:
   uint8_t menuItemSelected = 0;
   uint8_t menuItemOffset = 0;
   uint16_t scanningDeviceIndex = 0;
-  MENU_ITEM *menuItems;
+  MENU_ITEM *menuItems = nullptr;
   uint8_t wifiScanCount = 0;
   char wifiScanSsid[10][33];
   int8_t wifiScanRssi[10];

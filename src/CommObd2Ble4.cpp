@@ -74,9 +74,9 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
           tmpStr += advertisedDevice.getAddress().toString().c_str();
 
           // Save to menuItems
-          tmpStr.toCharArray(liveDataObj->menuItems[i].title, 48);
+          tmpStr.toCharArray(liveDataObj->menuItems[i].title, sizeof(liveDataObj->menuItems[i].title));
           tmpStr = advertisedDevice.getAddress().toString().c_str();
-          tmpStr.toCharArray(liveDataObj->menuItems[i].obdMacAddress, 18);
+          tmpStr.toCharArray(liveDataObj->menuItems[i].obdMacAddress, sizeof(liveDataObj->menuItems[i].obdMacAddress));
         }
       }
       liveDataObj->scanningDeviceIndex++;

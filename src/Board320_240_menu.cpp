@@ -30,6 +30,27 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     sprintf(tmpStr1, "[%s]", APP_VERSION);
     suffix = tmpStr1;
     break;
+  case MENU_WIFI:
+    if (liveData->settings.wifiEnabled != 1 || WiFi.status() != WL_CONNECTED)
+    {
+      suffix = "[not_connected]";
+    }
+    else if (wifiTransferredBytes >= (1024UL * 1024UL))
+    {
+      sprintf(tmpStr1, "[%luMB]", (unsigned long)(wifiTransferredBytes / (1024UL * 1024UL)));
+      suffix = tmpStr1;
+    }
+    else if (wifiTransferredBytes >= 1024UL)
+    {
+      sprintf(tmpStr1, "[%lukB]", (unsigned long)(wifiTransferredBytes / 1024UL));
+      suffix = tmpStr1;
+    }
+    else
+    {
+      sprintf(tmpStr1, "[%luB]", (unsigned long)wifiTransferredBytes);
+      suffix = tmpStr1;
+    }
+    break;
   // TODO: Why is do these cases not match the vehicle type id?
   case VEHICLE_TYPE_IONIQ_2018_28:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
@@ -152,9 +173,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
-  case MENU_ADAPTER_THREADING:
-    suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
-    break;
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
     break;
@@ -198,7 +216,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     sprintf(tmpStr1, "%s", liveData->settings.mqttPubTopic);
     suffix = tmpStr1;
     break;
-  case MENU_REMOTE_UPLOAD_CONTRIBUTE_ANONYMOUS_DATA_TO_EVDASH_DEV_TEAM:
+  case MENU_REMOTE_UPLOAD_CONTRIBUTE_DATA_TO_EVDASH_DEV_TEAM:
     suffix = (liveData->settings.contributeData == 0) ? "[off]" : "[on]";
     break;
   case MENU_SDCARD:
@@ -1019,11 +1037,6 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_ADAPTER_THREADING:
-      liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
-      showMenu();
-      return;
-      break;
     case MENU_ADAPTER_LOAD_TEST_DATA:
       loadTestData();
       break;
@@ -1165,13 +1178,18 @@ void Board320_240::menuItemClick()
       return;
     }
     break;
-    case MENU_REMOTE_UPLOAD_CONTRIBUTE_ANONYMOUS_DATA_TO_EVDASH_DEV_TEAM:
+    case MENU_REMOTE_UPLOAD_CONTRIBUTE_DATA_TO_EVDASH_DEV_TEAM:
       liveData->settings.contributeData = (liveData->settings.contributeData == 1) ? 0 : 1;
       if (liveData->settings.contributeData == 0)
       {
         liveData->params.contributeStatus = CONTRIBUTE_NONE;
         contributeStatusSinceMs = 0;
+        nextContributeCycleAtMs = 0;
         liveData->clearContributeRawFrames();
+      }
+      else
+      {
+        nextContributeCycleAtMs = millis();
       }
       showMenu();
       return;
@@ -1186,6 +1204,7 @@ void Board320_240::menuItemClick()
       liveData->params.lastContributeSent = liveData->params.currentTime;
       liveData->params.contributeStatus = CONTRIBUTE_WAITING;
       contributeStatusSinceMs = millis();
+      nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
       if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
           liveData->settings.commType == COMM_TYPE_CAN_COMMU &&
           commInterface != nullptr)
@@ -1285,9 +1304,19 @@ void Board320_240::menuItemClick()
       break;
     case MENU_WIFI_HOTSPOT_WEBADMIN:
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-      webInterface = new WebInterface();
-      webInterface->init(liveData, this);
-      displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
+      if (webInterface == nullptr)
+      {
+        webInterface = new WebInterface();
+      }
+      if (webInterface != nullptr)
+      {
+        webInterface->init(liveData, this);
+        displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
+      }
+      else
+      {
+        displayMessage("Webadmin failed", "No memory");
+      }
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
       return;
       break;
@@ -1563,11 +1592,7 @@ void Board320_240::menuItemClick()
       break;
     // Version
     case MENU_APP_VERSION:
-      if (confirmMessage("Confirm action", "Do you want to run OTA?"))
-      {
-        showMenu();
-        otaUpdate();
-      }
+      displayMessage("App version", APP_VERSION);
       showMenu();
       return;
       break;

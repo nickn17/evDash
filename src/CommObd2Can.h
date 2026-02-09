@@ -33,6 +33,8 @@ protected:
   std::vector<uint8_t> mergedData;
   std::unordered_map<uint16_t, std::vector<uint8_t>> dataRows;
   bool bResponseProcessed = false;
+  static constexpr uint32_t kCanReconnectGraceMs = 20000;
+  uint32_t canReconnectAllowedAtMs = 0;
 
   enum class enFrame_t
   {

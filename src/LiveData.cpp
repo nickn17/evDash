@@ -5,6 +5,9 @@
  */
 #include "LiveData.h"
 #include "menu.h"
+#include <esp_heap_caps.h>
+#include <string.h>
+#include <stdlib.h>
 
 LogSerial *syslog;
 
@@ -192,7 +195,23 @@ void LiveData::initParams()
 
   // Menu
   menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);
-  menuItems = menuItemsSource;
+  if (menuItems == nullptr)
+  {
+    const size_t menuBytes = sizeof(menuItemsSource);
+    menuItems = static_cast<MENU_ITEM *>(heap_caps_malloc(menuBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (menuItems == nullptr)
+    {
+      menuItems = static_cast<MENU_ITEM *>(malloc(menuBytes));
+    }
+  }
+  if (menuItems != nullptr)
+  {
+    memcpy(menuItems, menuItemsSource, sizeof(menuItemsSource));
+  }
+  else
+  {
+    syslog->println("Menu allocation failed");
+  }
 }
 
 void LiveData::clearContributeRawFrames()
