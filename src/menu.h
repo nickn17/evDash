@@ -4,7 +4,7 @@
 
 #define MENU_SIZE 182
 
-MENU_ITEM menuItemsSource[MENU_SIZE] = {
+const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
     {MENU_TOP_LEVEL, MENU_TOP_LEVEL, MENU_TOP_LEVEL, "<- exit menu"},
     {MENU_CLEAR_STATS, MENU_TOP_LEVEL, MENU_NO_MENU, "Clear driving stats"},
@@ -79,7 +79,6 @@ MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_OBD2_PORT, MENU_ADAPTER_TYPE, MENU_NO_MENU, "[i] Wifi port:"},
     {MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP, MENU_ADAPTER_TYPE, MENU_NO_MENU, "CAN queue autostop"},
     {MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Disable CMD optimizer"},
-    {MENU_ADAPTER_THREADING, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Threading [DEV]"},
     {MENU_ADAPTER_LOAD_TEST_DATA, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Load demo (static) data..."},
 
     {MENU_OTHER_TOP, MENU_OTHERS, MENU_TOP_LEVEL, "<- parent menu"},

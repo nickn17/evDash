@@ -6,9 +6,6 @@
 #include <SD.h>
 #include <SPI.h>
 #include "SDL_Arduino_INA3221.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
-#include <freertos/task.h>
 
 #ifdef BOARD_M5STACK_CORE2
 #include <M5Core2.h>
@@ -82,16 +79,8 @@ protected:
   String dismissedCanStatusText = "";
   time_t dismissedNetFailureTime = 0;
   bool lastChargingOn = false;
-  QueueHandle_t netSendQueue = nullptr;
-  TaskHandle_t netSendTaskHandle = nullptr;
-  TaskHandle_t commTaskHandle = nullptr;
-  SemaphoreHandle_t commMutex = nullptr;
-  volatile bool netSendInProgress = false;
   uint32_t lastNetSendDurationMs = 0;
-  uint32_t maxMainLoopDuringNetSendMs = 0;
   uint32_t wifiTransferredBytes = 0;
-  QueueHandle_t abrpSdLogQueue = nullptr;
-  TaskHandle_t abrpSdLogTaskHandle = nullptr;
   static constexpr uint8_t kContributeSampleSlots = 12;
   static constexpr time_t kContributeSampleIntervalSec = 5;
   static constexpr time_t kContributeSampleWindowSec = 60;
@@ -100,6 +89,7 @@ protected:
   struct ContributeMotionSample
   {
     time_t time = 0;
+    bool hasGpsFix = false;
     float lat = -1.0f;
     float lon = -1.0f;
     float speedKmh = -1.0f;
@@ -170,9 +160,6 @@ public:
   //
   void initBoard() override;
   void afterSetup() override;
-  static void xTaskCommLoop(void *pvParameters);
-  static void xTaskNetSendLoop(void *pvParameters);
-  static void xTaskAbrpSdLogLoop(void *pvParameters);
   void commLoop() override;
   void boardLoop() override;
   void mainLoop() override;

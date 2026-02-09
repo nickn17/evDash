@@ -173,9 +173,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
     break;
-  case MENU_ADAPTER_THREADING:
-    suffix = (liveData->settings.threading == 0) ? "[off]" : "[on]";
-    break;
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
     break;
@@ -1040,11 +1037,6 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
-    case MENU_ADAPTER_THREADING:
-      liveData->settings.threading = (liveData->settings.threading == 1) ? 0 : 1;
-      showMenu();
-      return;
-      break;
     case MENU_ADAPTER_LOAD_TEST_DATA:
       loadTestData();
       break;
@@ -1312,9 +1304,19 @@ void Board320_240::menuItemClick()
       break;
     case MENU_WIFI_HOTSPOT_WEBADMIN:
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-      webInterface = new WebInterface();
-      webInterface->init(liveData, this);
-      displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
+      if (webInterface == nullptr)
+      {
+        webInterface = new WebInterface();
+      }
+      if (webInterface != nullptr)
+      {
+        webInterface->init(liveData, this);
+        displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
+      }
+      else
+      {
+        displayMessage("Webadmin failed", "No memory");
+      }
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
       return;
       break;

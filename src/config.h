@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v4.2.4"
-#define APP_RELEASE_DATE "2026-02-08"
+#define APP_VERSION "v4.3.0"
+#define APP_RELEASE_DATE "2026-02-09"
 // TFT COLORS
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */
 #define TFT_NAVY 0x000F      /*   0,   0, 128 */
@@ -302,12 +302,13 @@ typedef enum
 } MENU_ID;
 
 // MENU ITEM
+constexpr size_t MENU_ITEM_TITLE_LEN = 40;
+constexpr size_t MENU_ITEM_OBD_MAC_LEN = 18;
 typedef struct
 {
   MENU_ID id;
   MENU_ID parentId;
   MENU_ID targetParentId;
-  char title[50];
-  char obdMacAddress[20];
-  char serviceUUID[40];
+  char title[MENU_ITEM_TITLE_LEN];
+  char obdMacAddress[MENU_ITEM_OBD_MAC_LEN];
 } MENU_ITEM;

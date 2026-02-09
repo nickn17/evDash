@@ -793,12 +793,12 @@ void BoardInterface::calcAutomaticBrightnessLatLon()
     }
     // angle from zenith
     // <70 = 100% brightnesss
-    // >100 = 10%
+    // >100 = 15%
     double sunDeg = getSZA(liveData->params.currentTime);
     syslog->infoNolf(DEBUG_GPS, "SUN from zenith, degrees: ");
     syslog->info(DEBUG_GPS, sunDeg);
     int32_t newBrightness = (105 - sunDeg) * 3.5;
-    newBrightness = (newBrightness < 5 ? 5 : (newBrightness > 100) ? 100
+    newBrightness = (newBrightness < 15 ? 15 : (newBrightness > 100) ? 100
                                                                    : newBrightness);
     if (liveData->params.lcdBrightnessCalc != newBrightness)
     {

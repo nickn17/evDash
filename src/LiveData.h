@@ -448,7 +448,7 @@ public:
   uint8_t menuItemSelected = 0;
   uint8_t menuItemOffset = 0;
   uint16_t scanningDeviceIndex = 0;
-  MENU_ITEM *menuItems;
+  MENU_ITEM *menuItems = nullptr;
   uint8_t wifiScanCount = 0;
   char wifiScanSsid[10][33];
   int8_t wifiScanRssi[10];
