@@ -89,11 +89,13 @@ protected:
   volatile bool netSendInProgress = false;
   uint32_t lastNetSendDurationMs = 0;
   uint32_t maxMainLoopDuringNetSendMs = 0;
+  uint32_t wifiTransferredBytes = 0;
   QueueHandle_t abrpSdLogQueue = nullptr;
   TaskHandle_t abrpSdLogTaskHandle = nullptr;
   static constexpr uint8_t kContributeSampleSlots = 12;
   static constexpr time_t kContributeSampleIntervalSec = 5;
   static constexpr time_t kContributeSampleWindowSec = 60;
+  static constexpr uint32_t kContributeCycleIntervalMs = static_cast<uint32_t>(kContributeSampleWindowSec) * 1000U;
   static constexpr uint32_t kContributeWaitFallbackMs = 4000;
   struct ContributeMotionSample
   {
@@ -138,6 +140,7 @@ protected:
   time_t lastContributeSampleTime = 0;
   time_t lastContributeSdRecordTime = 0;
   uint32_t contributeStatusSinceMs = 0;
+  uint32_t nextContributeCycleAtMs = 0;
   ContributeChargingEvent contributeLastBeforeCharge = {};
   ContributeChargingEvent contributeLastDuringCharge = {};
   ContributeChargingEvent contributeChargingStartEvent = {};
@@ -147,10 +150,11 @@ protected:
   bool isContributeKeyValid(const char *key) const;
   String ensureContributeKey();
   String getHardwareDeviceId() const;
+  void addWifiTransferredBytes(size_t bytes);
   void recordContributeSample();
   ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;
   void handleContributeChargingTransitions();
-  bool buildContributePayloadV2(String &outJson);
+  bool buildContributePayloadV2(String &outJson, bool useReadableTsForSd = false);
   void syncContributeRelativeTimes(time_t offset);
 
 public:

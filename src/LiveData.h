@@ -378,7 +378,7 @@ typedef struct
     192.168.0.74 23 - obdkey
   */
   // == settings version 17
-  uint8_t contributeData;   // Contribute anonymous data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
+  uint8_t contributeData;   // Contribute data to dev team (every 15 minutes / net required. This helps to decode/locate unknown values)
   char contributeToken[32]; // Unique token for device
   uint8_t mqttEnabled;      // Enabled mqtt connection
   char mqttServer[64];      // Mqtt server

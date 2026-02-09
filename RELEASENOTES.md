@@ -1,5 +1,19 @@
 # RELEASE NOTES
 
+### V4.2.4 2026-02-08
+- SD log upload fix (`Remote upload -> Upload logs to evdash server`): JSON log discovery now works even when current active SD filename is empty; v1 (`*.json`) and v2 (`*_v2.json`) files are no longer accidentally filtered out.
+- SD log upload filter improved: active log exclusion now checks exact filename match instead of substring match to avoid false negatives.
+- Network scheduler cleanup: `Remote send tick` / `ABRP send tick` now enqueue only when the respective upload target is actually configured, reducing unnecessary send attempts and false `Net temporarily unavailable` noise in contribute-only setups.
+- Device ID format shortened in contribute payloads: `deviceId` is now `c2.xxxx` on Core2 and `c3.xxxx` on CoreS3.
+- Contribute transport hardened for low-memory devices: HTTPS (insecure TLS + HTTP/1.0 + `Connection: close`) stays primary, but on TLS memory failures (`RSA/BIGNUM`) firmware now falls back to plain HTTP POST (`/api/index.php`) to avoid dropped uploads.
+- Contribute TLS memory diagnostics improved: `LiveData` is now allocated in PSRAM when available, and logs now print `Heap intFree/intLargest/psram` (at boot and around contribute POST attempts) to better trace `RSA/BIGNUM memory allocation failed` cases.
+- Contribute scheduler stabilized: each contribute cycle is now rate-limited to one attempt per 60 seconds (no immediate re-send storms after failure/success), with cooldown also applied after failed payload/send paths.
+- Contribute transport timeout tuned for stability (HTTPS connect ~4s, HTTPS I/O ~4.5s, HTTP fallback read ~3.5s), lowering long blocking windows that could interfere with CAN/UI loops.
+- Contribute stability mode: extra retries and raw-TLS fallback are disabled by default, TCP probe is off by default, and v2 raw frame upload is capped (with optional latency fields disabled) to reduce heap pressure on Core2/CoreS3.
+- Core2/CoreS3 low-memory mode: when adapter type is not BLE4, firmware now releases BT controller memory at boot to increase internal heap available for HTTPS/TLS operations.
+- Top-level menu no longer triggers OTA from `App version`; OTA action was removed from this menu entry.
+- CAN reconnect policy is less aggressive: no-response reconnect threshold raised from 5s to 20s and a 20s grace window is applied right after `init_can()`, reducing false reconnect loops at boot.
+
 ### V4.2.3 2026-02-08
 - Contribute upload reliability fixes: increased HTTPS timeouts, redirect handling, payload sanity checks, and better HTTP error logging to diagnose `WiFi OK / Net temporarily unavailable` cases.
 - Contribute identity compatibility finalized: backend is token-first again (legacy devices stay compatible), while `key`/`deviceKey` are accepted as aliases; API response remains legacy `status + token`.

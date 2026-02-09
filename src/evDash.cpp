@@ -25,6 +25,9 @@
 #define USE_M5_FONT_CREATOR
 
 #include "Arduino.h"
+#include <esp_heap_caps.h>
+#include <esp_bt.h>
+#include <new>
 
 #include "config.h"
 #include "BoardInterface.h"
@@ -61,7 +64,17 @@ LiveData *liveData;
 void setup(void)
 {
   // Init settings/params
-  liveData = new LiveData();
+  bool liveDataAllocatedInPsram = false;
+  void *liveDataMem = heap_caps_malloc(sizeof(LiveData), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (liveDataMem != nullptr)
+  {
+    liveData = new (liveDataMem) LiveData();
+    liveDataAllocatedInPsram = true;
+  }
+  else
+  {
+    liveData = new LiveData();
+  }
   liveData->initParams();
 
   // Serial console
@@ -77,6 +90,28 @@ void setup(void)
 
   board->setLiveData(liveData);
   board->loadSettings();
+
+#if CONFIG_BT_ENABLED
+  if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
+  {
+    esp_err_t btReleaseRc = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+    if (btReleaseRc == ESP_OK)
+    {
+      syslog->println("BT controller memory released (non-BLE adapter mode)");
+    }
+    else if (btReleaseRc == ESP_ERR_INVALID_STATE)
+    {
+      // Already released or controller already started; keep booting.
+      syslog->println("BT controller memory release skipped (already in use)");
+    }
+    else
+    {
+      syslog->print("BT controller memory release failed: ");
+      syslog->println((int)btReleaseRc);
+    }
+  }
+#endif
+
   board->initBoard();
 
   // Turn on serial console
@@ -84,6 +119,13 @@ void setup(void)
   {
     syslog->begin(115200);
   }
+
+  syslog->print("LiveData allocation: ");
+  syslog->println(liveDataAllocatedInPsram ? "PSRAM" : "INTERNAL HEAP");
+  syslog->print("Heap intFree/intLargest/psram: ");
+  syslog->println(String(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                  String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                  String(ESP.getFreePsram()));
 
   syslog->println("\nBooting device...");
   // board->resetSettings();

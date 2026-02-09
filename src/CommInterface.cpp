@@ -108,7 +108,7 @@ void CommInterface::mainLoop()
 
   // No CAN response (timeout)
   if (liveData->settings.commType == 1 &&
-      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
+      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > kCanNoResponseWarnSec &&
       checkConnectAttempts())
   {
     connectStatus = "No CAN response";
@@ -262,11 +262,11 @@ bool CommInterface::parseResponse()
 /**
  * Parses the merged response string into individual responses.
  * Calls the board parseRowMerged() method to handle parsing.
- * Also handles anonymous data contribution and CAN comparer recording.
+ * Also handles contribute data collection and CAN comparer recording.
  */
 void CommInterface::parseRowMerged()
 {
-  // Anonymous data
+  // Contribute data
   if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
   {
     String contributeKey = liveData->currentAtshRequest + "_" + liveData->commandRequest;

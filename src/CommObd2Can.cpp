@@ -85,6 +85,8 @@ void CommObd2Can::connectDevice()
   // Serve first command (ATZ)
   liveData->commConnected = true;
   liveData->commandQueueIndex = 0;
+  liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
+  canReconnectAllowedAtMs = millis() + kCanReconnectGraceMs;
   doNextQueueCommand();
 
   syslog->println("init_can() done");
@@ -138,12 +140,15 @@ void CommObd2Can::mainLoop()
     return;
   }
 
-  // Reconnect CAN bus if no response for 5s
+  // Reconnect CAN bus if no response for longer time (avoid false reconnect on transient stalls)
   if ( // liveData->settings.commType == 1 &&
-      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > 5 &&
+      millis() >= canReconnectAllowedAtMs &&
+      liveData->params.currentTime - liveData->params.lastCanbusResponseTime > kCanNoResponseWarnSec &&
       checkConnectAttempts())
   {
-    syslog->print("No response from CANbus for 5 seconds, reconnecting ... ");
+    syslog->print("No response from CANbus for ");
+    syslog->print(kCanNoResponseWarnSec);
+    syslog->print(" seconds, reconnecting ... ");
     syslog->println(getConnectAttempts());
     liveData->redrawScreenRequested = true;
 
