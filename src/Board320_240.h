@@ -44,6 +44,11 @@ protected:
   const lgfx::GFXfont *lastFont;
   void sprSetFont(const lgfx::GFXfont *font);
 #endif // BOARD_M5STACK_CORES3
+  static constexpr int16_t menuBackbufferOverscanPx = 20;
+  uint8_t spriteColorDepth = 8;
+  bool menuBackbufferActive = false;
+  bool ensureMenuBackbuffer();
+  void releaseMenuBackbuffer();
   void sprDrawString(const char *string, int32_t poX, int32_t poY);
   void tftDrawStringFont7(const char *string, int32_t poX, int32_t poY);
   HardwareSerial *gpsHwUart = NULL;

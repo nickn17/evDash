@@ -344,6 +344,35 @@ void CommInterface::parseRowMerged()
 
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
 
+  // Normalize merged response before car-specific parsing:
+  // - keep text error/status responses intact
+  // - for binary frames, strip separators/noise (e.g. ':' in wrapped payloads)
+  String normalized = liveData->responseRowMerged;
+  normalized.trim();
+  normalized.toUpperCase();
+  const bool textResponse =
+      normalized.indexOf("NO DATA") >= 0 ||
+      normalized.indexOf("STOPPED") >= 0 ||
+      normalized.indexOf("ERROR") >= 0 ||
+      normalized.indexOf("UNABLE") >= 0 ||
+      normalized == "?" ||
+      normalized.startsWith("SEARCHING");
+  if (!textResponse)
+  {
+    String hexOnly = "";
+    hexOnly.reserve(normalized.length());
+    for (uint16_t i = 0; i < normalized.length(); i++)
+    {
+      const char ch = normalized.charAt(i);
+      if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F'))
+      {
+        hexOnly += ch;
+      }
+    }
+    normalized = hexOnly;
+  }
+  liveData->responseRowMerged = normalized;
+
   // Parse response
   board->parseRowMerged();
 }

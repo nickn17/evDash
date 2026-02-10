@@ -525,8 +525,11 @@ uint16_t Board320_240::menuItemFromTouchY(int16_t touchY)
  */
 void Board320_240::showMenu()
 {
+  ensureMenuBackbuffer();
   int16_t posY = 0;
   uint16_t tmpCurrMenuItem = 0;
+  const int16_t renderOffsetY = menuBackbufferActive ? menuBackbufferOverscanPx : 0;
+  const int16_t renderHeight = spr.height();
   const bool allowHoverHighlight = !menuDragScrollActive;
   const int16_t textPaddingX = 3;
   const int16_t backIconW = 14;
@@ -539,6 +542,7 @@ void Board320_240::showMenu()
   spr.fillSprite(TFT_BLACK);
   spr.setTextDatum(TL_DATUM);
   sprSetFont(fontRobotoThin24);
+  const int16_t textHeight = spr.fontHeight();
 
   // dynamic car menu
   std::vector<String> customMenu;
@@ -551,7 +555,7 @@ void Board320_240::showMenu()
   menuItemHeight = menuItemHeight * 1.5;
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
   menuVisibleCount = (int)(tft.height() / menuItemHeight);
-  const uint8_t menuVisibleCountWithPartial = (tft.height() + menuItemHeight - 1) / menuItemHeight;
+  const uint8_t menuVisibleCountFull = (menuVisibleCount == 0) ? 1 : menuVisibleCount;
 
   const uint16_t totalItemsCurrent = menuItemsCountCurrent();
   const int32_t totalHeightCurrent = int32_t(totalItemsCurrent) * int32_t(menuItemHeight);
@@ -584,9 +588,9 @@ void Board320_240::showMenu()
   // During drag scrolling we keep raw pixel offset and do not snap to cursor.
   if (!menuDragScrollActive)
   {
-    if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCountWithPartial)
+    if (liveData->menuItemSelected >= liveData->menuItemOffset + menuVisibleCountFull)
     {
-      liveData->menuItemOffset = liveData->menuItemSelected - menuVisibleCountWithPartial + 1;
+      liveData->menuItemOffset = liveData->menuItemSelected - menuVisibleCountFull + 1;
       menuItemOffsetPx = 0;
       posY = 0;
     }
@@ -597,7 +601,7 @@ void Board320_240::showMenu()
       posY = 0;
     }
   }
-  posY = -int16_t(menuItemOffsetPx);
+  posY = renderOffsetY - int16_t(menuItemOffsetPx);
 
   // Print items
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
@@ -618,7 +622,7 @@ void Board320_240::showMenu()
         spr.setTextColor(isMenuItemHovered ? TFT_CYAN : TFT_WHITE);
         bool isBackNavItem = (strncmp(liveData->menuItems[i].title, "<-", 2) == 0);
         int16_t drawX = textPaddingX;
-        if (isBackNavItem && posY > -menuItemHeight && posY < tft.height())
+        if (isBackNavItem && posY > -menuItemHeight && posY < renderHeight)
         {
           uint16_t iconCol = isMenuItemHovered ? TFT_CYAN : TFT_WHITE;
           int16_t cx = textPaddingX + backIconW;
@@ -630,9 +634,10 @@ void Board320_240::showMenu()
           spr.drawLine(textPaddingX + 2, cy, textPaddingX + 6, cy + 4, iconCol);
           drawX += backIconW + backTextGap;
         }
-        if (posY > -menuItemHeight && posY < tft.height())
+        const int16_t textY = posY + off + textOffsetY;
+        if (textY >= 0 && textY + textHeight <= renderHeight)
         {
-          sprDrawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title).c_str(), drawX, posY + off + textOffsetY);
+          sprDrawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title).c_str(), drawX, textY);
         }
         posY += menuItemHeight;
       }
@@ -655,9 +660,10 @@ void Board320_240::showMenu()
       }
       spr.setTextColor(isMenuItemHovered ? TFT_CYAN : TFT_WHITE);
       idx = customMenu.at(i).indexOf("=");
-      if (posY > -menuItemHeight && posY < tft.height())
+      const int16_t textY = posY + off + textOffsetY;
+      if (textY >= 0 && textY + textHeight <= renderHeight)
       {
-        sprDrawString(customMenu.at(i).substring(idx + 1).c_str(), textPaddingX, posY + off + textOffsetY);
+        sprDrawString(customMenu.at(i).substring(idx + 1).c_str(), textPaddingX, textY);
       }
       posY += menuItemHeight;
     }
@@ -666,9 +672,9 @@ void Board320_240::showMenu()
 
   // Slim right-side scrollbar for menu position feedback.
   const int16_t scrollTrackX = 317;
-  const int16_t scrollTrackY = 2;
+  const int16_t scrollTrackY = renderOffsetY + 2;
   const int16_t scrollTrackW = 3;
-  const int16_t scrollTrackH = tft.height() - (scrollTrackY * 2);
+  const int16_t scrollTrackH = tft.height() - 4;
   const uint16_t scrollTrackColor = 0x2104; // subtle dark gray
   const uint16_t scrollThumbColor = 0x5AEB; // softer cyan-blue
   spr.fillRoundRect(scrollTrackX, scrollTrackY, scrollTrackW, scrollTrackH, 1, scrollTrackColor);
@@ -699,7 +705,7 @@ void Board320_240::showMenu()
     spr.fillRoundRect(scrollTrackX, thumbY, scrollTrackW, thumbH, 1, scrollThumbColor);
   }
 
-  spr.pushSprite(0, 0);
+  spr.pushSprite(0, -renderOffsetY);
 }
 
 /**
@@ -711,6 +717,7 @@ void Board320_240::hideMenu()
   liveData->menuCurrent = 0;
   liveData->menuItemSelected = 0;
   menuTouchHoverIndex = -1;
+  releaseMenuBackbuffer();
   redrawScreen();
 }
 

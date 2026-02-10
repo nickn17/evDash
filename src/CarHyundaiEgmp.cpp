@@ -12,84 +12,84 @@
 
 namespace
 {
-const char *udsNrcDescription(const String &nrc)
-{
-  if (nrc.equals("10"))
-    return "General reject";
-  if (nrc.equals("11"))
-    return "Service not supported";
-  if (nrc.equals("12"))
-    return "Sub-function not supported";
-  if (nrc.equals("13"))
-    return "Incorrect message length or invalid format";
-  if (nrc.equals("14"))
-    return "Response too long";
-  if (nrc.equals("21"))
-    return "Busy repeat request";
-  if (nrc.equals("22"))
-    return "Conditions not correct";
-  if (nrc.equals("24"))
-    return "Request sequence error";
-  if (nrc.equals("25"))
-    return "No response from subnet component";
-  if (nrc.equals("26"))
-    return "Failure prevents execution";
-  if (nrc.equals("31"))
-    return "Request out of range";
-  if (nrc.equals("33"))
-    return "Security access denied";
-  if (nrc.equals("35"))
-    return "Invalid key";
-  if (nrc.equals("36"))
-    return "Exceeded number of attempts";
-  if (nrc.equals("37"))
-    return "Required time delay not expired";
-  if (nrc.equals("78"))
-    return "Response pending";
-  if (nrc.equals("7E"))
-    return "Sub-function not supported in active session";
-  if (nrc.equals("7F"))
-    return "Service not supported in active session";
-  return "Unknown";
-}
-
-void logUdsResponse(LogSerial *logger, const char *label, const String &request, const String &response, bool gotResponse)
-{
-  if (!logger)
-    return;
-
-  String msg = String(label) + " " + request + " -> ";
-  if (!gotResponse)
+  const char *udsNrcDescription(const String &nrc)
   {
-    msg += "[no response]";
+    if (nrc.equals("10"))
+      return "General reject";
+    if (nrc.equals("11"))
+      return "Service not supported";
+    if (nrc.equals("12"))
+      return "Sub-function not supported";
+    if (nrc.equals("13"))
+      return "Incorrect message length or invalid format";
+    if (nrc.equals("14"))
+      return "Response too long";
+    if (nrc.equals("21"))
+      return "Busy repeat request";
+    if (nrc.equals("22"))
+      return "Conditions not correct";
+    if (nrc.equals("24"))
+      return "Request sequence error";
+    if (nrc.equals("25"))
+      return "No response from subnet component";
+    if (nrc.equals("26"))
+      return "Failure prevents execution";
+    if (nrc.equals("31"))
+      return "Request out of range";
+    if (nrc.equals("33"))
+      return "Security access denied";
+    if (nrc.equals("35"))
+      return "Invalid key";
+    if (nrc.equals("36"))
+      return "Exceeded number of attempts";
+    if (nrc.equals("37"))
+      return "Required time delay not expired";
+    if (nrc.equals("78"))
+      return "Response pending";
+    if (nrc.equals("7E"))
+      return "Sub-function not supported in active session";
+    if (nrc.equals("7F"))
+      return "Service not supported in active session";
+    return "Unknown";
+  }
+
+  void logUdsResponse(LogSerial *logger, const char *label, const String &request, const String &response, bool gotResponse)
+  {
+    if (!logger)
+      return;
+
+    String msg = String(label) + " " + request + " -> ";
+    if (!gotResponse)
+    {
+      msg += "[no response]";
+      logger->info(DEBUG_COMM, msg);
+      return;
+    }
+    if (response.length() == 0)
+    {
+      msg += "[empty response]";
+      logger->info(DEBUG_COMM, msg);
+      return;
+    }
+
+    String resp = response;
+    resp.toUpperCase();
+    msg += resp;
+
+    if (resp.startsWith("7F") && resp.length() >= 6)
+    {
+      String svc = resp.substring(2, 4);
+      String nrc = resp.substring(4, 6);
+      msg += " NRC ";
+      msg += nrc;
+      msg += " (";
+      msg += udsNrcDescription(nrc);
+      msg += "), svc ";
+      msg += svc;
+    }
+
     logger->info(DEBUG_COMM, msg);
-    return;
   }
-  if (response.length() == 0)
-  {
-    msg += "[empty response]";
-    logger->info(DEBUG_COMM, msg);
-    return;
-  }
-
-  String resp = response;
-  resp.toUpperCase();
-  msg += resp;
-
-  if (resp.startsWith("7F") && resp.length() >= 6)
-  {
-    String svc = resp.substring(2, 4);
-    String nrc = resp.substring(4, 6);
-    msg += " NRC ";
-    msg += nrc;
-    msg += " (";
-    msg += udsNrcDescription(nrc);
-    msg += "), svc ";
-    msg += svc;
-  }
-
-  logger->info(DEBUG_COMM, msg);
-}
 } // namespace
 
 // https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
@@ -399,10 +399,39 @@ void CarHyundaiEgmp::parseRowMerged()
   //  float tempFloat;
   String tmpStr;
 
+  String response = liveData->responseRowMerged;
+  response.trim();
+  response.toUpperCase();
+  liveData->responseRowMerged = response;
+
+  auto hasResponse = [&]() {
+    return response.length() > 0 &&
+           !response.equals("NO DATA") &&
+           !response.equals("NODATA") &&
+           !response.equals("?") &&
+           response.indexOf("ERROR") < 0 &&
+           response.indexOf("UNABLE") < 0 &&
+           response.indexOf("STOPPED") < 0 &&
+           !response.startsWith("7F");
+  };
+
+  auto hasPrefixAndLength = [&](const char *prefix, uint16_t minLength) {
+    return response.startsWith(prefix) &&
+           response.length() >= minLength &&
+           (response.length() % 2 == 0);
+  };
+
+  auto inRangeF = [](float value, float minValue, float maxValue) {
+    return value >= minValue && value <= maxValue;
+  };
+
+  if (!hasResponse())
+    return;
+
   // IGPM
   if (liveData->currentAtshRequest.equals("ATSH770"))
   {
-    if (liveData->commandRequest.equals("22BC03"))
+    if (liveData->commandRequest.equals("22BC03") && hasPrefixAndLength("62BC03", 20))
     {
       // Ignition ON state / Trunk opened
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
@@ -438,7 +467,7 @@ void CarHyundaiEgmp::parseRowMerged()
       liveData->params.dayLights = (bitRead(tempByte, 2) == 1);
     }
 
-    if (liveData->commandRequest.equals("22BC06"))
+    if (liveData->commandRequest.equals("22BC06") && hasPrefixAndLength("62BC06", 16))
     {
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.brakeLights = (bitRead(tempByte, 5) == 1);
@@ -449,21 +478,25 @@ void CarHyundaiEgmp::parseRowMerged()
   // RESPONDING WHEN CAR IS OFF
   if (liveData->currentAtshRequest.equals("ATSH7D1"))
   {
-    if (liveData->commandRequest.equals("220104"))
+    if (liveData->commandRequest.equals("220104") && hasPrefixAndLength("620104", 24))
     {
       uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false); // Decode gear selector status
       liveData->params.forwardDriveMode = (driveMode == 4);
       liveData->params.reverseDriveMode = (driveMode == 2);
       liveData->params.parkModeOrNeutral = (driveMode == 1);
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(18, 20, 2, false);
-      liveData->params.speedKmh += (liveData->params.speedKmh > 10) ? liveData->settings.speedCorrection : 0;
+      float speed = liveData->hexToDecFromResponse(18, 20, 2, false);
+      if (inRangeF(speed, 0, 260))
+      {
+        speed += (speed > 10) ? liveData->settings.speedCorrection : 0;
+        liveData->params.speedKmh = speed;
+      }
     }
   }
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0"))
   {
-    if (liveData->commandRequest.equals("22C00B"))
+    if (liveData->commandRequest.equals("22C00B") && hasPrefixAndLength("62C00B", 48))
     {
       liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;  // === OK Valid *0.2 / 14.503773800722
       liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(24, 26, 2, false) / 72.51886900361; // === OK Valid *0.2 / 14.503773800722
@@ -479,13 +512,17 @@ void CarHyundaiEgmp::parseRowMerged()
   // Aircon 7B3
   if (liveData->currentAtshRequest.equals("ATSH7B3"))
   {
-    if (liveData->commandRequest.equals("220100"))
+    if (liveData->commandRequest.equals("220100") && hasPrefixAndLength("620100", 20))
     {
-      liveData->params.indoorTemperature = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
-      liveData->params.outdoorTemperature = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
+      const float indoor = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+      const float outdoor = (liveData->hexToDecFromResponse(18, 20, 1, false) / 2) - 40;
+      if (inRangeF(indoor, -30, 80))
+        liveData->params.indoorTemperature = indoor;
+      if (inRangeF(outdoor, -30, 80))
+        liveData->params.outdoorTemperature = outdoor;
       // liveData->params.evaporatorTempC = (liveData->hexToDecFromResponse(20, 22, 1, false) / 2) - 40;
     }
-    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "00")
+    if (liveData->commandRequest.equals("220102") && hasPrefixAndLength("620102", 18) && liveData->responseRowMerged.substring(12, 14) == "00")
     {
       // liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
       // liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
@@ -495,9 +532,11 @@ void CarHyundaiEgmp::parseRowMerged()
   // Cluster module 7C6
   if (liveData->currentAtshRequest.equals("ATSH7C6"))
   {
-    if (liveData->commandRequest.equals("22B002"))
+    if (liveData->commandRequest.equals("22B002") && hasPrefixAndLength("62B002", 24))
     {
-      liveData->params.odoKm = liveData->decFromResponse(18, 24);
+      const float odo = liveData->decFromResponse(18, 24);
+      if (inRangeF(odo, 0, 2000000))
+        liveData->params.odoKm = odo;
     }
   }
 
@@ -530,17 +569,21 @@ void CarHyundaiEgmp::parseRowMerged()
   // ICCU 7E5
   if (liveData->currentAtshRequest.equals("ATSH7E5"))
   {
-    if (liveData->commandRequest.equals("22E011"))
+    if (liveData->commandRequest.equals("22E011") && hasPrefixAndLength("62E011", 48))
     {
-      liveData->params.auxCurrentAmp = -liveData->hexToDecFromResponse(30, 34, 2, true) / 1000.0;
-      liveData->params.auxPerc = liveData->hexToDecFromResponse(46, 48, 1, false);
+      const float auxCurrent = -liveData->hexToDecFromResponse(30, 34, 2, true) / 1000.0;
+      const float auxPerc = liveData->hexToDecFromResponse(46, 48, 1, false);
+      if (inRangeF(auxCurrent, -200, 200))
+        liveData->params.auxCurrentAmp = auxCurrent;
+      if (inRangeF(auxPerc, 0, 100))
+        liveData->params.auxPerc = auxPerc;
     }
   }
 
   // VIN from UDS DID F190 (any ECU)
   if (liveData->commandRequest.equals("22F190") && liveData->params.carVin[0] == 0)
   {
-    if (liveData->responseRowMerged.startsWith("62F190"))
+    if (hasPrefixAndLength("62F190", 40))
     {
       char vin[18] = {0};
       uint8_t vinLen = 0;
@@ -597,43 +640,83 @@ void CarHyundaiEgmp::parseRowMerged()
   // BMS 7e4
   if (liveData->currentAtshRequest.equals("ATSH7E4"))
   {
-    if (liveData->commandRequest.equals("220101"))
+    if (liveData->commandRequest.equals("220101") && hasPrefixAndLength("620101", 120))
     {
       liveData->params.operationTimeSec = liveData->hexToDecFromResponse(98, 106, 4, false);
-      liveData->params.cumulativeChargeCurrentAh = liveData->decFromResponse(66, 74) / 10.0;
-      liveData->params.cumulativeDischargeCurrentAh = liveData->decFromResponse(74, 82) / 10.0;
-      liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
-      liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
-      liveData->params.availableChargePower = liveData->decFromResponse(16, 20) / 100.0;
-      liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
-      // liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
-      liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
-      liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 1, false);
-      liveData->params.batPowerAmp = -liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
-      liveData->params.batVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
-      liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
-      if (liveData->params.batPowerKw < 0) // Reset charging start time
-        liveData->params.chargingStartTime = liveData->params.currentTime;
-      if (liveData->params.speedKmh > 20)
+
+      const float cChargeAh = liveData->decFromResponse(66, 74) / 10.0;
+      const float cDischargeAh = liveData->decFromResponse(74, 82) / 10.0;
+      const float cecKWh = liveData->decFromResponse(82, 90) / 10.0;
+      const float cedKWh = liveData->decFromResponse(90, 98) / 10.0;
+      const float availChargeKw = liveData->decFromResponse(16, 20) / 100.0;
+      const float availDischargeKw = liveData->decFromResponse(20, 24) / 100.0;
+      if (inRangeF(cChargeAh, 0, 2000000))
+        liveData->params.cumulativeChargeCurrentAh = cChargeAh;
+      if (inRangeF(cDischargeAh, 0, 2000000))
+        liveData->params.cumulativeDischargeCurrentAh = cDischargeAh;
+      if (inRangeF(cecKWh, 0, 2000000))
+        liveData->params.cumulativeEnergyChargedKWh = cecKWh;
+      if (inRangeF(cedKWh, 0, 2000000))
+        liveData->params.cumulativeEnergyDischargedKWh = cedKWh;
+      if (inRangeF(availChargeKw, 0, 600))
+        liveData->params.availableChargePower = availChargeKw;
+      if (inRangeF(availDischargeKw, 0, 600))
+        liveData->params.availableDischargePower = availDischargeKw;
+
+      const float fanStatus = liveData->hexToDecFromResponse(60, 62, 1, false);
+      const float fanFeedback = liveData->hexToDecFromResponse(62, 64, 1, false);
+      if (inRangeF(fanStatus, 0, 255))
+        liveData->params.batFanStatus = fanStatus;
+      if (inRangeF(fanFeedback, 0, 255))
+        liveData->params.batFanFeedbackHz = fanFeedback;
+
+      const float decodedBatPowerAmp = -liveData->hexToDecFromResponse(26, 30, 2, true) / 10.0;
+      const float decodedBatVoltage = liveData->hexToDecFromResponse(30, 34, 2, false) / 10.0;
+      if (inRangeF(decodedBatPowerAmp, -2000, 2000) && inRangeF(decodedBatVoltage, 250, 900))
       {
-        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+        liveData->params.batPowerAmp = decodedBatPowerAmp;
+        liveData->params.batVoltage = decodedBatVoltage;
+        liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
+        if (liveData->params.batPowerKw < 0) // Reset charging start time
+          liveData->params.chargingStartTime = liveData->params.currentTime;
+        if (liveData->params.speedKmh > 20)
+        {
+          liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+        }
+        else if (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20 && liveData->params.gpsSat >= 4)
+        {
+          liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmhGPS * 100;
+        }
+        else
+        {
+          liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
+        }
       }
-      else if (liveData->params.speedKmh == -1 && liveData->params.speedKmhGPS > 20 && liveData->params.gpsSat >= 4)
-      {
-        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmhGPS * 100;
-      }
-      else
-      {
-        liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
-      }
+
       if (liveData->settings.voltmeterEnabled == 0)
       {
-        liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+        const float auxV = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
+        if (inRangeF(auxV, 9.0, 16.5))
+          liveData->params.auxVoltage = auxV;
       }
-      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(52, 54, 1, false) / 50.0;
-      liveData->params.batCellMaxVNo = liveData->hexToDecFromResponse(54, 56, 1, false);
-      liveData->params.batCellMinV = liveData->hexToDecFromResponse(56, 58, 1, false) / 50.0;
-      liveData->params.batCellMinVNo = liveData->hexToDecFromResponse(58, 60, 1, false);
+
+      const uint16_t rawCellMax = liveData->hexToDecFromResponse(52, 54, 1, false);
+      const uint16_t rawCellMin = liveData->hexToDecFromResponse(56, 58, 1, false);
+      const uint16_t rawCellMaxNo = liveData->hexToDecFromResponse(54, 56, 1, false);
+      const uint16_t rawCellMinNo = liveData->hexToDecFromResponse(58, 60, 1, false);
+      if (rawCellMax >= 125 && rawCellMax <= 215)
+      {
+        liveData->params.batCellMaxV = rawCellMax / 50.0;
+        if (rawCellMaxNo >= 1 && rawCellMaxNo <= liveData->params.cellCount)
+          liveData->params.batCellMaxVNo = rawCellMaxNo;
+      }
+      if (rawCellMin >= 125 && rawCellMin <= 215)
+      {
+        liveData->params.batCellMinV = rawCellMin / 50.0;
+        if (rawCellMinNo >= 1 && rawCellMinNo <= liveData->params.cellCount)
+          liveData->params.batCellMinVNo = rawCellMinNo;
+      }
+
       const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
                                 liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
                                 liveData->settings.carType == CAR_KIA_EV6_58_63);
@@ -646,33 +729,51 @@ void CarHyundaiEgmp::parseRowMerged()
           liveData->params.batModuleTempCount = tempCount;
         for (uint8_t i = 0; i < tempCount; i++)
         {
-          float temp = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
-          if (temp < -40 || temp > 120)
-            temp = -100;
-          liveData->params.batModuleTempC[i] = temp;
+          const float temp = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
+          if (inRangeF(temp, -30, 80))
+            liveData->params.batModuleTempC[i] = temp;
         }
       }
       else
       {
-        liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(38, 40, 1, true); // 1
-        liveData->params.batModuleTempC[1] = liveData->hexToDecFromResponse(40, 42, 1, true); // 2
-        liveData->params.batModuleTempC[2] = liveData->hexToDecFromResponse(42, 44, 1, true); // 3
-        liveData->params.batModuleTempC[3] = liveData->hexToDecFromResponse(44, 46, 1, true); // 4
-        liveData->params.batModuleTempC[4] = liveData->hexToDecFromResponse(46, 48, 1, true); // 5
+        const float t0 = liveData->hexToDecFromResponse(38, 40, 1, true);
+        const float t1 = liveData->hexToDecFromResponse(40, 42, 1, true);
+        const float t2 = liveData->hexToDecFromResponse(42, 44, 1, true);
+        const float t3 = liveData->hexToDecFromResponse(44, 46, 1, true);
+        const float t4 = liveData->hexToDecFromResponse(46, 48, 1, true);
+        if (inRangeF(t0, -30, 80))
+          liveData->params.batModuleTempC[0] = t0;
+        if (inRangeF(t1, -30, 80))
+          liveData->params.batModuleTempC[1] = t1;
+        if (inRangeF(t2, -30, 80))
+          liveData->params.batModuleTempC[2] = t2;
+        if (inRangeF(t3, -30, 80))
+          liveData->params.batModuleTempC[3] = t3;
+        if (inRangeF(t4, -30, 80))
+          liveData->params.batModuleTempC[4] = t4;
       }
-      liveData->params.motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
-      liveData->params.motor2Rpm = liveData->hexToDecFromResponse(116, 120, 2, false);
-      // liveData->params.batTempC = liveData->hexToDecFromResponse(36, 38, 1, true);
-      liveData->params.batMaxC = liveData->hexToDecFromResponse(34, 36, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt
-      liveData->params.batMinC = liveData->hexToDecFromResponse(36, 38, 1, true); // ändrat 2023-12-15 21:14 för att testa om det är rätt
 
-      // This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
+      const float motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
+      const float motor2Rpm = liveData->hexToDecFromResponse(116, 120, 2, false);
+      if (inRangeF(motor1Rpm, 0, 30000))
+        liveData->params.motor1Rpm = motor1Rpm;
+      if (inRangeF(motor2Rpm, 0, 30000))
+        liveData->params.motor2Rpm = motor2Rpm;
+
+      const float decodedBatMax = liveData->hexToDecFromResponse(34, 36, 1, true);
+      const float decodedBatMin = liveData->hexToDecFromResponse(36, 38, 1, true);
+      if (inRangeF(decodedBatMax, -30, 80))
+        liveData->params.batMaxC = decodedBatMax;
+      if (inRangeF(decodedBatMin, -30, 80))
+        liveData->params.batMinC = decodedBatMin;
+
+      // This is more accurate than min/max from BMS.
       float minTemp = 999;
       float maxTemp = -999;
       for (uint16_t i = 0; i < liveData->params.batModuleTempCount; i++)
       {
         const float temp = liveData->params.batModuleTempC[i];
-        if (temp == -100)
+        if (!inRangeF(temp, -30, 80))
           continue;
         if (temp < minTemp)
           minTemp = temp;
@@ -685,15 +786,9 @@ void CarHyundaiEgmp::parseRowMerged()
         liveData->params.batMaxC = maxTemp;
         liveData->params.batTempC = liveData->params.batMinC;
       }
-      else
-      {
-        liveData->params.batMinC = -100;
-        liveData->params.batMaxC = -100;
-        liveData->params.batTempC = -100;
-      }
 
       const float batInlet = liveData->hexToDecFromResponse(50, 52, 1, true);
-      if (batInlet > -40 && batInlet < 120)
+      if (inRangeF(batInlet, -30, 80))
         liveData->params.batInletC = batInlet;
       if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
       {
@@ -713,61 +808,84 @@ void CarHyundaiEgmp::parseRowMerged()
       // liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
       // liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
     }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("220102") && liveData->responseRowMerged.substring(12, 14) == "FF")
-    {
-      for (int i = 0; i < 32; i++)
+    const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
+                              liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+                              liveData->settings.carType == CAR_KIA_EV6_58_63);
+    auto parseCellBlock = [&](const char *prefix, int16_t destOffset, uint8_t minValidCells) {
+      if (!hasPrefixAndLength(prefix, 78))
+        return;
+      float tmpVoltages[32];
+      bool validCell[32];
+      uint8_t validCount = 0;
+      uint8_t c8Count = 0;
+      uint8_t ffCount = 0;
+      uint8_t zeroCount = 0;
+      for (uint8_t i = 0; i < 32; i++)
       {
-        liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+        const uint16_t raw = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false);
+        if (raw == 0xC8)
+          c8Count++;
+        else if (raw == 0xFF)
+          ffCount++;
+        else if (raw == 0x00)
+          zeroCount++;
+
+        if (raw >= 125 && raw <= 215)
+        {
+          tmpVoltages[i] = raw / 50.0;
+          validCell[i] = true;
+          validCount++;
+        }
+        else
+        {
+          validCell[i] = false;
+        }
       }
-    }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("220103"))
-    {
-      for (int i = 0; i < 32; i++)
+      // Placeholder-heavy blocks are typically invalid/incomplete responses (keep last good values).
+      const bool placeholderFlood = (c8Count >= 28) || (ffCount >= 28) || (zeroCount >= 28);
+      if (placeholderFlood || validCount < minValidCells)
+        return;
+      for (uint8_t i = 0; i < 32; i++)
       {
-        liveData->params.cellVoltage[32 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
+        if (!validCell[i])
+          continue;
+        liveData->params.cellVoltage[destOffset + i] = tmpVoltages[i];
       }
-    }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("220104"))
-    {
-      for (int i = 0; i < 32; i++)
-      {
-        liveData->params.cellVoltage[64 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
-      }
-    }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("22010A"))
-    {
-      for (int i = 0; i < 32; i++)
-      {
-        liveData->params.cellVoltage[96 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
-      }
-    }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("22010B"))
-    {
-      for (int i = 0; i < 32; i++)
-      {
-        liveData->params.cellVoltage[128 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
-      }
-    }
-    // BMS 7e4
-    if (liveData->commandRequest.equals("22010C"))
-    {
-      for (int i = 0; i < 32; i++)
-      {
-        liveData->params.cellVoltage[160 + i] = liveData->hexToDecFromResponse(14 + (i * 2), 14 + (i * 2) + 2, 1, false) / 50;
-      }
-    }
+    };
 
     // BMS 7e4
-    if (liveData->commandRequest.equals("220105"))
+    if (liveData->commandRequest.equals("220102"))
+      parseCellBlock("620102", 0, 24);
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220103"))
+      parseCellBlock("620103", 32, 24);
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220104"))
+      parseCellBlock("620104", 64, 24);
+    // BMS 7e4
+    if (liveData->commandRequest.equals("22010A"))
+      parseCellBlock("62010A", 96, 24);
+    // BMS 7e4
+    if (liveData->commandRequest.equals("22010B"))
+      parseCellBlock("62010B", 128, isSmallPack ? 8 : 24);
+    // BMS 7e4
+    if (liveData->commandRequest.equals("22010C") && !isSmallPack)
+      parseCellBlock("62010C", 160, 24);
+
+    // BMS 7e4
+    if (liveData->commandRequest.equals("220105") && hasPrefixAndLength("620105", 84))
     {
       liveData->params.socPercPrevious = liveData->params.socPerc;
-      liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
-      liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
+      const float decodedSoh = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
+      if (inRangeF(decodedSoh, 0, 100))
+        liveData->params.sohPerc = decodedSoh;
+
+      const float decodedSoc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
+      const bool suspiciousSocDropToZero = (decodedSoc == 0 &&
+                                            liveData->params.socPerc > 5 &&
+                                            liveData->params.batVoltage > 300);
+      if (inRangeF(decodedSoc, 0, 100) && !suspiciousSocDropToZero)
+        liveData->params.socPerc = decodedSoc;
       // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
 
       const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
@@ -781,10 +899,9 @@ void CarHyundaiEgmp::parseRowMerged()
         {
           for (uint8_t i = 0; i < tempCount; i++)
           {
-            float temp = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
-            if (temp < -40 || temp > 120)
-              temp = -100;
-            liveData->params.batModuleTempC[i] = temp;
+            const float temp = liveData->hexToDecFromResponse(tempStart + (i * 2), tempStart + (i * 2) + 2, 1, true);
+            if (inRangeF(temp, -30, 80))
+              liveData->params.batModuleTempC[i] = temp;
           }
 
           float minTemp = 999;
@@ -792,7 +909,7 @@ void CarHyundaiEgmp::parseRowMerged()
           for (uint8_t i = 0; i < tempCount; i++)
           {
             const float temp = liveData->params.batModuleTempC[i];
-            if (temp == -100)
+            if (!inRangeF(temp, -30, 80))
               continue;
             if (temp < minTemp)
               minTemp = temp;
@@ -809,17 +926,39 @@ void CarHyundaiEgmp::parseRowMerged()
       }
       else
       {
-        liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(24, 26, 1, true);  // 6
-        liveData->params.batModuleTempC[6] = liveData->hexToDecFromResponse(26, 28, 1, true);  // 7
-        liveData->params.batModuleTempC[7] = liveData->hexToDecFromResponse(28, 30, 1, true);  // 8
-        liveData->params.batModuleTempC[8] = liveData->hexToDecFromResponse(30, 32, 1, true);  // 9
-        liveData->params.batModuleTempC[9] = liveData->hexToDecFromResponse(32, 34, 1, true);  // 10
-        liveData->params.batModuleTempC[10] = liveData->hexToDecFromResponse(34, 36, 1, true); // 11
-        liveData->params.batModuleTempC[11] = liveData->hexToDecFromResponse(36, 38, 1, true); // 12
-        liveData->params.batModuleTempC[12] = liveData->hexToDecFromResponse(84, 86, 1, true); // 13
-        liveData->params.batModuleTempC[13] = liveData->hexToDecFromResponse(86, 88, 1, true); // 14
-        liveData->params.batModuleTempC[14] = liveData->hexToDecFromResponse(88, 90, 1, true); // 15
-        liveData->params.batModuleTempC[15] = liveData->hexToDecFromResponse(90, 92, 1, true); // 16
+        const float t5 = liveData->hexToDecFromResponse(24, 26, 1, true);
+        const float t6 = liveData->hexToDecFromResponse(26, 28, 1, true);
+        const float t7 = liveData->hexToDecFromResponse(28, 30, 1, true);
+        const float t8 = liveData->hexToDecFromResponse(30, 32, 1, true);
+        const float t9 = liveData->hexToDecFromResponse(32, 34, 1, true);
+        const float t10 = liveData->hexToDecFromResponse(34, 36, 1, true);
+        const float t11 = liveData->hexToDecFromResponse(36, 38, 1, true);
+        const float t12 = liveData->hexToDecFromResponse(84, 86, 1, true);
+        const float t13 = liveData->hexToDecFromResponse(86, 88, 1, true);
+        const float t14 = liveData->hexToDecFromResponse(88, 90, 1, true);
+        const float t15 = liveData->hexToDecFromResponse(90, 92, 1, true);
+        if (inRangeF(t5, -30, 80))
+          liveData->params.batModuleTempC[5] = t5;
+        if (inRangeF(t6, -30, 80))
+          liveData->params.batModuleTempC[6] = t6;
+        if (inRangeF(t7, -30, 80))
+          liveData->params.batModuleTempC[7] = t7;
+        if (inRangeF(t8, -30, 80))
+          liveData->params.batModuleTempC[8] = t8;
+        if (inRangeF(t9, -30, 80))
+          liveData->params.batModuleTempC[9] = t9;
+        if (inRangeF(t10, -30, 80))
+          liveData->params.batModuleTempC[10] = t10;
+        if (inRangeF(t11, -30, 80))
+          liveData->params.batModuleTempC[11] = t11;
+        if (inRangeF(t12, -30, 80))
+          liveData->params.batModuleTempC[12] = t12;
+        if (inRangeF(t13, -30, 80))
+          liveData->params.batModuleTempC[13] = t13;
+        if (inRangeF(t14, -30, 80))
+          liveData->params.batModuleTempC[14] = t14;
+        if (inRangeF(t15, -30, 80))
+          liveData->params.batModuleTempC[15] = t15;
       }
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
@@ -834,14 +973,18 @@ void CarHyundaiEgmp::parseRowMerged()
           liveData->params.soc10time[index] = liveData->params.currentTime;
         }
       }
-      liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
+      const float bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
+      if (inRangeF(bmsUnknownTempA, -30, 120))
+        liveData->params.bmsUnknownTempA = bmsUnknownTempA;
       const float batHeater = liveData->hexToDecFromResponse(52, 54, 1, true);
-      if (batHeater > -40 && batHeater < 120)
+      if (inRangeF(batHeater, -30, 120))
         liveData->params.batHeaterC = batHeater;
-      liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
+      const float bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
+      if (inRangeF(bmsUnknownTempB, -30, 120))
+        liveData->params.bmsUnknownTempB = bmsUnknownTempB;
     }
     // BMS 7e4
-    if (liveData->commandRequest.equals("220106"))
+    if (liveData->commandRequest.equals("220106") && hasPrefixAndLength("620106", 56))
     {
       liveData->params.getValidResponse = true;
       tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
@@ -854,9 +997,15 @@ void CarHyundaiEgmp::parseRowMerged()
       liveData->params.chargerDCconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 12);
 
       //
-      liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
-      liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
-      liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
+      const float coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
+      const float bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
+      const float bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
+      if (inRangeF(coolingWaterTempC, -30, 120))
+        liveData->params.coolingWaterTempC = coolingWaterTempC;
+      if (inRangeF(bmsUnknownTempC, -30, 120))
+        liveData->params.bmsUnknownTempC = bmsUnknownTempC;
+      if (inRangeF(bmsUnknownTempD, -30, 120))
+        liveData->params.bmsUnknownTempD = bmsUnknownTempD;
       // Battery management mode
       tempByte = liveData->hexToDecFromResponse(24, 26, 1, false);
       switch (tempByte)
@@ -968,6 +1117,16 @@ bool CarHyundaiEgmp::commandAllowed()
     return false;
   }
 
+  // 58/63 kWh packs have 144 cells; 22010C block is not needed and often noisy.
+  if ((liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
+       liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+       liveData->settings.carType == CAR_KIA_EV6_58_63) &&
+      liveData->currentAtshRequest.equals("ATSH7E4") &&
+      liveData->commandRequest.equals("22010C"))
+  {
+    return false;
+  }
+
   // BMS (only for SCREEN_CELLS)
   /*if (liveData->currentAtshRequest.equals("ATSH7E4"))
   {
@@ -1024,6 +1183,94 @@ bool CarHyundaiEgmp::commandAllowed()
 */
 void CarHyundaiEgmp::loadTestData()
 {
+  auto applyDemoResponse = [&](const char *atsh, const char *command, const String &response)
+  {
+    liveData->currentAtshRequest = atsh;
+    liveData->commandRequest = command;
+    liveData->responseRowMerged = response;
+    parseRowMerged();
+  };
+
+  auto makeCellResponse = [](const char *did, const char *cellByteHex)
+  {
+    String response = "62";
+    response += did;
+    response += "FFFFFFFF";
+    for (uint8_t i = 0; i < 32; i++)
+      response += cellByteHex;
+    response += "AAAA";
+    return response;
+  };
+
+  // Ioniq6 AWD 77 demo (from provided contribute payload)
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_77_84)
+  {
+    applyDemoResponse("ATSH770", "22BC01", "62BC014200000000010000000002AAAAAAAAAAAA");
+    applyDemoResponse("ATSH770", "22BC03", "62BC03FDFE20620A600400AAAA");
+    applyDemoResponse("ATSH770", "22BC04", "62BC04302F70200C000000AAAA");
+    applyDemoResponse("ATSH770", "22BC05", "62BC050F132000004000AAAAAA");
+    applyDemoResponse("ATSH770", "22BC06", "62BC06B400006D00000080AAAA");
+    applyDemoResponse("ATSH770", "22BC07", "62BC0700401BFE00001840AAAA");
+
+    applyDemoResponse("ATSH7D1", "220104", "620104FFFEFFFC0000000001BD00000000000600277FFF00F0F0F0F0D5FC000011D0FF4AF5FFFB00000000FDFFFAAAAA");
+    applyDemoResponse("ATSH7D1", "220105", "620105518F0000");
+    applyDemoResponse("ATSH7D1", "220106", "6201062000080008880880AAAA");
+
+    applyDemoResponse("ATSH7A0", "22C00B", "62C00BFFFFFFF80000000002000000000200000000020000000002FFFFFFFFFFFFFFFFFFAAAAAAAAAA");
+    applyDemoResponse("ATSH7B3", "220100", "6201007F9427C8FF77575100E88F01EEFFFF0FFFB4FFFFFFFFDDFFFF4C7DC4D100FFFF01FFFFFFAAAA");
+
+    applyDemoResponse("ATSH7C6", "22B001", "62B00100000000");
+    applyDemoResponse("ATSH7C6", "22B002", "62B002E0000000FFB601FDB8000000AAAAAAAAAA");
+    applyDemoResponse("ATSH7C6", "22B003", "62B0039C8000000101AAAAAAAA");
+    applyDemoResponse("ATSH7C6", "22F190", "62F1904B4D484D35343143375041303137303837");
+
+    applyDemoResponse("ATSH7E2", "22E003", "62E003FFFC00000001000001010001000000000000000000000000000000FC000000");
+    applyDemoResponse("ATSH7E2", "22E004", "62E004FC00000014060A03000000009A7500000000000000000000000000FFF80000");
+    applyDemoResponse("ATSH7E2", "22E005", "62E005FFF80000CC058D040C060000000000D40002857548008F0705000600000000");
+    applyDemoResponse("ATSH7E5", "22E011", "62E011FFFFFFF801010000006E3A750CEF1BB638F6826051224B006108010101000A000033000700000000000000000000AAAAAAAAAAAA");
+
+    applyDemoResponse("ATSH7E4", "220101", "620101EFFBE7EF6E000000000000591BD007050505050505002BB952B99100008D00051D8D00050DFC0003D282000391F20168C7B30002C9000000000665");
+    applyDemoResponse("ATSH7E4", "220102", makeCellResponse("0102", "B9"));
+    applyDemoResponse("ATSH7E4", "220103", makeCellResponse("0103", "B9"));
+    applyDemoResponse("ATSH7E4", "220104", makeCellResponse("0104", "B9"));
+    applyDemoResponse("ATSH7E4", "220105", "6201051FFB740F012C01012C0605050505050661146162000050120003B61D424C006D0000000000000005050505AAAA");
+    // 220106 was missing in source payload; this is a compatible non-charging frame.
+    applyDemoResponse("ATSH7E4", "220106", "62010617F811000D000C000000000000000000000000000500EA000000000000000000000000AAAAAA");
+    applyDemoResponse("ATSH7E4", "22010A", makeCellResponse("010A", "B9"));
+    applyDemoResponse("ATSH7E4", "22010B", makeCellResponse("010B", "B9"));
+    applyDemoResponse("ATSH7E4", "22010C", makeCellResponse("010C", "B9"));
+    return;
+  }
+
+  // Ioniq6 58/63 demo (updated from provided contribute capture)
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63)
+  {
+    applyDemoResponse("ATSH770", "22BC01", "62BC014200000000030000000002AAAAAAAAAAAA");
+    applyDemoResponse("ATSH770", "22BC03", "62BC03FDFE20620A000000AAAA");
+    applyDemoResponse("ATSH770", "22BC04", "62BC04302F70200C000000AAAA");
+    applyDemoResponse("ATSH770", "22BC05", "62BC050F132000000000AAAAAA");
+    applyDemoResponse("ATSH770", "22BC06", "62BC06B400006D00000000AAAA");
+    applyDemoResponse("ATSH770", "22BC07", "62BC0700401BFE00001000AAAA");
+
+    applyDemoResponse("ATSH7A0", "22C00B", "62C00BFFFFFFF800000000020000000020000000000000002FFFFFFFAAAA");
+
+    applyDemoResponse("ATSH7C6", "22B001", "62B00100000000");
+    applyDemoResponse("ATSH7C6", "22B002", "62B002E0000000FF9200F181000000AAAAAAAAAA");
+    applyDemoResponse("ATSH7C6", "22F190", "62F1904B4D484D33343142315041303637363236");
+
+    applyDemoResponse("ATSH7E4", "220101", "620101EFFBE7EF970000000000000014B70F0D0E0E0E0F0D0035C916C87500007600042E1600041ECA0002214D000209A4018D2EF7001990000000000BB8");
+    // Contribute log has truncated 220102/03/04/0A/0B/0C frames; use stable full-length cells for demo.
+    applyDemoResponse("ATSH7E4", "220102", makeCellResponse("0102", "C8"));
+    applyDemoResponse("ATSH7E4", "220103", makeCellResponse("0103", "C8"));
+    applyDemoResponse("ATSH7E4", "220104", makeCellResponse("0104", "C8"));
+    applyDemoResponse("ATSH7E4", "220105", "6201051FFB740C012C01012C0E0D0E0E0F0E0F2E4243940000640D0003D32B45A0009A000000000000000E0D0000AAAA");
+    applyDemoResponse("ATSH7E4", "220106", "62010617F811000D000D00000000000000000000000000600EA0000000000000AAAAAA");
+    applyDemoResponse("ATSH7E4", "22010A", makeCellResponse("010A", "C8"));
+    applyDemoResponse("ATSH7E4", "22010B", makeCellResponse("010B", "C8"));
+    applyDemoResponse("ATSH7E4", "22010C", makeCellResponse("010C", "C8"));
+    return;
+  }
+
   // ECALL
   liveData->currentAtshRequest = "ATSH7C7";
   // 22C006
@@ -1133,7 +1380,7 @@ void CarHyundaiEgmp::loadTestData()
   liveData->responseRowMerged = "62B002E0000000FFB400330B0000000000000000";
   parseRowMerged();
 
-  liveData->params.batModuleTempC[0] = 28;
+  /*liveData->params.batModuleTempC[0] = 28;
   liveData->params.batModuleTempC[1] = 29;
   liveData->params.batModuleTempC[2] = 30;
   liveData->params.batModuleTempC[3] = 31;
@@ -1231,7 +1478,7 @@ void CarHyundaiEgmp::loadTestData()
     liveData->params.chargingGraphWaterCoolantTempC[i] = 12;
     liveData->params.chargingGraphMinKw[i] = (i * 1.3);
     liveData->params.chargingGraphMaxKw[i] = (i * 2.3);
-  }
+  }*/
 }
 
 /**
