@@ -1,7 +1,8 @@
 # RELEASE NOTES
 
-### V4.3.2 2026-02-10
+### V4.3.3 2026-02-10
 - Added automatic firmware version check after WiFi connects (online check against server latest build).
+- Firmware version check request now includes `id` and `v` query params (`id=c2|c3.<hwid>`, `v=<current app version>`).
 - If a newer build is available, device now shows: `New version`, `available <version>`, and update URL `evdash.eu/m5flash`.
 - Web flasher short URL path standardized to `/m5flash` in firmware constants and docs.
 
