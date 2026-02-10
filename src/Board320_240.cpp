@@ -88,6 +88,8 @@ namespace
   constexpr uint16_t kContributeHttpConnectTimeoutMs = 2000;
   constexpr uint16_t kContributeHttpReadTimeoutMs = 3500;
   constexpr size_t kContributeResponseBufferCap = 2048;
+  constexpr uint32_t kFirmwareVersionCheckCooldownMs = 30000;
+  constexpr uint16_t kFirmwareVersionHttpTimeoutMs = 4500;
 
   size_t encodeQuotes(char *dest, size_t destSize, const char *source)
   {
@@ -1995,6 +1997,16 @@ void Board320_240::mainLoop()
   // Check and eventually reconnect WIFI connection
   const bool wifiEnabled = (liveData->settings.wifiEnabled == 1);
   const bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  if (wifiConnected)
+  {
+    liveData->params.wifiLastConnectedTime = liveData->params.currentTime;
+  }
+  if (wifiConnected && !lastWifiConnected)
+  {
+    checkFirmwareVersionOnServer();
+  }
+  lastWifiConnected = wifiConnected;
+
   const bool allowWifiFallback = (!liveData->params.stopCommandQueue &&
                                   liveData->settings.commType != COMM_TYPE_OBD2_WIFI &&
                                   !liveData->params.wifiApMode &&
@@ -3470,6 +3482,228 @@ String Board320_240::getHardwareDeviceId() const
   snprintf(deviceId, sizeof(deviceId), "%08lX-%04X-%04X-%04X-%012llX",
            uuidPart1, uuidPart2, uuidPart3, uuidPart4, uuidPart5);
   return String(deviceId);
+}
+
+int Board320_240::compareVersionTags(const String &left, const String &right) const
+{
+  const auto parse = [](const String &input, int out[4]) -> bool {
+    for (uint8_t i = 0; i < 4; i++)
+    {
+      out[i] = 0;
+    }
+
+    String normalized = input;
+    normalized.trim();
+    if (normalized.length() == 0)
+    {
+      return false;
+    }
+    if (normalized.charAt(0) == 'v' || normalized.charAt(0) == 'V')
+    {
+      normalized.remove(0, 1);
+    }
+    if (normalized.length() == 0)
+    {
+      return false;
+    }
+
+    uint8_t partIndex = 0;
+    int value = -1;
+    for (uint16_t i = 0; i < normalized.length(); i++)
+    {
+      const char ch = normalized.charAt(i);
+      if (ch >= '0' && ch <= '9')
+      {
+        if (value < 0)
+        {
+          value = 0;
+        }
+        value = (value * 10) + (ch - '0');
+      }
+      else if (ch == '.')
+      {
+        if (value < 0 || partIndex >= 4)
+        {
+          return false;
+        }
+        out[partIndex++] = value;
+        value = -1;
+        if (partIndex == 4)
+        {
+          return true;
+        }
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    if (value >= 0 && partIndex < 4)
+    {
+      out[partIndex++] = value;
+    }
+
+    return partIndex >= 3;
+  };
+
+  int leftParts[4] = {0, 0, 0, 0};
+  int rightParts[4] = {0, 0, 0, 0};
+  if (!parse(left, leftParts) || !parse(right, rightParts))
+  {
+    return 0;
+  }
+
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    if (leftParts[i] < rightParts[i])
+    {
+      return -1;
+    }
+    if (leftParts[i] > rightParts[i])
+    {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+void Board320_240::checkFirmwareVersionOnServer()
+{
+  const uint32_t nowMs = millis();
+  if (lastFirmwareVersionCheckMs != 0 &&
+      static_cast<uint32_t>(nowMs - lastFirmwareVersionCheckMs) < kFirmwareVersionCheckCooldownMs)
+  {
+    return;
+  }
+  lastFirmwareVersionCheckMs = nowMs;
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    return;
+  }
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(kFirmwareVersionHttpTimeoutMs);
+
+  HTTPClient http;
+  http.setReuse(false);
+  http.setConnectTimeout(kFirmwareVersionHttpTimeoutMs);
+  http.setTimeout(kFirmwareVersionHttpTimeoutMs);
+
+  if (!http.begin(client, FW_VERSION_CHECK_URL))
+  {
+    syslog->println("Firmware check: begin failed");
+    return;
+  }
+
+  http.addHeader("User-Agent", String("evDash/") + String(APP_VERSION));
+  const int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK)
+  {
+    syslog->print("Firmware check HTTP code: ");
+    syslog->println(httpCode);
+    http.end();
+    return;
+  }
+
+  const String response = http.getString();
+  http.end();
+
+  StaticJsonDocument<384> jsonDoc;
+  const DeserializationError jsonErr = deserializeJson(jsonDoc, response);
+  if (jsonErr)
+  {
+    syslog->print("Firmware check JSON parse error: ");
+    syslog->println(jsonErr.c_str());
+    return;
+  }
+
+  const char *latestRaw = jsonDoc["version"];
+  if (latestRaw == nullptr || latestRaw[0] == '\0')
+  {
+    syslog->println("Firmware check: missing version field");
+    return;
+  }
+
+  String latestVersion = String(latestRaw);
+  latestVersion.trim();
+  if (latestVersion.length() == 0)
+  {
+    syslog->println("Firmware check: empty version field");
+    return;
+  }
+  if (latestVersion.charAt(0) != 'v' && latestVersion.charAt(0) != 'V')
+  {
+    latestVersion = String("v") + latestVersion;
+  }
+  else if (latestVersion.charAt(0) == 'V')
+  {
+    latestVersion.setCharAt(0, 'v');
+  }
+
+  String webFlasherUrl = String(WEBFLASHER_URL);
+  const char *webFlasherRaw = jsonDoc["webflasher"];
+  if ((webFlasherRaw == nullptr || webFlasherRaw[0] == '\0') && jsonDoc["url"].is<const char *>())
+  {
+    webFlasherRaw = jsonDoc["url"];
+  }
+  if (webFlasherRaw != nullptr && webFlasherRaw[0] != '\0')
+  {
+    webFlasherUrl = String(webFlasherRaw);
+    webFlasherUrl.trim();
+    if (webFlasherUrl.startsWith("https://"))
+    {
+      webFlasherUrl.remove(0, 8);
+    }
+    else if (webFlasherUrl.startsWith("http://"))
+    {
+      webFlasherUrl.remove(0, 7);
+    }
+    if (webFlasherUrl.startsWith("www."))
+    {
+      webFlasherUrl.remove(0, 4);
+    }
+  }
+
+  String currentVersion = String(APP_VERSION);
+  currentVersion.trim();
+  if (currentVersion.length() == 0)
+  {
+    syslog->println("Firmware check: invalid APP_VERSION");
+    return;
+  }
+  if (currentVersion.charAt(0) == 'V')
+  {
+    currentVersion.setCharAt(0, 'v');
+  }
+
+  const int cmp = compareVersionTags(latestVersion, currentVersion);
+  if (cmp <= 0)
+  {
+    syslog->print("Firmware check: up to date (");
+    syslog->print(currentVersion);
+    syslog->print(" / ");
+    syslog->print(latestVersion);
+    syslog->println(")");
+    return;
+  }
+
+  if (latestVersion == lastNotifiedFirmwareVersion)
+  {
+    syslog->print("Firmware check: already notified ");
+    syslog->println(latestVersion);
+    return;
+  }
+
+  lastNotifiedFirmwareVersion = latestVersion;
+  String line2 = String("available ") + latestVersion;
+  displayMessage("New version", line2.c_str());
+  delay(1800);
+  displayMessage("Update here", webFlasherUrl.c_str());
+  delay(1800);
 }
 
 void Board320_240::addWifiTransferredBytes(size_t bytes)

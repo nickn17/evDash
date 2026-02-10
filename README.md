@@ -60,7 +60,7 @@ Support level varies by model year and ECU behavior. See [RELEASENOTES.md](RELEA
 
 ## Quick install (binary)
 
-Use the evDash Web Flasher: https://www.evdash.eu/webflasher/ or follow [INSTALLATION.md](INSTALLATION.md).
+Use the evDash Web Flasher: https://www.evdash.eu/m5flash or follow [INSTALLATION.md](INSTALLATION.md).
 
 ## Build from source (PlatformIO)
 
