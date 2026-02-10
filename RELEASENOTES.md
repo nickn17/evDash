@@ -1,8 +1,13 @@
 # RELEASE NOTES
 
+### V4.3.2 2026-02-10
+- Added automatic firmware version check after WiFi connects (online check against server latest build).
+- If a newer build is available, device now shows: `New version`, `available <version>`, and update URL `evdash.eu/m5flash`.
+- Web flasher short URL path standardized to `/m5flash` in firmware constants and docs.
+
 ### V4.3.0 2026-02-09
 - API endpoints migrated: contribute posts to `https://api.evdash.eu/v1/contribute`, SD log upload posts to `https://api.evdash.eu/v1/contribute/upload`.
-- Web Flasher links updated to `https://www.evdash.eu/webflasher/`.
+- Web Flasher links updated to `https://www.evdash.eu/m5flash`.
 - Contribute JSON `v2` timestamp cleanup: `ts` uses `YYMMDDHHIISS` (e.g. `200509093307`); removed `tsUnix` and `tsDate`.
 - Contribute JSON `v2` identity cleanup: payload now uses `key` only (duplicate `token` removed).
 - Contribute JSON `v2` device identity upgraded: `deviceId` is now a stable UUID-like HW ID derived from efuse MAC.
@@ -43,7 +48,7 @@
 - Menu (`OBD2/CAN adapter`): `Select OBD2 adapter` renamed/moved to `Select BLE4 OBD2 adapter` after `OBD2 Bluetooth4 (BLE4)`.
 - Speed screen battery separators: top dashed line animation remains for `PTC`; bottom dashed line now animates for `LTR`, `COOL`, and `LTRCOOL` battery-management modes.
 - Net status: fixed stale `Net temporarily unavailable` message when WiFi stays connected but no internet upload task is active (or last failure is old).
-- Added browser flashing page (`https://www.evdash.eu/webflasher/`) for all supported boards.
+- Added browser flashing page (`https://www.evdash.eu/m5flash`) for all supported boards.
 
 ### V4.2.0 2026-02-07
 - GPS: faster first fix via robust GNSS baud auto-detect/confirm; module type change now auto-sets default baud (NEO-M8N `9600`, M5 GNSS `38400`) and logs are clearer for troubleshooting.

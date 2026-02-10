@@ -81,6 +81,9 @@ protected:
   bool lastChargingOn = false;
   uint32_t lastNetSendDurationMs = 0;
   uint32_t wifiTransferredBytes = 0;
+  uint32_t lastFirmwareVersionCheckMs = 0;
+  bool lastWifiConnected = false;
+  String lastNotifiedFirmwareVersion = "";
   static constexpr uint8_t kContributeSampleSlots = 12;
   static constexpr time_t kContributeSampleIntervalSec = 5;
   static constexpr time_t kContributeSampleWindowSec = 60;
@@ -140,6 +143,8 @@ protected:
   bool isContributeKeyValid(const char *key) const;
   String ensureContributeKey();
   String getHardwareDeviceId() const;
+  int compareVersionTags(const String &left, const String &right) const;
+  void checkFirmwareVersionOnServer();
   void addWifiTransferredBytes(size_t bytes);
   void recordContributeSample();
   ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;
