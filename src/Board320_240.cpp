@@ -3593,7 +3593,37 @@ void Board320_240::checkFirmwareVersionOnServer()
   http.setConnectTimeout(kFirmwareVersionHttpTimeoutMs);
   http.setTimeout(kFirmwareVersionHttpTimeoutMs);
 
-  if (!http.begin(client, FW_VERSION_CHECK_URL))
+  String firmwareCheckUrl = String(FW_VERSION_CHECK_URL);
+  const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
+  String firmwareCheckId = "";
+  if (hardwareDeviceId.length() > 0)
+  {
+#ifdef BOARD_M5STACK_CORES3
+    firmwareCheckId = String("c3.") + hardwareDeviceId;
+#else
+    firmwareCheckId = String("c2.") + hardwareDeviceId;
+#endif
+  }
+
+  String appVersionForApi = String(APP_VERSION);
+  appVersionForApi.trim();
+  if (appVersionForApi.startsWith("v") || appVersionForApi.startsWith("V"))
+  {
+    appVersionForApi.remove(0, 1);
+  }
+
+  if (firmwareCheckId.length() > 0)
+  {
+    firmwareCheckUrl += (firmwareCheckUrl.indexOf('?') == -1) ? "?" : "&";
+    firmwareCheckUrl += "id=" + firmwareCheckId;
+  }
+  if (appVersionForApi.length() > 0)
+  {
+    firmwareCheckUrl += (firmwareCheckUrl.indexOf('?') == -1) ? "?" : "&";
+    firmwareCheckUrl += "v=" + appVersionForApi;
+  }
+
+  if (!http.begin(client, firmwareCheckUrl))
   {
     syslog->println("Firmware check: begin failed");
     return;
