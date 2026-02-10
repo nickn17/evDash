@@ -1,5 +1,13 @@
 # RELEASE NOTES
 
+### V4.3.6 2026-02-10
+- eGMP parser hardening for Ioniq 53/58 (58/63 profile): invalid responses (`NO DATA`, negative UDS reply, short/truncated frame) are ignored.
+- Added stricter value validation before decode/overwrite: `SOC 0..100`, `SOH 0..100`, battery/module temps `-30..80 C`, AUX voltage `9.0..16.5 V`, and speed/ODO sanity checks.
+- BMS cell frame parser now skips placeholder-heavy blocks (`C8/FF/00` flood) and keeps last valid cell values instead of propagating garbage.
+- Response normalizer now strips framing separators/noise from binary payloads (e.g. `:` in split lines) before car parsing.
+- 58/63 kWh queue optimization: skipped `ATSH7E4 22010C` requests (not needed for 144-cell packs).
+- Ioniq6 58/63 `loadTestData` demo payloads refreshed from contributed capture.
+
 ### V4.3.5 2026-02-10
 - eGMP `loadTestData`: added dedicated demo config/profile for Hyundai Ioniq6 AWD 77/84 with full demo PID set.
 - eGMP `loadTestData`: added dedicated demo config/profile for Hyundai Ioniq6 53 kWh contributed data (mapped to Ioniq6 58/63 car type).
