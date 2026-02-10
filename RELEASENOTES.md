@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.3.5 2026-02-10
+- eGMP `loadTestData`: added dedicated demo config/profile for Hyundai Ioniq6 AWD 77/84 with full demo PID set.
+- eGMP `loadTestData`: added dedicated demo config/profile for Hyundai Ioniq6 53 kWh contributed data (mapped to Ioniq6 58/63 car type).
+- Ioniq6 demo payloads now include compatible BMS cell-frame generation for `220102/220103/220104/22010A/22010B/22010C` and corrected VIN demo response parsing.
+
 ### V4.3.4 2026-02-10
 - Added automatic firmware version check after WiFi connects (online check against server latest build).
 - Firmware version check request now includes `id` and `v` query params (`id=c2|c3.<hwid>`, `v=<current app version>`).

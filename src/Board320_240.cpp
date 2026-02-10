@@ -422,8 +422,10 @@ void Board320_240::afterSetup()
 #endif
   printHeapMemory();
   syslog->println((psramUsed) ? "Sprite 16" : "Sprite 8");
-  spr.setColorDepth((psramUsed) ? 16 : 8);
+  spriteColorDepth = (psramUsed) ? 16 : 8;
+  spr.setColorDepth(spriteColorDepth);
   spr.createSprite(320, 240);
+  menuBackbufferActive = false;
   liveData->params.spriteInit = true;
   printHeapMemory();
   tft.fillScreen(TFT_PURPLE);
@@ -609,6 +611,47 @@ void Board320_240::sprDrawString(const char *string, int32_t poX, int32_t poY)
 #ifdef BOARD_M5STACK_CORES3
   spr.drawString(string, poX, poY);
 #endif // BOARD_M5STACK_CORES3
+}
+
+bool Board320_240::ensureMenuBackbuffer()
+{
+  if (menuBackbufferActive)
+  {
+    return true;
+  }
+
+  spr.deleteSprite();
+  spr.setColorDepth(spriteColorDepth);
+  if (spr.createSprite(320, 240 + (menuBackbufferOverscanPx * 2)) == nullptr)
+  {
+    // Fall back to normal-size sprite when overscan buffer cannot be allocated.
+    spr.deleteSprite();
+    spr.setColorDepth(spriteColorDepth);
+    if (spr.createSprite(320, 240) == nullptr)
+    {
+      liveData->params.spriteInit = false;
+    }
+    return false;
+  }
+
+  menuBackbufferActive = true;
+  return true;
+}
+
+void Board320_240::releaseMenuBackbuffer()
+{
+  if (!menuBackbufferActive)
+  {
+    return;
+  }
+
+  spr.deleteSprite();
+  spr.setColorDepth(spriteColorDepth);
+  if (spr.createSprite(320, 240) == nullptr)
+  {
+    liveData->params.spriteInit = false;
+  }
+  menuBackbufferActive = false;
 }
 
 /**

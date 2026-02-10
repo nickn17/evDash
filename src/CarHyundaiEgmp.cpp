@@ -12,84 +12,84 @@
 
 namespace
 {
-const char *udsNrcDescription(const String &nrc)
-{
-  if (nrc.equals("10"))
-    return "General reject";
-  if (nrc.equals("11"))
-    return "Service not supported";
-  if (nrc.equals("12"))
-    return "Sub-function not supported";
-  if (nrc.equals("13"))
-    return "Incorrect message length or invalid format";
-  if (nrc.equals("14"))
-    return "Response too long";
-  if (nrc.equals("21"))
-    return "Busy repeat request";
-  if (nrc.equals("22"))
-    return "Conditions not correct";
-  if (nrc.equals("24"))
-    return "Request sequence error";
-  if (nrc.equals("25"))
-    return "No response from subnet component";
-  if (nrc.equals("26"))
-    return "Failure prevents execution";
-  if (nrc.equals("31"))
-    return "Request out of range";
-  if (nrc.equals("33"))
-    return "Security access denied";
-  if (nrc.equals("35"))
-    return "Invalid key";
-  if (nrc.equals("36"))
-    return "Exceeded number of attempts";
-  if (nrc.equals("37"))
-    return "Required time delay not expired";
-  if (nrc.equals("78"))
-    return "Response pending";
-  if (nrc.equals("7E"))
-    return "Sub-function not supported in active session";
-  if (nrc.equals("7F"))
-    return "Service not supported in active session";
-  return "Unknown";
-}
-
-void logUdsResponse(LogSerial *logger, const char *label, const String &request, const String &response, bool gotResponse)
-{
-  if (!logger)
-    return;
-
-  String msg = String(label) + " " + request + " -> ";
-  if (!gotResponse)
+  const char *udsNrcDescription(const String &nrc)
   {
-    msg += "[no response]";
+    if (nrc.equals("10"))
+      return "General reject";
+    if (nrc.equals("11"))
+      return "Service not supported";
+    if (nrc.equals("12"))
+      return "Sub-function not supported";
+    if (nrc.equals("13"))
+      return "Incorrect message length or invalid format";
+    if (nrc.equals("14"))
+      return "Response too long";
+    if (nrc.equals("21"))
+      return "Busy repeat request";
+    if (nrc.equals("22"))
+      return "Conditions not correct";
+    if (nrc.equals("24"))
+      return "Request sequence error";
+    if (nrc.equals("25"))
+      return "No response from subnet component";
+    if (nrc.equals("26"))
+      return "Failure prevents execution";
+    if (nrc.equals("31"))
+      return "Request out of range";
+    if (nrc.equals("33"))
+      return "Security access denied";
+    if (nrc.equals("35"))
+      return "Invalid key";
+    if (nrc.equals("36"))
+      return "Exceeded number of attempts";
+    if (nrc.equals("37"))
+      return "Required time delay not expired";
+    if (nrc.equals("78"))
+      return "Response pending";
+    if (nrc.equals("7E"))
+      return "Sub-function not supported in active session";
+    if (nrc.equals("7F"))
+      return "Service not supported in active session";
+    return "Unknown";
+  }
+
+  void logUdsResponse(LogSerial *logger, const char *label, const String &request, const String &response, bool gotResponse)
+  {
+    if (!logger)
+      return;
+
+    String msg = String(label) + " " + request + " -> ";
+    if (!gotResponse)
+    {
+      msg += "[no response]";
+      logger->info(DEBUG_COMM, msg);
+      return;
+    }
+    if (response.length() == 0)
+    {
+      msg += "[empty response]";
+      logger->info(DEBUG_COMM, msg);
+      return;
+    }
+
+    String resp = response;
+    resp.toUpperCase();
+    msg += resp;
+
+    if (resp.startsWith("7F") && resp.length() >= 6)
+    {
+      String svc = resp.substring(2, 4);
+      String nrc = resp.substring(4, 6);
+      msg += " NRC ";
+      msg += nrc;
+      msg += " (";
+      msg += udsNrcDescription(nrc);
+      msg += "), svc ";
+      msg += svc;
+    }
+
     logger->info(DEBUG_COMM, msg);
-    return;
   }
-  if (response.length() == 0)
-  {
-    msg += "[empty response]";
-    logger->info(DEBUG_COMM, msg);
-    return;
-  }
-
-  String resp = response;
-  resp.toUpperCase();
-  msg += resp;
-
-  if (resp.startsWith("7F") && resp.length() >= 6)
-  {
-    String svc = resp.substring(2, 4);
-    String nrc = resp.substring(4, 6);
-    msg += " NRC ";
-    msg += nrc;
-    msg += " (";
-    msg += udsNrcDescription(nrc);
-    msg += "), svc ";
-    msg += svc;
-  }
-
-  logger->info(DEBUG_COMM, msg);
-}
 } // namespace
 
 // https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
@@ -1024,6 +1024,94 @@ bool CarHyundaiEgmp::commandAllowed()
 */
 void CarHyundaiEgmp::loadTestData()
 {
+  auto applyDemoResponse = [&](const char *atsh, const char *command, const String &response)
+  {
+    liveData->currentAtshRequest = atsh;
+    liveData->commandRequest = command;
+    liveData->responseRowMerged = response;
+    parseRowMerged();
+  };
+
+  auto makeCellResponse = [](const char *did, const char *cellByteHex)
+  {
+    String response = "62";
+    response += did;
+    response += "FFFFFFFF";
+    for (uint8_t i = 0; i < 32; i++)
+      response += cellByteHex;
+    response += "AAAA";
+    return response;
+  };
+
+  // Ioniq6 AWD 77 demo (from provided contribute payload)
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_77_84)
+  {
+    applyDemoResponse("ATSH770", "22BC01", "62BC014200000000010000000002AAAAAAAAAAAA");
+    applyDemoResponse("ATSH770", "22BC03", "62BC03FDFE20620A600400AAAA");
+    applyDemoResponse("ATSH770", "22BC04", "62BC04302F70200C000000AAAA");
+    applyDemoResponse("ATSH770", "22BC05", "62BC050F132000004000AAAAAA");
+    applyDemoResponse("ATSH770", "22BC06", "62BC06B400006D00000080AAAA");
+    applyDemoResponse("ATSH770", "22BC07", "62BC0700401BFE00001840AAAA");
+
+    applyDemoResponse("ATSH7D1", "220104", "620104FFFEFFFC0000000001BD00000000000600277FFF00F0F0F0F0D5FC000011D0FF4AF5FFFB00000000FDFFFAAAAA");
+    applyDemoResponse("ATSH7D1", "220105", "620105518F0000");
+    applyDemoResponse("ATSH7D1", "220106", "6201062000080008880880AAAA");
+
+    applyDemoResponse("ATSH7A0", "22C00B", "62C00BFFFFFFF80000000002000000000200000000020000000002FFFFFFFFFFFFFFFFFFAAAAAAAAAA");
+    applyDemoResponse("ATSH7B3", "220100", "6201007F9427C8FF77575100E88F01EEFFFF0FFFB4FFFFFFFFDDFFFF4C7DC4D100FFFF01FFFFFFAAAA");
+
+    applyDemoResponse("ATSH7C6", "22B001", "62B00100000000");
+    applyDemoResponse("ATSH7C6", "22B002", "62B002E0000000FFB601FDB8000000AAAAAAAAAA");
+    applyDemoResponse("ATSH7C6", "22B003", "62B0039C8000000101AAAAAAAA");
+    applyDemoResponse("ATSH7C6", "22F190", "62F1904B4D484D35343143375041303137303837");
+
+    applyDemoResponse("ATSH7E2", "22E003", "62E003FFFC00000001000001010001000000000000000000000000000000FC000000");
+    applyDemoResponse("ATSH7E2", "22E004", "62E004FC00000014060A03000000009A7500000000000000000000000000FFF80000");
+    applyDemoResponse("ATSH7E2", "22E005", "62E005FFF80000CC058D040C060000000000D40002857548008F0705000600000000");
+    applyDemoResponse("ATSH7E5", "22E011", "62E011FFFFFFF801010000006E3A750CEF1BB638F6826051224B006108010101000A000033000700000000000000000000AAAAAAAAAAAA");
+
+    applyDemoResponse("ATSH7E4", "220101", "620101EFFBE7EF6E000000000000591BD007050505050505002BB952B99100008D00051D8D00050DFC0003D282000391F20168C7B30002C9000000000665");
+    applyDemoResponse("ATSH7E4", "220102", makeCellResponse("0102", "B9"));
+    applyDemoResponse("ATSH7E4", "220103", makeCellResponse("0103", "B9"));
+    applyDemoResponse("ATSH7E4", "220104", makeCellResponse("0104", "B9"));
+    applyDemoResponse("ATSH7E4", "220105", "6201051FFB740F012C01012C0605050505050661146162000050120003B61D424C006D0000000000000005050505AAAA");
+    // 220106 was missing in source payload; this is a compatible non-charging frame.
+    applyDemoResponse("ATSH7E4", "220106", "62010617F811000D000C000000000000000000000000000500EA000000000000000000000000AAAAAA");
+    applyDemoResponse("ATSH7E4", "22010A", makeCellResponse("010A", "B9"));
+    applyDemoResponse("ATSH7E4", "22010B", makeCellResponse("010B", "B9"));
+    applyDemoResponse("ATSH7E4", "22010C", makeCellResponse("010C", "B9"));
+    return;
+  }
+
+  // Ioniq6 58/63 demo (updated from provided contribute capture)
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63)
+  {
+    applyDemoResponse("ATSH770", "22BC01", "62BC014200000000030000000002AAAAAAAAAAAA");
+    applyDemoResponse("ATSH770", "22BC03", "62BC03FDFE20620A000000AAAA");
+    applyDemoResponse("ATSH770", "22BC04", "62BC04302F70200C000000AAAA");
+    applyDemoResponse("ATSH770", "22BC05", "62BC050F132000000000AAAAAA");
+    applyDemoResponse("ATSH770", "22BC06", "62BC06B400006D00000000AAAA");
+    applyDemoResponse("ATSH770", "22BC07", "62BC0700401BFE00001000AAAA");
+
+    applyDemoResponse("ATSH7A0", "22C00B", "62C00BFFFFFFF800000000020000000020000000000000002FFFFFFFAAAA");
+
+    applyDemoResponse("ATSH7C6", "22B001", "62B00100000000");
+    applyDemoResponse("ATSH7C6", "22B002", "62B002E0000000FF9200F181000000AAAAAAAAAA");
+    applyDemoResponse("ATSH7C6", "22F190", "62F1904B4D484D33343142315041303637363236");
+
+    applyDemoResponse("ATSH7E4", "220101", "620101EFFBE7EF970000000000000014B70F0D0E0E0E0F0D0035C916C87500007600042E1600041ECA0002214D000209A4018D2EF7001990000000000BB8");
+    // Contribute log has truncated 220102/03/04/0A/0B/0C frames; use stable full-length cells for demo.
+    applyDemoResponse("ATSH7E4", "220102", makeCellResponse("0102", "C8"));
+    applyDemoResponse("ATSH7E4", "220103", makeCellResponse("0103", "C8"));
+    applyDemoResponse("ATSH7E4", "220104", makeCellResponse("0104", "C8"));
+    applyDemoResponse("ATSH7E4", "220105", "6201051FFB740C012C01012C0E0D0E0E0F0E0F2E4243940000640D0003D32B45A0009A000000000000000E0D0000AAAA");
+    applyDemoResponse("ATSH7E4", "220106", "62010617F811000D000D00000000000000000000000000600EA0000000000000AAAAAA");
+    applyDemoResponse("ATSH7E4", "22010A", makeCellResponse("010A", "C8"));
+    applyDemoResponse("ATSH7E4", "22010B", makeCellResponse("010B", "C8"));
+    applyDemoResponse("ATSH7E4", "22010C", makeCellResponse("010C", "C8"));
+    return;
+  }
+
   // ECALL
   liveData->currentAtshRequest = "ATSH7C7";
   // 22C006
@@ -1133,7 +1221,7 @@ void CarHyundaiEgmp::loadTestData()
   liveData->responseRowMerged = "62B002E0000000FFB400330B0000000000000000";
   parseRowMerged();
 
-  liveData->params.batModuleTempC[0] = 28;
+  /*liveData->params.batModuleTempC[0] = 28;
   liveData->params.batModuleTempC[1] = 29;
   liveData->params.batModuleTempC[2] = 30;
   liveData->params.batModuleTempC[3] = 31;
@@ -1231,7 +1319,7 @@ void CarHyundaiEgmp::loadTestData()
     liveData->params.chargingGraphWaterCoolantTempC[i] = 12;
     liveData->params.chargingGraphMinKw[i] = (i * 1.3);
     liveData->params.chargingGraphMaxKw[i] = (i * 2.3);
-  }
+  }*/
 }
 
 /**
