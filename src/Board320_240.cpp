@@ -70,6 +70,8 @@ namespace
   constexpr uint16_t kNetFailureFallbackCount = 3;
   constexpr size_t kAbrpPayloadBufferSize = 768;
   constexpr size_t kAbrpFormBufferSize = 1536;
+  constexpr uint16_t kAbrpHttpsConnectTimeoutMs = 1000;
+  constexpr uint16_t kAbrpHttpsIoTimeoutMs = 2500;
   constexpr float kGpsMaxSpeedKmh = 250.0f;
   constexpr float kGpsJitterMeters = 200.0f;
   constexpr float kGpsMaxJumpMetersShort = 2000.0f;
@@ -90,6 +92,12 @@ namespace
   constexpr size_t kContributeResponseBufferCap = 2048;
   constexpr uint32_t kFirmwareVersionCheckCooldownMs = 30000;
   constexpr uint16_t kFirmwareVersionHttpTimeoutMs = 4500;
+
+  // ABRP upload runs in the main loop, so avoid large temporary stack buffers here.
+  // These static buffers are only used from the single-threaded board loop path.
+  static char gAbrpPayloadBuffer[kAbrpPayloadBufferSize];
+  static char gAbrpEncodedPayloadBuffer[kAbrpFormBufferSize];
+  static char gAbrpFormBuffer[kAbrpFormBufferSize];
 
   size_t encodeQuotes(char *dest, size_t destSize, const char *source)
   {
@@ -3927,7 +3935,6 @@ void Board320_240::netLoop()
       liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec)
   {
     syslog->info(DEBUG_COMM, "ABRP send tick");
-    liveData->params.lastAbrpSent = liveData->params.currentTime;
     int64_t startTime = esp_timer_get_time();
     netSendData(true);
     int64_t endTime = esp_timer_get_time();
@@ -4244,8 +4251,7 @@ bool Board320_240::netSendData(bool sendAbrp)
     if (liveData->params.odoKm > 0)
       jsonData["odometer"] = liveData->params.odoKm;
 
-    char payload[kAbrpPayloadBufferSize];
-    size_t payloadLength = serializeJson(jsonData, payload, sizeof(payload));
+    size_t payloadLength = serializeJson(jsonData, gAbrpPayloadBuffer, sizeof(gAbrpPayloadBuffer));
     if (payloadLength == 0)
     {
       syslog->println("Failed to serialize ABRP payload");
@@ -4254,15 +4260,13 @@ bool Board320_240::netSendData(bool sendAbrp)
 
     if (liveData->settings.abrpSdcardLog != 0 && liveData->settings.remoteUploadAbrpIntervalSec > 0)
     {
-      queueAbrpSdLog(payload, payloadLength, liveData->params.currentTime, liveData->params.operationTimeSec, liveData->params.currTimeSyncWithGps);
+      queueAbrpSdLog(gAbrpPayloadBuffer, payloadLength, liveData->params.currentTime, liveData->params.operationTimeSec, liveData->params.currTimeSyncWithGps);
     }
 
-    char encodedPayload[kAbrpFormBufferSize];
-    encodeQuotes(encodedPayload, sizeof(encodedPayload), payload);
+    encodeQuotes(gAbrpEncodedPayloadBuffer, sizeof(gAbrpEncodedPayloadBuffer), gAbrpPayloadBuffer);
 
-    char dta[kAbrpFormBufferSize];
-    int dtaLength = snprintf(dta, sizeof(dta), "api_key=%s&token=%s&tlm=%s", ABRP_API_KEY, liveData->settings.abrpApiToken, encodedPayload);
-    if (dtaLength < 0 || static_cast<size_t>(dtaLength) >= sizeof(dta))
+    int dtaLength = snprintf(gAbrpFormBuffer, sizeof(gAbrpFormBuffer), "api_key=%s&token=%s&tlm=%s", ABRP_API_KEY, liveData->settings.abrpApiToken, gAbrpEncodedPayloadBuffer);
+    if (dtaLength < 0 || static_cast<size_t>(dtaLength) >= sizeof(gAbrpFormBuffer))
     {
       syslog->println("ABRP payload too large, skipping send");
       return false;
@@ -4271,7 +4275,7 @@ bool Board320_240::netSendData(bool sendAbrp)
     if (netDebug)
     {
       syslog->print("Sending data: ");
-      syslog->println(dta); // dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
+      syslog->println(gAbrpFormBuffer); // dta is total string sent to ABRP API including api-key and user-token (could be sensitive data to log)
     }
     else
     {
@@ -4282,16 +4286,21 @@ bool Board320_240::netSendData(bool sendAbrp)
     rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
+      // Track ABRP attempt time only when payload is valid and we're about to do the actual HTTP request.
+      liveData->params.lastAbrpSent = liveData->params.currentTime;
+
       WiFiClientSecure client;
       HTTPClient http;
 
       client.setInsecure();
       http.begin(client, "https://api.iternio.com/1/tlm/send");
-      http.setConnectTimeout(1000);
+      http.setConnectTimeout(kAbrpHttpsConnectTimeoutMs);
+      http.setTimeout(kAbrpHttpsIoTimeoutMs);
+      http.setReuse(false);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       const size_t bodyLength = static_cast<size_t>(dtaLength);
       addWifiTransferredBytes(bodyLength);
-      rc = http.POST((uint8_t *)dta, bodyLength);
+      rc = http.POST((uint8_t *)gAbrpFormBuffer, bodyLength);
 
       if (rc == HTTP_CODE_OK)
       {
