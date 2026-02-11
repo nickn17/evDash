@@ -3927,7 +3927,6 @@ void Board320_240::netLoop()
       liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec)
   {
     syslog->info(DEBUG_COMM, "ABRP send tick");
-    liveData->params.lastAbrpSent = liveData->params.currentTime;
     int64_t startTime = esp_timer_get_time();
     netSendData(true);
     int64_t endTime = esp_timer_get_time();
@@ -4282,6 +4281,9 @@ bool Board320_240::netSendData(bool sendAbrp)
     rc = 0;
     if (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1)
     {
+      // Track ABRP attempt time only when payload is valid and we're about to do the actual HTTP request.
+      liveData->params.lastAbrpSent = liveData->params.currentTime;
+
       WiFiClientSecure client;
       HTTPClient http;
 
