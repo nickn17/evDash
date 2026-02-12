@@ -395,6 +395,7 @@ typedef struct
   uint8_t gpsModuleType; // 0 - none, Default:
   // 1 - u-blox NEO-M8N https://shop.m5stack.com/products/gps-module,
   // 2 - GNSS Module https://shop.m5stack.com/products/gnss-module-with-barometric-pressure-imu-magnetometer-sensors
+  // 3 - GPS v2.1 GNSS (uses 115200 by default, no UBX init sent)
   // == settings version 21
   uint8_t carSpeedType; // 0 - automatic (car/gps), 1 - only from car, 2 - only from gps
   // == settings version 22

@@ -5382,6 +5382,12 @@ void Board320_240::initGPS()
     pushBaudCandidate(115200);
     pushBaudCandidate(9600);
   }
+  else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+  {
+    pushBaudCandidate(115200);
+    pushBaudCandidate(38400);
+    pushBaudCandidate(9600);
+  }
   else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
   {
     pushBaudCandidate(9600);
