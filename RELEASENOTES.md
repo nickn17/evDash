@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.5.0 2026-02-12
+- New WiFi menu action `Pair with evdash.eu`: generates a 6-digit pairing code and shows live countdown in menu suffix.
+- Added cloud pairing flow against `pair/start` + `pair/status` endpoints with board-specific device ID (`c2.`/`c3.` prefix), response validation, and auto-poll every 8s.
+- Pairing UX now reports clear states on-device: `WiFi not connected`, `Pairing failed`, `Paired with evdash.eu`, and `Pair code expired`.
+
 ### V4.3.6 2026-02-10
 - eGMP parser hardening for Ioniq 53/58 (58/63 profile): invalid responses (`NO DATA`, negative UDS reply, short/truncated frame) are ignored.
 - Added stricter value validation before decode/overwrite: `SOC 0..100`, `SOH 0..100`, battery/module temps `-30..80 C`, AUX voltage `9.0..16.5 V`, and speed/ODO sanity checks.

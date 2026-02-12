@@ -408,6 +408,23 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_WIFI_ENABLED:
     suffix = (liveData->settings.wifiEnabled == 1) ? "[on]" : "[off]";
     break;
+  case MENU_WIFI_PAIR_EVDASH:
+    if (pairPendingCode[0] != '\0')
+    {
+      const time_t nowTs = (liveData->params.currentTime > 0) ? liveData->params.currentTime : static_cast<time_t>(millis() / 1000U);
+      int32_t leftSec = static_cast<int32_t>(pairPendingExpiresAt - nowTs);
+      if (leftSec < 0)
+      {
+        leftSec = 0;
+      }
+      sprintf(tmpStr1, "[%s %lds]", pairPendingCode, static_cast<long>(leftSec));
+      suffix = tmpStr1;
+    }
+    else
+    {
+      suffix = "[start]";
+    }
+    break;
   case MENU_WIFI_SSID:
     sprintf(tmpStr1, "%s", liveData->settings.wifiSsid);
     suffix = tmpStr1;
@@ -1297,6 +1314,10 @@ void Board320_240::menuItemClick()
     // Wifi menu
     case MENU_WIFI_SCAN:
       wifiScanToMenu();
+      return;
+      break;
+    case MENU_WIFI_PAIR_EVDASH:
+      startEvdashPairing();
       return;
       break;
     case MENU_WIFI_ENABLED:
