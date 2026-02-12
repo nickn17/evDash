@@ -89,6 +89,10 @@ protected:
   uint32_t lastFirmwareVersionCheckMs = 0;
   bool lastWifiConnected = false;
   String lastNotifiedFirmwareVersion = "";
+  char pairPendingCode[7] = {0};
+  time_t pairPendingExpiresAt = 0;
+  uint32_t pairLastStatusPollMs = 0;
+  uint8_t pairLastKnownState = 0; // 0-none, 1-pending, 2-paired, 3-expired
   static constexpr uint8_t kContributeSampleSlots = 12;
   static constexpr time_t kContributeSampleIntervalSec = 5;
   static constexpr time_t kContributeSampleWindowSec = 60;
@@ -148,8 +152,13 @@ protected:
   bool isContributeKeyValid(const char *key) const;
   String ensureContributeKey();
   String getHardwareDeviceId() const;
+  String getPairDeviceId() const;
   int compareVersionTags(const String &left, const String &right) const;
   void checkFirmwareVersionOnServer();
+  bool requestPairingStart(String &outCode, uint32_t &outExpiresInSec);
+  uint8_t requestPairingStatus(const String &pairCode, String &outCarName);
+  void startEvdashPairing();
+  void pollEvdashPairingStatus();
   void addWifiTransferredBytes(size_t bytes);
   void recordContributeSample();
   ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;

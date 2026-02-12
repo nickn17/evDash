@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 182
+#define MENU_SIZE 183
 
 const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -110,6 +110,7 @@ const MENU_ITEM menuItemsSource[MENU_SIZE] = {
 
     {MENU_WIFI_TOP, MENU_WIFI, MENU_TOP_LEVEL, "<- parent menu"},
     {MENU_WIFI_SCAN, MENU_WIFI, MENU_NO_MENU, "Scan WiFi networks"},
+    {MENU_WIFI_PAIR_EVDASH, MENU_WIFI, MENU_NO_MENU, "Pair with evdash.eu"},
     {MENU_WIFI_ENABLED, MENU_WIFI, MENU_NO_MENU, "WiFi enabled"},
     {MENU_WIFI_HOTSPOT_WEBADMIN, MENU_WIFI, MENU_NO_MENU, "Enable hotspot+webadmin"},
     {MENU_WIFI_SSID, MENU_WIFI, MENU_NO_MENU, "[i] SSID:"},

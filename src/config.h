@@ -2,10 +2,12 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v4.3.6"
-#define APP_RELEASE_DATE "2026-02-10"
+#define APP_VERSION "v4.5.0"
+#define APP_RELEASE_DATE "2026-02-12"
 #define WEBFLASHER_URL "evdash.eu/m5flash"
 #define FW_VERSION_CHECK_URL "https://api.evdash.eu/v1/m5evdash/version/get"
+#define PAIR_START_URL "https://api.evdash.eu/v1/m5evdash/pair/start"
+#define PAIR_STATUS_URL "https://api.evdash.eu/v1/m5evdash/pair/status"
 // TFT COLORS
 #define TFT_BLACK 0x0000     /*   0,   0,   0 */
 #define TFT_NAVY 0x000F      /*   0,   0, 128 */
@@ -184,6 +186,7 @@ typedef enum
   // menu wifi
   MENU_WIFI_TOP = 3020,
   MENU_WIFI_SCAN,
+  MENU_WIFI_PAIR_EVDASH,
   MENU_WIFI_ENABLED,
   MENU_WIFI_HOTSPOT_WEBADMIN,
   MENU_WIFI_SSID,

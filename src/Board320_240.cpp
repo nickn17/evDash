@@ -92,6 +92,8 @@ namespace
   constexpr size_t kContributeResponseBufferCap = 2048;
   constexpr uint32_t kFirmwareVersionCheckCooldownMs = 30000;
   constexpr uint16_t kFirmwareVersionHttpTimeoutMs = 4500;
+  constexpr uint32_t kPairStatusPollIntervalMs = 8000;
+  constexpr uint16_t kPairHttpTimeoutMs = 4500;
 
   // ABRP upload runs in the main loop, so avoid large temporary stack buffers here.
   // These static buffers are only used from the single-threaded board loop path.
@@ -2058,6 +2060,8 @@ void Board320_240::mainLoop()
   }
   lastWifiConnected = wifiConnected;
 
+  pollEvdashPairingStatus();
+
   const bool allowWifiFallback = (!liveData->params.stopCommandQueue &&
                                   liveData->settings.commType != COMM_TYPE_OBD2_WIFI &&
                                   !liveData->params.wifiApMode &&
@@ -2270,6 +2274,29 @@ void Board320_240::mainLoop()
     if (commInterface->isSuspended())
     {
       commInterface->resumeDevice();
+    }
+
+    // Some APs drop ESP32 station during prolonged Sentry inactivity.
+    // Force a reconnect immediately after wake so recovery does not require reboot.
+    const bool shouldReconnectWifiAfterWake =
+        (!liveData->params.wifiApMode &&
+         liveData->settings.wifiEnabled == 1 &&
+         liveData->settings.commType != COMM_TYPE_OBD2_WIFI &&
+         WiFi.status() != WL_CONNECTED);
+    if (shouldReconnectWifiAfterWake)
+    {
+      syslog->println("Sentry wake: WiFi disconnected, forcing reconnect.");
+      WiFi.enableSTA(true);
+      WiFi.mode(WIFI_STA);
+
+      if (liveData->settings.backupWifiEnabled == 1 && liveData->params.isWifiBackupLive)
+      {
+        wifiSwitchToBackup();
+      }
+      else
+      {
+        wifiSwitchToMain();
+      }
     }
   }
   // Stop command queue
@@ -3533,6 +3560,331 @@ String Board320_240::getHardwareDeviceId() const
   snprintf(deviceId, sizeof(deviceId), "%08lX-%04X-%04X-%04X-%012llX",
            uuidPart1, uuidPart2, uuidPart3, uuidPart4, uuidPart5);
   return String(deviceId);
+}
+
+String Board320_240::getPairDeviceId() const
+{
+  const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
+  if (hardwareDeviceId.length() == 0)
+  {
+    return "";
+  }
+#ifdef BOARD_M5STACK_CORES3
+  return String("c3.") + hardwareDeviceId;
+#else
+  return String("c2.") + hardwareDeviceId;
+#endif
+}
+
+bool Board320_240::requestPairingStart(String &outCode, uint32_t &outExpiresInSec)
+{
+  outCode = "";
+  outExpiresInSec = 0;
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    return false;
+  }
+
+  const String pairDeviceId = getPairDeviceId();
+  if (pairDeviceId.length() == 0)
+  {
+    return false;
+  }
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(kPairHttpTimeoutMs);
+
+  HTTPClient http;
+  http.setReuse(false);
+  http.setConnectTimeout(kPairHttpTimeoutMs);
+  http.setTimeout(kPairHttpTimeoutMs);
+
+  String url = String(PAIR_START_URL);
+  url += (url.indexOf('?') == -1) ? "?" : "&";
+  url += "id=" + pairDeviceId;
+
+  if (!http.begin(client, url))
+  {
+    syslog->println("Pair start: begin failed");
+    return false;
+  }
+
+  http.addHeader("User-Agent", String("evDash/") + String(APP_VERSION));
+  const int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK)
+  {
+    syslog->print("Pair start HTTP code: ");
+    syslog->println(httpCode);
+    http.end();
+    return false;
+  }
+
+  const String response = http.getString();
+  http.end();
+
+  StaticJsonDocument<512> jsonDoc;
+  const DeserializationError jsonErr = deserializeJson(jsonDoc, response);
+  if (jsonErr)
+  {
+    syslog->print("Pair start JSON parse error: ");
+    syslog->println(jsonErr.c_str());
+    return false;
+  }
+
+  const char *statusRaw = jsonDoc["status"];
+  if (statusRaw == nullptr || strcmp(statusRaw, "ok") != 0)
+  {
+    syslog->println("Pair start: status not ok");
+    return false;
+  }
+
+  const char *pairCodeRaw = jsonDoc["pairCode"];
+  if (pairCodeRaw == nullptr)
+  {
+    syslog->println("Pair start: missing pairCode");
+    return false;
+  }
+
+  String code = String(pairCodeRaw);
+  code.trim();
+  if (code.length() != 6)
+  {
+    syslog->println("Pair start: invalid pairCode");
+    return false;
+  }
+  for (uint8_t i = 0; i < 6; i++)
+  {
+    const char ch = code.charAt(i);
+    if (ch < '0' || ch > '9')
+    {
+      syslog->println("Pair start: non-numeric pairCode");
+      return false;
+    }
+  }
+
+  uint32_t expiresInSec = jsonDoc["expiresInSec"] | 0;
+  if (expiresInSec < 30)
+  {
+    expiresInSec = 300;
+  }
+
+  outCode = code;
+  outExpiresInSec = expiresInSec;
+  return true;
+}
+
+uint8_t Board320_240::requestPairingStatus(const String &pairCode, String &outCarName)
+{
+  outCarName = "";
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    return 255;
+  }
+  if (pairCode.length() != 6)
+  {
+    return 255;
+  }
+
+  const String pairDeviceId = getPairDeviceId();
+  if (pairDeviceId.length() == 0)
+  {
+    return 255;
+  }
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(kPairHttpTimeoutMs);
+
+  HTTPClient http;
+  http.setReuse(false);
+  http.setConnectTimeout(kPairHttpTimeoutMs);
+  http.setTimeout(kPairHttpTimeoutMs);
+
+  String url = String(PAIR_STATUS_URL);
+  url += (url.indexOf('?') == -1) ? "?" : "&";
+  url += "id=" + pairDeviceId;
+  url += "&code=" + pairCode;
+
+  if (!http.begin(client, url))
+  {
+    syslog->println("Pair status: begin failed");
+    return 255;
+  }
+
+  http.addHeader("User-Agent", String("evDash/") + String(APP_VERSION));
+  const int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK)
+  {
+    syslog->print("Pair status HTTP code: ");
+    syslog->println(httpCode);
+    http.end();
+    return 255;
+  }
+
+  const String response = http.getString();
+  http.end();
+
+  StaticJsonDocument<512> jsonDoc;
+  const DeserializationError jsonErr = deserializeJson(jsonDoc, response);
+  if (jsonErr)
+  {
+    syslog->print("Pair status JSON parse error: ");
+    syslog->println(jsonErr.c_str());
+    return 255;
+  }
+
+  const char *statusRaw = jsonDoc["status"];
+  if (statusRaw == nullptr || strcmp(statusRaw, "ok") != 0)
+  {
+    return 255;
+  }
+
+  const char *pairStatusRaw = jsonDoc["pairStatus"];
+  if (pairStatusRaw == nullptr)
+  {
+    return 255;
+  }
+
+  String pairStatus = String(pairStatusRaw);
+  pairStatus.toLowerCase();
+  if (pairStatus == "pending")
+  {
+    return 1;
+  }
+  if (pairStatus == "paired")
+  {
+    const char *carNameRaw = jsonDoc["carName"];
+    if (carNameRaw != nullptr)
+    {
+      outCarName = String(carNameRaw);
+      outCarName.trim();
+    }
+    return 2;
+  }
+  if (pairStatus == "expired")
+  {
+    return 3;
+  }
+  if (pairStatus == "none")
+  {
+    return 0;
+  }
+
+  return 255;
+}
+
+void Board320_240::startEvdashPairing()
+{
+  if (WiFi.status() != WL_CONNECTED || liveData->settings.wifiEnabled != 1)
+  {
+    displayMessage("Pair with evdash.eu", "WiFi not connected");
+    return;
+  }
+
+  String code;
+  uint32_t expiresInSec = 0;
+  if (!requestPairingStart(code, expiresInSec))
+  {
+    displayMessage("Pairing failed", "Try again");
+    return;
+  }
+
+  strncpy(pairPendingCode, code.c_str(), sizeof(pairPendingCode) - 1);
+  pairPendingCode[sizeof(pairPendingCode) - 1] = '\0';
+
+  time_t nowTs = liveData->params.currentTime;
+  if (nowTs <= 0)
+  {
+    nowTs = static_cast<time_t>(millis() / 1000U);
+  }
+  if (expiresInSec < 30)
+  {
+    expiresInSec = 300;
+  }
+  pairPendingExpiresAt = nowTs + static_cast<time_t>(expiresInSec);
+  pairLastStatusPollMs = 0;
+  pairLastKnownState = 1;
+
+  String row2 = String("Code ") + code;
+  displayMessage("Pair with evdash.eu", row2.c_str());
+  delay(1500);
+  displayMessage("Open evdash.eu", "Settings > Cars");
+}
+
+void Board320_240::pollEvdashPairingStatus()
+{
+  if (pairPendingCode[0] == '\0')
+  {
+    return;
+  }
+
+  time_t nowTs = liveData->params.currentTime;
+  if (nowTs <= 0)
+  {
+    nowTs = static_cast<time_t>(millis() / 1000U);
+  }
+
+  if (pairPendingExpiresAt > 0 && nowTs > pairPendingExpiresAt)
+  {
+    pairPendingCode[0] = '\0';
+    pairPendingExpiresAt = 0;
+    if (pairLastKnownState != 3)
+    {
+      displayMessage("Pair code expired", "Generate new code");
+    }
+    pairLastKnownState = 3;
+    return;
+  }
+
+  if (WiFi.status() != WL_CONNECTED || liveData->settings.wifiEnabled != 1)
+  {
+    return;
+  }
+
+  const uint32_t nowMs = millis();
+  if (pairLastStatusPollMs != 0 &&
+      static_cast<uint32_t>(nowMs - pairLastStatusPollMs) < kPairStatusPollIntervalMs)
+  {
+    return;
+  }
+  pairLastStatusPollMs = nowMs;
+
+  String carName;
+  const uint8_t state = requestPairingStatus(String(pairPendingCode), carName);
+  if (state == 255)
+  {
+    return;
+  }
+
+  if (state == 2)
+  {
+    pairPendingCode[0] = '\0';
+    pairPendingExpiresAt = 0;
+    pairLastKnownState = 2;
+    if (carName.length() == 0)
+    {
+      carName = "Device linked";
+    }
+    displayMessage("Paired with evdash.eu", carName.c_str());
+    return;
+  }
+
+  if (state == 3)
+  {
+    pairPendingCode[0] = '\0';
+    pairPendingExpiresAt = 0;
+    if (pairLastKnownState != 3)
+    {
+      displayMessage("Pair code expired", "Generate new code");
+    }
+    pairLastKnownState = 3;
+    return;
+  }
+
+  pairLastKnownState = state;
 }
 
 int Board320_240::compareVersionTags(const String &left, const String &right) const
