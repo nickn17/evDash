@@ -18,8 +18,8 @@ build_flags =
 	-mfix-esp32-psram-cache-issue
 	-D COMMU_CS_PIN=6
 	-D COMMU_INT_PIN=13
-	-D SERIAL2_RX=13
-	-D SERIAL2_TX=14
+	-D SERIAL2_RX=44 ;change to correct GPIO pin for RX
+	-D SERIAL2_TX=43 ;change to correct GPIO pin for TX
 lib_deps = 
 	m5stack/M5CoreS3
 	m5stack/M5Unified
@@ -35,8 +35,8 @@ lib_deps =
 
 ;targets = upload
 upload_protocol = esptool
-upload_port = /dev/cu.usbmodem11301
-monitor_port = /dev/cu.usbmodem11301
+upload_port = COM9 ;change to correct COM port for upload
+monitor_port = COM9 ;change to correct COM port for monitor
 upload_speed = 1500000
 monitor_speed = 115200
 

@@ -218,6 +218,7 @@ void handleRoot()
   text += "<option value='" + String(GPS_MODULE_TYPE_NONE) + "'" + selectedAttr(liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_NONE) + ">None</option>";
   text += "<option value='" + String(GPS_MODULE_TYPE_NEO_M8N) + "'" + selectedAttr(liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N) + ">M5 NEO-M8N</option>";
   text += "<option value='" + String(GPS_MODULE_TYPE_M5_GNSS) + "'" + selectedAttr(liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS) + ">M5 GNSS</option>";
+  text += "<option value='" + String(GPS_MODULE_TYPE_GPS_V21_GNSS) + "'" + selectedAttr(liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS) + ">GPS v2.1 GNSS</option>";
   text += "</select></td></tr>";
   text += "<tr><td>GPS hw serial port</td><td><input type='number' data-key='gpsHwSerialPort' value='" + String(liveDataWebInt->settings.gpsHwSerialPort) + "'></td></tr>";
   text += "<tr><td>GPS serial speed</td><td><input type='number' data-key='gpsSerialPortSpeed' value='" + String(liveDataWebInt->settings.gpsSerialPortSpeed) + "'></td></tr>";
@@ -505,6 +506,11 @@ void handleSet()
     {
       liveDataWebInt->settings.gpsSerialPortSpeed = 38400;
       note = "Saved (GPS speed auto-set to 38400, reboot required)";
+    }
+    else if (liveDataWebInt->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+    {
+      liveDataWebInt->settings.gpsSerialPortSpeed = 115200;
+      note = "Saved (GPS speed auto-set to 115200, reboot required)";
     }
     else
     {
