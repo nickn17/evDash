@@ -301,6 +301,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     case GPS_MODULE_TYPE_M5_GNSS:
       suffix = "[M5 GNSS]";
       break;
+    case GPS_MODULE_TYPE_GPS_V21_GNSS:
+      suffix = "[GPS v2.1 GNSS]";
+      break;
     default:
       suffix = "[none]";
     }
@@ -1248,7 +1251,7 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_GPS_MODULE_TYPE:
-      liveData->settings.gpsModuleType = (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS) ? GPS_MODULE_TYPE_NONE : liveData->settings.gpsModuleType + 1;
+      liveData->settings.gpsModuleType = (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS) ? GPS_MODULE_TYPE_NONE : liveData->settings.gpsModuleType + 1;
       if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_NEO_M8N)
       {
         liveData->settings.gpsSerialPortSpeed = 9600;
@@ -1256,6 +1259,10 @@ void Board320_240::menuItemClick()
       else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_M5_GNSS)
       {
         liveData->settings.gpsSerialPortSpeed = 38400;
+      }
+      else if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+      {
+        liveData->settings.gpsSerialPortSpeed = 115200;
       }
       showMenu();
       return;
