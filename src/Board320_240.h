@@ -146,6 +146,18 @@ protected:
   time_t lastContributeSdRecordTime = 0;
   uint32_t contributeStatusSinceMs = 0;
   uint32_t nextContributeCycleAtMs = 0;
+  static constexpr uint32_t kSdV2BackgroundUploadIntervalMs = 5000U;
+  static constexpr uint32_t kSdV2BackgroundStartDelayMs = 5U * 60U * 1000U;
+  static constexpr uint32_t kSdV2BackgroundRetryBackoffMs = 60U * 60U * 1000U;
+  static constexpr uint32_t kSdV2CleanupIntervalMs = 6U * 60U * 60U * 1000U;
+  static constexpr time_t kSdV2UploadedRetentionSec = 30 * 24 * 60 * 60;
+  uint32_t nextSdV2BackgroundUploadAtMs = 0;
+  uint32_t sdV2BackgroundStartAtMs = 0;
+  uint32_t nextSdV2CleanupAtMs = 0;
+  String sdV2UploadFilePath = "";
+  String sdV2UploadFileName = "";
+  uint32_t sdV2UploadPart = 0;
+  uint32_t sdV2UploadOffset = 0;
   ContributeChargingEvent contributeLastBeforeCharge = {};
   ContributeChargingEvent contributeLastDuringCharge = {};
   ContributeChargingEvent contributeChargingStartEvent = {};
@@ -168,6 +180,12 @@ protected:
   void handleContributeChargingTransitions();
   bool buildContributePayloadV2(String &outJson, bool useReadableTsForSd = false);
   void syncContributeRelativeTimes(time_t offset);
+  void runSdV2BackgroundTasks(bool netReady);
+  bool ensureSdV2UploadFileSelected(const String &activeLogFilename);
+  bool processSdV2UploadChunk();
+  void resetSdV2UploadState();
+  bool postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload = nullptr, int *responseCode = nullptr);
+  bool cleanupUploadedSdV2Logs();
 
 public:
   byte pinButtonLeft = 0;
@@ -204,7 +222,7 @@ public:
   void wifiFallback();
   void wifiSwitchToMain();
   void wifiSwitchToBackup();
-  void uploadSdCardLogToEvDashServer();
+  void uploadSdCardLogToEvDashServer(bool silent = false);
   void queueAbrpSdLog(const char *payload, size_t length, time_t currentTime, uint64_t operationTimeSec, bool timeSyncWithGps);
   bool wifiScanToMenu();
   bool promptKeyboard(const char *title, String &value, bool mask, uint8_t maxLen = 63);

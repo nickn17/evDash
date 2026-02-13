@@ -90,6 +90,10 @@ namespace
   constexpr uint16_t kContributeHttpConnectTimeoutMs = 2000;
   constexpr uint16_t kContributeHttpReadTimeoutMs = 3500;
   constexpr size_t kContributeResponseBufferCap = 2048;
+  constexpr uint16_t kSdLogUploadConnectTimeoutMs = 4000;
+  constexpr uint16_t kSdLogUploadIoTimeoutMs = 4500;
+  constexpr size_t kSdLogUploadChunkSize = 4096;
+  uint8_t gSdLogUploadBuffer[kSdLogUploadChunkSize] = {0};
   constexpr uint32_t kFirmwareVersionCheckCooldownMs = 30000;
   constexpr uint16_t kFirmwareVersionHttpTimeoutMs = 4500;
   constexpr uint32_t kPairStatusPollIntervalMs = 8000;
@@ -257,6 +261,83 @@ namespace
       return normalized;
     }
     return deviceId;
+  }
+
+  String toAbsoluteSdPath(const String &fileName)
+  {
+    if (fileName.length() == 0)
+    {
+      return "";
+    }
+    if (fileName.charAt(0) == '/')
+    {
+      return fileName;
+    }
+    return "/" + fileName;
+  }
+
+  bool isPendingSdV2LogFile(const String &filePath)
+  {
+    return filePath.endsWith("_v2.json") && !filePath.endsWith("_v2_uploaded.json");
+  }
+
+  bool isUploadedSdV2LogFile(const String &filePath)
+  {
+    return filePath.endsWith("_v2_uploaded.json");
+  }
+
+  String toUploadedSdV2Path(const String &pendingFilePath)
+  {
+    if (!isPendingSdV2LogFile(pendingFilePath))
+    {
+      return "";
+    }
+    return pendingFilePath.substring(0, pendingFilePath.length() - 8) + "_v2_uploaded.json";
+  }
+
+  bool parseSdLogYyMmDdHhMm(const String &filePath, time_t &outTs)
+  {
+    outTs = 0;
+    int slashPos = filePath.lastIndexOf('/');
+    String baseName = (slashPos >= 0) ? filePath.substring(slashPos + 1) : filePath;
+    if (baseName.length() < 10)
+    {
+      return false;
+    }
+    for (uint8_t i = 0; i < 10; i++)
+    {
+      const char ch = baseName.charAt(i);
+      if (ch < '0' || ch > '9')
+      {
+        return false;
+      }
+    }
+
+    const int year = 2000 + baseName.substring(0, 2).toInt();
+    const int month = baseName.substring(2, 4).toInt();
+    const int day = baseName.substring(4, 6).toInt();
+    const int hour = baseName.substring(6, 8).toInt();
+    const int minute = baseName.substring(8, 10).toInt();
+    if (month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 || minute < 0 || minute > 59)
+    {
+      return false;
+    }
+
+    struct tm tmValue = {};
+    tmValue.tm_year = year - 1900;
+    tmValue.tm_mon = month - 1;
+    tmValue.tm_mday = day;
+    tmValue.tm_hour = hour;
+    tmValue.tm_min = minute;
+    tmValue.tm_sec = 0;
+
+    const time_t parsed = mktime(&tmValue);
+    if (parsed <= 0)
+    {
+      return false;
+    }
+    outTs = parsed;
+    return true;
   }
 
   bool hasContributeRawFrames(const LiveData *liveData)
@@ -1071,7 +1152,6 @@ void Board320_240::showTires(int32_t x, int32_t y, int32_t w, int32_t h, const c
   sprDrawString(bottomright, posx, posy);
 }
 
-
 /**
  * Draw currently selected screen into `spr` without pushing it to TFT.
  */
@@ -1185,7 +1265,8 @@ bool Board320_240::drawActiveScreenToSprite()
     );
   }
 
-  const auto remoteApiConfiguredForWifi = [this]() -> bool {
+  const auto remoteApiConfiguredForWifi = [this]() -> bool
+  {
     if (liveData->settings.remoteUploadIntervalSec == 0)
     {
       return false;
@@ -1202,7 +1283,8 @@ bool Board320_240::drawActiveScreenToSprite()
     return strstr(url, "http") != nullptr;
   }();
 
-  const auto abrpConfiguredForWifi = [this]() -> bool {
+  const auto abrpConfiguredForWifi = [this]() -> bool
+  {
     if (liveData->settings.remoteUploadAbrpIntervalSec == 0)
     {
       return false;
@@ -1965,7 +2047,8 @@ void Board320_240::syncContributeRelativeTimes(time_t offset)
     }
   }
 
-  auto syncEventTime = [offset](ContributeChargingEvent &event) {
+  auto syncEventTime = [offset](ContributeChargingEvent &event)
+  {
     if (event.valid && event.time != 0)
     {
       event.time += offset;
@@ -3181,7 +3264,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
   uint32_t previewUntil = 0;
   bool needsRedraw = true;
 
-  auto loadRows = [&](KeyRows &rows) {
+  auto loadRows = [&](KeyRows &rows)
+  {
     if (!numericMode)
     {
       rows.row[0] = shift ? "QWERTYUIOP" : "qwertyuiop";
@@ -3217,7 +3301,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
     }
   };
 
-  auto hitTest = [&](int16_t tx, int16_t ty) -> KeyHit {
+  auto hitTest = [&](int16_t tx, int16_t ty) -> KeyHit
+  {
     if (ty >= topBtnY && ty <= topBtnY + topBtnH)
     {
       if (tx >= topExitX && tx <= topExitX + topExitW)
@@ -3287,7 +3372,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
     return hit;
   };
 
-  auto drawKeyboard = [&](bool showPreview) {
+  auto drawKeyboard = [&](bool showPreview)
+  {
     if (liveData->params.spriteInit)
     {
       spr.fillSprite(TFT_BLACK);
@@ -3297,7 +3383,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       tft.fillScreen(TFT_BLACK);
     }
 
-    auto drawRect = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t bg, uint16_t fg) {
+    auto drawRect = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t bg, uint16_t fg)
+    {
       if (liveData->params.spriteInit)
       {
         spr.fillRoundRect(x, y, w, h, 4, bg);
@@ -3310,7 +3397,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       }
     };
 
-    auto drawText = [&](const char *text, int16_t x, int16_t y, bool bigFont) {
+    auto drawText = [&](const char *text, int16_t x, int16_t y, bool bigFont)
+    {
       if (liveData->params.spriteInit)
       {
         sprSetFont(bigFont ? fontRobotoThin24 : fontFont2);
@@ -3327,7 +3415,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       }
     };
 
-    auto drawLinePrim = [&](int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
+    auto drawLinePrim = [&](int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col)
+    {
       if (liveData->params.spriteInit)
       {
         spr.drawLine(x0, y0, x1, y1, col);
@@ -3338,7 +3427,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       }
     };
 
-    auto drawEnterIcon = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col) {
+    auto drawEnterIcon = [&](int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col)
+    {
       // Simple bent "enter" arrow.
       int16_t cx = x + w / 2 + 7;
       int16_t top = y + 6;
@@ -3349,7 +3439,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       drawLinePrim(x + 10, mid, x + 14, mid + 4, col);
     };
 
-    auto isActive = [&](KeyAction action, char ch) -> bool {
+    auto isActive = [&](KeyAction action, char ch) -> bool
+    {
       return touchActive && activeAction == action && activeChar == ch;
     };
 
@@ -3465,7 +3556,8 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
   drawKeyboard(false);
   bool previousPressed = false;
 
-  auto readTouchRaw = [&](int16_t &x, int16_t &y) -> bool {
+  auto readTouchRaw = [&](int16_t &x, int16_t &y) -> bool
+  {
 #ifdef BOARD_M5STACK_CORE2
     if (M5.Touch.ispressed() && M5.Touch.points > 0 && M5.Touch.point[0].valid())
     {
@@ -4091,7 +4183,8 @@ void Board320_240::pollEvdashPairingStatus()
 
 int Board320_240::compareVersionTags(const String &left, const String &right) const
 {
-  const auto parse = [](const String &input, int out[4]) -> bool {
+  const auto parse = [](const String &input, int out[4]) -> bool
+  {
     for (uint8_t i = 0; i < 4; i++)
     {
       out[i] = 0;
@@ -4403,7 +4496,8 @@ void Board320_240::netLoop()
   }
 
   // Avoid stale "Net unavailable" state when no internet uploader is effectively active.
-  const auto remoteApiConfigured = [this]() -> bool {
+  const auto remoteApiConfigured = [this]() -> bool
+  {
     if (liveData->settings.remoteUploadIntervalSec == 0)
     {
       return false;
@@ -4420,7 +4514,8 @@ void Board320_240::netLoop()
     return strstr(url, "http") != nullptr;
   }();
 
-  const auto abrpConfigured = [this]() -> bool {
+  const auto abrpConfigured = [this]() -> bool
+  {
     if (liveData->settings.remoteUploadAbrpIntervalSec == 0)
     {
       return false;
@@ -4536,6 +4631,8 @@ void Board320_240::netLoop()
   {
     netContributeData();
   }
+
+  runSdV2BackgroundTasks(netReady);
 }
 
 /**
@@ -4979,7 +5076,8 @@ bool Board320_240::netContributeData()
     const String contributeKey = ensureContributeKey();
     const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
     String payloadForPost;
-    auto scheduleNextContributeCycle = [&]() {
+    auto scheduleNextContributeCycle = [&]()
+    {
       liveData->params.contributeStatus = CONTRIBUTE_NONE;
       contributeStatusSinceMs = 0;
       nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
@@ -5068,7 +5166,8 @@ bool Board320_240::netContributeData()
     String responsePayload = "";
     int lastTlsErrCode = 0;
     String lastTlsErrText = "";
-    auto postContributePayload = [&](String &outResponse, uint8_t attemptNo) -> int {
+    auto postContributePayload = [&](String &outResponse, uint8_t attemptNo) -> int
+    {
       const uint32_t startedMs = millis();
       lastTlsErrCode = 0;
       lastTlsErrText = "";
@@ -5126,7 +5225,8 @@ bool Board320_240::netContributeData()
       return postRc;
     };
 
-    auto postContributePayloadRawTls = [&](String &outResponse, const IPAddress &ip, uint8_t attemptNo) -> int {
+    auto postContributePayloadRawTls = [&](String &outResponse, const IPAddress &ip, uint8_t attemptNo) -> int
+    {
       const uint32_t startedMs = millis();
       outResponse = "";
       lastTlsErrCode = 0;
@@ -5237,7 +5337,8 @@ bool Board320_240::netContributeData()
       return statusCode;
     };
 
-    auto postContributePayloadHttp = [&](String &outResponse, uint8_t attemptNo) -> int {
+    auto postContributePayloadHttp = [&](String &outResponse, uint8_t attemptNo) -> int
+    {
       const uint32_t startedMs = millis();
       outResponse = "";
 
@@ -5505,6 +5606,433 @@ bool Board320_240::netContributeData()
   return true;
 }
 
+void Board320_240::runSdV2BackgroundTasks(bool netReady)
+{
+  const uint32_t nowMs = millis();
+
+  if (nextSdV2CleanupAtMs == 0 || static_cast<int32_t>(nowMs - nextSdV2CleanupAtMs) >= 0)
+  {
+    cleanupUploadedSdV2Logs();
+    nextSdV2CleanupAtMs = nowMs + kSdV2CleanupIntervalMs;
+  }
+
+  if (!liveData->params.sdcardInit)
+  {
+    resetSdV2UploadState();
+    sdV2BackgroundStartAtMs = 0;
+    nextSdV2BackgroundUploadAtMs = 0;
+    return;
+  }
+  const bool uploadEligible =
+      (netReady &&
+       liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI &&
+       liveData->settings.wifiEnabled == 1 &&
+       liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
+       !liveData->params.wifiApMode);
+  if (!uploadEligible)
+  {
+    sdV2BackgroundStartAtMs = 0;
+    nextSdV2BackgroundUploadAtMs = 0;
+    return;
+  }
+
+  if (sdV2BackgroundStartAtMs == 0)
+  {
+    sdV2BackgroundStartAtMs = nowMs + kSdV2BackgroundStartDelayMs;
+    nextSdV2BackgroundUploadAtMs = 0;
+    return;
+  }
+  if (static_cast<int32_t>(nowMs - sdV2BackgroundStartAtMs) < 0)
+  {
+    return;
+  }
+
+  if (nextSdV2BackgroundUploadAtMs == 0)
+  {
+    nextSdV2BackgroundUploadAtMs = nowMs;
+  }
+  if (static_cast<int32_t>(nowMs - nextSdV2BackgroundUploadAtMs) < 0)
+  {
+    return;
+  }
+  nextSdV2BackgroundUploadAtMs = nowMs + kSdV2BackgroundUploadIntervalMs;
+
+  const String activeLogFilename = toAbsoluteSdPath(String(liveData->params.sdcardFilename));
+  if (!ensureSdV2UploadFileSelected(activeLogFilename))
+  {
+    return;
+  }
+
+  if (!processSdV2UploadChunk())
+  {
+    nextSdV2BackgroundUploadAtMs = nowMs + kSdV2BackgroundRetryBackoffMs;
+  }
+}
+
+bool Board320_240::ensureSdV2UploadFileSelected(const String &activeLogFilename)
+{
+  if (sdV2UploadFilePath.length() > 0 && sdV2UploadFileName.length() > 0)
+  {
+    return true;
+  }
+
+  File dir = SD.open("/");
+  if (!dir || !dir.isDirectory())
+  {
+    if (dir)
+    {
+      dir.close();
+    }
+    return false;
+  }
+
+  String selectedPath = "";
+  String selectedName = "";
+  while (true)
+  {
+    File entry = dir.openNextFile(FILE_READ);
+    if (!entry)
+    {
+      break;
+    }
+
+    if (!entry.isDirectory())
+    {
+      const String filePath = toAbsoluteSdPath(String(entry.name()));
+      const bool isActiveLog = (activeLogFilename.length() > 0 && filePath == activeLogFilename);
+      if (isPendingSdV2LogFile(filePath) && !isActiveLog)
+      {
+        if (selectedPath.length() == 0 || filePath < selectedPath)
+        {
+          selectedPath = filePath;
+          selectedName = (filePath.charAt(0) == '/') ? filePath.substring(1) : filePath;
+        }
+      }
+    }
+    entry.close();
+  }
+  dir.close();
+
+  if (selectedPath.length() == 0)
+  {
+    return false;
+  }
+
+  sdV2UploadFilePath = selectedPath;
+  sdV2UploadFileName = selectedName;
+  sdV2UploadPart = 0;
+  sdV2UploadOffset = 0;
+  return true;
+}
+
+bool Board320_240::processSdV2UploadChunk()
+{
+  if (sdV2UploadFilePath.length() == 0 || sdV2UploadFileName.length() == 0)
+  {
+    return false;
+  }
+
+  auto finalizeUploadedFile = [&]() -> bool
+  {
+    const String uploadedPath = toUploadedSdV2Path(sdV2UploadFilePath);
+    bool renamed = false;
+    if (uploadedPath.length() > 0)
+    {
+      if (SD.exists(uploadedPath.c_str()))
+      {
+        SD.remove(uploadedPath.c_str());
+      }
+      renamed = SD.rename(sdV2UploadFilePath.c_str(), uploadedPath.c_str());
+    }
+    resetSdV2UploadState();
+    return renamed;
+  };
+
+  File file = SD.open(sdV2UploadFilePath.c_str(), FILE_READ);
+  if (!file || file.isDirectory())
+  {
+    if (file)
+    {
+      file.close();
+    }
+    resetSdV2UploadState();
+    return false;
+  }
+
+  const size_t fileSize = static_cast<size_t>(file.size());
+  if (sdV2UploadOffset > fileSize)
+  {
+    file.close();
+    resetSdV2UploadState();
+    return false;
+  }
+  if (sdV2UploadOffset == fileSize)
+  {
+    file.close();
+    return finalizeUploadedFile();
+  }
+
+  if (!file.seek(sdV2UploadOffset))
+  {
+    file.close();
+    resetSdV2UploadState();
+    return false;
+  }
+
+  const size_t readBytes = file.read(gSdLogUploadBuffer, kSdLogUploadChunkSize);
+  file.close();
+  if (readBytes == 0)
+  {
+    resetSdV2UploadState();
+    return false;
+  }
+
+  if (!postSdLogChunkToEvDash(sdV2UploadFileName, sdV2UploadPart, gSdLogUploadBuffer, readBytes))
+  {
+    return false;
+  }
+
+  sdV2UploadOffset += static_cast<uint32_t>(readBytes);
+  sdV2UploadPart++;
+  if (sdV2UploadOffset >= fileSize)
+  {
+    return finalizeUploadedFile();
+  }
+  return true;
+}
+
+void Board320_240::resetSdV2UploadState()
+{
+  sdV2UploadFilePath = "";
+  sdV2UploadFileName = "";
+  sdV2UploadPart = 0;
+  sdV2UploadOffset = 0;
+}
+
+bool Board320_240::postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload, int *responseCode)
+{
+  if (responsePayload != nullptr)
+  {
+    *responsePayload = "";
+  }
+  if (responseCode != nullptr)
+  {
+    *responseCode = -1;
+  }
+
+  if (fileName.length() == 0 || data == nullptr || length == 0)
+  {
+    return false;
+  }
+  const bool debugLog = (responseCode != nullptr && liveData->settings.debugLevel >= DEBUG_SDCARD);
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    if (debugLog)
+    {
+      syslog->println("Log upload: WiFi not connected");
+    }
+    return false;
+  }
+
+  const String contributeKey = ensureContributeKey();
+  const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
+  const String registerApiKey = String(liveData->settings.remoteApiKey);
+
+  const String query = "?token=" + contributeKey +
+                       "&key=" + contributeKey +
+                       "&deviceKey=" + contributeKey +
+                       "&hwDeviceId=" + hardwareDeviceId +
+                       "&deviceId=" + hardwareDeviceId +
+                       "&apiKey=" + registerApiKey +
+                       "&register=1" +
+                       "&filename=" + fileName +
+                       "&part=" + String(part);
+
+  const char *uploadBaseUrls[] = {
+      "https://api.evdash.eu/v1/upload",
+      "https://api.evdash.eu/v1/contribute/upload"};
+
+  int rc = -1;
+  String payload = "";
+  for (uint8_t i = 0; i < (sizeof(uploadBaseUrls) / sizeof(uploadBaseUrls[0])); i++)
+  {
+    WiFiClientSecure client;
+    HTTPClient http;
+    client.setInsecure();
+    client.setHandshakeTimeout((kSdLogUploadConnectTimeoutMs + 999) / 1000);
+    client.setTimeout((kSdLogUploadIoTimeoutMs + 999) / 1000);
+
+    const String url = String(uploadBaseUrls[i]) + query;
+    if (debugLog)
+    {
+      syslog->print("Log upload try: ");
+      syslog->println(url);
+    }
+    if (!http.begin(client, url))
+    {
+      client.stop();
+      rc = -1;
+      if (debugLog)
+      {
+        syslog->println("Log upload: http.begin failed");
+      }
+      continue;
+    }
+
+    http.setConnectTimeout(kSdLogUploadConnectTimeoutMs);
+    http.setTimeout(kSdLogUploadIoTimeoutMs);
+    http.useHTTP10(true);
+    http.setReuse(false);
+    addWifiTransferredBytes(length);
+    rc = http.POST((uint8_t *)data, length);
+    payload = "";
+    if (rc == HTTP_CODE_OK)
+    {
+      payload = http.getString();
+    }
+    else if (debugLog)
+    {
+      syslog->print("Log upload post rc=");
+      syslog->print(rc);
+      syslog->print(" err=");
+      syslog->println(HTTPClient::errorToString(rc).c_str());
+    }
+    http.end();
+    client.stop();
+
+    if (rc != HTTP_CODE_NOT_FOUND)
+    {
+      break;
+    }
+  }
+
+  if (responsePayload != nullptr)
+  {
+    *responsePayload = payload;
+  }
+  if (responseCode != nullptr)
+  {
+    *responseCode = rc;
+  }
+
+  if (rc != HTTP_CODE_OK)
+  {
+    if (debugLog)
+    {
+      IPAddress resolved;
+      const int dnsRc = WiFi.hostByName("api.evdash.eu", resolved);
+      syslog->print("Log upload DNS api.evdash.eu: ");
+      if (dnsRc == 1)
+      {
+        syslog->println(resolved.toString());
+      }
+      else
+      {
+        syslog->println("resolve_failed");
+      }
+      syslog->print("WiFi status/IP/GW/DNS: ");
+      syslog->println(String(WiFi.status()) + " / " +
+                      WiFi.localIP().toString() + " / " +
+                      WiFi.gatewayIP().toString() + " / " +
+                      WiFi.dnsIP(0).toString());
+      if (dnsRc == 1)
+      {
+        WiFiClient tcpProbe;
+        const int tcpRc = tcpProbe.connect(resolved, 443, 2500);
+        syslog->print("Log upload TCP probe ");
+        syslog->print(resolved.toString());
+        syslog->print(":443 rc=");
+        syslog->println(tcpRc);
+        tcpProbe.stop();
+      }
+    }
+    return false;
+  }
+
+  const bool statusOk = (payload.indexOf("\"status\":\"ok\"") != -1);
+  const bool storedFalse = (payload.indexOf("\"stored\":false") != -1);
+  return (statusOk && !storedFalse);
+}
+
+bool Board320_240::cleanupUploadedSdV2Logs()
+{
+  if (!liveData->params.sdcardInit)
+  {
+    return false;
+  }
+
+  const time_t nowTime = liveData->params.currentTime;
+  const bool hasReliableWallClock =
+      (liveData->params.currTimeSyncWithGps ||
+       liveData->params.ntpTimeSet ||
+       nowTime > 1700000000);
+  if (!hasReliableWallClock || nowTime <= 0)
+  {
+    return false;
+  }
+
+  File dir = SD.open("/");
+  if (!dir || !dir.isDirectory())
+  {
+    if (dir)
+    {
+      dir.close();
+    }
+    return false;
+  }
+
+  bool removedAny = false;
+  while (true)
+  {
+    File entry = dir.openNextFile(FILE_READ);
+    if (!entry)
+    {
+      break;
+    }
+
+    if (entry.isDirectory())
+    {
+      entry.close();
+      continue;
+    }
+
+    const String filePath = toAbsoluteSdPath(String(entry.name()));
+    if (!isUploadedSdV2LogFile(filePath))
+    {
+      entry.close();
+      continue;
+    }
+
+    time_t fileTime = entry.getLastWrite();
+    if (fileTime <= 0 || fileTime > nowTime)
+    {
+      time_t parsedTime = 0;
+      if (parseSdLogYyMmDdHhMm(filePath, parsedTime))
+      {
+        fileTime = parsedTime;
+      }
+    }
+    entry.close();
+
+    if (fileTime <= 0 || nowTime <= fileTime)
+    {
+      continue;
+    }
+    if ((nowTime - fileTime) < kSdV2UploadedRetentionSec)
+    {
+      continue;
+    }
+
+    if (SD.remove(filePath.c_str()))
+    {
+      removedAny = true;
+    }
+  }
+  dir.close();
+  return removedAny;
+}
+
 /**
  * Initializes the hardware GPS module.
  * Configures the hardware serial port and baud rate.
@@ -5517,7 +6045,8 @@ void Board320_240::initGPS()
   syslog->println(liveData->settings.gpsHwSerialPort);
 
   gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
-  auto beginGpsUart = [&](unsigned long baud) {
+  auto beginGpsUart = [&](unsigned long baud)
+  {
     if (liveData->settings.gpsHwSerialPort == 2)
     {
       gpsHwUart->begin(baud, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
@@ -5533,7 +6062,8 @@ void Board320_240::initGPS()
     }
   };
 
-  auto hasValidNmea = [&](uint32_t timeoutMs) -> bool {
+  auto hasValidNmea = [&](uint32_t timeoutMs) -> bool
+  {
     TinyGPSPlus probeGps;
     const uint32_t startMs = millis();
     while (millis() - startMs < timeoutMs)
@@ -5559,7 +6089,8 @@ void Board320_240::initGPS()
   unsigned long baudCandidates[4] = {0, 0, 0, 0};
   uint8_t baudCandidateCount = 0;
 
-  auto pushBaudCandidate = [&](unsigned long baud) {
+  auto pushBaudCandidate = [&](unsigned long baud)
+  {
     if (baud == 0)
     {
       return;
@@ -5716,109 +6247,240 @@ void Board320_240::initGPS()
 /**
  * This function uploads log files from the SD card to the EvDash server.
  */
-void Board320_240::uploadSdCardLogToEvDashServer()
+void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
 {
-  syslog->println("uploadSdCardLogToEvDashServer");
+  if (!silent)
+  {
+    syslog->println("uploadSdCardLogToEvDashServer");
+  }
   if (!liveData->params.sdcardInit)
   {
-    syslog->println("SD card not initialized");
-    displayMessage("SDCARD", "Not mounted");
+    if (!silent)
+    {
+      syslog->println("SD card not initialized");
+      displayMessage("SDCARD", "Not mounted");
+    }
     return;
   }
   if (!(liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1))
   {
-    displayMessage("Error", "WiFi not enabled");
+    if (!silent)
+    {
+      displayMessage("Error", "WiFi not enabled");
+    }
+    return;
+  }
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    if (!silent)
+    {
+      syslog->println("Upload logs: WiFi not connected");
+      displayMessage("Error", "WiFi not connected");
+    }
     return;
   }
 
   File dir = SD.open("/");
-  String fileName;
-  WiFiClientSecure client;
-  HTTPClient http;
-  String uploadedStr;
-  int rc = 0;
-  uint32_t part, uploaded, cntLogs, cntUploaded;
-  bool errorUploadFile;
-  constexpr size_t kUploadChunkSize = 1024;
-  uint8_t buff[kUploadChunkSize];
-
-  displayMessage("Upload logs to server", "No files found");
-  cntLogs = cntUploaded = 0;
-  String activeLogFilename = String(liveData->params.sdcardFilename);
-  if (activeLogFilename.length() > 0 && activeLogFilename.charAt(0) != '/')
+  if (!dir || !dir.isDirectory())
   {
-    activeLogFilename = "/" + activeLogFilename;
+    if (dir)
+    {
+      dir.close();
+    }
+    if (!silent)
+    {
+      displayMessage("Upload logs", "Open root failed");
+    }
+    return;
   }
+
+  String uploadedStr;
+  uint32_t cntLogs = 0;
+  uint32_t cntUploaded = 0;
+  const String activeLogFilename = toAbsoluteSdPath(String(liveData->params.sdcardFilename));
+  String queuedFiles = "";
+  queuedFiles.reserve(1024);
 
   while (true)
   {
-    uploaded = part = 0;
-    errorUploadFile = true;
     File entry = dir.openNextFile(FILE_READ);
     if (!entry)
-      break;
-    if (!entry.isDirectory())
     {
-      fileName = "/";
-      fileName += entry.name();
-      const bool isJsonLog = fileName.endsWith(".json");
-      const bool isActiveLog = (activeLogFilename.length() > 0 && fileName == activeLogFilename);
-      if (isJsonLog && !isActiveLog)
-      {
-        cntLogs++;
-        displayMessage(fileName.c_str(), "Uploading...");
-        size_t sz = 0;
-        while ((sz = entry.read(buff, sizeof(buff))) > 0)
-        {
-          errorUploadFile = false;
-          syslog->println("Part:" + String(part) + "\tSize:" + String(sz));
-          uploadedStr = "Uploading... " + String(uploaded / 1024) + " / " + String(entry.size() / 1024) + "kB";
-          displayMessage(fileName.c_str(), uploadedStr.c_str());
+      break;
+    }
+    const bool isDir = entry.isDirectory();
+    const String fileName = String(entry.name());
+    entry.close();
 
-          client.setInsecure();
-          const String contributeKey = ensureContributeKey();
-          const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
-          const String registerApiKey = String(liveData->settings.remoteApiKey);
-          http.begin(client, "https://api.evdash.eu/v1/contribute/upload?key=" + contributeKey +
-                                 "&deviceId=" + hardwareDeviceId +
-                                 "&apiKey=" + registerApiKey +
-                                 "&register=1" +
-                                 "&filename=" + String(entry.name()) + "&part=" + String(part));
-          http.setConnectTimeout(1000);
-          http.setTimeout(2500);
-          addWifiTransferredBytes(sz);
-          rc = http.POST(buff, sz);
-          uploaded += sz;
-          if (rc == HTTP_CODE_OK)
+    if (!isDir)
+    {
+      const String filePath = toAbsoluteSdPath(fileName);
+      const bool isJsonLog = filePath.endsWith(".json");
+      const bool isActiveLog = (activeLogFilename.length() > 0 && filePath == activeLogFilename);
+      const bool isAlreadyUploadedV2Log = isUploadedSdV2LogFile(filePath);
+      if (isJsonLog && !isActiveLog && !isAlreadyUploadedV2Log)
+      {
+        queuedFiles += filePath;
+        queuedFiles += '\n';
+      }
+    }
+  }
+  dir.close();
+
+  int queuePos = 0;
+  while (queuePos < queuedFiles.length())
+  {
+    int lineEnd = queuedFiles.indexOf('\n', queuePos);
+    if (lineEnd < 0)
+    {
+      lineEnd = queuedFiles.length();
+    }
+    const String filePath = queuedFiles.substring(queuePos, lineEnd);
+    queuePos = lineEnd + 1;
+    if (filePath.length() == 0)
+    {
+      continue;
+    }
+
+    const String uploadFileName = (filePath.charAt(0) == '/') ? filePath.substring(1) : filePath;
+    cntLogs++;
+    int32_t lastProgressShownKb = -1;
+    if (!silent)
+    {
+      displayMessage(filePath.c_str(), "Uploading...");
+    }
+
+    uint32_t part = 0;
+    uint32_t uploaded = 0;
+    File uploadFileMeta = SD.open(filePath.c_str(), FILE_READ);
+    const size_t totalSize = uploadFileMeta ? static_cast<size_t>(uploadFileMeta.size()) : 0U;
+    bool uploadFailed = false;
+    if (!uploadFileMeta || uploadFileMeta.isDirectory())
+    {
+      uploadFailed = true;
+    }
+    if (uploadFileMeta)
+    {
+      uploadFileMeta.close();
+    }
+    if (!uploadFailed && totalSize > 0U)
+    {
+      while (uploaded < totalSize)
+      {
+        const size_t remaining = totalSize - uploaded;
+        const size_t bytesToRead = (remaining < kSdLogUploadChunkSize) ? remaining : kSdLogUploadChunkSize;
+
+        File uploadChunk = SD.open(filePath.c_str(), FILE_READ);
+        if (!uploadChunk || uploadChunk.isDirectory())
+        {
+          if (uploadChunk)
           {
-            String payload = http.getString();
-            syslog->println(payload);
-            if (payload.indexOf("status\":\"ok") == -1)
-            {
-              errorUploadFile = true;
-              break;
-            }
+            uploadChunk.close();
           }
-          else
-          {
-            syslog->println("HTTP code: " + String(rc));
-            errorUploadFile = true;
-            break;
-          }
-          part++;
+          uploadFailed = true;
+          break;
+        }
+        if (!uploadChunk.seek(uploaded))
+        {
+          uploadChunk.close();
+          uploadFailed = true;
+          break;
+        }
+        const size_t sz = uploadChunk.read(gSdLogUploadBuffer, bytesToRead);
+        uploadChunk.close();
+        if (sz == 0U)
+        {
+          uploadFailed = true;
+          break;
         }
 
-        displayMessage(fileName.c_str(), (errorUploadFile ? "Upload error..." : "Uploaded..."));
-        if (!errorUploadFile)
+        if (!silent)
         {
-          SD.remove(fileName);
-          cntUploaded++;
+          const int32_t uploadedKb = static_cast<int32_t>(uploaded / 1024);
+          const bool showProgress = (part == 0) || (lastProgressShownKb < 0) || (uploadedKb - lastProgressShownKb >= 16);
+          if (showProgress)
+          {
+            lastProgressShownKb = uploadedKb;
+            uploadedStr = "Uploading... " + String(uploadedKb) + " / " + String(totalSize / 1024) + "kB";
+            displayMessage(filePath.c_str(), uploadedStr.c_str());
+          }
+        }
+
+        String uploadResponse = "";
+        int uploadRc = -1;
+        if (!postSdLogChunkToEvDash(uploadFileName, part, gSdLogUploadBuffer, sz, &uploadResponse, &uploadRc))
+        {
+          uploadFailed = true;
+          if (!silent)
+          {
+            syslog->print("Log upload failed rc=");
+            syslog->println(uploadRc);
+            if (uploadResponse.length() > 0)
+            {
+              syslog->println(uploadResponse);
+            }
+          }
+          break;
+        }
+
+        uploaded += static_cast<uint32_t>(sz);
+        part++;
+        yield();
+      }
+      if (!uploadFailed && uploaded < totalSize)
+      {
+        uploadFailed = true;
+        if (!silent)
+        {
+          syslog->print("Log upload local read short: ");
+          syslog->print(uploaded);
+          syslog->print(" / ");
+          syslog->println(totalSize);
         }
       }
     }
-    entry.close();
+
+    if (!silent)
+    {
+      displayMessage(filePath.c_str(), (uploadFailed ? "Upload error..." : "Uploaded..."));
+    }
+    if (!uploadFailed)
+    {
+      bool finalized = false;
+      if (isPendingSdV2LogFile(filePath))
+      {
+        const String uploadedPath = toUploadedSdV2Path(filePath);
+        if (uploadedPath.length() > 0)
+        {
+          if (SD.exists(uploadedPath.c_str()))
+          {
+            SD.remove(uploadedPath.c_str());
+          }
+          finalized = SD.rename(filePath.c_str(), uploadedPath.c_str());
+        }
+      }
+      else
+      {
+        finalized = SD.remove(filePath.c_str());
+      }
+      if (finalized)
+      {
+        cntUploaded++;
+      }
+    }
+    yield();
   }
 
-  uploadedStr = String(cntUploaded) + " of " + String(cntLogs);
-  displayMessage("Uploaded", uploadedStr.c_str());
+  if (!silent)
+  {
+    if (cntLogs == 0)
+    {
+      displayMessage("Upload logs to server", "No files found");
+    }
+    else
+    {
+      uploadedStr = String(cntUploaded) + " of " + String(cntLogs);
+      displayMessage("Uploaded", uploadedStr.c_str());
+    }
+  }
 }

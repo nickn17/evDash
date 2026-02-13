@@ -1,5 +1,14 @@
 # RELEASE NOTES
 
+### V4.5.9 2026-02-13
+- SD `v2` log upload now runs quietly in background during normal app use (no popups or user messages).
+- Upload starts after a `5 minute` grace period and retries later if network/server is unavailable.
+- Only closed log files are uploaded (currently active file is skipped).
+- Successful upload renames file from `_v2.json` to `_v2_uploaded.json`; failed upload keeps original file for retry.
+- Uploaded files are automatically cleaned after `30` days.
+- Improved manual upload stability for larger files.
+- Server upload handling was updated for better compatibility and reliable device verification.
+
 ### V4.5.8 2026-02-13
 - Touch keyboard input hardening:
   - While on-screen keyboard is active, bottom touch buttons under display are now fully ignored.
