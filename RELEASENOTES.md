@@ -1,5 +1,8 @@
 # RELEASE NOTES
 
+### V4.5.2 2026-02-13
+- Core3/CoreS3 GPS now uses `Serial2` pins in build config: `-D SERIAL2_RX=44` and `-D SERIAL2_TX=43`.
+
 ### V4.5.1 2026-02-13
 - Added new GPS module option `GPS v2.1 GNSS` in both on-device menu and Web Interface.
 - GPS v2.1 selection now auto-sets GPS serial speed to `115200` and uses baud auto-detect order `115200 -> 38400 -> 9600`.
