@@ -152,6 +152,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_OBD2_BLE4:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BLE4) ? ">" : "";
     break;
+  case MENU_ADAPTER_OBD2_BT3:
+    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BT3) ? ">" : "";
+    break;
   case MENU_ADAPTER_OBD2_WIFI:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI) ? ">" : "";
     break;
@@ -545,6 +548,7 @@ uint16_t Board320_240::menuItemFromTouchY(int16_t touchY)
  */
 void Board320_240::showMenu()
 {
+  messageDialogVisible = false;
   ensureMenuBackbuffer();
   int16_t posY = 0;
   uint16_t tmpCurrMenuItem = 0;
@@ -640,6 +644,12 @@ void Board320_240::showMenu()
           spr.drawRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, borderCol);
         }
         spr.setTextColor(isMenuItemHovered ? TFT_CYAN : TFT_WHITE);
+        String itemTitle = menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title);
+        bool isActiveChoice = itemTitle.startsWith("> ");
+        if (isActiveChoice)
+        {
+          itemTitle = itemTitle.substring(2);
+        }
         bool isBackNavItem = (strncmp(liveData->menuItems[i].title, "<-", 2) == 0);
         int16_t drawX = textPaddingX;
         if (isBackNavItem && posY > -menuItemHeight && posY < renderHeight)
@@ -654,10 +664,22 @@ void Board320_240::showMenu()
           spr.drawLine(textPaddingX + 2, cy, textPaddingX + 6, cy + 4, iconCol);
           drawX += backIconW + backTextGap;
         }
+        if (isActiveChoice && posY > -menuItemHeight && posY < renderHeight)
+        {
+          const int16_t markerCx = drawX + 6;
+          const int16_t markerCy = posY + menuItemHeight / 2 + 1;
+          const uint16_t markerBorder = isMenuItemHovered ? TFT_CYAN : TFT_GREEN;
+          const uint16_t markerFill = 0x0240;
+          spr.fillCircle(markerCx, markerCy, 6, markerFill);
+          spr.drawCircle(markerCx, markerCy, 6, markerBorder);
+          spr.drawLine(markerCx - 2, markerCy, markerCx, markerCy + 2, TFT_WHITE);
+          spr.drawLine(markerCx, markerCy + 2, markerCx + 3, markerCy - 2, TFT_WHITE);
+          drawX += 16;
+        }
         const int16_t textY = posY + off + textOffsetY;
         if (textY >= 0 && textY + textHeight <= renderHeight)
         {
-          sprDrawString(menuItemText(liveData->menuItems[i].id, liveData->menuItems[i].title).c_str(), drawX, textY);
+          sprDrawString(itemTitle.c_str(), drawX, textY);
         }
         posY += menuItemHeight;
       }
@@ -733,6 +755,7 @@ void Board320_240::showMenu()
  */
 void Board320_240::hideMenu()
 {
+  messageDialogVisible = false;
   liveData->menuVisible = false;
   liveData->menuCurrent = 0;
   liveData->menuItemSelected = 0;
@@ -1026,6 +1049,12 @@ void Board320_240::menuItemClick()
       saveSettings();
       ESP.restart();
       break;
+    case MENU_ADAPTER_OBD2_BT3:
+      liveData->settings.commType = COMM_TYPE_OBD2_BT3;
+      displayMessage("COMM_TYPE_OBD2_BT3", "Rebooting");
+      saveSettings();
+      ESP.restart();
+      break;
     case MENU_ADAPTER_CAN_COMMU:
       liveData->settings.commType = COMM_TYPE_CAN_COMMU;
       displayMessage("COMM_TYPE_CAN_COMMU", "Rebooting");
@@ -1041,7 +1070,7 @@ void Board320_240::menuItemClick()
     case MENU_ADAPTER_OBD2_NAME:
     {
       String value = String(liveData->settings.obd2Name);
-      if (promptKeyboard("BLE4 adapter name", value, false, sizeof(liveData->settings.obd2Name) - 1))
+      if (promptKeyboard("BT3/4 name", value, false, sizeof(liveData->settings.obd2Name) - 1))
       {
         value.toCharArray(liveData->settings.obd2Name, sizeof(liveData->settings.obd2Name));
         saveSettings();
@@ -1597,9 +1626,9 @@ void Board320_240::menuItemClick()
       break;
     // Pair ble device
     case MENU_ADAPTER_BLE_SELECT:
-      if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
+      if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
       {
-        displayMessage("Not supported", "in CAN mode");
+        displayMessage("Not supported", "Use BLE4 mode");
         delay(3000);
         hideMenu();
         return;

@@ -21,20 +21,30 @@ Use this firmware at your own risk.
 
 ### Main boards
 
-- M5Stack Core2 v1.0
+- **Preferred:** M5Stack CoreS3 (best overall UX/performance)
+- **Preferred:** M5Stack CoreS3 SE (K128-SE)
+  - Product: `M5Stack CoreS3 SE - vývojový modul - ESP32-S3 - M5Stack K128-SE`
+  - Index: `MSS-25332`, EAN: `6972934175304`
+  - Uses the same firmware target/profile as CoreS3 (`m5stack-cores3`).
 - M5Stack Core2 v1.1
-- M5Stack CoreS3 (active development)
+- M5Stack Core2 v1.0
 
 ### Vehicle interface
 
-- CAN via COMMU / MCP2515
-- OBD2 BLE4 adapter (tested with Vgate iCar Pro BLE4)
-- OBD2 WiFi adapter `[DEV]`
+- **Preferred:** CAN via COMMU / MCP2515
+- **Preferred fallback:** OBD2 BLE4 adapter
+- OBD2 Bluetooth3 classic adapter (BT3, only Core2 devices with Classic BT support)
+- OBD2 WiFi adapter
 
-For long-term use, direct CAN is recommended over generic OBD2 adapters.
+Preferred order is CAN first, then BLE4.
 
 ### GPS modules
 
+- **Preferred:** GPS module v2.1 with SMA antenna (AT6668) for M5Core / M5Stack `M003-V2.1`
+  - Product: `GPS modul v2.1 s SMA anténou - AT6668 - pro vývojové moduly M5Core - M5Stack M003-V2.1`
+  - Index: `MSS-26600`, EAN: `6972934175731`
+  - GNSS support: GPS, BD2/BD3, GLONASS, GALILEO, QZSS
+  - In practice this module can see up to ~31 satellites (vs ~12 on older NEO modules) and costs around 13 EUR.
 - M5 GNSS (NEO-M9N, typically 38400 bps)
 - M5 GPS (NEO-M8N, typically 9600 bps)
 
@@ -71,9 +81,9 @@ Use the evDash Web Flasher: https://www.evdash.eu/m5flash or follow [INSTALLATIO
 5. Build one target:
 
 ```bash
+~/.platformio/penv/bin/pio run -e m5stack-cores3   # CoreS3 and CoreS3 SE (K128-SE)
 ~/.platformio/penv/bin/pio run -e m5stack-core2-v1_0
 ~/.platformio/penv/bin/pio run -e m5stack-core2-v1_1
-~/.platformio/penv/bin/pio run -e m5stack-cores3
 ```
 
 6. Upload:

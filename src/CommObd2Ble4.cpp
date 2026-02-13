@@ -32,7 +32,7 @@ class MyClientCallback : public BLEClientCallbacks
 };
 
 /**
-   Scan for BLE servers and find the first one that advertises the service we are looking for.
+   Scan for BLE servers and find the selected adapter by MAC address.
 */
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
 {
@@ -82,10 +82,18 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
       liveDataObj->scanningDeviceIndex++;
     }
 
-    if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)) &&
-        (strcmp(advertisedDevice.getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0))
+    if (strcmp(advertisedDevice.getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0)
     {
-      syslog->println("Stop scanning. Found my BLE device.");
+      if (advertisedDevice.haveServiceUUID() &&
+          advertisedDevice.isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)))
+      {
+        syslog->println("Stop scanning. Found target MAC + matching service UUID.");
+      }
+      else
+      {
+        // Some adapters do not advertise a service UUID during scan or use a different one.
+        syslog->println("Stop scanning. Found target MAC (service UUID differs/missing, using auto-detect).");
+      }
       BLEDevice::getScan()->stop();
       liveDataObj->foundMyBleDevice = new BLEAdvertisedDevice(advertisedDevice);
     }
@@ -303,8 +311,16 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   liveData->pClient = BLEDevice::createClient();
   liveData->pClient->setClientCallbacks(new MyClientCallback());
 
-  // Attempt to connect to the BLE device
-  if (!liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM))
+  // Attempt to connect to the BLE device.
+  // Most adapters use random address type, but some use public type.
+  bool connected = liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM);
+  if (!connected)
+  {
+    syslog->println("Connect with RANDOM address type failed. Trying PUBLIC...");
+    connected = liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_PUBLIC);
+  }
+
+  if (!connected)
   {
     syslog->println("Failed to connect to BLE device.");
     board->displayMessage("Connection failed", "Retrying...");
@@ -383,7 +399,15 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   if (liveData->pRemoteCharacteristic->canNotify())
   {
     const uint8_t indicationOn[] = {0x2, 0x0};
-    liveData->pRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)indicationOn, 2, true);
+    BLERemoteDescriptor *notifyDescriptor = liveData->pRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902));
+    if (notifyDescriptor != nullptr)
+    {
+      notifyDescriptor->writeValue((uint8_t *)indicationOn, 2, true);
+    }
+    else
+    {
+      syslog->println("Notify descriptor 0x2902 not found. Registering callback only.");
+    }
     liveData->pRemoteCharacteristic->registerForNotify(notifyCallback, false);
     delay(200);
   }

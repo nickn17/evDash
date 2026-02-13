@@ -16,6 +16,7 @@ namespace
 {
   constexpr uint32_t kWifiRetryIntervalMs = 8000;
   constexpr uint32_t kTcpRetryIntervalMs = 1500;
+  constexpr int32_t kTcpConnectTimeoutMs = 350;
   constexpr uint32_t kObdCommandTimeoutMs = 2500;
 
   bool wifiSsidConfigured(const LiveData *liveData)
@@ -136,6 +137,11 @@ void CommObd2Wifi::mainLoop()
   // Connect WiFi OBD2 adapter.
   if (liveData->obd2ready == true)
   {
+    if (liveData->menuVisible)
+    {
+      return;
+    }
+
     const uint32_t nowMs = millis();
     if (WiFi.status() != WL_CONNECTED)
     {
@@ -164,11 +170,11 @@ void CommObd2Wifi::mainLoop()
 
     // Connect stream
     syslog->println("Connect obd2 wifi client.");
-    if (!client.connect(liveData->settings.obd2WifiIp, liveData->settings.obd2WifiPort))
+    if (!client.connect(liveData->settings.obd2WifiIp, liveData->settings.obd2WifiPort, kTcpConnectTimeoutMs))
     {
       connectStatus = "OBD2 TCP failed. Check IP/port";
       syslog->println("OBD2 TCP failed. Trying fallback port.");
-      if (!client.connect(liveData->settings.obd2WifiIp, (liveData->settings.obd2WifiPort == 23 ? 35000 : 23)))
+      if (!client.connect(liveData->settings.obd2WifiIp, (liveData->settings.obd2WifiPort == 23 ? 35000 : 23), kTcpConnectTimeoutMs))
       {
         return;
       }

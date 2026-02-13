@@ -138,6 +138,42 @@ bool BoardM5stackCore2::isButtonPressed(int button)
 {
   touchMenuVisible = liveData->menuVisible;
 
+  if (isTouchInputSuppressed())
+  {
+    touchPressed = false;
+    touchDragged = false;
+    touchTracking = false;
+    touchDragGestureActive = false;
+    touchSwipeGestureActive = false;
+    touchDragDeltaY = 0;
+    touchDragDeltaYPrev = 0;
+    touchSwipeDeltaX = 0;
+    lastTouchTime = 0;
+    screenSwipePreviewActive = false;
+  }
+
+  if (isMessageDialogVisible())
+  {
+    if (touchPressed || btnAPressed || btnBPressed || btnCPressed)
+    {
+      touchPressed = false;
+      touchDragged = false;
+      touchTracking = false;
+      touchDragGestureActive = false;
+      touchSwipeGestureActive = false;
+      touchDragDeltaY = 0;
+      touchDragDeltaYPrev = 0;
+      touchSwipeDeltaX = 0;
+      lastTouchTime = 0;
+      screenSwipePreviewActive = false;
+      btnAPressed = false;
+      btnBPressed = false;
+      btnCPressed = false;
+      dismissMessageDialog();
+    }
+    return false;
+  }
+
   if (liveData->menuVisible && touchTracking)
   {
     bool inUpperLeftZone = (lastTouchX < 64 && lastTouchY < 64);

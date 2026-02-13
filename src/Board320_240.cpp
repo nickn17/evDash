@@ -423,7 +423,7 @@ void Board320_240::afterSetup()
   tft.setRotation(liveData->settings.displayRotation);
 
   setBrightness();
-  tft.fillScreen(TFT_RED);
+  showBootProgress("Display initialization...", "Preparing resources", TFT_RED);
 
   bool psramUsed = false; // 320x240 16bpp sprites requires psram
 #if defined(ESP32) && defined(CONFIG_SPIRAM_SUPPORT)
@@ -438,17 +438,18 @@ void Board320_240::afterSetup()
   menuBackbufferActive = false;
   liveData->params.spriteInit = true;
   printHeapMemory();
-  tft.fillScreen(TFT_PURPLE);
+  showBootProgress("Display initialization...", "Framebuffer ready", TFT_PURPLE);
 
   // Show test data on right button during boot device
   liveData->params.displayScreen = liveData->settings.defaultScreen;
+  showBootProgress("Checking test mode...", "Hold right button for demo", TFT_YELLOW);
   if (isButtonPressed(pinButtonRight))
   {
     syslog->printf("Right button pressed");
     loadTestData();
     printHeapMemory();
+    showBootProgress("Demo mode enabled", "Using static test data", TFT_YELLOW);
   }
-  tft.fillScreen(TFT_YELLOW);
 
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
@@ -456,45 +457,72 @@ void Board320_240::afterSetup()
   if (!liveData->params.wifiApMode &&
       (liveData->settings.wifiEnabled == 1 || wifiRequiredByAdapter))
   {
+    showBootProgress("WiFi initialization...", "Connecting to configured AP", TFT_BLUE);
     wifiSetup();
     printHeapMemory();
   }
-  tft.fillScreen(TFT_BLUE);
+  else
+  {
+    showBootProgress("WiFi initialization...", "Skipped (disabled)", TFT_BLUE);
+  }
 
   // Init GPS
   if (liveData->settings.gpsHwSerialPort <= 2)
   {
+    showBootProgress("GPS initialization...", "Starting GPS serial", TFT_SKYBLUE);
     initGPS();
     printHeapMemory();
   }
-  tft.fillScreen(TFT_SKYBLUE);
+  else
+  {
+    showBootProgress("GPS initialization...", "Skipped (not configured)", TFT_SKYBLUE);
+  }
 
   // SD card
   if (liveData->settings.sdcardEnabled == 1)
   {
+    showBootProgress("SD card initialization...", "Mounting storage", TFT_ORANGE);
     if (sdcardMount() && liveData->settings.sdcardAutstartLog == 1)
     {
       syslog->println("Toggle recording on SD card");
       sdcardToggleRecording();
       printHeapMemory();
+      showBootProgress("SD card initialization...", "Autolog enabled", TFT_ORANGE);
     }
   }
-  tft.fillScreen(TFT_ORANGE);
+  else
+  {
+    showBootProgress("SD card initialization...", "Skipped (disabled)", TFT_ORANGE);
+  }
 
   // Init comm device
+  showBootProgress("Adapter initialization...", "Starting OBD2/CAN comm", TFT_SILVER);
   BoardInterface::afterSetup();
   printHeapMemory();
-  tft.fillScreen(TFT_SILVER);
 
   syslog->println("COMM in main loop (threading removed)");
   syslog->println("NET send in main loop (queue/task removed)");
 
+  showBootProgress("Finalizing startup...", "Syncing clocks", TFT_GREEN);
   showTime();
-  tft.fillScreen(TFT_GREEN);
+  showBootProgress("Startup completed", "Loading main screen", TFT_GREEN);
 
   liveData->params.wakeUpTime = liveData->params.currentTime;
   liveData->params.lastCanbusResponseTime = liveData->params.currentTime;
   liveData->params.booting = false;
+}
+
+void Board320_240::showBootProgress(const char *step, const char *detail, uint16_t bgColor)
+{
+  tft.fillScreen(bgColor);
+  tft.setTextColor(TFT_WHITE, bgColor);
+  tft.setTextDatum(TL_DATUM);
+  tft.setFont(fontFont2);
+  tft.drawString("Boot:", 12, 90);
+  if (step != nullptr && step[0] != '\0')
+    tft.drawString(step, 12, 114);
+  if (detail != nullptr && detail[0] != '\0')
+    tft.drawString(detail, 12, 138);
 }
 
 /**
@@ -743,11 +771,24 @@ void Board320_240::setBrightness()
  */
 void Board320_240::displayMessage(const char *row1, const char *row2)
 {
+  displayMessage(row1, row2, nullptr);
+}
+
+void Board320_240::displayMessage(const char *row1, const char *row2, const char *row3)
+{
   const uint16_t height = tft.height();
   const uint16_t width = tft.width();
-  const bool hasRow2 = (row2 != NULL && row2[0] != '\0');
+  const char *rows[3] = {row1, row2, row3};
+  uint8_t lineCount = 0;
+  for (uint8_t i = 0; i < 3; i++)
+  {
+    if (rows[i] != nullptr && rows[i][0] != '\0')
+      lineCount++;
+  }
+  if (lineCount == 0)
+    return;
   const int16_t dialogW = width - 24;
-  const int16_t dialogH = hasRow2 ? 106 : 82;
+  const int16_t dialogH = 82 + ((lineCount > 0 ? lineCount - 1 : 0) * 24);
   const int16_t dialogX = (width - dialogW) / 2;
   int16_t dialogY = (height - dialogH) / 2 - 12;
   if (dialogY < 6)
@@ -761,6 +802,7 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
   syslog->print(row1);
   syslog->print(" ");
   syslog->println(row2);
+  messageDialogVisible = true;
 
   if (liveData->params.spriteInit)
   {
@@ -769,9 +811,15 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
     spr.setTextColor(textColor, bg);
     spr.setTextDatum(TC_DATUM);
     sprSetFont(fontRobotoThin24);
-    sprDrawString(row1, width / 2, dialogY + 24);
-    if (hasRow2)
-      sprDrawString(row2, width / 2, dialogY + 56);
+    int16_t textY = dialogY + 24;
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      if (rows[i] != nullptr && rows[i][0] != '\0')
+      {
+        sprDrawString(rows[i], width / 2, textY);
+        textY += 32;
+      }
+    }
     spr.pushSprite(0, 0);
   }
   else
@@ -781,9 +829,15 @@ void Board320_240::displayMessage(const char *row1, const char *row2)
     tft.setTextColor(textColor, bg);
     tft.setTextDatum(TC_DATUM);
     tft.setFont(fontRobotoThin24);
-    tft.drawString(row1, width / 2, dialogY + 24);
-    if (hasRow2)
-      tft.drawString(row2, width / 2, dialogY + 56);
+    int16_t textY = dialogY + 24;
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      if (rows[i] != nullptr && rows[i][0] != '\0')
+      {
+        tft.drawString(rows[i], width / 2, textY);
+        textY += 32;
+      }
+    }
   }
 }
 
@@ -823,6 +877,7 @@ bool Board320_240::confirmMessage(const char *row1, const char *row2)
   syslog->print(row1);
   syslog->print(" ");
   syslog->println(row2);
+  messageDialogVisible = false;
 
   if (liveData->params.spriteInit)
   {
@@ -1281,8 +1336,9 @@ bool Board320_240::drawActiveScreenToSprite()
   bool statusBoxUsed = false;
   constexpr int16_t statusBoxRadius = 8;
 
-  // BLE not connected
+  // OBD adapter not connected
   if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
+       liveData->settings.commType == COMM_TYPE_OBD2_BT3 ||
        liveData->settings.commType == COMM_TYPE_OBD2_WIFI) &&
       !liveData->commConnected && liveData->obd2ready)
   {
@@ -1347,6 +1403,7 @@ void Board320_240::redrawScreen()
     return;
   }
   redrawScreenIsRunning = true;
+  messageDialogVisible = false;
 
   if (drawActiveScreenToSprite())
   {
@@ -3398,10 +3455,12 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       }
       else if (activeAction == KEY_OK)
       {
+        suppressTouchInputFor();
         return true;
       }
       else if (activeAction == KEY_EXIT)
       {
+        suppressTouchInputFor();
         return false;
       }
 
@@ -3426,6 +3485,46 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
     if (!touched)
       delay(5);
   }
+}
+
+void Board320_240::suppressTouchInputFor(uint16_t durationMs)
+{
+  suppressTouchInputUntilMs = millis() + durationMs;
+}
+
+bool Board320_240::isTouchInputSuppressed() const
+{
+  if (suppressTouchInputUntilMs == 0)
+    return false;
+  return static_cast<int32_t>(suppressTouchInputUntilMs - millis()) > 0;
+}
+
+bool Board320_240::isMessageDialogVisible() const
+{
+  return messageDialogVisible;
+}
+
+bool Board320_240::dismissMessageDialog()
+{
+  if (!messageDialogVisible)
+    return false;
+
+  messageDialogVisible = false;
+  menuTouchHoverIndex = -1;
+  suppressTouchInputFor();
+
+  if (liveData->menuVisible)
+  {
+    menuDragScrollActive = true;
+    showMenu();
+    menuDragScrollActive = false;
+  }
+  else
+  {
+    redrawScreen();
+  }
+
+  return true;
 }
 
 bool Board320_240::promptWifiPassword(const char *ssid, String &outPassword, bool isOpenNetwork)
@@ -3808,10 +3907,8 @@ void Board320_240::startEvdashPairing()
   pairLastStatusPollMs = 0;
   pairLastKnownState = 1;
 
-  String row2 = String("Code ") + code;
-  displayMessage("Pair with evdash.eu", row2.c_str());
-  delay(1500);
-  displayMessage("Open evdash.eu", "Settings > Cars");
+  String row3 = String("Pin/Code ") + code;
+  displayMessage("Open evdash.eu", "Settings / cars -> pair", row3.c_str());
 }
 
 void Board320_240::pollEvdashPairingStatus()
@@ -5525,7 +5622,7 @@ void Board320_240::uploadSdCardLogToEvDashServer()
   }
   if (!(liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI && liveData->settings.wifiEnabled == 1))
   {
-    displayMessage("Error", "Wifi not enabled");
+    displayMessage("Error", "WiFi not enabled");
     return;
   }
 
