@@ -55,7 +55,7 @@ void CommObd2Can::connectDevice()
   else
   {
     syslog->println("Error Initializing MCP2515...");
-    connectStatus = "No MCP2515";
+    connectStatus = "No MCP2515 (check power/wiring)";
     connectAttempts = 0;
     liveData->commConnected = false;
     return;

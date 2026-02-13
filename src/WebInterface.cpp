@@ -136,6 +136,7 @@ void handleRoot()
   text += "<tr><td>Type</td><td><select data-key='commType'>";
   text += "<option value='" + String(COMM_TYPE_CAN_COMMU) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_CAN_COMMU) + ">CAN COMMU module</option>";
   text += "<option value='" + String(COMM_TYPE_OBD2_BLE4) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BLE4) + ">OBD2 BLE4</option>";
+  text += "<option value='" + String(COMM_TYPE_OBD2_BT3) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BT3) + ">OBD2 Bluetooth3 classic</option>";
   text += "<option value='" + String(COMM_TYPE_OBD2_WIFI) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_OBD2_WIFI) + ">OBD2 WIFI</option>";
   text += "</select></td></tr>";
   text += "<tr><td>OBD2 MAC</td><td><input id='obdMacAddress' data-key='obdMacAddress' value='" + htmlEscape(String(liveDataWebInt->settings.obdMacAddress)) + "'></td></tr>";
@@ -171,13 +172,13 @@ void handleRoot()
   text += "<tr><td>OBD2 WIFI IP</td><td><input data-key='obd2WifiIp' value='" + htmlEscape(String(liveDataWebInt->settings.obd2WifiIp)) + "'></td></tr>";
   text += "<tr><td>OBD2 WIFI port</td><td><input type='number' data-key='obd2WifiPort' value='" + String(liveDataWebInt->settings.obd2WifiPort) + "'></td></tr>";
 
-  text += "<tr><th colspan='2'>Wifi client</th></tr>";
+  text += "<tr><th colspan='2'>WiFi client</th></tr>";
   text += "<tr><td>Enabled</td><td><input type='checkbox' data-key='wifiEnabled'" + checkedAttr(liveDataWebInt->settings.wifiEnabled) + "></td></tr>";
   text += "<tr><td>SSID</td><td><input data-key='wifiSsid' value='" + htmlEscape(String(liveDataWebInt->settings.wifiSsid)) + "'></td></tr>";
-  text += "<tr><td>Wifi password</td><td><input type='password' data-key='wifiPassword' value='" + htmlEscape(String(liveDataWebInt->settings.wifiPassword)) + "'></td></tr>";
-  text += "<tr><td>Backup wifi enabled</td><td><input type='checkbox' data-key='backupWifiEnabled'" + checkedAttr(liveDataWebInt->settings.backupWifiEnabled) + "></td></tr>";
+  text += "<tr><td>WiFi password</td><td><input type='password' data-key='wifiPassword' value='" + htmlEscape(String(liveDataWebInt->settings.wifiPassword)) + "'></td></tr>";
+  text += "<tr><td>Backup WiFi enabled</td><td><input type='checkbox' data-key='backupWifiEnabled'" + checkedAttr(liveDataWebInt->settings.backupWifiEnabled) + "></td></tr>";
   text += "<tr><td>SSID backup</td><td><input data-key='wifiSsid2' value='" + htmlEscape(String(liveDataWebInt->settings.wifiSsid2)) + "'></td></tr>";
-  text += "<tr><td>Backup wifi password</td><td><input type='password' data-key='wifiPassword2' value='" + htmlEscape(String(liveDataWebInt->settings.wifiPassword2)) + "'></td></tr>";
+  text += "<tr><td>Backup WiFi password</td><td><input type='password' data-key='wifiPassword2' value='" + htmlEscape(String(liveDataWebInt->settings.wifiPassword2)) + "'></td></tr>";
   text += "<tr><td>NTP enabled</td><td><input type='checkbox' data-key='ntpEnabled'" + checkedAttr(liveDataWebInt->settings.ntpEnabled) + "></td></tr>";
   text += "<tr><td>NTP timezone</td><td><input type='number' data-key='ntpTimezone' value='" + String(liveDataWebInt->settings.ntpTimezone) + "'></td></tr>";
   text += "<tr><td>NTP daylight saving</td><td><input type='checkbox' data-key='ntpDaySaveTime'" + checkedAttr(liveDataWebInt->settings.ntpDaySaveTime) + "></td></tr>";

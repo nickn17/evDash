@@ -1,5 +1,31 @@
 # RELEASE NOTES
 
+### V4.5.4 2026-02-13
+- Menu updates:
+  - `Clear driving stats` renamed to `Clear realtime driving stats`.
+  - `Clear realtime driving stats` moved under `Others` as the first item.
+  - Adapter labels unified: `BT3/4 name`, `WiFi ip`, `WiFi port` (consistent `WiFi` casing).
+- Selected item marker in menu is now visual (green check icon) instead of the text prefix `> `.
+- Touch keyboard fix: closing keyboard with `ENTER`/`EXIT` now suppresses the next touch release briefly, preventing accidental click-through (e.g. menu `page down`).
+- Message dialog fix: closing a message popup now consumes that touch event, so it no longer activates the menu item underneath.
+- Pairing UX update:
+  - Pairing instructions are shown in a single persistent 3-line popup:
+    - `Open evdash.eu`
+    - `Settings / cars -> pair`
+    - `Pin/Code xxxxxx`
+  - Added generic 3-line `displayMessage` support for on-device dialogs.
+  - The pairing popup stays visible until user dismisses it or pairing state changes (paired/expired/error).
+- Boot UX update: startup now shows explicit text progress steps on screen (Display/WiFi/GPS/SD/Adapter/Finalize), including `GPS initialization...` for easier freeze diagnostics.
+
+### V4.5.3 2026-02-13
+- Added OBD2 Bluetooth Classic (`BT3`) adapter mode with command-queue compatible AT flow (targeting adapters such as OBDLink MX/MX+ on ESP32 boards with Classic BT support).
+- Boards/chips without Classic BT (e.g. BLE-only variants) report BT3 mode as unsupported at runtime.
+- New adapter selection in menu and Web Interface: `OBD2 Bluetooth3 classic`.
+- BT3 connection logic supports MAC-first connect (if set) with fallback to adapter name (`OBD2 name` setting).
+- Boot-time BT memory release now keeps BT stack enabled when `BT3` mode is selected.
+- BLE adapter scan action is now explicitly limited to BLE4 mode to avoid wrong-mode pairing flow.
+- `OBDII not connected` status box now covers BT3 mode too.
+
 ### V4.5.2 2026-02-13
 - Core3/CoreS3 GPS now uses `Serial2` pins in build config: `-D SERIAL2_RX=44` and `-D SERIAL2_TX=43`.
 

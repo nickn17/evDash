@@ -6,6 +6,7 @@
 - Open https://www.evdash.eu/m5flash
 - Use Chrome/Edge on desktop and a USB data cable.
 - Select the correct board profile and click `INSTALL`.
+- Note: `M5Stack CoreS3 SE (K128-SE)` uses the same profile/firmware as `CoreS3`.
 
 ### Option 2: Generic ESP web flasher
 - https://esp.huhn.me/

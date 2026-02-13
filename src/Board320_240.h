@@ -76,6 +76,8 @@ protected:
   float forwardDriveOdoKmLast = -1;
   uint32_t mainLoopStart = 0;
   uint32_t lastTimeUpdateMs = 0;
+  uint32_t suppressTouchInputUntilMs = 0;
+  bool messageDialogVisible = false;
   time_t cachedNowEpoch = 0;
   struct tm cachedNow = {};
   float displayFps = 0;
@@ -209,10 +211,12 @@ public:
   bool canStatusMessageVisible();
   bool canStatusMessageHitTest(int16_t x, int16_t y);
   void dismissCanStatusMessage();
+  void showBootProgress(const char *step, const char *detail, uint16_t bgColor = TFT_BLACK);
   // Basic GUI
   void turnOffScreen() override;
   void setBrightness() override;
   void displayMessage(const char *row1, const char *row2) override;
+  void displayMessage(const char *row1, const char *row2, const char *row3);
   bool confirmMessage(const char *row1, const char *row2) override;
   bool drawActiveScreenToSprite();
   void showScreenSwipePreview(int16_t deltaX);
@@ -232,6 +236,10 @@ public:
   void drawSceneChargingGraph();
   void drawSceneSoc10Table();
   void drawSceneDebug();
+  void suppressTouchInputFor(uint16_t durationMs = 220);
+  bool isTouchInputSuppressed() const;
+  bool isMessageDialogVisible() const;
+  bool dismissMessageDialog();
   // Menu
   uint16_t menuItemsCountCurrent();
   void menuScrollByPixels(int16_t deltaTopPx);

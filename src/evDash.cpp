@@ -92,7 +92,11 @@ void setup(void)
   board->loadSettings();
 
 #if CONFIG_BT_ENABLED
-  if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
+  bool keepBtController = (liveData->settings.commType == COMM_TYPE_OBD2_BLE4);
+#if defined(CONFIG_BT_CLASSIC_ENABLED) && defined(CONFIG_BT_SPP_ENABLED)
+  keepBtController = keepBtController || (liveData->settings.commType == COMM_TYPE_OBD2_BT3);
+#endif
+  if (!keepBtController)
   {
     esp_err_t btReleaseRc = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
     if (btReleaseRc == ESP_OK)

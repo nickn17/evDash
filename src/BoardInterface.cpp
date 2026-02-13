@@ -31,6 +31,7 @@ It handles attaching communications and live data objects. And provides methods 
 #include <BLEDevice.h>
 #include "BoardInterface.h"
 #include "CommObd2Ble4.h"
+#include "CommObd2Bt3.h"
 #include "CommObd2Can.h"
 #include "CommObd2Wifi.h"
 #include "LiveData.h"
@@ -449,6 +450,10 @@ void BoardInterface::afterSetup()
   if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4)
   {
     commInterface = new CommObd2Ble4();
+  }
+  else if (liveData->settings.commType == COMM_TYPE_OBD2_BT3)
+  {
+    commInterface = new CommObd2Bt3();
   }
   else if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
   {

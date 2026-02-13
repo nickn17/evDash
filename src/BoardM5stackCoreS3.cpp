@@ -47,9 +47,12 @@ void BoardM5stackCoreS3::initBoard()
   auto cfg = M5.config();
   CoreS3.begin(cfg);
   CoreS3.Power.setChargeVoltage(3350);
-  // true - Power from bus; false - Power from USB
-  CoreS3.Power.setExtOutput((liveData->settings.boardPowerMode == 1));
+  // boardPowerMode: 1 = power from external bus (input), 0 = power from USB (output to external bus)
+  const bool extPowerInputMode = (liveData->settings.boardPowerMode == 1);
+  CoreS3.Power.setExtOutput(!extPowerInputMode);
   CoreS3.Power.setLed(0);
+  syslog->print("CoreS3 bus power mode: ");
+  syslog->println(extPowerInputMode ? "external input" : "USB output");
   // CoreS3.Power.SetLDOVoltage(2, 3300);
   // CoreS3.Power.SetLDOVoltage(3, 2000);
   // CoreS3.Power.SetLDOEnable(2, true);
@@ -89,6 +92,38 @@ void BoardM5stackCoreS3::afterSetup()
  */
 bool BoardM5stackCoreS3::isButtonPressed(int button)
 {
+  if (isTouchInputSuppressed())
+  {
+    touchPressed = false;
+    touchDragged = false;
+    touchDragGestureActive = false;
+    touchSwipeGestureActive = false;
+    touchDragDeltaY = 0;
+    touchDragDeltaYPrev = 0;
+    touchSwipeDeltaX = 0;
+    screenSwipePreviewActive = false;
+  }
+
+  if (isMessageDialogVisible())
+  {
+    if (touchPressed || btnAPressed || btnBPressed || btnCPressed)
+    {
+      touchPressed = false;
+      touchDragged = false;
+      touchDragGestureActive = false;
+      touchSwipeGestureActive = false;
+      touchDragDeltaY = 0;
+      touchDragDeltaYPrev = 0;
+      touchSwipeDeltaX = 0;
+      screenSwipePreviewActive = false;
+      btnAPressed = false;
+      btnBPressed = false;
+      btnCPressed = false;
+      dismissMessageDialog();
+    }
+    return false;
+  }
+
   // All events
   if (touchPressed || btnAPressed || btnBPressed || btnCPressed)
   {
@@ -401,6 +436,44 @@ void BoardM5stackCoreS3::boardLoop()
   M5.update();
 
   auto t = CoreS3.Touch.getDetail();
+  if (isMessageDialogVisible())
+  {
+    const bool dismissRequested = t.wasClicked() || btnAPressed || btnBPressed || btnCPressed;
+    touchPressed = false;
+    touchDragged = false;
+    touchDragGestureActive = false;
+    touchSwipeGestureActive = false;
+    touchDragDeltaY = 0;
+    touchDragDeltaYPrev = 0;
+    touchSwipeDeltaX = 0;
+    screenSwipePreviewActive = false;
+    menuTouchHoverIndex = -1;
+
+    if (dismissRequested)
+    {
+      btnAPressed = false;
+      btnBPressed = false;
+      btnCPressed = false;
+      dismissMessageDialog();
+    }
+
+    Board320_240::boardLoop();
+
+    CoreS3.Imu.getGyroData(&gyroX, &gyroY, &gyroZ);
+    CoreS3.Imu.getAccelData(&accX, &accY, &accZ);
+
+    if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0 || accX != 0.0 || accY != 0.0 || accZ != 0.0)
+    {
+      liveData->params.gyroSensorMotion = false;
+      if (abs(gyroX) > 15.0 || abs(gyroY) > 15.0 || abs(gyroZ) > 15.0)
+      {
+        liveData->params.gyroSensorMotion = true;
+      }
+    }
+
+    return;
+  }
+
   if (liveData->menuVisible && t.isPressed())
   {
     bool inUpperLeftZone = (t.x < 64 && t.y < 64);
