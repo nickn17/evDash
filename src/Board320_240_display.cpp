@@ -416,29 +416,82 @@ void Board320_240::drawSceneSpeed()
   spr.setTextColor(TFT_WHITE);
   sprSetFont(fontRobotoThin24);
   spr.setTextDatum(TR_DATUM);
-  sprintf(tmpStr3, (liveData->params.batMaxC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
-  sprDrawString(tmpStr3, 319, cellMaxTextY);
-  sprintf(tmpStr3, (liveData->params.batMinC == -100) ? "-" : "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
-  sprDrawString(tmpStr3, 319, cellMinTextY);
+  const int16_t smallUnitYOffsetPx = 8; // was 5
+  const char tempUnitSuffix = (liveData->settings.temperatureUnit == 'c') ? 'C' : 'F';
+  const char tempUnitSmall[] = {char(127), tempUnitSuffix, '\0'};
+  if (liveData->params.batMaxC == -100)
+  {
+    sprDrawString("-", 319, cellMaxTextY);
+  }
+  else
+  {
+    sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMaxC));
+    sprDrawString(tmpStr3, 302, cellMaxTextY);
+    sprSetFont(fontFont2);
+    sprDrawString(tempUnitSmall, 319, cellMaxTextY + smallUnitYOffsetPx);
+    sprSetFont(fontRobotoThin24);
+  }
+  if (liveData->params.batMinC == -100)
+  {
+    sprDrawString("-", 319, cellMinTextY);
+  }
+  else
+  {
+    sprintf(tmpStr3, "%01.00f", liveData->celsius2temperature(liveData->params.batMinC));
+    sprDrawString(tmpStr3, 302, cellMinTextY);
+    sprSetFont(fontFont2);
+    sprDrawString(tempUnitSmall, 319, cellMinTextY + smallUnitYOffsetPx);
+    sprSetFont(fontRobotoThin24);
+  }
+  liveData->params.motor1Rpm = 10000;
+  liveData->params.motor2Rpm = 10000;
   if (liveData->params.motor1Rpm > 0 || liveData->params.motor2Rpm > 0)
   {
-    sprintf(tmpStr3, "%01.01f/%01.01fkr", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
-    sprDrawString(tmpStr3, 319, 26);
+    sprintf(tmpStr3, "%01.01f/%01.01f", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
+    sprDrawString(tmpStr3, 304, 26);
+    sprSetFont(fontFont2);
+    sprDrawString("kr", 319, 34);
+    sprSetFont(fontRobotoThin24);
   }
   else if (liveData->params.outdoorTemperature != -100)
   {
     sprintf(tmpStr3, "out %01.01f", liveData->celsius2temperature(liveData->params.outdoorTemperature)); //, liveData->celsius2temperature(liveData->params.motorTempC));
-    sprDrawString(tmpStr3, 319, 26);
+    sprDrawString(tmpStr3, 302, 26);
+    sprSetFont(fontFont2);
+    sprDrawString(tempUnitSmall, 319, 34);
+    sprSetFont(fontRobotoThin24);
   }
 
   // Min.Cell V
   spr.setTextDatum(TR_DATUM);
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
-  sprintf(tmpStr3, (liveData->params.batCellMaxV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMaxV);
-  sprDrawString(tmpStr3, 280, cellMaxTextY);
+  if (liveData->params.batCellMaxV == -1)
+  {
+    sprDrawString("n/a", 282, cellMaxTextY);
+  }
+  else
+  {
+    sprintf(tmpStr3, "%01.02f", liveData->params.batCellMaxV);
+    sprSetFont(fontRobotoThin24);
+    sprDrawString(tmpStr3, 260, cellMaxTextY);
+    sprSetFont(fontFont2);
+    sprDrawString("V", 272, cellMaxTextY + smallUnitYOffsetPx);
+  }
   spr.setTextColor((liveData->params.batCellMinV > 1.5 && liveData->params.batCellMinV < 3.0) ? TFT_RED : TFT_WHITE);
-  sprintf(tmpStr3, (liveData->params.batCellMinV == -1) ? "n/a V" : "%01.02fV", liveData->params.batCellMinV);
-  sprDrawString(tmpStr3, 280, cellMinTextY);
+  if (liveData->params.batCellMinV == -1)
+  {
+    sprSetFont(fontRobotoThin24);
+    sprDrawString("n/a", 282, cellMinTextY);
+  }
+  else
+  {
+    sprintf(tmpStr3, "%01.02f", liveData->params.batCellMinV);
+    sprSetFont(fontRobotoThin24);
+    sprDrawString(tmpStr3, 260, cellMinTextY);
+    sprSetFont(fontFont2);
+    sprDrawString("V", 272, cellMinTextY + smallUnitYOffsetPx);
+  }
+  sprSetFont(fontRobotoThin24);
 
   // Rear car + brake lights
   {
