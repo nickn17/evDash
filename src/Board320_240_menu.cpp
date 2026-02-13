@@ -1080,9 +1080,36 @@ void Board320_240::menuItemClick()
     }
     break;
     case MENU_ADAPTER_OBD2_IP:
-    case MENU_ADAPTER_OBD2_PORT:
+    {
+      String value = String(liveData->settings.obd2WifiIp);
+      if (promptKeyboard("Obd2 WiFi IP", value, false, sizeof(liveData->settings.obd2WifiIp) - 1))
+      {
+        value.trim();
+        value.toCharArray(liveData->settings.obd2WifiIp, sizeof(liveData->settings.obd2WifiIp));
+        saveSettings();
+      }
+      showMenu();
       return;
-      break;
+    }
+    break;
+    case MENU_ADAPTER_OBD2_PORT:
+    {
+      String value = String(liveData->settings.obd2WifiPort);
+      if (promptKeyboard("Obd2 WiFi port", value, false, 5))
+      {
+        value.trim();
+        long parsedPort = value.toInt();
+        if (parsedPort < 0)
+          parsedPort = 0;
+        if (parsedPort > 65535)
+          parsedPort = 65535;
+        liveData->settings.obd2WifiPort = static_cast<uint16_t>(parsedPort);
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP:
       liveData->settings.commandQueueAutoStop = (liveData->settings.commandQueueAutoStop == 1) ? 0 : 1;
       showMenu();
@@ -1626,16 +1653,33 @@ void Board320_240::menuItemClick()
       break;
     // Pair ble device
     case MENU_ADAPTER_BLE_SELECT:
-      if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
+      adapterSearchInProgress = true;
+
+      if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
+          liveData->settings.commType == COMM_TYPE_OBD2_BT3)
       {
-        displayMessage("Not supported", "Use BLE4 mode");
+        scanDevices = true;
+        liveData->menuCurrent = 9999;
+        commInterface->scanDevices();
+        return;
+      }
+
+      if (liveData->settings.commType == COMM_TYPE_OBD2_WIFI)
+      {
+        wifiScanToMenu();
+        return;
+      }
+
+      adapterSearchInProgress = false;
+      if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4 &&
+          liveData->settings.commType != COMM_TYPE_OBD2_BT3 &&
+          liveData->settings.commType != COMM_TYPE_OBD2_WIFI)
+      {
+        displayMessage("Not supported", "Use BT3/BLE4/WiFi mode");
         delay(3000);
         hideMenu();
         return;
       }
-      scanDevices = true;
-      liveData->menuCurrent = 9999;
-      commInterface->scanDevices();
       return;
     // Reset settings
     case MENU_FACTORY_RESET:
@@ -1705,10 +1749,24 @@ void Board320_240::menuItemClick()
       if (liveData->menuCurrent == LIST_OF_BLE_DEV)
       {
         returnItemId = MENU_ADAPTER_BLE_SELECT;
+        if (adapterSearchInProgress)
+        {
+          parentMenu = MENU_ADAPTER_TYPE;
+          adapterSearchInProgress = false;
+        }
       }
       else if (liveData->menuCurrent == LIST_OF_WIFI_DEV)
       {
-        returnItemId = MENU_WIFI_SCAN;
+        if (adapterSearchInProgress)
+        {
+          returnItemId = MENU_ADAPTER_BLE_SELECT;
+          parentMenu = MENU_ADAPTER_TYPE;
+          adapterSearchInProgress = false;
+        }
+        else
+        {
+          returnItemId = MENU_WIFI_SCAN;
+        }
       }
 
       liveData->menuItemSelected = 0;
