@@ -51,6 +51,26 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
       suffix = tmpStr1;
     }
     break;
+  case MENU_ADAPTER_TYPE:
+    switch (liveData->settings.commType)
+    {
+    case COMM_TYPE_CAN_COMMU:
+      suffix = "[CAN]";
+      break;
+    case COMM_TYPE_OBD2_BLE4:
+      suffix = "[BLE4]";
+      break;
+    case COMM_TYPE_OBD2_BT3:
+      suffix = "[BT3]";
+      break;
+    case COMM_TYPE_OBD2_WIFI:
+      suffix = "[WiFi]";
+      break;
+    default:
+      suffix = "[?]";
+      break;
+    }
+    break;
   // TODO: Why is do these cases not match the vehicle type id?
   case VEHICLE_TYPE_IONIQ_2018_28:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ_2018) ? ">" : "";
@@ -174,7 +194,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     suffix = (liveData->settings.commandQueueAutoStop == 0) ? "[off]" : "[on]";
     break;
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
-    suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[off]" : "[on]";
+    suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[on]" : "[off]";
     break;
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
@@ -1550,13 +1570,33 @@ void Board320_240::menuItemClick()
         else
         {
           syslog->info(DEBUG_NONE, "Restore settings from SD card");
-          syslog->println(file.size());
-          size_t size = file.read((uint8_t *)&liveData->settings, file.size());
+          const size_t backupSize = static_cast<size_t>(file.size());
+          const size_t structSize = sizeof(liveData->settings);
+          syslog->print("Backup size: ");
+          syslog->println(backupSize);
+          syslog->print("Settings struct size: ");
+          syslog->println(structSize);
+
+          SETTINGS_STRUC restoredSettings = liveData->settings;
+          size_t bytesToRead = backupSize;
+          if (bytesToRead > structSize)
+            bytesToRead = structSize;
+
+          size_t size = file.read((uint8_t *)&restoredSettings, bytesToRead);
+          syslog->print("Restored bytes: ");
           syslog->println(size);
           file.close();
-          //
-          saveSettings();
-          ESP.restart();
+
+          if (size == bytesToRead)
+          {
+            liveData->settings = restoredSettings;
+            saveSettings();
+            ESP.restart();
+          }
+          else
+          {
+            displayMessage("SDCARD", "Restore read failed");
+          }
         }
       }
       else

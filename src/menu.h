@@ -7,10 +7,10 @@
 const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
     {MENU_TOP_LEVEL, MENU_TOP_LEVEL, MENU_TOP_LEVEL, "<- exit menu"},
-    {MENU_WIFI, MENU_TOP_LEVEL, MENU_NO_MENU, "WiFi network"},
-    {MENU_VEHICLE_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Vehicle type"},
+    {MENU_WIFI, MENU_TOP_LEVEL, MENU_NO_MENU, "WiFI net"},
+    {MENU_VEHICLE_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Vehicle"},
     {MENU_ADAPTER_TYPE, MENU_TOP_LEVEL, MENU_NO_MENU, "Obd2/CAN adapter"},
-    {MENU_BOARD, MENU_TOP_LEVEL, MENU_NO_MENU, "M5stack board setup"},
+    {MENU_BOARD, MENU_TOP_LEVEL, MENU_NO_MENU, "M5 core2/s3 board setup"},
     {MENU_OTHERS, MENU_TOP_LEVEL, MENU_NO_MENU, "Others (SD card, GPS,...)"},
     {MENU_FACTORY_RESET, MENU_TOP_LEVEL, MENU_NO_MENU, "Factory reset"},
     {MENU_SAVE_SETTINGS, MENU_TOP_LEVEL, MENU_NO_MENU, "Save settings"},
@@ -78,7 +78,7 @@ const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_OBD2_IP, MENU_ADAPTER_TYPE, MENU_NO_MENU, "[i] WiFi ip:"},
     {MENU_ADAPTER_OBD2_PORT, MENU_ADAPTER_TYPE, MENU_NO_MENU, "[i] WiFi port:"},
     {MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP, MENU_ADAPTER_TYPE, MENU_NO_MENU, "CAN queue autostop"},
-    {MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Disable CMD optimizer"},
+    {MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Command optimizer"},
     {MENU_ADAPTER_LOAD_TEST_DATA, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Load demo (static) data..."},
 
     {MENU_OTHER_TOP, MENU_OTHERS, MENU_TOP_LEVEL, "<- parent menu"},

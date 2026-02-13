@@ -1,5 +1,16 @@
 # RELEASE NOTES
 
+### V4.5.6 2026-02-13
+- Command optimizer menu wording cleanup:
+  - `Disable CMD optimizer` was renamed to `Command optimizer`.
+  - Status display now shows positive state (`[on]` when optimizer is active, `[off]` when disabled).
+- Sentry/autostop safety fallback:
+  - If no valid CAN response is available for a longer time (adapter/config issue), command-queue autostop can still enter Sentry after a grace period.
+  - This removes dependency on GPS/CAN wake data for Sentry activation and helps protect AUX 12V battery.
+- SD settings restore hardening:
+  - Restoring `/settings_backup.bin` now validates/limits read size to `SETTINGS_STRUC` and prevents overflow on size mismatch.
+  - Partial restore from older backup sizes now keeps current defaults for new fields instead of corrupting settings.
+
 ### V4.5.5 2026-02-13
 - Adapter search/menu updates:
   - `Select BLE4 Obd2 adapter` renamed to `Search BT3/4/WiFi adapter`.
