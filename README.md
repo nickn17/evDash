@@ -32,7 +32,7 @@ Use this firmware at your own risk.
 ### Vehicle interface
 
 - **Preferred:** CAN via COMMU / MCP2515
-- **Preferred fallback:** OBD2 BLE4 adapter
+- **Preferred fallback:** OBD2 BLE4 adapter (`OBDLink CX BLE4` recommended)
 - OBD2 Bluetooth3 classic adapter (BT3, only Core2 devices with Classic BT support)
 - OBD2 WiFi adapter
 

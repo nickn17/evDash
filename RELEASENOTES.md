@@ -1,5 +1,23 @@
 # RELEASE NOTES
 
+### V4.5.5 2026-02-13
+- Adapter search/menu updates:
+  - `Select BLE4 Obd2 adapter` renamed to `Search BT3/4/WiFi adapter`.
+  - Search item was moved above `Obd2 Bluetooth4 (BLE4)` in adapter menu order.
+  - Search action now works in both modes:
+    - `Obd2 Bluetooth4 (BLE4)` -> BLE4 scan (existing flow).
+    - `Obd2 Bluetooth3 classic` -> BT3 device discovery and selection list.
+    - `Obd2 WiFi adapter [DEV]` -> WiFi AP scan/list and connect flow.
+  - When adapter mode is not BT3/BLE4/WiFi, menu shows clear hint: `Use BT3/BLE4/WiFi mode`.
+- Added on-device keyboard editing for:
+  - `Obd2 -> WiFi IP`
+  - `Obd2 -> WiFi port` (stored as numeric value, clamped to `0..65535`)
+- Menu text casing cleanup:
+  - Adapter/menu labels now consistently use `Obd2` instead of `OBD2`.
+  - `WIFI` labels were normalized to `WiFi`.
+- Documentation update:
+  - Recommended BLE4 adapter is now explicitly listed as `OBDLink CX BLE4` in README.
+
 ### V4.5.4 2026-02-13
 - Menu updates:
   - `Clear driving stats` renamed to `Clear realtime driving stats`.

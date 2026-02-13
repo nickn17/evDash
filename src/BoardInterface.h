@@ -21,6 +21,7 @@ public:
   bool btnRightPressed = true;
   bool testDataMode = false;
   bool scanDevices = false;
+  bool adapterSearchInProgress = false;
   String sdcardRecordBuffer = "";
   //
   void setLiveData(LiveData *pLiveData);

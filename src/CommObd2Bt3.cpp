@@ -118,7 +118,82 @@ void CommObd2Bt3::disconnectDevice()
 void CommObd2Bt3::scanDevices()
 {
   syslog->println("COMM BT3 scanDevices");
-  board->displayMessage("BT3 scan not ready", "Set BT name or MAC");
+
+#if !EVDASH_BT3_AVAILABLE
+  board->displayMessage("BT3 unsupported", "Only Core2 devices");
+  return;
+#else
+  // Reset adapter list placeholders before a new scan.
+  for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
+  {
+    if (liveData->menuItems[i].id >= LIST_OF_BLE_1 && liveData->menuItems[i].id <= LIST_OF_BLE_10)
+    {
+      strlcpy(liveData->menuItems[i].title, "-", sizeof(liveData->menuItems[i].title));
+      strlcpy(liveData->menuItems[i].obdMacAddress, "00:00:00:00:00:00", sizeof(liveData->menuItems[i].obdMacAddress));
+    }
+  }
+  liveData->scanningDeviceIndex = 0;
+
+  board->displayMessage(" > Scanning BT3 devices", "12 sec...");
+
+  // Reinitialize master stack to clear any pending connect target and allow discover().
+  serialBt3.disconnect();
+  serialBt3.end();
+  if (!serialBt3.begin(kBtLocalName, true))
+  {
+    connectStatus = "OBD2 BT3 init failed";
+    board->displayMessage("BT3 init failed", "Retry scan");
+    return;
+  }
+  serialBt3.setPin(kBtDefaultPin);
+  btStackReady = true;
+
+  BTScanResults *foundDevices = serialBt3.discover(10 * serialBt3.INQ_TIME);
+  if (foundDevices == nullptr)
+  {
+    board->displayMessage("BT3 scan failed", "Retry scan");
+    return;
+  }
+
+  const int foundCount = foundDevices->getCount();
+  uint8_t listSlot = 0;
+  for (int i = 0; i < foundCount && listSlot < 10; ++i)
+  {
+    BTAdvertisedDevice *dev = foundDevices->getDevice(i);
+    if (dev == nullptr)
+      continue;
+
+    String mac = dev->getAddress().toString();
+    if (mac.length() == 0 || mac == "00:00:00:00:00:00")
+      continue;
+
+    String name = dev->haveName() ? String(dev->getName().c_str()) : String("");
+    String title = (name.length() > 0) ? (name + ", " + mac) : (String("BT3, ") + mac);
+
+    MENU_ID targetId = static_cast<MENU_ID>(LIST_OF_BLE_1 + listSlot);
+    for (uint16_t mi = 0; mi < liveData->menuItemsCount; ++mi)
+    {
+      if (liveData->menuItems[mi].id == targetId)
+      {
+        title.toCharArray(liveData->menuItems[mi].title, sizeof(liveData->menuItems[mi].title));
+        mac.toCharArray(liveData->menuItems[mi].obdMacAddress, sizeof(liveData->menuItems[mi].obdMacAddress));
+        break;
+      }
+    }
+    listSlot++;
+  }
+
+  liveData->scanningDeviceIndex = listSlot;
+
+  char foundText[24];
+  snprintf(foundText, sizeof(foundText), "Found %u devices", static_cast<unsigned int>(listSlot));
+  board->displayMessage(" > Scanning BT3 devices", foundText);
+
+  liveData->menuVisible = true;
+  liveData->menuCurrent = LIST_OF_BLE_DEV;
+  liveData->menuItemSelected = 0;
+  board->showMenu();
+#endif
 }
 
 void CommObd2Bt3::mainLoop()
