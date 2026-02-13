@@ -1,5 +1,25 @@
 # RELEASE NOTES
 
+### V4.5.7 2026-02-13
+- WiFi status indicator tuning for `Contribute data`:
+  - In `contribute-only` mode (without ABRP and without Remote API/MQTT), green `WiFi OK` window is now `75s`.
+  - Existing behavior remains unchanged for ABRP/Remote API/MQTT workflows (`15s` green window after successful upload).
+- Contribute JSON `v2` / SD card `v2` metadata update:
+  - `carVin` remains included in every `v2` snapshot payload.
+  - Added `sd` flag (`0/1`) to indicate active SD logging state (`mounted+recording`).
+  - Added `gps` source marker: `m8n`, `gnss`, `v21` (or `none` when unavailable).
+  - Added `comm` source marker: `can`, `ble4`, `bt4`, `wifi` (fallback `unknown`).
+  - Since SD `v2` logging uses the same payload builder, these fields are now present in both online contribute uploads and SD `v2` logs.
+- Speed screen unit rendering polish:
+  - Cell min/max voltage keeps large numeric value and renders unit `V` in small font.
+  - Cell min/max temperature keeps large numeric value and renders small unit suffix (`°C`/`°F`).
+  - `out` temperature line now shows small `°C`/`°F` suffix after the value.
+  - Motor speed line now renders `kRPM` as a small unit suffix.
+  - Small unit labels were nudged down by `+3px`; `cell min` voltage unit `V` was additionally moved `16px` left for cleaner alignment.
+- CoreS3 touch/menu drag stability:
+  - Fixed extra menu offset jump after drag release on CoreS3 (`touch drag_end` no longer applies one more scroll step).
+  - Menu drag/swipe updates are now processed only while touch is actively pressed, and drag deltas are reset on release.
+
 ### V4.5.6 2026-02-13
 - Command optimizer menu wording cleanup:
   - `Disable CMD optimizer` was renamed to `Command optimizer`.

@@ -1185,7 +1185,46 @@ bool Board320_240::drawActiveScreenToSprite()
     );
   }
 
-  const uint8_t wifiOkWindowSec = 15;
+  const auto remoteApiConfiguredForWifi = [this]() -> bool {
+    if (liveData->settings.remoteUploadIntervalSec == 0)
+    {
+      return false;
+    }
+    const char *url = liveData->settings.remoteApiUrl;
+    if (url == nullptr || url[0] == '\0')
+    {
+      return false;
+    }
+    if (strcmp(url, "not_set") == 0)
+    {
+      return false;
+    }
+    return strstr(url, "http") != nullptr;
+  }();
+
+  const auto abrpConfiguredForWifi = [this]() -> bool {
+    if (liveData->settings.remoteUploadAbrpIntervalSec == 0)
+    {
+      return false;
+    }
+    const char *token = liveData->settings.abrpApiToken;
+    if (token == nullptr || token[0] == '\0')
+    {
+      return false;
+    }
+    if (strcmp(token, "empty") == 0 || strcmp(token, "not_set") == 0)
+    {
+      return false;
+    }
+    return true;
+  }();
+
+  const bool contributeOnlyConfigured =
+      (liveData->settings.contributeData == 1) &&
+      !remoteApiConfiguredForWifi &&
+      !abrpConfiguredForWifi;
+
+  const uint8_t wifiOkWindowSec = contributeOnlyConfigured ? 75 : 15;
 
   // Ignition ON, Gyro motion
   if (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED)
@@ -1686,6 +1725,47 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
   jsonData["register"] = 1;
   jsonData["carType"] = getCarModelAbrpStr(liveData->settings.carType);
   jsonData["carVin"] = liveData->params.carVin;
+  jsonData["sd"] = (liveData->params.sdcardInit && liveData->params.sdcardRecording) ? 1 : 0;
+
+  const char *gpsMode = "none";
+  switch (liveData->settings.gpsModuleType)
+  {
+  case GPS_MODULE_TYPE_NEO_M8N:
+    gpsMode = "m8n";
+    break;
+  case GPS_MODULE_TYPE_M5_GNSS:
+    gpsMode = "gnss";
+    break;
+  case GPS_MODULE_TYPE_GPS_V21_GNSS:
+    gpsMode = "v21";
+    break;
+  default:
+    gpsMode = "none";
+    break;
+  }
+  jsonData["gps"] = gpsMode;
+
+  const char *commMode = "unknown";
+  switch (liveData->settings.commType)
+  {
+  case COMM_TYPE_CAN_COMMU:
+    commMode = "can";
+    break;
+  case COMM_TYPE_OBD2_BLE4:
+    commMode = "ble4";
+    break;
+  case COMM_TYPE_OBD2_BT3:
+    commMode = "bt4";
+    break;
+  case COMM_TYPE_OBD2_WIFI:
+    commMode = "wifi";
+    break;
+  default:
+    commMode = "unknown";
+    break;
+  }
+  jsonData["comm"] = commMode;
+
   jsonData["stoppedCan"] = liveData->params.stopCommandQueue ? 1 : 0;
   jsonData["ign"] = liveData->params.ignitionOn ? 1 : 0;
   jsonData["chg"] = liveData->params.chargingOn ? 1 : 0;

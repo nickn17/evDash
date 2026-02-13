@@ -533,7 +533,7 @@ void BoardM5stackCoreS3::boardLoop()
       touchPressed = true;
     }
   }
-  else if (liveData->menuVisible && touchMoveGesture)
+  else if (liveData->menuVisible && t.isPressed() && touchMoveGesture)
   {
     int16_t dragX = t.distanceX();
     int16_t dragY = t.distanceY();
@@ -547,7 +547,7 @@ void BoardM5stackCoreS3::boardLoop()
       touchPressed = true;
     }
   }
-  else if (!liveData->menuVisible && touchMoveGesture)
+  else if (!liveData->menuVisible && t.isPressed() && touchMoveGesture)
   {
     int16_t dragX = t.distanceX();
     int16_t dragY = t.distanceY();
@@ -573,6 +573,8 @@ void BoardM5stackCoreS3::boardLoop()
   {
     screenSwipePreviewActive = false;
     touchDragGestureActive = false;
+    touchDragged = false;
+    touchDragDeltaY = 0;
     touchDragDeltaYPrev = 0;
     if (touchSwipeGestureActive && !touchPressed && touchReleased)
     {
