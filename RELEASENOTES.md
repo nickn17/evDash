@@ -1,5 +1,11 @@
 # RELEASE NOTES
 
+### V4.5.1 2026-02-13
+- Added new GPS module option `GPS v2.1 GNSS` in both on-device menu and Web Interface.
+- GPS v2.1 selection now auto-sets GPS serial speed to `115200` and uses baud auto-detect order `115200 -> 38400 -> 9600`.
+- GPS v2.1 path runs without the u-blox UBX init sequence used for `NEO-M8N`.
+- Updated `platformio.ini.example` for CoreS3 defaults: `SERIAL2_RX=44`, `SERIAL2_TX=43`, plus clearer `upload_port`/`monitor_port` placeholders.
+
 ### V4.5.0 2026-02-12
 - New WiFi menu action `Pair with evdash.eu`: generates a 6-digit pairing code and shows live countdown in menu suffix.
 - Added cloud pairing flow against `pair/start` + `pair/status` endpoints with board-specific device ID (`c2.`/`c3.` prefix), response validation, and auto-poll every 8s.
