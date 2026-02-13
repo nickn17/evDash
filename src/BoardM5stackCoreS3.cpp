@@ -315,6 +315,14 @@ bool BoardM5stackCoreS3::isButtonPressed(int button)
   }
 
   // Bottom touch buttons
+  if (isKeyboardInputActive())
+  {
+    btnAPressed = false;
+    btnBPressed = false;
+    btnCPressed = false;
+    return false;
+  }
+
   switch (button)
   {
   case BUTTON_LEFT:
@@ -456,6 +464,39 @@ void BoardM5stackCoreS3::boardLoop()
       btnCPressed = false;
       dismissMessageDialog();
     }
+
+    Board320_240::boardLoop();
+
+    CoreS3.Imu.getGyroData(&gyroX, &gyroY, &gyroZ);
+    CoreS3.Imu.getAccelData(&accX, &accY, &accZ);
+
+    if (gyroX != 0.0 || gyroY != 0.0 || gyroZ != 0.0 || accX != 0.0 || accY != 0.0 || accZ != 0.0)
+    {
+      liveData->params.gyroSensorMotion = false;
+      if (abs(gyroX) > 15.0 || abs(gyroY) > 15.0 || abs(gyroZ) > 15.0)
+      {
+        liveData->params.gyroSensorMotion = true;
+      }
+    }
+
+    return;
+  }
+
+  if (isKeyboardInputActive())
+  {
+    // Keyboard handles touch directly via promptKeyboard(); ignore global menu/screen touch handlers here.
+    touchPressed = false;
+    touchDragged = false;
+    touchDragGestureActive = false;
+    touchSwipeGestureActive = false;
+    touchDragDeltaY = 0;
+    touchDragDeltaYPrev = 0;
+    touchSwipeDeltaX = 0;
+    screenSwipePreviewActive = false;
+    menuTouchHoverIndex = -1;
+    btnAPressed = false;
+    btnBPressed = false;
+    btnCPressed = false;
 
     Board320_240::boardLoop();
 

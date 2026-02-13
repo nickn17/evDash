@@ -77,6 +77,7 @@ protected:
   uint32_t mainLoopStart = 0;
   uint32_t lastTimeUpdateMs = 0;
   uint32_t suppressTouchInputUntilMs = 0;
+  bool keyboardInputActive = false;
   bool messageDialogVisible = false;
   time_t cachedNowEpoch = 0;
   struct tm cachedNow = {};
@@ -238,6 +239,7 @@ public:
   void drawSceneDebug();
   void suppressTouchInputFor(uint16_t durationMs = 220);
   bool isTouchInputSuppressed() const;
+  bool isKeyboardInputActive() const;
   bool isMessageDialogVisible() const;
   bool dismissMessageDialog();
   // Menu
