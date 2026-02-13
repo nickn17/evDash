@@ -1,5 +1,12 @@
 # RELEASE NOTES
 
+### V4.5.8 2026-02-13
+- Touch keyboard input hardening:
+  - While on-screen keyboard is active, bottom touch buttons under display are now fully ignored.
+  - Prevents accidental `BtnA/BtnB/BtnC` actions during text input (SSID/password/API fields).
+  - Bottom-button touch events are swallowed until keyboard is closed, then normal behavior resumes.
+  - Fixed keyboard/menu rendering collision: while keyboard is open, background menu touch handlers are paused, so screen no longer flickers between menu and keyboard.
+
 ### V4.5.7 2026-02-13
 - WiFi status indicator tuning for `Contribute data`:
   - In `contribute-only` mode (without ABRP and without Remote API/MQTT), green `WiFi OK` window is now `75s`.

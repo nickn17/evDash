@@ -392,6 +392,14 @@ bool BoardM5stackCore2::isButtonPressed(int button)
   }
 
   // Bottom touch buttons
+  if (isKeyboardInputActive())
+  {
+    btnAPressed = false;
+    btnBPressed = false;
+    btnCPressed = false;
+    return false;
+  }
+
   switch (button)
   {
   case BUTTON_LEFT:
@@ -437,6 +445,28 @@ bool BoardM5stackCore2::getTouch(int16_t &x, int16_t &y)
  */
 void BoardM5stackCore2::eventDisplay(Event &e)
 {
+  if (core2Board != nullptr && core2Board->isKeyboardInputActive())
+  {
+    // Keyboard handles touch directly via promptKeyboard(); ignore background/button events.
+    touchPressed = false;
+    touchDragged = false;
+    touchTracking = false;
+    touchDragGestureActive = false;
+    touchSwipeGestureActive = false;
+    touchDragDeltaY = 0;
+    touchDragDeltaYPrev = 0;
+    touchSwipeDeltaX = 0;
+    btnAPressed = false;
+    btnBPressed = false;
+    btnCPressed = false;
+    lastTouchTime = 0;
+    if (core2Board != nullptr)
+    {
+      core2Board->screenSwipePreviewActive = false;
+    }
+    return;
+  }
+
   if (e.type == E_TOUCH || e.type == E_MOVE || e.type == E_DRAGGED)
   {
     // syslog->println("E_TOUCH PRESSED");
@@ -535,14 +565,17 @@ void BoardM5stackCore2::eventDisplay(Event &e)
     {
       if (lastTouchY >= 240)
       {
-        if (strcmp(e.objName(), "BtnA") == 0)
-          btnAPressed = true;
-        else if (strcmp(e.objName(), "BtnB") == 0)
-          btnBPressed = true;
-        else if (strcmp(e.objName(), "BtnC") == 0)
-          btnCPressed = true;
-        else
-          syslog->println("Unknown button");
+        if (core2Board == nullptr || !core2Board->isKeyboardInputActive())
+        {
+          if (strcmp(e.objName(), "BtnA") == 0)
+            btnAPressed = true;
+          else if (strcmp(e.objName(), "BtnB") == 0)
+            btnBPressed = true;
+          else if (strcmp(e.objName(), "BtnC") == 0)
+            btnCPressed = true;
+          else
+            syslog->println("Unknown button");
+        }
       }
       else
       {

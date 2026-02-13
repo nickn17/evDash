@@ -3125,6 +3125,7 @@ bool Board320_240::wifiScanToMenu()
 
 bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, uint8_t maxLen)
 {
+  keyboardInputActive = true;
   const int16_t screenW = tft.width();
   const int16_t screenH = tft.height();
   const int16_t topBtnY = 4;
@@ -3552,11 +3553,13 @@ bool Board320_240::promptKeyboard(const char *title, String &value, bool mask, u
       }
       else if (activeAction == KEY_OK)
       {
+        keyboardInputActive = false;
         suppressTouchInputFor();
         return true;
       }
       else if (activeAction == KEY_EXIT)
       {
+        keyboardInputActive = false;
         suppressTouchInputFor();
         return false;
       }
@@ -3594,6 +3597,11 @@ bool Board320_240::isTouchInputSuppressed() const
   if (suppressTouchInputUntilMs == 0)
     return false;
   return static_cast<int32_t>(suppressTouchInputUntilMs - millis()) > 0;
+}
+
+bool Board320_240::isKeyboardInputActive() const
+{
+  return keyboardInputActive;
 }
 
 bool Board320_240::isMessageDialogVisible() const
