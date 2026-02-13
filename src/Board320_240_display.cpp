@@ -443,8 +443,6 @@ void Board320_240::drawSceneSpeed()
     sprDrawString(tempUnitSmall, 319, cellMinTextY + smallUnitYOffsetPx);
     sprSetFont(fontRobotoThin24);
   }
-  liveData->params.motor1Rpm = 10000;
-  liveData->params.motor2Rpm = 10000;
   if (liveData->params.motor1Rpm > 0 || liveData->params.motor2Rpm > 0)
   {
     sprintf(tmpStr3, "%01.01f/%01.01f", (liveData->params.motor1Rpm / 1000), (liveData->params.motor2Rpm / 1000));
