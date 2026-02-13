@@ -2366,13 +2366,30 @@ void Board320_240::mainLoop()
                             !liveData->params.rightFrontDoorOpen &&
                             !liveData->params.trunkDoorOpen);
   const bool doorsOk = (doorsClosed || doorStateStale);
+  const bool parkingLikely =
+      (!liveData->params.ignitionOn &&
+       !liveData->params.chargingOn &&
+       doorsOk);
+  const bool lowAuxVoltage = (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5);
+  const bool autoStopByCanSignals = (parkingLikely || lowAuxVoltage);
+
+  // Fallback when CAN never yields a valid response (e.g. adapter/config issue):
+  // still allow Sentry autostop after a grace period so AUX battery is protected.
+  const time_t autoStopWithoutCanGraceSec = 180;
+  const bool canDataMissingTooLong =
+      (!liveData->params.getValidResponse &&
+       (liveData->params.currentTime - liveData->params.wakeUpTime > autoStopWithoutCanGraceSec));
+  const bool dcDcLikelyRunning = (liveData->params.auxVoltage >= 13.8);
+  const bool autoStopFallbackSafe = (parkingLikely && !dcDcLikelyRunning);
+
   if (liveData->settings.commandQueueAutoStop == 1 &&
-      liveData->params.getValidResponse &&
-      ((!liveData->params.ignitionOn &&
-        doorsOk &&
-        !liveData->params.chargingOn) ||
-       (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5)))
+      ((liveData->params.getValidResponse && autoStopByCanSignals) ||
+       (canDataMissingTooLong && autoStopFallbackSafe)))
   {
+    if (canDataMissingTooLong && !liveData->params.getValidResponse && liveData->params.stopCommandQueueTime == 0)
+    {
+      syslog->println("Sentry fallback: no valid CAN data, preparing autostop.");
+    }
     liveData->prepareForStopCommandQueue();
   }
   if (!liveData->params.stopCommandQueue &&
