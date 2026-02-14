@@ -99,6 +99,29 @@ Use the evDash Web Flasher: https://www.evdash.eu/m5flash or follow [INSTALLATIO
 ~/.platformio/penv/bin/pio run -e m5stack-core2-v1_0 -t upload
 ```
 
+## Contribute data
+
+`Contribute data` is primarily for secure access to your own vehicle history (not a dev-team telemetry feed).
+
+- Default state is `ON`.
+- If you do not want remote history at all, disable it in `Others -> Remote upload -> Contribute data -> OFF`.
+- While driving, older SD `v2` logs are uploaded quietly in background (starts after about `5 minutes` once internet is available).
+- This backfills gaps when live upload was temporarily unavailable.
+- Successful upload renames `_v2.json` to `_v2_uploaded.json`; failed uploads stay unchanged for retry.
+
+Typical benefits:
+- trip history and route timeline
+- charging behavior comparison over time
+- battery/cell trend tracking and degradation diagnostics
+- optional sharing of live position or a selected trip via view token
+
+Security notes:
+- transport is over HTTPS and tied to device authentication (`hwDeviceId` + token)
+- backend is hosted on private infrastructure at Slovak Telekom
+- operational access is restricted to a single maintainer
+
+If you want stricter privacy controls (for example auto-delete horizon, route location aging, home/work/cabin anonymization), these can be added.
+
 ## UI controls
 
 ### Touch zones (normal screens)
@@ -130,31 +153,22 @@ Use the evDash Web Flasher: https://www.evdash.eu/m5flash or follow [INSTALLATIO
 
 ![Ioniq 6 Screenshot](screenshots/v2_ioniq6.png)
 
-## Contribute data
+## CoreS3 vs Core2 variants
 
-Enable `Remote Upload -> Contribute data` to share command/response telemetry with the dev team.
+All supported boards run evDash, but practical behavior differs:
 
-Uploaded payload may include:
-- ATSH + PID request identifiers
-- raw response payloads
-- timing fields like `<ATSH>_<PID>_ms`
-- runtime state snapshot (SOC, temps, GPS, etc.)
-- packet filter metadata when relevant
+| Topic | CoreS3 / CoreS3 SE | Core2 v1.0 | Core2 v1.1 |
+|---|---|---|---|
+| Firmware target | `m5stack-cores3` | `m5stack-core2-v1_0` | `m5stack-core2-v1_1` |
+| UI responsiveness | Best | Good | Good |
+| OBD BLE4 | Yes | Yes | Yes |
+| CAN COMMU | No | Yes | Yes |
+| CPU + speed | ESP32-S3, up to 240 MHz | ESP32, up to 240 MHz | ESP32, up to 240 MHz |
+| PMIC | AXP2101 | AXP192 | AXP2101 |
+| RTC backup battery | No | No | Yes |
 
-No direct personal identity fields are intended in this stream.
-
-## M5Core2 v1.0 vs v1.1
-
-Both run evDash. The key differences are power and RTC behavior.
-
-| Topic | Core2 v1.0 | Core2 v1.1 |
-|---|---|---|
-| PMIC | AXP192 | AXP2101 |
-| RTC backup battery | No | Yes |
-| Onboard INA current sensing | No | Yes |
-| Typical power LED color | Green | Blue |
-
-v1.1 is usually better for long-running logging setups and stable timekeeping.
+CoreS3 is usually the best overall choice for daily use and UI performance.
+Core2 v1.1 is usually better than Core2 v1.0 for long-running logging and stable timekeeping.
 
 ## No longer supported
 

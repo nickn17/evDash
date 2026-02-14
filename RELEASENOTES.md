@@ -1,6 +1,15 @@
 # RELEASE NOTES
 
-### Vgit  2026-02-14
+### V4.5.11 2026-02-14
+- README cleanup and positioning updates:
+  - `Contribute data` section was rewritten to focus on secure access to user-owned vehicle history (default `ON` with explicit opt-out path).
+  - `UI controls` and `Screens` sections were moved below `Contribute data`.
+  - Hardware comparison was expanded to `CoreS3 vs Core2 v1.0 vs Core2 v1.1` (targets, UI responsiveness, OBD BLE4, CAN COMMU, CPU/speed, PMIC, RTC backup).
+- SD `v2` background upload visual indicator:
+  - During active background upload of closed `_v2.json` logs, the SD status circle is rendered with `+2px` larger radius.
+  - Makes ongoing silent upload during driving more visible without popups.
+
+### V4.5.10 2026-02-14
 - Debug screen was redesigned into paged view (`2` pages) with larger and clearer text.
 - Added debug screen paging controls identical to Battery cells screen (`top-left` previous page, `top-right` next page).
 - Debug Page 1 now shows compact operational status lines (WiFi/IP, comm/remote mode, ignition/charging, `AC/DC`, drive direction, SD, sleep/queue, net state).

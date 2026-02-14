@@ -1259,8 +1259,18 @@ bool Board320_240::drawActiveScreenToSprite()
   if (liveData->settings.sdcardEnabled == 1 && (liveData->params.queueLoopCounter & 1) == 1)
   {
     const int sdIndicatorX = (liveData->params.displayScreen == SCREEN_SPEED || liveData->params.displayScreenAutoMode == SCREEN_SPEED) ? 168 : 310;
-    spr.fillCircle(sdIndicatorX, 10, 4, TFT_BLACK);
-    spr.fillCircle(sdIndicatorX, 10, 3,
+    const bool sdV2BackgroundUploadActive = (sdV2UploadFilePath.length() > 0 &&
+                                             sdV2UploadFileName.length() > 0 &&
+                                             liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI &&
+                                             liveData->settings.wifiEnabled == 1 &&
+                                             liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
+                                             !liveData->params.wifiApMode &&
+                                             WiFi.status() == WL_CONNECTED &&
+                                             liveData->params.netAvailable);
+    const int sdOuterR = 4;
+    const int sdInnerR = sdV2BackgroundUploadActive ? 4 : 3;
+    spr.fillCircle(sdIndicatorX, 10, sdOuterR, TFT_BLACK);
+    spr.fillCircle(sdIndicatorX, 10, sdInnerR,
                    (liveData->params.sdcardInit) ? (liveData->params.sdcardRecording) ? (strlen(liveData->params.sdcardFilename) != 0) ? TFT_GREEN /* assigned filename (opsec from bms or gsm/gps timestamp */ : TFT_BLUE /* recording started but waiting for data */ : TFT_ORANGE /* sdcard init ready but recording not started*/ : TFT_YELLOW /* failed to initialize sdcard */
     );
   }
@@ -5965,9 +5975,19 @@ bool Board320_240::cleanupUploadedSdV2Logs()
   const time_t nowTime = liveData->params.currentTime;
   const bool hasReliableWallClock =
       (liveData->params.currTimeSyncWithGps ||
-       liveData->params.ntpTimeSet ||
-       nowTime > 1700000000);
+       liveData->params.ntpTimeSet);
   if (!hasReliableWallClock || nowTime <= 0)
+  {
+    return false;
+  }
+
+  struct tm nowTm = {};
+  if (localtime_r(&nowTime, &nowTm) == nullptr)
+  {
+    return false;
+  }
+  const int nowYear = nowTm.tm_year + 1900;
+  if (nowYear < 2025 || nowYear > 2040)
   {
     return false;
   }
