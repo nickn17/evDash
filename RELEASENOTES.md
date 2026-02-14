@@ -8,6 +8,9 @@
 - SD `v2` background upload visual indicator:
   - During active background upload of closed `_v2.json` logs, the SD status circle is rendered with `+2px` larger radius.
   - Makes ongoing silent upload during driving more visible without popups.
+- evdash API identity update:
+  - Removed board prefix in API `deviceId/id` (`c2.` / `c3.` no longer sent to `api.evdash.eu`; only clean hardware token is sent).
+  - Added `dev` marker with compiled board type (`core2` or `coreS3`) to online contribute payloads (`v1` and `v2`) and SD `v2` upload query.
 
 ### V4.5.10 2026-02-14
 - Debug screen was redesigned into paged view (`2` pages) with larger and clearer text.
