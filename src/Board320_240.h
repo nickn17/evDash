@@ -66,6 +66,7 @@ protected:
   bool menuDragScrollActive = false;
   int16_t menuTouchHoverIndex = -1;
   uint16_t batteryCellsPage = 0;
+  uint8_t debugInfoPage = 0;
   time_t lastRedrawTime = 0;
   uint8_t currentBrightness = 255;
   // time in fwd mode for avg speed calc.
@@ -250,6 +251,8 @@ public:
   uint16_t batteryCellsCellsPerPage();
   uint16_t batteryCellsPageCount();
   void batteryCellsPageMove(bool forward);
+  uint8_t debugInfoPageCount();
+  void debugInfoPageMove(bool forward);
   void drawSceneBatteryCells();
   void drawPreDrawnChargingGraphs(int zeroX, int zeroY, int mulX, float mulY);
   void drawSceneChargingGraph();

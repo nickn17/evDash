@@ -731,6 +731,34 @@ void Board320_240::batteryCellsPageMove(bool forward)
 }
 
 /**
+ * Number of debug pages.
+ */
+uint8_t Board320_240::debugInfoPageCount()
+{
+  return 2;
+}
+
+/**
+ * Move debug info page.
+ */
+void Board320_240::debugInfoPageMove(bool forward)
+{
+  uint8_t pageCount = debugInfoPageCount();
+  if (pageCount <= 1)
+  {
+    debugInfoPage = 0;
+    return;
+  }
+
+  if (forward)
+    debugInfoPage = (debugInfoPage + 1 >= pageCount) ? 0 : (debugInfoPage + 1);
+  else
+    debugInfoPage = (debugInfoPage == 0) ? (pageCount - 1) : (debugInfoPage - 1);
+
+  redrawScreen();
+}
+
+/**
  * Draws the battery cells screen. (Screen 3)
  *
  * Displays the heater, inlet, and module temperatures.
@@ -1052,194 +1080,229 @@ void Board320_240::drawSceneSoc10Table()
 }
 
 /**
- * Draws debug information to the screen. (screen 6)
- *
- * Displays diagnostic values for debugging purposes:
- * - App version
- * - Settings version
- * - Frames per second
- * - Wifi status
- * - Remote upload module status
- * - SD card status
- * - Voltmeter status
- * - Sleep mode
- * - GPS status
- * - Current time
+ * Draws paged debug information to the screen. (Screen 6)
  */
 void Board320_240::drawSceneDebug()
 {
-  String tmpStr;
+  const uint8_t pageCount = debugInfoPageCount();
+  if (debugInfoPage >= pageCount)
+    debugInfoPage = pageCount - 1;
 
-  spr.setTextFont(2);
-  spr.setTextSize(1); // Size for small 5x7 font
-  spr.setTextColor(TFT_SILVER);
-  spr.setTextDatum(TL_DATUM);
-  sprSetFont(fontFont2);
-  spr.setCursor(0, 0);
+  const auto onOff = [](bool state) -> const char *
+  { return state ? "ON" : "OFF"; };
 
-  /* Spotzify [SE]: Diagnostic values I would love to have :
-FPS, or more specific time for one total loop of program.
-COMMU stats
-GPS stats
-Time and date
-GSM status
-ABRP status
-SD status*/
+  const char *commMode = "UNK";
+  switch (liveData->settings.commType)
+  {
+  case COMM_TYPE_CAN_COMMU:
+    commMode = "CAN";
+    break;
+  case COMM_TYPE_OBD2_BLE4:
+    commMode = "BLE4";
+    break;
+  case COMM_TYPE_OBD2_BT3:
+    commMode = "BT3";
+    break;
+  case COMM_TYPE_OBD2_WIFI:
+    commMode = "WIFI";
+    break;
+  default:
+    commMode = "UNK";
+    break;
+  }
 
-  // BASIC INFO
-  spr.print("APP ");
-  spr.print(APP_VERSION);
-  spr.print(" | Settings v");
-  spr.print(liveData->settings.settingsVersion);
-  spr.print(" | FPS ");
-  spr.println(displayFps);
-
-  // TODO Cartype liveData->settings.carType - translate car number to string
-  // TODO Adapter type liveData->settings.commType == COMM_TYPE_OBD2BLE4
-  // TODO data from adapter
-
-  // WIFI
-  spr.print("WIFI ");
-  spr.print(liveData->settings.wifiEnabled == 1 ? "ON" : "OFF");
-  // if (liveData->params.isWifiBackupLive == true)
-  spr.print(" IP ");
-  spr.print(WiFi.localIP().toString());
-  spr.print(" SSID ");
-  spr.println(liveData->settings.wifiSsid);
-
-  // REMOTE UPLOAD
-  spr.print("REMOTE UPLOAD ");
+  const char *remoteUploadMode = "OFF";
   switch (liveData->settings.remoteUploadModuleType)
   {
   case REMOTE_UPLOAD_OFF:
-    spr.print("OFF");
+    remoteUploadMode = "OFF";
     break;
   case REMOTE_UPLOAD_WIFI:
-    spr.print("WIFI");
+    remoteUploadMode = "WIFI";
     break;
   default:
-    spr.print("unknown");
+    remoteUploadMode = "UNK";
+    break;
   }
 
-  spr.println("");
-  spr.print("CarMode: ");
-  spr.println(liveData->params.carMode);
-
-  spr.print("VIN: ");
-  spr.println(liveData->params.carVin);
-
-  spr.print("Power (kW): ");
-  spr.println(liveData->params.batPowerKw * -1);
-
-  spr.print("ignitionOn: ");
-  spr.println(liveData->params.ignitionOn == 1 ? "ON" : "OFF");
-
-  spr.print("chargingOn: ");
-  spr.println(liveData->params.chargingOn == 1 ? "ON" : "OFF");
-
-  spr.print("AC charger connected: ");
-  spr.println(liveData->params.chargerACconnected == 1 ? "ON" : "OFF");
-
-  spr.print("DC charger connected: ");
-  spr.println(liveData->params.chargerDCconnected == 1 ? "ON" : "OFF");
-
-  spr.print("Forward drive mode: : ");
-  spr.println(liveData->params.forwardDriveMode == 1 ? "ON" : "OFF");
-
-  spr.print("Reverse drive mode: : ");
-  spr.println(liveData->params.reverseDriveMode == 1 ? "ON" : "OFF");
-
-  /*
-    jsonData["power"] = liveData->params.batPowerKw * -1;
-      jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
-
-    bool ignitionOn;
-    bool chargingOn;
-    bool chargerACconnected;
-    bool chargerDCconnected;
-    bool forwardDriveMode;
-    bool reverseDriveMode;
-    bool parkModeOrNeutral;
-    */
-
-  // TODO sent status, ms from last sent
-  // spr.println("");
-
-  // SDCARD
-  spr.print("SDCARD ");
-  spr.print((liveData->settings.sdcardEnabled == 0) ? "OFF" : (strlen(liveData->params.sdcardFilename) != 0) ? "WRITE"
-                                                          : (liveData->params.sdcardInit)                    ? "READY"
-                                                                                                             : "MOUNTED");
-  spr.print(" used ");
-  spr.print(SD.usedBytes() / 1048576);
-  spr.print("/");
-  spr.print(SD.totalBytes() / 1048576);
-  spr.println("MB");
-
-  // VOLTMETER INA3221
-  spr.print("VOLTMETER ");
-  spr.println(liveData->settings.voltmeterEnabled == 1 ? "ON" : "OFF");
-  if (liveData->settings.voltmeterEnabled == 1)
-  {
-    syslog->print("ch1:");
-    syslog->print(ina3221.getBusVoltage_V(1));
-    syslog->print("V\t ch2:");
-    syslog->print(ina3221.getBusVoltage_V(2));
-    syslog->print("V\t ch3:");
-    syslog->print(ina3221.getBusVoltage_V(3));
-    syslog->println("V");
-    syslog->print("ch1:");
-    syslog->print(ina3221.getCurrent_mA(1));
-    syslog->print("mA\t ch2:");
-    syslog->print(ina3221.getCurrent_mA(2));
-    syslog->print("mA\t ch3:");
-    syslog->print(ina3221.getCurrent_mA(3));
-    syslog->println("mA");
-  }
-
-  // SLEEP MODE
-  spr.print("SLEEP MODE ");
+  const char *sleepMode = "UNK";
   switch (liveData->settings.sleepModeLevel)
   {
   case SLEEP_MODE_OFF:
-    spr.print("OFF");
+    sleepMode = "OFF";
     break;
   case SLEEP_MODE_SCREEN_ONLY:
-    spr.print("SCREEN ONLY");
+    sleepMode = "SCREEN";
     break;
   default:
-    spr.print("UNKNOWN");
+    sleepMode = "UNK";
+    break;
   }
-  spr.println("");
 
-  // GPS
-  spr.print("GPS ");
-  spr.print(liveData->params.gpsValid ? "OK" : "-");
-  if (liveData->params.gpsValid)
+  const char *gpsModule = "OFF";
+  switch (liveData->settings.gpsModuleType)
   {
-    spr.print(" ");
-    spr.print(liveData->params.gpsLat);
-    spr.print("/");
-    spr.print(liveData->params.gpsLon);
-    spr.print(" alt ");
-    spr.print(liveData->params.gpsAlt);
-    spr.print("m sat ");
-    spr.print(liveData->params.gpsSat);
+  case GPS_MODULE_TYPE_NEO_M8N:
+    gpsModule = "M8N";
+    break;
+  case GPS_MODULE_TYPE_M5_GNSS:
+    gpsModule = "M9N";
+    break;
+  case GPS_MODULE_TYPE_GPS_V21_GNSS:
+    gpsModule = "V2.1";
+    break;
+  default:
+    gpsModule = "OFF";
+    break;
   }
-  spr.println("");
 
-  // CURRENT TIME
-  spr.print("TIME ");
-  spr.print(liveData->params.ntpTimeSet == 1 ? " NTP " : "");
-  spr.print(liveData->params.currTimeSyncWithGps == 1 ? "GPS " : "");
+  const char *sdMode = "OFF";
+  if (liveData->settings.sdcardEnabled != 0)
+  {
+    if (strlen(liveData->params.sdcardFilename) != 0)
+      sdMode = "WRITE";
+    else if (liveData->params.sdcardInit)
+      sdMode = "READY";
+    else
+      sdMode = "MOUNT";
+  }
+
+  uint32_t sdUsedMb = SD.usedBytes() / 1048576;
+  uint32_t sdTotalMb = SD.totalBytes() / 1048576;
+  long gpsAgeSec = -1;
+  if (liveData->params.gpsLastFixTime > 0 && liveData->params.currentTime >= liveData->params.gpsLastFixTime)
+    gpsAgeSec = liveData->params.currentTime - liveData->params.gpsLastFixTime;
+
+  String ipText = WiFi.localIP().toString();
+  if (ipText.length() == 0)
+    ipText = "-";
+  String timeSource = "";
+  if (liveData->params.ntpTimeSet)
+    timeSource += "NTP ";
+  if (liveData->params.currTimeSyncWithGps)
+    timeSource += "GPS ";
+  if (timeSource.length() == 0)
+    timeSource = "NONE";
+
   struct tm now = cachedNow;
+  char dateLine[32];
+  char timeLine[32];
   if (cachedNowEpoch == 0)
   {
-    sprintf(tmpStr1, "-- -- -- --:--:--");
+    strcpy(dateLine, "DATE --/--/----");
+    strcpy(timeLine, "TIME --:--:--");
   }
   else
   {
-    sprintf(tmpStr1, "%02d-%02d-%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+    snprintf(dateLine, sizeof(dateLine), "DATE %04d-%02d-%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday);
+    snprintf(timeLine, sizeof(timeLine), "TIME %02d:%02d:%02d", now.tm_hour, now.tm_min, now.tm_sec);
   }
-  spr.println(tmpStr1);
+
+  spr.setTextFont(2);
+  spr.setTextSize(1);
+  spr.setTextDatum(TL_DATUM);
+  sprSetFont(fontRobotoThin24);
+
+  if (pageCount > 1)
+  {
+    spr.setTextDatum(TR_DATUM);
+    sprSetFont(fontFont2);
+    spr.setTextColor(TFT_CYAN);
+    snprintf(tmpStr4, sizeof(tmpStr4), "<PG %d/%d>", debugInfoPage + 1, pageCount);
+    sprDrawString(tmpStr4, 318, 18);
+    spr.setTextDatum(TL_DATUM);
+    sprSetFont(fontRobotoThin24);
+  }
+
+  const int16_t lineX = 4;
+  int16_t lineY = 4;
+  const int16_t lineStep = 20;
+  auto drawLine = [&](const char *text, uint16_t color = TFT_SILVER)
+  {
+    if (lineY > 230)
+      return;
+    spr.setTextColor(color);
+    sprDrawString(text, lineX, lineY);
+    lineY += lineStep;
+  };
+
+  if (debugInfoPage == 0)
+  {
+    snprintf(tmpStr1, sizeof(tmpStr1), "APP %s FPS %.1f", APP_VERSION, displayFps);
+    drawLine(tmpStr1, TFT_WHITE);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "SET V%u DBG %u", liveData->settings.settingsVersion, liveData->settings.debugLevel);
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "WIFI %s %s", onOff(liveData->settings.wifiEnabled == 1), ipText.c_str());
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "COMM %s REMOTE %s", commMode, remoteUploadMode);
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "VIN %.17s", liveData->params.carVin);
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "IGN %s CHG %s", onOff(liveData->params.ignitionOn), onOff(liveData->params.chargingOn));
+    drawLine(tmpStr1, (liveData->params.ignitionOn || liveData->params.chargingOn) ? TFT_CYAN : TFT_SILVER);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "CHG AC %s DC %s", onOff(liveData->params.chargerACconnected), onOff(liveData->params.chargerDCconnected));
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "DIR F %s R %s P %s", onOff(liveData->params.forwardDriveMode), onOff(liveData->params.reverseDriveMode), onOff(liveData->params.parkModeOrNeutral));
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "SD %s %lu/%luMB", sdMode, static_cast<unsigned long>(sdUsedMb), static_cast<unsigned long>(sdTotalMb));
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "SLEEP %s QUEUE %s", sleepMode, liveData->params.stopCommandQueue ? "STOP" : "RUN");
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "NET %s FAIL %u VOLT %s", liveData->params.netAvailable ? "OK" : "DOWN", liveData->params.netFailureCount, onOff(liveData->settings.voltmeterEnabled == 1));
+    drawLine(tmpStr1);
+  }
+  else
+  {
+    if (liveData->settings.gpsHwSerialPort <= 2)
+      snprintf(tmpStr1, sizeof(tmpStr1), "GPS %s UART%u %lu", gpsModule, liveData->settings.gpsHwSerialPort, static_cast<unsigned long>(liveData->settings.gpsSerialPortSpeed));
+    else
+      snprintf(tmpStr1, sizeof(tmpStr1), "GPS %s UART OFF", gpsModule);
+    drawLine(tmpStr1, TFT_WHITE);
+
+    if (gpsAgeSec >= 0)
+      snprintf(tmpStr1, sizeof(tmpStr1), "FIX %s SAT %u AGE %lds", onOff(liveData->params.gpsValid), liveData->params.gpsSat, gpsAgeSec);
+    else
+      snprintf(tmpStr1, sizeof(tmpStr1), "FIX %s SAT %u AGE n/a", onOff(liveData->params.gpsValid), liveData->params.gpsSat);
+    drawLine(tmpStr1);
+
+    if (liveData->params.gpsHeadingDeg >= 0)
+      snprintf(tmpStr1, sizeof(tmpStr1), "SPD %.1f%s HDG %.0f", liveData->km2distance(liveData->params.speedKmhGPS), (liveData->settings.distanceUnit == 'k') ? "kmh" : "mph", liveData->params.gpsHeadingDeg);
+    else
+      snprintf(tmpStr1, sizeof(tmpStr1), "SPD %.1f%s HDG n/a", liveData->km2distance(liveData->params.speedKmhGPS), (liveData->settings.distanceUnit == 'k') ? "kmh" : "mph");
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "ALT %dm", liveData->params.gpsAlt);
+    drawLine(tmpStr1);
+
+    if (liveData->params.gpsLat != -1.0f)
+      snprintf(tmpStr1, sizeof(tmpStr1), "LAT %.5f", liveData->params.gpsLat);
+    else
+      snprintf(tmpStr1, sizeof(tmpStr1), "LAT n/a");
+    drawLine(tmpStr1);
+
+    if (liveData->params.gpsLon != -1.0f)
+      snprintf(tmpStr1, sizeof(tmpStr1), "LON %.5f", liveData->params.gpsLon);
+    else
+      snprintf(tmpStr1, sizeof(tmpStr1), "LON n/a");
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "WAKE GPS %u GYRO %u", liveData->params.gpsWakeCount, liveData->params.gyroWakeCount);
+    drawLine(tmpStr1);
+
+    snprintf(tmpStr1, sizeof(tmpStr1), "TIME SRC %s", timeSource.c_str());
+    drawLine(tmpStr1);
+
+    drawLine(dateLine);
+    drawLine(timeLine);
+  }
 }

@@ -1816,7 +1816,7 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
     gpsMode = "m8n";
     break;
   case GPS_MODULE_TYPE_M5_GNSS:
-    gpsMode = "gnss";
+    gpsMode = "m9n";
     break;
   case GPS_MODULE_TYPE_GPS_V21_GNSS:
     gpsMode = "v21";

@@ -1,5 +1,12 @@
 # RELEASE NOTES
 
+### Vgit  2026-02-14
+- Debug screen was redesigned into paged view (`2` pages) with larger and clearer text.
+- Added debug screen paging controls identical to Battery cells screen (`top-left` previous page, `top-right` next page).
+- Debug Page 1 now shows compact operational status lines (WiFi/IP, comm/remote mode, ignition/charging, `AC/DC`, drive direction, SD, sleep/queue, net state).
+- Debug Page 2 now focuses on GPS details (module/UART/speed, fix/sat/age, speed/heading, altitude, lat/lon, wake counters, time source/date/time).
+- Charging state summary is now condensed to practical one-line diagnostics (for example `CHG AC ... DC ...`) to improve readability.
+
 ### V4.5.9 2026-02-13
 - SD `v2` log upload now runs quietly in background during normal app use (no popups or user messages).
 - Upload starts after a `5 minute` grace period and retries later if network/server is unavailable.
@@ -8,6 +15,7 @@
 - Uploaded files are automatically cleaned after `30` days.
 - Improved manual upload stability for larger files.
 - Server upload handling was updated for better compatibility and reliable device verification.
+- Contribute/SD `v2` GPS source marker for `M5 GNSS (NEO-M9N)` is now sent as `m9n` (instead of `gnss`).
 
 ### V4.5.8 2026-02-13
 - Touch keyboard input hardening:
@@ -23,7 +31,7 @@
 - Contribute JSON `v2` / SD card `v2` metadata update:
   - `carVin` remains included in every `v2` snapshot payload.
   - Added `sd` flag (`0/1`) to indicate active SD logging state (`mounted+recording`).
-  - Added `gps` source marker: `m8n`, `gnss`, `v21` (or `none` when unavailable).
+  - Added `gps` source marker: `m8n`, `m9n`, `v21` (or `none` when unavailable).
   - Added `comm` source marker: `can`, `ble4`, `bt4`, `wifi` (fallback `unknown`).
   - Since SD `v2` logging uses the same payload builder, these fields are now present in both online contribute uploads and SD `v2` logs.
 - Speed screen unit rendering polish:
@@ -163,7 +171,7 @@
 - OBD2 WiFi adapter (`[DEV]`) communication hardened: better prompt parsing (`>`), command latency tracking, and timeout recovery so command queue does not get stuck waiting for prompt forever.
 - OTA update over WiFi fixed: OTA now downloads board-specific binary path (`core2 v1.0`, `core2 v1.1`, `CoreS3`), follows HTTPS redirects, and supports missing `Content-Length` responses.
 - Menu (`Others`): `Rem. Upload` renamed to `Remote upload`, and adapter-type suffix (`[WIFI]`) removed from this item.
-- Menu (`Remote upload`): fixed `Contribute anon.data` toggle so it reliably switches `on/off` without unintended reboot.
+- Menu (`Remote upload`): fixed `Contribute data` toggle so it reliably switches `on/off` without unintended reboot.
 - Menu (`OBD2/CAN adapter`): `Select OBD2 adapter` renamed/moved to `Select BLE4 OBD2 adapter` after `OBD2 Bluetooth4 (BLE4)`.
 - Speed screen battery separators: top dashed line animation remains for `PTC`; bottom dashed line now animates for `LTR`, `COOL`, and `LTRCOOL` battery-management modes.
 - Net status: fixed stale `Net temporarily unavailable` message when WiFi stays connected but no internet upload task is active (or last failure is old).
@@ -233,7 +241,7 @@
 - eGMP: add Ioniq6 58/63 option and update Ioniq5/EV6 labels to 58/63 and 77/84 where cell counts match.
 
 ### V4.1.7 2026-01-25
-- Added per-PID latency tracking and upload metadata so the anonymous `Contribute anon.data` stream can show how long each request took and help spot slow ECUs.
+- Added per-PID latency tracking and upload metadata so the anonymous `Contribute data` stream can show how long each request took and help spot slow ECUs.
 - Once the VIN is cached we stop sending the Mode 09 PID 02 (`0902`), preventing repeated “Packet filtered” noise while keeping VIN detection stable.
 
 ### V4.1.6 2026-01-23
