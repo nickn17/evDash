@@ -15,7 +15,6 @@ Use this firmware at your own risk.
 - communication via CAN (MCP2515/COMMU) or OBD2 BLE4
 - OBD2 WiFi adapter mode (marked as DEV)
 - SD card logging and optional remote uploads (ABRP, MQTT, contribute)
-- OTA update over WiFi
 
 ## Supported hardware
 
@@ -24,26 +23,21 @@ Use this firmware at your own risk.
 - M5Stack CoreS3 SE (K128-SE)
 - SD card 2-32 MB
 - GPS M003-V2.1 module
-- CAN via COMMU module (MCP2515) or OBDLink CX BLE4 adapter
+- OBDLink CX BLE4 adapter
 
 ### Main boards
 
-- **Preferred:** M5Stack CoreS3 (best overall UX/performance)
 - **Preferred:** M5Stack CoreS3 SE (K128-SE)
-  - Product: `M5Stack CoreS3 SE - vývojový modul - ESP32-S3 - M5Stack K128-SE`
-  - Index: `MSS-25332`, EAN: `6972934175304`
-  - Uses the same firmware target/profile as CoreS3 (`m5stack-cores3`).
+- **Preferred:** M5Stack CoreS3
 - M5Stack Core2 v1.1
 - M5Stack Core2 v1.0
 
 ### Vehicle interface
 
 - **Preferred:** CAN via COMMU / MCP2515
-- **Preferred fallback:** OBD2 BLE4 adapter (`OBDLink CX BLE4` recommended)
-- OBD2 Bluetooth3 classic adapter (BT3, only Core2 devices with Classic BT support)
-- OBD2 WiFi adapter
-
-Preferred order is CAN first, then BLE4.
+- **Preferred:** OBD2 BLE4 adapter (`OBDLink CX BLE4` recommended)
+- **in DEV** OBD2 Bluetooth3 classic adapter (BT3, only Core2 devices with Classic BT support)
+- **in DEV** OBD2 WiFi adapter
 
 ### GPS modules
 
@@ -74,26 +68,6 @@ Support level varies by model year and ECU behavior. See [RELEASENOTES.md](RELEA
 ## Quick install (binary)
 
 Use the evDash Web Flasher: https://www.evdash.eu/m5flash or follow [INSTALLATION.md](INSTALLATION.md).
-
-## Build from source (PlatformIO)
-
-1. Install VS Code + PlatformIO extension.
-2. Clone this repository.
-3. Copy `platformio.ini.example` to `platformio.ini`.
-4. Set your serial `upload_port` / `monitor_port`.
-5. Build one target:
-
-```bash
-~/.platformio/penv/bin/pio run -e m5stack-cores3   # CoreS3 and CoreS3 SE (K128-SE)
-~/.platformio/penv/bin/pio run -e m5stack-core2-v1_0
-~/.platformio/penv/bin/pio run -e m5stack-core2-v1_1
-```
-
-6. Upload:
-
-```bash
-~/.platformio/penv/bin/pio run -e m5stack-core2-v1_0 -t upload
-```
 
 ## Contribute data
 
