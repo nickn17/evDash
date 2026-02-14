@@ -214,10 +214,14 @@ bool BoardM5stackCoreS3::isButtonPressed(int button)
           return false;
         }
         bool cellSceneVisible = (liveData->params.displayScreen == SCREEN_CELLS || liveData->params.displayScreenAutoMode == SCREEN_CELLS);
-        if (cellSceneVisible && lastTouchY < 64)
+        bool debugSceneVisible = (liveData->params.displayScreen == SCREEN_DEBUG || liveData->params.displayScreenAutoMode == SCREEN_DEBUG);
+        if ((cellSceneVisible || debugSceneVisible) && lastTouchY < 64)
         {
-          // Cell screen paging: top-left = previous page, top-right = next page.
-          batteryCellsPageMove(lastTouchX >= 160);
+          // Cell/debug paging: top-left = previous page, top-right = next page.
+          if (cellSceneVisible)
+            batteryCellsPageMove(lastTouchX >= 160);
+          else
+            debugInfoPageMove(lastTouchX >= 160);
         }
         else if (lastTouchY > 64 && lastTouchY < 150)
         {

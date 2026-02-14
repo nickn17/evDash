@@ -14,10 +14,17 @@ Use this firmware at your own risk.
 - touch-first UI with menu paging, drag scrolling, and on-screen keyboard
 - communication via CAN (MCP2515/COMMU) or OBD2 BLE4
 - OBD2 WiFi adapter mode (marked as DEV)
-- SD card logging and optional remote uploads (ABRP, MQTT, API, anonymous contribute)
+- SD card logging and optional remote uploads (ABRP, MQTT, contribute)
 - OTA update over WiFi
 
 ## Supported hardware
+
+### Recommended configuration
+
+- M5Stack CoreS3 SE (K128-SE)
+- SD card 2-32 MB
+- GPS M003-V2.1 module
+- CAN via COMMU module (MCP2515) or OBDLink CX BLE4 adapter
 
 ### Main boards
 
@@ -123,9 +130,9 @@ Use the evDash Web Flasher: https://www.evdash.eu/m5flash or follow [INSTALLATIO
 
 ![Ioniq 6 Screenshot](screenshots/v2_ioniq6.png)
 
-## Anonymous contribute data
+## Contribute data
 
-Enable `Remote Upload -> Contribute anon.data` to share anonymous command/response telemetry with the dev team.
+Enable `Remote Upload -> Contribute data` to share command/response telemetry with the dev team.
 
 Uploaded payload may include:
 - ATSH + PID request identifiers
