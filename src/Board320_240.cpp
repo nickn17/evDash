@@ -263,6 +263,17 @@ namespace
     return deviceId;
   }
 
+  const char *getCompiledDeviceTypeForApi()
+  {
+#ifdef BOARD_M5STACK_CORES3
+    return "coreS3";
+#elif defined(BOARD_M5STACK_CORE2)
+    return "core2";
+#else
+    return "unknown";
+#endif
+  }
+
   String toAbsoluteSdPath(const String &fileName)
   {
     if (fileName.length() == 0)
@@ -1813,6 +1824,7 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
   }
   jsonData["key"] = contributeKey;
   jsonData["deviceId"] = hardwareDeviceId;
+  jsonData["dev"] = getCompiledDeviceTypeForApi();
   jsonData["apiKey"] = liveData->settings.remoteApiKey;
   jsonData["register"] = 1;
   jsonData["carType"] = getCarModelAbrpStr(liveData->settings.carType);
@@ -3875,11 +3887,7 @@ String Board320_240::getPairDeviceId() const
   {
     return "";
   }
-#ifdef BOARD_M5STACK_CORES3
-  return String("c3.") + hardwareDeviceId;
-#else
-  return String("c2.") + hardwareDeviceId;
-#endif
+  return hardwareDeviceId;
 }
 
 bool Board320_240::requestPairingStart(String &outCode, uint32_t &outExpiresInSec)
@@ -4306,11 +4314,7 @@ void Board320_240::checkFirmwareVersionOnServer()
   String firmwareCheckId = "";
   if (hardwareDeviceId.length() > 0)
   {
-#ifdef BOARD_M5STACK_CORES3
-    firmwareCheckId = String("c3.") + hardwareDeviceId;
-#else
-    firmwareCheckId = String("c2.") + hardwareDeviceId;
-#endif
+    firmwareCheckId = hardwareDeviceId;
   }
 
   String appVersionForApi = String(APP_VERSION);
@@ -5119,6 +5123,7 @@ bool Board320_240::netContributeData()
       {
         liveData->contributeDataJson += "\"key\": \"" + contributeKey + "\", ";
         liveData->contributeDataJson += "\"deviceId\": \"" + hardwareDeviceId + "\", ";
+        liveData->contributeDataJson += "\"dev\": \"" + String(getCompiledDeviceTypeForApi()) + "\", ";
         liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
         liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
         liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
@@ -5854,6 +5859,7 @@ bool Board320_240::postSdLogChunkToEvDash(const String &fileName, uint32_t part,
                        "&deviceKey=" + contributeKey +
                        "&hwDeviceId=" + hardwareDeviceId +
                        "&deviceId=" + hardwareDeviceId +
+                       "&dev=" + String(getCompiledDeviceTypeForApi()) +
                        "&apiKey=" + registerApiKey +
                        "&register=1" +
                        "&filename=" + fileName +
