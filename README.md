@@ -48,10 +48,6 @@ Preferred order is CAN first, then BLE4.
 ### GPS modules
 
 - **Preferred:** GPS module v2.1 with SMA antenna (AT6668) for M5Core / M5Stack `M003-V2.1`
-  - Product: `GPS modul v2.1 s SMA anténou - AT6668 - pro vývojové moduly M5Core - M5Stack M003-V2.1`
-  - Index: `MSS-26600`, EAN: `6972934175731`
-  - GNSS support: GPS, BD2/BD3, GLONASS, GALILEO, QZSS
-  - In practice this module can see up to ~31 satellites (vs ~12 on older NEO modules) and costs around 13 EUR.
 - M5 GNSS (NEO-M9N, typically 38400 bps)
 - M5 GPS (NEO-M8N, typically 9600 bps)
 
