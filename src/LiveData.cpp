@@ -193,6 +193,16 @@ void LiveData::initParams()
   params.contributeStatus = CONTRIBUTE_NONE;
   clearContributeRawFrames();
 
+  // BLE runtime objects are allocated lazily by communication classes.
+  pServerAddress = nullptr;
+  pRemoteCharacteristic = nullptr;
+  pRemoteCharacteristicWrite = nullptr;
+  foundMyBleDevice = nullptr;
+  pClient = nullptr;
+  pBLEScan = nullptr;
+  commConnected = false;
+  obd2ready = true;
+
   // Menu
   menuItemsCount = sizeof(menuItemsSource) / sizeof(menuItemsSource[0]);
   if (menuItems == nullptr)

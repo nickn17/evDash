@@ -1,5 +1,16 @@
 # RELEASE NOTES
 
+### V4.5.12 2026-02-17
+- Contribute/SD `v2` anti-duplicate tuning:
+  - While online contribute is active (`WiFi connected` + net available), minute `v2` SD snapshots are now skipped.
+  - SD `v2` snapshots are still recorded when contribute is offline/unavailable, so delayed upload fallback remains functional.
+  - Helps prevent mixed parallel streams (`live` + delayed SD upload) that can create shifted/duplicated track points for the same drive period.
+- CoreS3/CoreS3 SE BLE startup responsiveness fix:
+  - Removed blocking BLE auto-scan during boot; connection now starts non-blocking from the main loop.
+  - BLE reconnect retries now use backoff instead of tight repeated attempts with blocking delay.
+  - Improved BLE runtime state initialization/reuse for more stable reconnect behavior.
+  - Helps prevent long post-boot periods where touch/UI appears unresponsive before adapter reconnect.
+
 ### V4.5.11 2026-02-14
 - README cleanup and positioning updates:
   - `Contribute data` section was rewritten to focus on secure access to user-owned vehicle history (default `ON` with explicit opt-out path).

@@ -9,6 +9,8 @@ class CommObd2Ble4 : public CommInterface
 
 protected:
   uint32_t PIN = 1234;
+  uint32_t nextConnectRetryMs = 0;
+  uint8_t connectFailCount = 0;
 
 public:
   void connectDevice() override;
