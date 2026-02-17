@@ -185,7 +185,7 @@ protected:
   bool ensureSdV2UploadFileSelected(const String &activeLogFilename);
   bool processSdV2UploadChunk();
   void resetSdV2UploadState();
-  bool postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload = nullptr, int *responseCode = nullptr);
+  bool postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload = nullptr, int *responseCode = nullptr, bool preferManualTimeouts = false);
   bool cleanupUploadedSdV2Logs();
 
 public:

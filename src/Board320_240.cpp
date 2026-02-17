@@ -78,6 +78,9 @@ namespace
   constexpr uint32_t kGpsShortJumpWindowSec = 5;
   constexpr uint32_t kGpsReacquireAfterSec = 900;
   constexpr uint32_t kMotionWakeResetSec = 900;
+  constexpr uint32_t kChargingQueueHoldSec = 180;
+  constexpr uint8_t kGpsWakeConfirmSamples = 2;
+  constexpr uint8_t kGyroWakeConfirmSamples = 3;
   constexpr size_t kContributeJsonDocCapacity = 12288;
   constexpr uint8_t kContributeRawFrameUploadMax = 24;
   constexpr bool kContributeIncludeRawLatency = false;
@@ -92,12 +95,18 @@ namespace
   constexpr size_t kContributeResponseBufferCap = 2048;
   constexpr uint16_t kSdLogUploadConnectTimeoutMs = 4000;
   constexpr uint16_t kSdLogUploadIoTimeoutMs = 4500;
+  constexpr uint16_t kSdLogUploadManualConnectTimeoutMs = 6000;
+  constexpr uint16_t kSdLogUploadManualIoTimeoutMs = 12000;
   constexpr size_t kSdLogUploadChunkSize = 4096;
-  uint8_t gSdLogUploadBuffer[kSdLogUploadChunkSize] = {0};
+  constexpr size_t kSdLogUploadManualChunkSize = 8192;
+  constexpr size_t kSdLogUploadBufferSize = kSdLogUploadManualChunkSize;
+  constexpr const char *kSdLogUploadBaseUrl = "https://api.evdash.eu/v1/upload";
+  uint8_t gSdLogUploadBuffer[kSdLogUploadBufferSize] = {0};
   constexpr uint32_t kFirmwareVersionCheckCooldownMs = 30000;
   constexpr uint16_t kFirmwareVersionHttpTimeoutMs = 4500;
   constexpr uint32_t kPairStatusPollIntervalMs = 8000;
   constexpr uint16_t kPairHttpTimeoutMs = 4500;
+  constexpr size_t kSdV2MaxFileBytes = 256U * 1024U;
 
   // ABRP upload runs in the main loop, so avoid large temporary stack buffers here.
   // These static buffers are only used from the single-threaded board loop path.
@@ -348,6 +357,108 @@ namespace
       return false;
     }
     outTs = parsed;
+    return true;
+  }
+
+  bool isAllDigits(const String &value)
+  {
+    if (value.length() == 0)
+    {
+      return false;
+    }
+    for (uint16_t i = 0; i < value.length(); i++)
+    {
+      const char ch = value.charAt(i);
+      if (ch < '0' || ch > '9')
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  String nextSdV2RolloverPath(const String &currentPath)
+  {
+    if (currentPath.length() == 0)
+    {
+      return "";
+    }
+
+    String baseName = currentPath;
+    if (baseName.charAt(0) == '/')
+    {
+      baseName = baseName.substring(1);
+    }
+    if (!baseName.endsWith("_v2.json"))
+    {
+      return "";
+    }
+
+    String stem = baseName.substring(0, baseName.length() - 8); // remove "_v2.json"
+    uint16_t nextSeq = 1;
+    const int sepPos = stem.lastIndexOf('_');
+    if (sepPos > 0 && sepPos < static_cast<int>(stem.length() - 1))
+    {
+      const String suffix = stem.substring(sepPos + 1);
+      if (isAllDigits(suffix))
+      {
+        nextSeq = static_cast<uint16_t>(suffix.toInt() + 1);
+        stem = stem.substring(0, sepPos);
+      }
+    }
+
+    if (stem.length() == 0)
+    {
+      stem = "log";
+    }
+
+    for (uint16_t seq = nextSeq; seq < 9999; seq++)
+    {
+      const String candidate = "/" + stem + "_" + String(seq) + "_v2.json";
+      if (!SD.exists(candidate.c_str()))
+      {
+        return candidate;
+      }
+    }
+    return "";
+  }
+
+  bool rotateSdV2FileIfNeeded(char *fileNameBuffer, size_t fileNameBufferSize, size_t pendingAppendBytes)
+  {
+    if (fileNameBuffer == nullptr || fileNameBufferSize == 0 || pendingAppendBytes == 0)
+    {
+      return false;
+    }
+
+    const String currentPath = toAbsoluteSdPath(String(fileNameBuffer));
+    if (!isPendingSdV2LogFile(currentPath))
+    {
+      return false;
+    }
+
+    size_t currentSize = 0;
+    File currentFile = SD.open(currentPath.c_str(), FILE_READ);
+    if (currentFile && !currentFile.isDirectory())
+    {
+      currentSize = static_cast<size_t>(currentFile.size());
+    }
+    if (currentFile)
+    {
+      currentFile.close();
+    }
+
+    if ((currentSize + pendingAppendBytes) <= kSdV2MaxFileBytes)
+    {
+      return false;
+    }
+
+    const String nextPath = nextSdV2RolloverPath(currentPath);
+    if (nextPath.length() == 0 || nextPath.length() >= fileNameBufferSize)
+    {
+      return false;
+    }
+
+    nextPath.toCharArray(fileNameBuffer, fileNameBufferSize);
     return true;
   }
 
@@ -2394,6 +2505,15 @@ void Board320_240::mainLoop()
       const bool sizeToFlush = sdcardRecordBuffer.length() >= sdcardFlushSize;
       if ((timeToFlush || sizeToFlush) && sdcardRecordBuffer.length() > 0)
       {
+        if (sdcardJsonV2 &&
+            rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
+                                   sizeof(liveData->params.sdcardFilename),
+                                   sdcardRecordBuffer.length()))
+        {
+          syslog->print("SD v2 rollover file: ");
+          syslog->println(liveData->params.sdcardFilename);
+        }
+
         File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
         if (!file)
         {
@@ -2452,8 +2572,18 @@ void Board320_240::mainLoop()
     }
   }
 
+  const bool recentlyCharging =
+      (liveData->params.lastChargingOnTime != 0 &&
+       liveData->params.currentTime >= liveData->params.lastChargingOnTime &&
+       (liveData->params.currentTime - liveData->params.lastChargingOnTime) <= kChargingQueueHoldSec);
+  const bool chargingActiveForQueue =
+      (liveData->params.chargingOn ||
+       liveData->params.chargerACconnected ||
+       liveData->params.chargerDCconnected ||
+       recentlyCharging);
+
   // Reset sentry session when car becomes active
-  if (liveData->params.ignitionOn || liveData->params.chargingOn)
+  if (liveData->params.ignitionOn || chargingActiveForQueue)
   {
     if (liveData->params.sentrySessionActive)
     {
@@ -2470,8 +2600,24 @@ void Board320_240::mainLoop()
   //  - ina3221 & voltage is >= 14V (DCDC is running)
   //  - gps speed >= 5kmh & 4+ satellites (only when voltmeter is disabled)
   //  - gyro motion (only when voltmeter is disabled)
-  const bool queueSleeping = (liveData->params.stopCommandQueue || liveData->params.stopCommandQueueTime != 0);
+  const bool queueStopped = liveData->params.stopCommandQueue;
+  const bool queueSleeping = (queueStopped || liveData->params.stopCommandQueueTime != 0);
   const bool allowMotionWake = (liveData->settings.voltmeterEnabled == 0);
+  static uint8_t gpsWakeConfirmCount = 0;
+  static uint8_t gyroWakeConfirmCount = 0;
+
+  if (!queueStopped)
+  {
+    gpsWakeConfirmCount = 0;
+    gyroWakeConfirmCount = 0;
+
+    // Charging started while autostop was preparing: cancel pending stop timer.
+    if (liveData->params.stopCommandQueueTime != 0 && chargingActiveForQueue)
+    {
+      liveData->continueWithCommandQueue();
+    }
+  }
+
   if (queueSleeping)
   {
     if (liveData->params.motionWakeLastTime == 0)
@@ -2493,13 +2639,37 @@ void Board320_240::mainLoop()
   const bool motionWakeLocked = (!gpsWakeRemaining && !gyroWakeRemaining);
   liveData->params.motionWakeLocked = motionWakeLocked;
   const bool motionWakeAllowed = allowMotionWake && !motionWakeLocked;
-  const bool gpsWake =
+  const bool gpsWakeCandidate =
       motionWakeAllowed && gpsWakeRemaining &&
       (liveData->params.gpsValid && liveData->params.speedKmhGPS >= 5 && liveData->params.gpsSat >= 4); // 5 floor parking house, satelites 5 & gps speed = 274kmh :/
-  const bool gyroWake = motionWakeAllowed && gyroWakeRemaining && liveData->params.gyroSensorMotion;
+  const bool gyroWakeCandidate = motionWakeAllowed && gyroWakeRemaining && liveData->params.gyroSensorMotion;
+
+  if (queueStopped && gpsWakeCandidate)
+  {
+    if (gpsWakeConfirmCount < kGpsWakeConfirmSamples)
+      gpsWakeConfirmCount++;
+  }
+  else
+  {
+    gpsWakeConfirmCount = 0;
+  }
+
+  if (queueStopped && gyroWakeCandidate)
+  {
+    if (gyroWakeConfirmCount < kGyroWakeConfirmSamples)
+      gyroWakeConfirmCount++;
+  }
+  else
+  {
+    gyroWakeConfirmCount = 0;
+  }
+
+  const bool gpsWake = queueStopped && (gpsWakeConfirmCount >= kGpsWakeConfirmSamples);
+  const bool gyroWake = queueStopped && (gyroWakeConfirmCount >= kGyroWakeConfirmSamples);
   const bool motionWake = gpsWake || gyroWake;
-  if (queueSleeping &&
+  if (queueStopped &&
       ((liveData->params.ignitionOn && (liveData->params.auxVoltage <= 3 || liveData->params.auxVoltage >= 11.5)) ||
+       chargingActiveForQueue ||
        (liveData->settings.voltmeterEnabled == 1 && liveData->params.auxVoltage > 14.0) ||
        motionWake))
   {
@@ -2518,6 +2688,8 @@ void Board320_240::mainLoop()
           (liveData->params.gpsWakeCount >= maxGpsWakePerSession &&
            liveData->params.gyroWakeCount >= maxGyroWakePerSession);
     }
+    gpsWakeConfirmCount = 0;
+    gyroWakeConfirmCount = 0;
     liveData->continueWithCommandQueue();
     if (commInterface->isSuspended())
     {
@@ -2559,9 +2731,11 @@ void Board320_240::mainLoop()
   const bool doorsOk = (doorsClosed || doorStateStale);
   const bool parkingLikely =
       (!liveData->params.ignitionOn &&
-       !liveData->params.chargingOn &&
+       !chargingActiveForQueue &&
        doorsOk);
-  const bool lowAuxVoltage = (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.5);
+  const bool lowAuxVoltage = (!chargingActiveForQueue &&
+                              liveData->params.auxVoltage > 3 &&
+                              liveData->params.auxVoltage < 11.5);
   const bool autoStopByCanSignals = (parkingLikely || lowAuxVoltage);
 
   // Fallback when CAN never yields a valid response (e.g. adapter/config issue):
@@ -2584,6 +2758,7 @@ void Board320_240::mainLoop()
     liveData->prepareForStopCommandQueue();
   }
   if (!liveData->params.stopCommandQueue &&
+      !chargingActiveForQueue &&
       ((liveData->params.stopCommandQueueTime != 0 && liveData->params.currentTime - liveData->params.stopCommandQueueTime > 60) ||
        (liveData->params.auxVoltage > 3 && liveData->params.auxVoltage < 11.0)))
   {
@@ -2861,6 +3036,15 @@ void Board320_240::sdcardToggleRecording()
   {
     if (sdcardRecordBuffer.length() > 0 && strlen(liveData->params.sdcardFilename) != 0)
     {
+      if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
+          rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
+                                 sizeof(liveData->params.sdcardFilename),
+                                 sdcardRecordBuffer.length()))
+      {
+        syslog->print("SD v2 rollover file: ");
+        syslog->println(liveData->params.sdcardFilename);
+      }
+
       File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
       if (!file)
       {
@@ -5830,7 +6014,7 @@ void Board320_240::resetSdV2UploadState()
   sdV2UploadOffset = 0;
 }
 
-bool Board320_240::postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload, int *responseCode)
+bool Board320_240::postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload, int *responseCode, bool preferManualTimeouts)
 {
   if (responsePayload != nullptr)
   {
@@ -5871,39 +6055,35 @@ bool Board320_240::postSdLogChunkToEvDash(const String &fileName, uint32_t part,
                        "&filename=" + fileName +
                        "&part=" + String(part);
 
-  const char *uploadBaseUrls[] = {
-      "https://api.evdash.eu/v1/upload",
-      "https://api.evdash.eu/v1/contribute/upload"};
-
   int rc = -1;
   String payload = "";
-  for (uint8_t i = 0; i < (sizeof(uploadBaseUrls) / sizeof(uploadBaseUrls[0])); i++)
-  {
-    WiFiClientSecure client;
-    HTTPClient http;
-    client.setInsecure();
-    client.setHandshakeTimeout((kSdLogUploadConnectTimeoutMs + 999) / 1000);
-    client.setTimeout((kSdLogUploadIoTimeoutMs + 999) / 1000);
+  WiFiClientSecure client;
+  HTTPClient http;
+  const uint16_t connectTimeoutMs = (preferManualTimeouts ? kSdLogUploadManualConnectTimeoutMs : kSdLogUploadConnectTimeoutMs);
+  const uint16_t ioTimeoutMs = (preferManualTimeouts ? kSdLogUploadManualIoTimeoutMs : kSdLogUploadIoTimeoutMs);
+  client.setInsecure();
+  client.setHandshakeTimeout((connectTimeoutMs + 999) / 1000);
+  client.setTimeout((ioTimeoutMs + 999) / 1000);
 
-    const String url = String(uploadBaseUrls[i]) + query;
+  const String url = String(kSdLogUploadBaseUrl) + query;
+  if (debugLog)
+  {
+    syslog->print("Log upload try: ");
+    syslog->println(url);
+  }
+  if (!http.begin(client, url))
+  {
+    client.stop();
+    rc = -1;
     if (debugLog)
     {
-      syslog->print("Log upload try: ");
-      syslog->println(url);
+      syslog->println("Log upload: http.begin failed");
     }
-    if (!http.begin(client, url))
-    {
-      client.stop();
-      rc = -1;
-      if (debugLog)
-      {
-        syslog->println("Log upload: http.begin failed");
-      }
-      continue;
-    }
-
-    http.setConnectTimeout(kSdLogUploadConnectTimeoutMs);
-    http.setTimeout(kSdLogUploadIoTimeoutMs);
+  }
+  else
+  {
+    http.setConnectTimeout(connectTimeoutMs);
+    http.setTimeout(ioTimeoutMs);
     http.useHTTP10(true);
     http.setReuse(false);
     addWifiTransferredBytes(length);
@@ -5922,11 +6102,6 @@ bool Board320_240::postSdLogChunkToEvDash(const String &fileName, uint32_t part,
     }
     http.end();
     client.stop();
-
-    if (rc != HTTP_CODE_NOT_FOUND)
-    {
-      break;
-    }
   }
 
   if (responsePayload != nullptr)
@@ -6397,11 +6572,12 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
     }
     if (!uploadFailed && totalSize > 0U)
     {
+      size_t manualChunkSize = kSdLogUploadManualChunkSize;
+      bool chunkSizeFallbackUsed = false;
       while (uploaded < totalSize)
       {
         const size_t remaining = totalSize - uploaded;
-        const size_t bytesToRead = (remaining < kSdLogUploadChunkSize) ? remaining : kSdLogUploadChunkSize;
-
+        const size_t bytesToRead = (remaining < manualChunkSize) ? remaining : manualChunkSize;
         File uploadChunk = SD.open(filePath.c_str(), FILE_READ);
         if (!uploadChunk || uploadChunk.isDirectory())
         {
@@ -6410,12 +6586,20 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
             uploadChunk.close();
           }
           uploadFailed = true;
+          if (!silent)
+          {
+            syslog->println("Log upload local read failed: open");
+          }
           break;
         }
         if (!uploadChunk.seek(uploaded))
         {
           uploadChunk.close();
           uploadFailed = true;
+          if (!silent)
+          {
+            syslog->println("Log upload local read failed: seek");
+          }
           break;
         }
         const size_t sz = uploadChunk.read(gSdLogUploadBuffer, bytesToRead);
@@ -6423,6 +6607,10 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
         if (sz == 0U)
         {
           uploadFailed = true;
+          if (!silent)
+          {
+            syslog->println("Log upload local read failed: read");
+          }
           break;
         }
 
@@ -6440,8 +6628,20 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
 
         String uploadResponse = "";
         int uploadRc = -1;
-        if (!postSdLogChunkToEvDash(uploadFileName, part, gSdLogUploadBuffer, sz, &uploadResponse, &uploadRc))
+        if (!postSdLogChunkToEvDash(uploadFileName, part, gSdLogUploadBuffer, sz, &uploadResponse, &uploadRc, true))
         {
+          const bool canFallbackChunkSize = (manualChunkSize > kSdLogUploadChunkSize);
+          if (canFallbackChunkSize)
+          {
+            manualChunkSize = kSdLogUploadChunkSize;
+            chunkSizeFallbackUsed = true;
+            if (!silent)
+            {
+              syslog->println("Log upload fallback: manual chunk 4KB");
+            }
+            continue;
+          }
+
           uploadFailed = true;
           if (!silent)
           {
@@ -6469,6 +6669,10 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
           syslog->print(" / ");
           syslog->println(totalSize);
         }
+      }
+      if (!uploadFailed && chunkSizeFallbackUsed && !silent)
+      {
+        syslog->println("Log upload completed with 4KB chunk fallback");
       }
     }
 
