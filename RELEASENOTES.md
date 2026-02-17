@@ -1,5 +1,28 @@
 # RELEASE NOTES
 
+### V4.5.15 2026-02-17
+- SD `v2` log file size cap (`256KB`) with automatic rollover:
+  - Active `*_v2.json` file now rotates to indexed file (`..._1_v2.json`, `..._2_v2.json`, ...) before flush if pending write would exceed `256KB`.
+  - Rotation is applied during regular flush and also when recording is stopped with buffered data pending.
+  - Helps background upload keep pace on slower links by producing smaller upload units.
+
+### V4.5.14 2026-02-17
+- Sentry/charging edge-case fix (eGMP):
+  - Fixed case where command queue could still fall into Sentry/autostop during charging start sequence (unlock -> open charge port -> start charge -> lock).
+  - Added charging hold window (`180s`) based on recent charging activity to avoid false autostop from short charging-state transitions.
+  - If autostop preparation timer is already running and charging becomes active, pending stop is cancelled and queue stays/resumes active.
+  - Queue autostop stop conditions now explicitly ignore low-voltage/autostop triggers while charging is active/recent.
+
+### V4.5.13 2026-02-17
+- SD log manual upload tuning and stability fix:
+  - Manual upload chunk size was increased from `4KB` to `8KB` for faster transfer while keeping stability on slower links.
+  - If an `8KB` chunk fails, upload now automatically falls back to `4KB` chunking and retries the same part.
+  - Manual upload now uses dedicated HTTPS timeouts (`connect 6s`, `I/O 12s`) to avoid premature failures on larger files.
+  - Manual upload uses per-chunk SD reopen/seek/read for better long-run stability on device (avoids stale file-handle behavior across HTTPS calls).
+  - Upload endpoint fallback was removed; SD log upload now uses only `https://api.evdash.eu/v1/upload`.
+  - Fixes regression where manual upload could finish with `Uploaded 0 of 1` on larger logs.
+- Background SD `v2` upload behavior remains unchanged (still conservative chunking/timing).
+
 ### V4.5.12 2026-02-17
 - Contribute/SD `v2` anti-duplicate tuning:
   - While online contribute is active (`WiFi connected` + net available), minute `v2` SD snapshots are now skipped.
