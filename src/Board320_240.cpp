@@ -2365,7 +2365,13 @@ void Board320_240::mainLoop()
       {
         const bool minuteTick = (lastContributeSdRecordTime == 0) ||
                                 ((liveData->params.currentTime - lastContributeSdRecordTime) >= kContributeSampleWindowSec);
-        if (minuteTick)
+        const bool contributeOnlineNow =
+            (liveData->settings.contributeData == 1) &&
+            (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI) &&
+            (liveData->settings.wifiEnabled == 1) &&
+            (WiFi.status() == WL_CONNECTED) &&
+            liveData->params.netAvailable;
+        if (minuteTick && !contributeOnlineNow)
         {
           String jsonLine;
           if (buildContributePayloadV2(jsonLine, true))

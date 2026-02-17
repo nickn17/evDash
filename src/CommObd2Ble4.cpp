@@ -7,6 +7,33 @@ CommObd2Ble4 *commObj;
 BoardInterface *boardObj;
 LiveData *liveDataObj;
 
+namespace
+{
+  constexpr uint32_t kBleConnectRetryBaseMs = 3000;
+  constexpr uint32_t kBleConnectRetryMaxMs = 15000;
+
+  bool hasConfiguredBleMac(const char *value)
+  {
+    return value != nullptr &&
+           value[0] != '\0' &&
+           strcmp(value, "00:00:00:00:00:00") != 0 &&
+           strcmp(value, "not_set") != 0 &&
+           strcmp(value, "empty") != 0;
+  }
+
+  uint32_t calcConnectRetryDelayMs(uint8_t failCount)
+  {
+    uint32_t backoffStep = failCount;
+    if (backoffStep > 4)
+      backoffStep = 4;
+
+    uint32_t delayMs = kBleConnectRetryBaseMs * (backoffStep + 1);
+    if (delayMs > kBleConnectRetryMaxMs)
+      delayMs = kBleConnectRetryMaxMs;
+    return delayMs;
+  }
+} // namespace
+
 /**
   BLE callbacks
 */
@@ -193,6 +220,13 @@ void CommObd2Ble4::connectDevice()
   boardObj = board;
 
   syslog->println("BLE4 connectDevice");
+  connectFailCount = 0;
+  nextConnectRetryMs = 0;
+  liveData->commConnected = false;
+  liveData->obd2ready = true;
+  liveData->pRemoteCharacteristic = nullptr;
+  liveData->pRemoteCharacteristicWrite = nullptr;
+  liveData->foundMyBleDevice = nullptr;
 
   // Start BLE connection
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
@@ -207,11 +241,11 @@ void CommObd2Ble4::connectDevice()
   liveData->pBLEScan->setWindow(449);
   liveData->pBLEScan->setActiveScan(true);
 
-  // Skip BLE scan if middle button pressed
-  if (strcmp(liveData->settings.obdMacAddress, "00:00:00:00:00:00") != 0 && !board->skipAdapterScan())
+  // Avoid 10-second blocking scan during boot.
+  // Connection is attempted directly by configured MAC in mainLoop().
+  if (hasConfiguredBleMac(liveData->settings.obdMacAddress) && !board->skipAdapterScan())
   {
-    syslog->println(liveData->settings.obdMacAddress);
-    startBleScan();
+    syslog->println("Boot BLE scan skipped (non-blocking startup connect by MAC).");
   }
 }
 
@@ -308,8 +342,20 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
 
   // Create BLE client and set callbacks
   board->displayMessage(" > Connecting device", pAddress.toString().c_str());
-  liveData->pClient = BLEDevice::createClient();
-  liveData->pClient->setClientCallbacks(new MyClientCallback());
+  if (liveData->pClient == nullptr)
+  {
+    liveData->pClient = BLEDevice::createClient();
+    if (liveData->pClient == nullptr)
+    {
+      syslog->println("Failed to create BLE client.");
+      return false;
+    }
+    liveData->pClient->setClientCallbacks(new MyClientCallback());
+  }
+  else if (liveData->pClient->isConnected())
+  {
+    liveData->pClient->disconnect();
+  }
 
   // Attempt to connect to the BLE device.
   // Most adapters use random address type, but some use public type.
@@ -323,8 +369,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   if (!connected)
   {
     syslog->println("Failed to connect to BLE device.");
-    board->displayMessage("Connection failed", "Retrying...");
-    delay(2000); // Delay before retrying to avoid immediate restart
+    board->displayMessage("Connection failed", "Will retry...");
     return false;
   }
   syslog->println("Successfully connected to BLE device.");
@@ -427,27 +472,49 @@ void CommObd2Ble4::mainLoop()
   }
 
   // Connect BLE device
-  if (liveData->obd2ready == true && liveData->foundMyBleDevice != NULL)
+  if (liveData->obd2ready == true && hasConfiguredBleMac(liveData->settings.obdMacAddress))
   {
-    liveData->pServerAddress = new BLEAddress(liveData->settings.obdMacAddress);
-    if (connectToServer(*liveData->pServerAddress))
+    if (liveData->menuVisible)
     {
-
-      liveData->commConnected = true;
-      liveData->obd2ready = false;
-
-      syslog->println("We are now connected to the BLE device.");
-
-      // Print message
-      board->displayMessage(" > Processing init AT cmds", "");
-
-      // Serve first command (ATZ)
-      doNextQueueCommand();
+      // Avoid blocking connect attempts while user is interacting with menu.
+      connectStatus = "BLE connect paused (menu)";
     }
     else
     {
-      board->displayMessage("> Can not connect BLE", "");
-      syslog->println("We have failed to connect to the server; there is nothing more we will do.");
+      const uint32_t nowMs = millis();
+      const bool retryWindowOpen =
+          (nextConnectRetryMs == 0) || (static_cast<int32_t>(nowMs - nextConnectRetryMs) >= 0);
+      if (retryWindowOpen)
+      {
+        BLEAddress serverAddress(liveData->settings.obdMacAddress);
+        if (connectToServer(serverAddress))
+        {
+
+          liveData->commConnected = true;
+          liveData->obd2ready = false;
+          connectFailCount = 0;
+          nextConnectRetryMs = 0;
+
+          syslog->println("We are now connected to the BLE device.");
+          connectStatus = "Connected";
+
+          // Print message
+          board->displayMessage(" > Processing init AT cmds", "");
+
+          // Serve first command (ATZ)
+          doNextQueueCommand();
+        }
+        else
+        {
+          board->displayMessage("> Can not connect BLE", "");
+          syslog->println("We have failed to connect to the server; scheduling retry.");
+          if (connectFailCount < 0xFF)
+            connectFailCount++;
+          const uint32_t retryDelayMs = calcConnectRetryDelayMs(connectFailCount);
+          nextConnectRetryMs = nowMs + retryDelayMs;
+          connectStatus = String("Retry in ") + String(retryDelayMs / 1000) + "s";
+        }
+      }
     }
   }
 
@@ -483,6 +550,8 @@ void CommObd2Ble4::suspendDevice()
   suspendedDevice = true;
   liveData->commConnected = false;
   liveData->obd2ready = false;
+  connectFailCount = 0;
+  nextConnectRetryMs = 0;
   if (liveData->pClient != nullptr && liveData->pClient->isConnected())
   {
     liveData->pClient->disconnect();
@@ -501,5 +570,7 @@ void CommObd2Ble4::resumeDevice()
 {
   suspendedDevice = false;
   liveData->obd2ready = true;
+  connectFailCount = 0;
+  nextConnectRetryMs = 0;
   connectStatus = "Resumed";
 }
