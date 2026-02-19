@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.5.16 2026-02-19
+- ABRP telemetry sign alignment:
+  - ABRP payload now explicitly uses reversed sign against internal evDash battery power convention.
+  - `power/current`: driving consumption (negative in evDash) is sent as positive to ABRP, while charging/regen is sent as negative.
+
 ### V4.5.15 2026-02-17
 - SD `v2` log file size cap (`256KB`) with automatic rollover:
   - Active `*_v2.json` file now rotates to indexed file (`..._1_v2.json`, `..._2_v2.json`, ...) before flush if pending write would exceed `256KB`.
