@@ -5067,9 +5067,14 @@ bool Board320_240::netSendData(bool sendAbrp)
       return false;
     }
 
+    // evDash uses negative values for discharge/consumption.
+    // ABRP expects the opposite sign convention (consumption positive, charge/regen negative).
+    const float abrpPowerKw = -liveData->params.batPowerKw;
+    const float abrpCurrentA = -liveData->params.batPowerAmp;
+
     jsonData["utc"] = liveData->params.currentTime;
     jsonData["soc"] = liveData->params.socPerc;
-    jsonData["power"] = liveData->params.batPowerKw * -1;
+    jsonData["power"] = abrpPowerKw;
     jsonData["is_parked"] = (liveData->params.parkModeOrNeutral) ? 1 : 0;
     if (liveData->params.speedKmhGPS > 0)
     {
@@ -5102,7 +5107,7 @@ bool Board320_240::netSendData(bool sendAbrp)
     }
     jsonData["batt_temp"] = liveData->params.batMinC;
     jsonData["voltage"] = liveData->params.batVoltage;
-    jsonData["current"] = liveData->params.batPowerAmp * -1;
+    jsonData["current"] = abrpCurrentA;
     if (liveData->params.odoKm > 0)
       jsonData["odometer"] = liveData->params.odoKm;
 
