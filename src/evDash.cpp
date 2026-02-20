@@ -47,7 +47,7 @@
 #include "CarHyundaiIoniq.h"
 #include "CarHyundaiIoniqPHEV.h"
 #include "CarHyundaiEgmp.h"
-#include "kiaev9.h"
+#include "CarKiaEV9.h"
 #include "CarRenaultZoe.h"
 #include "CarBmwI3.h"
 #include "CarVWID3.h"
@@ -155,7 +155,7 @@ void setup(void)
     car = new CarHyundaiEgmp();
     break;
   case CAR_KIA_EV9_100:
-    car = new KiaEv9();
+    car = new CarKiaEV9();
     break;
   case CAR_HYUNDAI_IONIQ_2018:
     car = new CarHyundaiIoniq();
