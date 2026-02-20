@@ -2,6 +2,6 @@
 
 #include "CarHyundaiEgmp.h"
 
-class KiaEv9 : public CarHyundaiEgmp
+class CarKiaEV9 : public CarHyundaiEgmp
 {
 };
