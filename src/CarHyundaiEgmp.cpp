@@ -92,21 +92,12 @@ namespace
   }
 } // namespace
 
-// https://github.com/Esprit1st/Hyundai-Ioniq-5-Torque-Pro-PIDs
+// Shared eGMP UDS implementation for Ioniq 5/6 and EV6.
+// EV9 has a dedicated implementation in CarKiaEV9.
 //
-// To-do list for IONIQ5
-// ---------------------
-// D/R/P not detected - FIXED 2023-05-27 SPOT2000
-// AC or DC charging is not detected properly
-// Find a way to read power (current and voltage) during charing (when car is powered down)
-// Engine RPM is found, but not implemented
-// Find and implement GPS in car CAN messages
-// Maximum charging and discharging power is found but not implemented.
-
+// This is the CAN ID list observed on Ioniq5 that responds to UDS tester present up to 0xFFF.
+// Kept here as reference while working with eGMP diagnostics.
 /*
-
-This is the CAN ID that responds to UDS tester present up to 0xFFF
-
 0x05E2
 0x0607
 0x0703
@@ -174,7 +165,7 @@ This is the CAN ID that responds to UDS tester present up to 0xFFF
 0x07FC
 0x07FD
 0x07FE
-0x07F
+0x07FF
 */
 
 /**
@@ -194,18 +185,8 @@ void CarHyundaiEgmp::activateCommandQueue()
       "AT E0",   // Echo off
       "AT L0",   // Linefeeds off
       "AT SP 6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-      //"AT AL",     // Allow Long (>7 byte) messages
-      //"AT AR",     // Automatically receive
-      //"AT H1",     // Headers on (debug only)
-      //"AT D1",     // Display of the DLC on
-      //"AT CAF0",   // Automatic formatting off
-      ////"AT AT0",     // disabled adaptive timing
       "AT DP",
       "AT ST16", // reduced timeout to 1, orig.16
-
-      // Read car VIN code
-      //"ATSH7DF",
-      //"0902",
 
       // Loop from here
 
@@ -353,7 +334,7 @@ void CarHyundaiEgmp::activateCommandQueue()
                 //"220114", // ???
   };
 
-  // kWh model?
+  // Defaults for large packs (77/84 kWh class).
   liveData->params.batModuleTempCount = 16;
   liveData->params.batteryTotalAvailableKWh = 77.4;
   liveData->params.cellCount = 192; // 384 / 2, 32 modules
@@ -370,11 +351,6 @@ void CarHyundaiEgmp::activateCommandQueue()
   {
     liveData->params.batteryTotalAvailableKWh = 72.6;
     liveData->params.cellCount = 180; // 360 / 2, 30 modules
-  }
-  if (liveData->settings.carType == CAR_KIA_EV9_100)
-  {
-    liveData->params.cellCount = 180;
-    liveData->params.batteryTotalAvailableKWh = 100;
   }
 
   //  Empty and fill command queue
