@@ -964,7 +964,10 @@ void CarHyundaiEgmp::parseRowMerged()
     {
       liveData->params.getValidResponse = true;
       tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
-      liveData->params.chargingOn = (bitRead(tempByte, 0) == 1);
+      const bool chargeBitSet = (bitRead(tempByte, 0) == 1);
+      // eGMP may report charge bit during preheat/aux load. Do not treat clear battery discharge as active charging.
+      const bool dischargingNow = (liveData->params.batPowerKw < -0.5f);
+      liveData->params.chargingOn = (chargeBitSet && !dischargingNow);
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;

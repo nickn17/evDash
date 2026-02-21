@@ -76,7 +76,10 @@ namespace
   constexpr float kGpsJitterMeters = 200.0f;
   constexpr float kGpsMaxJumpMetersShort = 2000.0f;
   constexpr uint32_t kGpsShortJumpWindowSec = 5;
-  constexpr uint32_t kGpsReacquireAfterSec = 900;
+  constexpr uint32_t kGpsReacquireAfterSecDefault = 900;
+  constexpr uint32_t kGpsReacquireAfterSecV21 = 120;
+  constexpr uint32_t kGpsFixFreshnessSec = 15;
+  constexpr float kContributeGpsCoordPrecision = 1000000.0f;
   constexpr uint32_t kMotionWakeResetSec = 900;
   constexpr uint32_t kChargingQueueHoldSec = 180;
   constexpr uint8_t kGpsWakeConfirmSamples = 2;
@@ -181,7 +184,7 @@ namespace
 
   bool isGpsFixUsable(const LiveData *liveData)
   {
-    if (!liveData->params.gpsValid)
+    if (liveData == nullptr)
     {
       return false;
     }
@@ -189,7 +192,33 @@ namespace
     {
       return false;
     }
-    return isGpsCoordSane(liveData->params.gpsLat, liveData->params.gpsLon);
+    if (!isGpsCoordSane(liveData->params.gpsLat, liveData->params.gpsLon))
+    {
+      return false;
+    }
+    if (liveData->params.gpsValid)
+    {
+      return true;
+    }
+
+    if (liveData->params.gpsLastFixTime > 0 &&
+        liveData->params.currentTime > 0 &&
+        liveData->params.currentTime >= liveData->params.gpsLastFixTime &&
+        static_cast<uint32_t>(liveData->params.currentTime - liveData->params.gpsLastFixTime) <= kGpsFixFreshnessSec)
+    {
+      return true;
+    }
+
+    if (liveData->params.gpsLastFixMs != 0)
+    {
+      const uint32_t nowMs = millis();
+      if ((nowMs - liveData->params.gpsLastFixMs) <= (kGpsFixFreshnessSec * 1000U))
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   float roundToPrecision(float value, float multiplier)
@@ -1825,8 +1854,8 @@ void Board320_240::recordContributeSample()
   if (isGpsFixUsable(liveData))
   {
     motionSample.hasGpsFix = true;
-    motionSample.lat = roundToPrecision(liveData->params.gpsLat, 100000.0f);
-    motionSample.lon = roundToPrecision(liveData->params.gpsLon, 100000.0f);
+    motionSample.lat = roundToPrecision(liveData->params.gpsLat, kContributeGpsCoordPrecision);
+    motionSample.lon = roundToPrecision(liveData->params.gpsLon, kContributeGpsCoordPrecision);
   }
   float currentSpeedKmh = liveData->params.speedKmh;
   if (currentSpeedKmh < 0 && liveData->params.speedKmhGPS >= 0)
@@ -2019,8 +2048,8 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
   jsonData["cedKWh"] = roundToPrecision(liveData->params.cumulativeEnergyDischargedKWh, 1000.0f);
   if (isGpsFixUsable(liveData))
   {
-    jsonData["lat"] = roundToPrecision(liveData->params.gpsLat, 100000.0f);
-    jsonData["lon"] = roundToPrecision(liveData->params.gpsLon, 100000.0f);
+    jsonData["lat"] = roundToPrecision(liveData->params.gpsLat, kContributeGpsCoordPrecision);
+    jsonData["lon"] = roundToPrecision(liveData->params.gpsLon, kContributeGpsCoordPrecision);
   }
   JsonArray motion;
   const uint8_t motionStartIndex = (contributeMotionSampleCount == kContributeSampleSlots) ? contributeMotionSampleNext : 0;
@@ -3213,12 +3242,16 @@ void Board320_240::syncGPS()
         float allowedMeters = (maxSpeedKmh * dtSec / 3.6f) + kGpsJitterMeters;
         bool shortJump = (dtSec <= kGpsShortJumpWindowSec && distanceMeters > kGpsMaxJumpMetersShort);
         bool speedJump = distanceMeters > allowedMeters;
+        const uint32_t reacquireAfterSec =
+            (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+                ? kGpsReacquireAfterSecV21
+                : kGpsReacquireAfterSecDefault;
 
         if (!shortJump && !speedJump)
         {
           accepted = true;
         }
-        else if (dtSec >= kGpsReacquireAfterSec)
+        else if (dtSec >= reacquireAfterSec)
         {
           accepted = true;
         }
@@ -6297,6 +6330,25 @@ void Board320_240::initGPS()
     return false;
   };
 
+  auto sendNmeaCommand = [&](const char *payload)
+  {
+    if (payload == nullptr || *payload == '\0')
+    {
+      return;
+    }
+
+    uint8_t checksum = 0;
+    for (const char *p = payload; *p != '\0'; p++)
+    {
+      checksum ^= static_cast<uint8_t>(*p);
+    }
+
+    char command[96];
+    snprintf(command, sizeof(command), "$%s*%02X\r\n", payload, checksum);
+    gpsHwUart->print(command);
+    delay(60);
+  };
+
   unsigned long detectedBaud = liveData->settings.gpsSerialPortSpeed;
   unsigned long baudCandidates[4] = {0, 0, 0, 0};
   uint8_t baudCandidateCount = 0;
@@ -6453,6 +6505,15 @@ void Board320_240::initGPS()
         0x00, 0x00, 0x03, 0x1D, 0xAB};
 
     gpsHwUart->write(ubloxconfig, sizeof(ubloxconfig));
+  }
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+  {
+    // M5 GPS Module v2.1 (ATGM336H/AT6668): use CASIC PCAS NMEA commands (not UBX).
+    // Keep only GGA + RMC output and a faster 200 ms update interval.
+    sendNmeaCommand("PCAS02,200");
+    sendNmeaCommand("PCAS03,1,0,0,1,0,0,0,0");
+    sendNmeaCommand("PCAS00");
+    syslog->println("GPS v2.1 PCAS init applied (200ms, GGA+RMC).");
   }
 }
 
