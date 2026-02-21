@@ -1,5 +1,24 @@
 # RELEASE NOTES
 
+### V4.5.18 2026-02-21
+- GPS `v2.1` (ATGM336H/AT6668) startup init added:
+  - Added CASIC PCAS init sequence during GPS init (`PCAS02`, `PCAS03`, `PCAS00`).
+  - Sets output interval to `200ms`, keeps only `GGA+RMC`, and saves settings to the module.
+  - Keeps `v2.1` on AT commands only (no u-blox UBX config).
+- GPS jump-filter reacquire tuning for `v2.1`:
+  - Reacquire timeout after large jump reject is now `120s` for `GPS v2.1` (previously effectively `900s` for all modules).
+  - Helps avoid several-minute stale coordinates after startup while preserving conservative behavior for other GPS module types.
+
+### V4.5.17 2026-02-21
+- Contribute/SD `v2` GPS motion stability update:
+  - `motion` sampling now accepts a recent valid GPS fix for a short grace window (`15s`) even if the current parser tick marks fix as invalid.
+  - Helps prevent empty/missing 5-second motion rows on GPS `v2.1` during transient validity drops.
+  - GPS coordinate rounding for `lat/lon` in contribute `v2` (top-level and `motion`) was increased from `5` to `6` decimals.
+- eGMP charging state false-positive fix (preheat without cable):
+  - For eGMP `220106` charging-bit parsing, `chg` is no longer set when battery power is clearly discharging (`batPowerKw < -0.5`).
+  - Prevents `chg=1` with `chgAc=0`/`chgDc=0` during cabin preheat or auxiliary load without plugged charger.
+  - Applied to both shared eGMP parser (Ioniq 5/6, EV6) and EV9 parser.
+
 ### V4.5.16 2026-02-19
 - ABRP telemetry sign alignment:
   - ABRP payload now explicitly uses reversed sign against internal evDash battery power convention.
