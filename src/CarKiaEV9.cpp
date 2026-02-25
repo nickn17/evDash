@@ -245,10 +245,10 @@ void CarKiaEV9::activateCommandQueue()
       "ATSH7A0",
       "22C00B", // tire pressure/temp
 
-      // Aircondition 7B3 dont exist on IONIQ5 MY3, need to look for correct one - SPOT2000
+      // Aircondition
       "ATSH7B3",
       //"3E00",   //UDS tester present to keep it alive even when ignition off. (test by spot2000)
-      "220100", // in/out temp
+      "220100", // in/out temp, speed
       //"220101", // ???
       //"220102", // ???
       //"220102", // coolant temp1, 2
@@ -480,12 +480,7 @@ void CarKiaEV9::parseRowMerged()
       liveData->params.forwardDriveMode = (driveMode == 5);
       liveData->params.reverseDriveMode = (driveMode == 7);
       liveData->params.parkModeOrNeutral = (driveMode == 0);
-      float speed = liveData->hexToDecFromResponse(18, 20, 2, false);
-      if (inRangeF(speed, 0, 260))
-      {
-        speed += (speed > 10) ? liveData->settings.speedCorrection : 0;
-        liveData->params.speedKmh = speed;
-      }
+      
     }
   }
 
@@ -517,6 +512,13 @@ void CarKiaEV9::parseRowMerged()
       if (inRangeF(outdoor, -30, 80))
         liveData->params.outdoorTemperature = outdoor;
       // liveData->params.evaporatorTempC = (liveData->hexToDecFromResponse(20, 22, 1, false) / 2) - 40;
+    float speed = liveData->hexToDecFromResponse(64, 66, 2, false);
+      if (inRangeF(speed, 0, 260))
+      {
+        speed += (speed > 10) ? liveData->settings.speedCorrection : 0;
+        liveData->params.speedKmh = speed;
+      }
+    
     }
     if (liveData->commandRequest.equals("220102") && hasPrefixAndLength("620102", 18) && liveData->responseRowMerged.substring(12, 14) == "00")
     {
