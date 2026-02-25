@@ -471,7 +471,7 @@ void CarKiaEV9::parseRowMerged()
   // 7E2 for speed D/R/N etc
   if (liveData->currentAtshRequest.equals("ATSH7E2"))
   {
-    if (liveData->commandRequest.equals("22e004") && hasPrefixAndLength("62e004", 24))
+    if (liveData->commandRequest.equals("22E004") && hasPrefixAndLength("62E004", 24))
     {
       uint8_t driveMode = liveData->hexToDecFromResponse(32, 34, 1, false); // Decode gear selector status
       syslog->infoNolf(DEBUG_COMM, "drivemode: ");
