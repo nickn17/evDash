@@ -473,7 +473,7 @@ void CarKiaEV9::parseRowMerged()
   {
     if (liveData->commandRequest.equals("22E004") && hasPrefixAndLength("62E004", 24))
     {
-      uint8_t driveMode = liveData->hexToDecFromResponse(32, 34, 1, false); // Decode gear selector status
+      uint8_t driveMode = liveData->hexToDecFromResponse(34, 36, 1, false); // Decode gear selector status
       syslog->infoNolf(DEBUG_COMM, "drivemode: ");
       syslog->info(DEBUG_COMM, driveMode);
       
