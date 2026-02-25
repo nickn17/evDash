@@ -264,7 +264,7 @@ void CarKiaEV9::activateCommandQueue()
       "ATSH7E2",
       //"3E00", // UDS tester present to keep it alive even when ignition off. (test by spot2000)
       "22E003",
-      "22E004", // ???
+      "22E004", // selected gear (N/D/R), throttle pedal, brake pedal etc
       "22E005", // ???
       // "22E006", 62E00600000000000000000000000000000000000000000000000000000000000000
       //"22E007",
@@ -467,16 +467,19 @@ void CarKiaEV9::parseRowMerged()
     }
   }
 
-  // ABS / ESP + AHB 7D1
-  // RESPONDING WHEN CAR IS OFF
-  if (liveData->currentAtshRequest.equals("ATSH7D1"))
+  
+  // 7E2 for speed D/R/N etc
+  if (liveData->currentAtshRequest.equals("ATSH7E2"))
   {
-    if (liveData->commandRequest.equals("220104") && hasPrefixAndLength("620104", 24))
+    if (liveData->commandRequest.equals("22e004") && hasPrefixAndLength("62e004", 24))
     {
-      uint8_t driveMode = liveData->hexToDecFromResponse(22, 24, 1, false); // Decode gear selector status
-      liveData->params.forwardDriveMode = (driveMode == 4);
-      liveData->params.reverseDriveMode = (driveMode == 2);
-      liveData->params.parkModeOrNeutral = (driveMode == 1);
+      uint8_t driveMode = liveData->hexToDecFromResponse(32, 34, 1, false); // Decode gear selector status
+      syslog->infoNolf(DEBUG_COMM, "drivemode: ");
+      syslog->info(DEBUG_COMM, driveMode);
+      
+      liveData->params.forwardDriveMode = (driveMode == 5);
+      liveData->params.reverseDriveMode = (driveMode == 7);
+      liveData->params.parkModeOrNeutral = (driveMode == 0);
       float speed = liveData->hexToDecFromResponse(18, 20, 2, false);
       if (inRangeF(speed, 0, 260))
       {
