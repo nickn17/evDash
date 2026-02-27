@@ -5179,12 +5179,22 @@ bool Board320_240::netSendData(bool sendAbrp)
       return false;
     }
 
+    const size_t payloadStringLength = strlen(gAbrpPayloadBuffer);
+    syslog->println("ABRP payload length (serializeJson): " + String(payloadLength));
+    syslog->println("ABRP payload length (strlen): " + String(payloadStringLength));
+    if (payloadStringLength != payloadLength)
+    {
+      syslog->println("ABRP payload length mismatch detected");
+    }
+    syslog->println("ABRP payload JSON: " + String(gAbrpPayloadBuffer));
+
     if (liveData->settings.abrpSdcardLog != 0 && liveData->settings.remoteUploadAbrpIntervalSec > 0)
     {
       queueAbrpSdLog(gAbrpPayloadBuffer, payloadLength, liveData->params.currentTime, liveData->params.operationTimeSec, liveData->params.currTimeSyncWithGps);
     }
 
     encodeQuotes(gAbrpEncodedPayloadBuffer, sizeof(gAbrpEncodedPayloadBuffer), gAbrpPayloadBuffer);
+    syslog->println("ABRP encoded payload length: " + String(strlen(gAbrpEncodedPayloadBuffer)));
 
     int dtaLength = snprintf(gAbrpFormBuffer, sizeof(gAbrpFormBuffer), "api_key=%s&token=%s&tlm=%s", ABRP_API_KEY, liveData->settings.abrpApiToken, gAbrpEncodedPayloadBuffer);
     if (dtaLength < 0 || static_cast<size_t>(dtaLength) >= sizeof(gAbrpFormBuffer))
@@ -5192,6 +5202,8 @@ bool Board320_240::netSendData(bool sendAbrp)
       syslog->println("ABRP payload too large, skipping send");
       return false;
     }
+
+    syslog->println("ABRP form payload length: " + String(dtaLength));
 
     if (netDebug)
     {
@@ -5221,21 +5233,25 @@ bool Board320_240::netSendData(bool sendAbrp)
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       const size_t bodyLength = static_cast<size_t>(dtaLength);
       addWifiTransferredBytes(bodyLength);
+      syslog->println("ABRP POST body length: " + String(bodyLength));
       rc = http.POST((uint8_t *)gAbrpFormBuffer, bodyLength);
+      syslog->println("ABRP HTTP status: " + String(rc));
 
       if (rc == HTTP_CODE_OK)
       {
         // Request successful
-        if (netDebug)
-        {
-          String payload = http.getString();
-          syslog->println("HTTP Response: " + payload);
-        }
+        String payload = http.getString();
+        syslog->println("ABRP HTTP response body: " + payload);
       }
       else
       {
         // Handle different HTTP status codes
         syslog->println("HTTP Request failed with code: " + String(rc));
+        if (rc > 0)
+        {
+          String payload = http.getString();
+          syslog->println("ABRP HTTP error body: " + payload);
+        }
       }
 
       http.end();
