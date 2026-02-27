@@ -3324,7 +3324,23 @@ void Board320_240::syncGPS()
         headingFromMovement = gpsHeadingFromCoords(prevLat, prevLon, newLat, newLon);
       }
     }
-    liveData->params.gpsHeadingDeg = headingFromMovement;
+
+    // Some V2.1 modules provide an onboard course value even when movement between
+    // two accepted fixes is too small for stable coordinate-based heading.
+    if (headingFromMovement < 0.0f && gps.course.isValid() && liveData->params.gpsSat >= 4)
+    {
+      headingFromMovement = normalizeHeadingDeg(gps.course.deg());
+    }
+
+    if (headingFromMovement >= 0.0f)
+    {
+      liveData->params.gpsHeadingDeg = headingFromMovement;
+    }
+    else if (!isGpsFixUsable(liveData) || liveData->params.gpsSat < 4)
+    {
+      // Keep last known heading during brief low-movement periods; invalidate when GPS fix is stale.
+      liveData->params.gpsHeadingDeg = -1;
+    }
   }
   else if (gps.course.isValid() && liveData->params.gpsSat >= 4)
   {
