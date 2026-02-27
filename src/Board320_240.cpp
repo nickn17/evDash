@@ -5154,9 +5154,18 @@ bool Board320_240::netSendData(bool sendAbrp)
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;
       jsonData["elevation"] = liveData->params.gpsAlt;
-      if (liveData->params.gpsHeadingDeg >= 0)
-        jsonData["heading"] = liveData->params.gpsHeadingDeg;
     }
+    if (liveData->params.gpsHeadingDeg >= 0)
+      jsonData["heading"] = liveData->params.gpsHeadingDeg;
+
+    if (liveData->params.tireFrontLeftPressureBar >= 0)
+      jsonData["tire_pressure_fl"] = liveData->params.tireFrontLeftPressureBar * 100.0f;
+    if (liveData->params.tireFrontRightPressureBar >= 0)
+      jsonData["tire_pressure_fr"] = liveData->params.tireFrontRightPressureBar * 100.0f;
+    if (liveData->params.tireRearLeftPressureBar >= 0)
+      jsonData["tire_pressure_rl"] = liveData->params.tireRearLeftPressureBar * 100.0f;
+    if (liveData->params.tireRearRightPressureBar >= 0)
+      jsonData["tire_pressure_rr"] = liveData->params.tireRearRightPressureBar * 100.0f;
 
     jsonData["capacity"] = liveData->params.batteryTotalAvailableKWh;
     jsonData["kwh_charged"] = liveData->params.cumulativeEnergyChargedKWh;
