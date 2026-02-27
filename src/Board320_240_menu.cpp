@@ -216,14 +216,14 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     }
     else
     {
-      uint16_t halfMinuteSteps = liveData->settings.remoteUploadAbrpIntervalSec / 30;
-      if ((halfMinuteSteps % 2) == 0)
+      const uint16_t halfSecondSteps = liveData->settings.remoteUploadAbrpIntervalSec;
+      if ((halfSecondSteps % 2) == 0)
       {
-        sprintf(tmpStr1, "[%d min]", halfMinuteSteps / 2);
+        sprintf(tmpStr1, "[%d sec]", halfSecondSteps / 2);
       }
       else
       {
-        sprintf(tmpStr1, "[%d.5 min]", halfMinuteSteps / 2);
+        sprintf(tmpStr1, "[%d.5 sec]", halfSecondSteps / 2);
       }
       suffix = tmpStr1;
     }
@@ -1221,8 +1221,8 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
-      // Cycle through: off, 0.5, 1.0, 1.5 ... 5.0 minutes.
-      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec >= 300) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 30;
+      // Cycle through: off, 0.5, 1.0, 1.5 ... 5.0 seconds.
+      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec >= 10) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 1;
       liveData->settings.remoteUploadIntervalSec = 0;
       showMenu();
       return;

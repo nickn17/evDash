@@ -89,6 +89,7 @@ protected:
   time_t dismissedNetFailureTime = 0;
   bool lastChargingOn = false;
   uint32_t lastNetSendDurationMs = 0;
+  uint32_t lastAbrpSendAtMs = 0;
   uint32_t wifiTransferredBytes = 0;
   uint32_t lastFirmwareVersionCheckMs = 0;
   bool lastWifiConnected = false;

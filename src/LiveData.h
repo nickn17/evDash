@@ -350,7 +350,7 @@ typedef struct
   uint16_t remoteUploadModuleType;  // 0 (REMOTE_UPLOAD_OFF) - OFF, 1 - WIFI
   // == settings version 10
   // =================================
-  uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X seconds (0 = disabled)
+  uint16_t remoteUploadAbrpIntervalSec; // Send data to ABRP API every X half-seconds (0 = disabled, 1 = 0.5s)
   char abrpApiToken[48];                // ABRP APIkey
   // == settings version 11
   // =================================
