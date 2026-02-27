@@ -65,6 +65,8 @@ WebInterface *webInterface = nullptr;
 namespace
 {
   constexpr uint32_t kNetRetryIntervalSec = 30;
+  constexpr uint32_t kNtpPriorityWindowMs = 60000;
+  constexpr uint32_t kNtpRetryIntervalMs = 5000;
   constexpr uint32_t kNetFailureStaleResetSec = 300;
   constexpr uint32_t kNetFailureFallbackSec = 180;
   constexpr uint16_t kNetFailureFallbackCount = 3;
@@ -3296,10 +3298,14 @@ void Board320_240::syncGPS()
     liveData->params.gpsHeadingDeg = -1;
   }
 
-  // Synchronize time with GPS if it has not been synchronized yet
+  // Synchronize time with GPS if it has not been synchronized yet.
+  // When NTP is enabled, wait for the NTP priority window to expire before falling back to GPS time.
   if (!liveData->params.currTimeSyncWithGps && gps.date.isValid() && gps.time.isValid())
   {
-    setGpsTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
+    if (liveData->settings.ntpEnabled == 0 || liveData->params.ntpTimeSet || gpsTimeFallbackAllowed)
+    {
+      setGpsTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
+    }
   }
 }
 
@@ -4798,10 +4804,32 @@ void Board320_240::netLoop()
                            (liveData->params.currentTime - liveData->params.netLastFailureTime) < kNetRetryIntervalSec);
   bool netReady = wifiReady && !netBackoffActive;
 
-  // Sync NTP firsttime
-  if (netReady && !liveData->params.ntpTimeSet && liveData->settings.ntpEnabled)
+  if (!liveData->params.ntpTimeSet)
   {
+    if (ntpAttemptStartMs == 0)
+    {
+      ntpAttemptStartMs = millis();
+      gpsTimeFallbackAllowed = false;
+    }
+    else if (!gpsTimeFallbackAllowed && (millis() - ntpAttemptStartMs) >= kNtpPriorityWindowMs)
+    {
+      gpsTimeFallbackAllowed = true;
+      syslog->println("NTP sync timeout (60s), falling back to GPS time.");
+    }
+  }
+
+  // Sync NTP first, retry for up to 60 seconds before GPS time fallback.
+  if (netReady && !liveData->params.ntpTimeSet && liveData->settings.ntpEnabled &&
+      (millis() - ntpAttemptStartMs) < kNtpPriorityWindowMs &&
+      (ntpLastAttemptMs == 0 || (millis() - ntpLastAttemptMs) >= kNtpRetryIntervalMs))
+  {
+    ntpLastAttemptMs = millis();
     ntpSync();
+  }
+
+  if (liveData->params.ntpTimeSet)
+  {
+    gpsTimeFallbackAllowed = false;
   }
 
   // Upload to custom API

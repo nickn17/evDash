@@ -1176,13 +1176,11 @@ void Board320_240::drawSceneDebug()
   String ipText = WiFi.localIP().toString();
   if (ipText.length() == 0)
     ipText = "-";
-  String timeSource = "";
+  String timeSource = "NONE";
   if (liveData->params.ntpTimeSet)
-    timeSource += "NTP ";
-  if (liveData->params.currTimeSyncWithGps)
-    timeSource += "GPS ";
-  if (timeSource.length() == 0)
-    timeSource = "NONE";
+    timeSource = "NTP INTERNET";
+  else if (liveData->params.currTimeSyncWithGps)
+    timeSource = "GPS";
 
   struct tm now = cachedNow;
   char dateLine[32];
