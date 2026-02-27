@@ -4897,15 +4897,18 @@ void Board320_240::netLoop()
     lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
   }
 
-  // Upload to ABRP
-  if (netReady && abrpConfigured &&
-      liveData->params.currentTime - liveData->params.lastAbrpSent > liveData->settings.remoteUploadAbrpIntervalSec)
+  // Upload to ABRP (interval stored in 0.5-second steps: 1 => 0.5s, 10 => 5.0s)
+  if (netReady && abrpConfigured)
   {
-    syslog->info(DEBUG_COMM, "ABRP send tick");
-    int64_t startTime = esp_timer_get_time();
-    netSendData(true);
-    int64_t endTime = esp_timer_get_time();
-    lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
+    const uint32_t abrpIntervalMs = static_cast<uint32_t>(liveData->settings.remoteUploadAbrpIntervalSec) * 500;
+    if (abrpIntervalMs > 0 && (lastAbrpSendAtMs == 0 || (millis() - lastAbrpSendAtMs) > abrpIntervalMs))
+    {
+      syslog->info(DEBUG_COMM, "ABRP send tick");
+      int64_t startTime = esp_timer_get_time();
+      netSendData(true);
+      int64_t endTime = esp_timer_get_time();
+      lastNetSendDurationMs = static_cast<uint32_t>((endTime - startTime) / 1000);
+    }
   }
 
   // Contribute data
@@ -5283,6 +5286,7 @@ bool Board320_240::netSendData(bool sendAbrp)
     {
       // Track ABRP attempt time only when payload is valid and we're about to do the actual HTTP request.
       liveData->params.lastAbrpSent = liveData->params.currentTime;
+      lastAbrpSendAtMs = millis();
 
       WiFiClientSecure client;
       HTTPClient http;

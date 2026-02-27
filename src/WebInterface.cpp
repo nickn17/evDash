@@ -203,7 +203,8 @@ void handleRoot()
   text += "<tr><td>Remote API key</td><td><input data-key='remoteApiKey' value='" + htmlEscape(String(liveDataWebInt->settings.remoteApiKey)) + "'></td></tr>";
   text += "<tr><td>Remote upload interval [sec.]</td><td><input type='number' data-key='remoteUploadIntervalSec' value='" + String(liveDataWebInt->settings.remoteUploadIntervalSec) + "'></td></tr>";
   text += "<tr><td>Abrp API token</td><td><input data-key='abrpApiToken' value='" + htmlEscape(String(liveDataWebInt->settings.abrpApiToken)) + "'></td></tr>";
-  text += "<tr><td>Abrp upload interval [sec.]</td><td><input type='number' data-key='remoteUploadAbrpIntervalSec' value='" + String(liveDataWebInt->settings.remoteUploadAbrpIntervalSec) + "'></td></tr>";
+  const float abrpIntervalSec = liveDataWebInt->settings.remoteUploadAbrpIntervalSec * 0.5f;
+  text += "<tr><td>Abrp upload interval [sec.]</td><td><input type='number' min='0' max='5' step='0.5' data-key='remoteUploadAbrpIntervalSec' value='" + String(abrpIntervalSec, 1) + "'></td></tr>";
   text += "<tr><td>Abrp sdcard logs</td><td><input type='checkbox' data-key='abrpSdcardLog'" + checkedAttr(liveDataWebInt->settings.abrpSdcardLog) + "></td></tr>";
   text += "<tr><td>MQTT enabled</td><td><input type='checkbox' data-key='mqttEnabled'" + checkedAttr(liveDataWebInt->settings.mqttEnabled) + "></td></tr>";
   text += "<tr><td>MQTT server</td><td><input data-key='mqttServer' value='" + htmlEscape(String(liveDataWebInt->settings.mqttServer)) + "'></td></tr>";
@@ -541,7 +542,22 @@ void handleSet()
   else if (key == "abrpApiToken")
     setCharField(value, liveDataWebInt->settings.abrpApiToken);
   else if (key == "remoteUploadAbrpIntervalSec")
-    liveDataWebInt->settings.remoteUploadAbrpIntervalSec = value.toInt();
+  {
+    const float intervalSec = value.toFloat();
+    if (intervalSec <= 0.0f)
+    {
+      liveDataWebInt->settings.remoteUploadAbrpIntervalSec = 0;
+    }
+    else
+    {
+      int steps = static_cast<int>(intervalSec * 2.0f + 0.5f);
+      if (steps < 1)
+        steps = 1;
+      if (steps > 10)
+        steps = 10;
+      liveDataWebInt->settings.remoteUploadAbrpIntervalSec = steps;
+    }
+  }
   else if (key == "abrpSdcardLog")
     liveDataWebInt->settings.abrpSdcardLog = value.toInt() ? 1 : 0;
   else if (key == "mqttEnabled")
