@@ -728,11 +728,19 @@ void BoardM5stackCore2::ntpSync()
 {
   syslog->println("Syncing NTP time.");
 
-  char ntpServer[] = "de.pool.ntp.org";
+  const char *ntpServer = "pool.ntp.org";
   configTime(liveData->settings.timezone * 3600, liveData->settings.daylightSaving * 3600, ntpServer);
-  liveData->params.ntpTimeSet = true;
 
-  showTime();
+  struct tm tmInfo = {};
+  if (getLocalTime(&tmInfo, 3000))
+  {
+    liveData->params.ntpTimeSet = true;
+    showTime();
+  }
+  else
+  {
+    liveData->params.ntpTimeSet = false;
+  }
 }
 
 #endif // BOARD_M5STACK_CORE2

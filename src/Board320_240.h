@@ -92,6 +92,9 @@ protected:
   uint32_t wifiTransferredBytes = 0;
   uint32_t lastFirmwareVersionCheckMs = 0;
   bool lastWifiConnected = false;
+  uint32_t ntpAttemptStartMs = 0;
+  uint32_t ntpLastAttemptMs = 0;
+  bool gpsTimeFallbackAllowed = false;
   String lastNotifiedFirmwareVersion = "";
   char pairPendingCode[7] = {0};
   time_t pairPendingExpiresAt = 0;

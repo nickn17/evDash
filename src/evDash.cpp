@@ -239,7 +239,7 @@ void setup(void)
   syslog->println("obd2ip=x     ... set ip for obd2 wifi adapter");
   syslog->println("obd2port=x     ... set port for obd2 wifi adapter");
   syslog->println("time   ... print current time");
-  syslog->println("ntpSync   ... sync Time with de.pool.ntp.org");
+  syslog->println("ntpSync   ... sync Time with pool.ntp.org");
   syslog->println("setTime=2022-12-30 05:00:00  ... set current time");
   syslog->println("record=n   [n = 1..4]  ... record can response to buffer 1..4");
   syslog->println("compare      ... compare buffers");
