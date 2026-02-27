@@ -81,6 +81,7 @@ namespace
   constexpr uint32_t kGpsReacquireAfterSecDefault = 900;
   constexpr uint32_t kGpsReacquireAfterSecV21 = 120;
   constexpr uint32_t kGpsFixFreshnessSec = 15;
+  constexpr float kGpsHeadingMinDistanceMeters = 3.0f;
   constexpr float kContributeGpsCoordPrecision = 1000000.0f;
   constexpr uint32_t kMotionWakeResetSec = 900;
   constexpr uint32_t kChargingQueueHoldSec = 180;
@@ -252,6 +253,25 @@ namespace
       headingDeg -= 360.0f;
     }
     return headingDeg;
+  }
+
+  float gpsHeadingFromCoords(float lat1, float lon1, float lat2, float lon2)
+  {
+    constexpr float kDegToRad = 0.017453292519943295f;
+    constexpr float kRadToDeg = 57.29577951308232f;
+    float lat1Rad = lat1 * kDegToRad;
+    float lat2Rad = lat2 * kDegToRad;
+    float dLonRad = (lon2 - lon1) * kDegToRad;
+
+    float y = sinf(dLonRad) * cosf(lat2Rad);
+    float x = (cosf(lat1Rad) * sinf(lat2Rad)) - (sinf(lat1Rad) * cosf(lat2Rad) * cosf(dLonRad));
+
+    if (!isfinite(x) || !isfinite(y) || (fabsf(x) < 0.000001f && fabsf(y) < 0.000001f))
+    {
+      return -1.0f;
+    }
+
+    return normalizeHeadingDeg(atan2f(y, x) * kRadToDeg);
   }
 
   String formatTimestampYyMmDdHhIiSs(time_t timestamp)
@@ -3180,6 +3200,10 @@ void Board320_240::syncGPS()
     liveData->params.gpsSat = gps.satellites.value();
   }
 
+  const float prevLat = liveData->params.gpsLat;
+  const float prevLon = liveData->params.gpsLon;
+  const bool hasPrevFix = isGpsFixUsable(liveData);
+
   bool accepted = false;
   float newLat = 0.0f;
   float newLon = 0.0f;
@@ -3289,7 +3313,20 @@ void Board320_240::syncGPS()
   {
     liveData->params.speedKmhGPS = 0;
   }
-  if (gps.course.isValid() && liveData->params.gpsSat >= 4)
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+  {
+    float headingFromMovement = -1.0f;
+    if (accepted && hasPrevFix && liveData->params.gpsSat >= 4)
+    {
+      float movementMeters = gpsDistanceMeters(prevLat, prevLon, newLat, newLon);
+      if (movementMeters >= kGpsHeadingMinDistanceMeters)
+      {
+        headingFromMovement = gpsHeadingFromCoords(prevLat, prevLon, newLat, newLon);
+      }
+    }
+    liveData->params.gpsHeadingDeg = headingFromMovement;
+  }
+  else if (gps.course.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.gpsHeadingDeg = normalizeHeadingDeg(gps.course.deg());
   }
