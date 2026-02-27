@@ -210,8 +210,23 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     suffix = (liveData->settings.remoteUploadIntervalSec == 0) ? "[off]" : tmpStr1;
     break;
   case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
-    sprintf(tmpStr1, "[%d sec]", liveData->settings.remoteUploadAbrpIntervalSec);
-    suffix = (liveData->settings.remoteUploadAbrpIntervalSec == 0) ? "[off]" : tmpStr1;
+    if (liveData->settings.remoteUploadAbrpIntervalSec == 0)
+    {
+      suffix = "[off]";
+    }
+    else
+    {
+      uint16_t halfMinuteSteps = liveData->settings.remoteUploadAbrpIntervalSec / 30;
+      if ((halfMinuteSteps % 2) == 0)
+      {
+        sprintf(tmpStr1, "[%d min]", halfMinuteSteps / 2);
+      }
+      else
+      {
+        sprintf(tmpStr1, "[%d.5 min]", halfMinuteSteps / 2);
+      }
+      suffix = tmpStr1;
+    }
     break;
   case MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD:
     suffix = (liveData->settings.abrpSdcardLog == 0) ? "[off]" : "[on]";
@@ -1206,7 +1221,8 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_REMOTE_UPLOAD_ABRP_INTERVAL:
-      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec == 30) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 2; // @spot2000 Better with smaller steps and maximum 30 seconds
+      // Cycle through: off, 0.5, 1.0, 1.5 ... 5.0 minutes.
+      liveData->settings.remoteUploadAbrpIntervalSec = (liveData->settings.remoteUploadAbrpIntervalSec >= 300) ? 0 : liveData->settings.remoteUploadAbrpIntervalSec + 30;
       liveData->settings.remoteUploadIntervalSec = 0;
       showMenu();
       return;
