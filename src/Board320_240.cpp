@@ -6320,7 +6320,7 @@ void Board320_240::initGPS()
   gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
   auto beginGpsUart = [&](unsigned long baud)
   {
-    if (liveData->settings.gpsHwSerialPort == 2)
+    if (liveData->settings.gpsHwSerialPort == 1 || liveData->settings.gpsHwSerialPort == 2)
     {
       gpsHwUart->begin(baud, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
     }
