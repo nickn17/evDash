@@ -81,6 +81,7 @@ namespace
   constexpr uint32_t kGpsReacquireAfterSecDefault = 900;
   constexpr uint32_t kGpsReacquireAfterSecV21 = 120;
   constexpr uint32_t kGpsFixFreshnessSec = 15;
+  constexpr float kGpsHeadingMinDistanceMeters = 3.0f;
   constexpr float kContributeGpsCoordPrecision = 1000000.0f;
   constexpr uint32_t kMotionWakeResetSec = 900;
   constexpr uint32_t kChargingQueueHoldSec = 180;
@@ -252,6 +253,25 @@ namespace
       headingDeg -= 360.0f;
     }
     return headingDeg;
+  }
+
+  float gpsHeadingFromCoords(float lat1, float lon1, float lat2, float lon2)
+  {
+    constexpr float kDegToRad = 0.017453292519943295f;
+    constexpr float kRadToDeg = 57.29577951308232f;
+    float lat1Rad = lat1 * kDegToRad;
+    float lat2Rad = lat2 * kDegToRad;
+    float dLonRad = (lon2 - lon1) * kDegToRad;
+
+    float y = sinf(dLonRad) * cosf(lat2Rad);
+    float x = (cosf(lat1Rad) * sinf(lat2Rad)) - (sinf(lat1Rad) * cosf(lat2Rad) * cosf(dLonRad));
+
+    if (!isfinite(x) || !isfinite(y) || (fabsf(x) < 0.000001f && fabsf(y) < 0.000001f))
+    {
+      return -1.0f;
+    }
+
+    return normalizeHeadingDeg(atan2f(y, x) * kRadToDeg);
   }
 
   String formatTimestampYyMmDdHhIiSs(time_t timestamp)
@@ -3180,6 +3200,10 @@ void Board320_240::syncGPS()
     liveData->params.gpsSat = gps.satellites.value();
   }
 
+  const float prevLat = liveData->params.gpsLat;
+  const float prevLon = liveData->params.gpsLon;
+  const bool hasPrevFix = isGpsFixUsable(liveData);
+
   bool accepted = false;
   float newLat = 0.0f;
   float newLon = 0.0f;
@@ -3289,7 +3313,36 @@ void Board320_240::syncGPS()
   {
     liveData->params.speedKmhGPS = 0;
   }
-  if (gps.course.isValid() && liveData->params.gpsSat >= 4)
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+  {
+    float headingFromMovement = -1.0f;
+    if (accepted && hasPrevFix && liveData->params.gpsSat >= 4)
+    {
+      float movementMeters = gpsDistanceMeters(prevLat, prevLon, newLat, newLon);
+      if (movementMeters >= kGpsHeadingMinDistanceMeters)
+      {
+        headingFromMovement = gpsHeadingFromCoords(prevLat, prevLon, newLat, newLon);
+      }
+    }
+
+    // Some V2.1 modules provide an onboard course value even when movement between
+    // two accepted fixes is too small for stable coordinate-based heading.
+    if (headingFromMovement < 0.0f && gps.course.isValid() && liveData->params.gpsSat >= 4)
+    {
+      headingFromMovement = normalizeHeadingDeg(gps.course.deg());
+    }
+
+    if (headingFromMovement >= 0.0f)
+    {
+      liveData->params.gpsHeadingDeg = headingFromMovement;
+    }
+    else if (!isGpsFixUsable(liveData) || liveData->params.gpsSat < 4)
+    {
+      // Keep last known heading during brief low-movement periods; invalidate when GPS fix is stale.
+      liveData->params.gpsHeadingDeg = -1;
+    }
+  }
+  else if (gps.course.isValid() && liveData->params.gpsSat >= 4)
   {
     liveData->params.gpsHeadingDeg = normalizeHeadingDeg(gps.course.deg());
   }
@@ -5154,9 +5207,18 @@ bool Board320_240::netSendData(bool sendAbrp)
       jsonData["lat"] = liveData->params.gpsLat;
       jsonData["lon"] = liveData->params.gpsLon;
       jsonData["elevation"] = liveData->params.gpsAlt;
-      if (liveData->params.gpsHeadingDeg >= 0)
-        jsonData["heading"] = liveData->params.gpsHeadingDeg;
     }
+    if (liveData->params.gpsHeadingDeg >= 0)
+      jsonData["heading"] = liveData->params.gpsHeadingDeg;
+
+    if (liveData->params.tireFrontLeftPressureBar >= 0)
+      jsonData["tire_pressure_fl"] = liveData->params.tireFrontLeftPressureBar * 100.0f;
+    if (liveData->params.tireFrontRightPressureBar >= 0)
+      jsonData["tire_pressure_fr"] = liveData->params.tireFrontRightPressureBar * 100.0f;
+    if (liveData->params.tireRearLeftPressureBar >= 0)
+      jsonData["tire_pressure_rl"] = liveData->params.tireRearLeftPressureBar * 100.0f;
+    if (liveData->params.tireRearRightPressureBar >= 0)
+      jsonData["tire_pressure_rr"] = liveData->params.tireRearRightPressureBar * 100.0f;
 
     jsonData["capacity"] = liveData->params.batteryTotalAvailableKWh;
     jsonData["kwh_charged"] = liveData->params.cumulativeEnergyChargedKWh;
@@ -5179,12 +5241,22 @@ bool Board320_240::netSendData(bool sendAbrp)
       return false;
     }
 
+    const size_t payloadStringLength = strlen(gAbrpPayloadBuffer);
+    syslog->println("ABRP payload length (serializeJson): " + String(payloadLength));
+    syslog->println("ABRP payload length (strlen): " + String(payloadStringLength));
+    if (payloadStringLength != payloadLength)
+    {
+      syslog->println("ABRP payload length mismatch detected");
+    }
+    syslog->println("ABRP payload JSON: " + String(gAbrpPayloadBuffer));
+
     if (liveData->settings.abrpSdcardLog != 0 && liveData->settings.remoteUploadAbrpIntervalSec > 0)
     {
       queueAbrpSdLog(gAbrpPayloadBuffer, payloadLength, liveData->params.currentTime, liveData->params.operationTimeSec, liveData->params.currTimeSyncWithGps);
     }
 
     encodeQuotes(gAbrpEncodedPayloadBuffer, sizeof(gAbrpEncodedPayloadBuffer), gAbrpPayloadBuffer);
+    syslog->println("ABRP encoded payload length: " + String(strlen(gAbrpEncodedPayloadBuffer)));
 
     int dtaLength = snprintf(gAbrpFormBuffer, sizeof(gAbrpFormBuffer), "api_key=%s&token=%s&tlm=%s", ABRP_API_KEY, liveData->settings.abrpApiToken, gAbrpEncodedPayloadBuffer);
     if (dtaLength < 0 || static_cast<size_t>(dtaLength) >= sizeof(gAbrpFormBuffer))
@@ -5192,6 +5264,8 @@ bool Board320_240::netSendData(bool sendAbrp)
       syslog->println("ABRP payload too large, skipping send");
       return false;
     }
+
+    syslog->println("ABRP form payload length: " + String(dtaLength));
 
     if (netDebug)
     {
@@ -5221,21 +5295,25 @@ bool Board320_240::netSendData(bool sendAbrp)
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       const size_t bodyLength = static_cast<size_t>(dtaLength);
       addWifiTransferredBytes(bodyLength);
+      syslog->println("ABRP POST body length: " + String(bodyLength));
       rc = http.POST((uint8_t *)gAbrpFormBuffer, bodyLength);
+      syslog->println("ABRP HTTP status: " + String(rc));
 
       if (rc == HTTP_CODE_OK)
       {
         // Request successful
-        if (netDebug)
-        {
-          String payload = http.getString();
-          syslog->println("HTTP Response: " + payload);
-        }
+        String payload = http.getString();
+        syslog->println("ABRP HTTP response body: " + payload);
       }
       else
       {
         // Handle different HTTP status codes
         syslog->println("HTTP Request failed with code: " + String(rc));
+        if (rc > 0)
+        {
+          String payload = http.getString();
+          syslog->println("ABRP HTTP error body: " + payload);
+        }
       }
 
       http.end();
@@ -6320,7 +6398,7 @@ void Board320_240::initGPS()
   gpsHwUart = new HardwareSerial(liveData->settings.gpsHwSerialPort);
   auto beginGpsUart = [&](unsigned long baud)
   {
-    if (liveData->settings.gpsHwSerialPort == 2)
+    if (liveData->settings.gpsHwSerialPort == 1 || liveData->settings.gpsHwSerialPort == 2)
     {
       gpsHwUart->begin(baud, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
     }

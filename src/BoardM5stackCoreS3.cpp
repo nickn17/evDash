@@ -709,11 +709,25 @@ void BoardM5stackCoreS3::ntpSync()
 {
   syslog->println("Syncing NTP time.");
 
-  const char *ntpServer = "pool.ntp.org";
-  configTime(liveData->settings.timezone * 3600, liveData->settings.daylightSaving * 3600, ntpServer);
+  const char *ntpServer1 = "pool.ntp.org";
+  const char *ntpServer2 = "time.cloudflare.com";
+  const char *ntpServer3 = "129.6.15.28"; // NIST, avoids DNS dependency
+  configTime(liveData->settings.timezone * 3600, liveData->settings.daylightSaving * 3600,
+             ntpServer1, ntpServer2, ntpServer3);
 
   struct tm tmInfo = {};
-  if (getLocalTime(&tmInfo, 3000))
+  bool timeOk = false;
+  const uint32_t ntpWaitStartMs = millis();
+  while ((millis() - ntpWaitStartMs) < 10000)
+  {
+    if (getLocalTime(&tmInfo, 250))
+    {
+      timeOk = true;
+      break;
+    }
+  }
+
+  if (timeOk)
   {
     liveData->params.ntpTimeSet = true;
     showTime();
