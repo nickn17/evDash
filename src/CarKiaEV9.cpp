@@ -434,7 +434,7 @@ void CarKiaEV9::parseRowMerged()
       {
         liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
       }
-
+/*
       // Doors / hood opened
       tempByte = liveData->hexToDecFromResponse(14, 16, 1, false);
       liveData->params.hoodDoorOpen = (bitRead(tempByte, 7) == 1);
@@ -452,7 +452,7 @@ void CarKiaEV9::parseRowMerged()
         liveData->params.leftRearDoorOpen = (bitRead(tempByte, 4) == 1);
         liveData->params.rightRearDoorOpen = (bitRead(tempByte, 2) == 1);
       }
-
+*/
       // Lights
       tempByte = liveData->hexToDecFromResponse(18, 20, 1, false);
       liveData->params.headLights = (bitRead(tempByte, 2) == 1);
