@@ -1017,8 +1017,8 @@ void CarKiaEV9::parseRowMerged()
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
-      liveData->params.chargerACconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
-      liveData->params.chargerDCconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 12);
+      //liveData->params.chargerACconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
+      //liveData->params.chargerDCconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 12);
 
       //
       const float coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
