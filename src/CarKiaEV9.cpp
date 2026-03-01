@@ -210,6 +210,7 @@ void CarKiaEV9::activateCommandQueue()
       "ATSH7D1",
       "220104", // speed/gear
       "ATSH7E4",
+      "021003", // Set BMS ECU to diagnostic mode to force it on when charging
       "220101", // power kW (also drives kWh/100km calc)
 
       // IGPM (full block)
@@ -236,8 +237,8 @@ void CarKiaEV9::activateCommandQueue()
       //"22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
       //"22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
-      //"ATSH7D4", // Electric power steering
-      //"220101",  // ???
+      "ATSH744", // VCMS	Vehicle control module (overall EV coordination)
+      "22E001",  // AC and DC charging detection
 
       //"ATSH730", // ADAS
       //"22F010",  // ???
@@ -331,7 +332,7 @@ void CarKiaEV9::activateCommandQueue()
 
       // BMS (full block - 220101 is intentionally duplicated above for faster refresh)
       "ATSH7E4",
-      //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      "3E00",   // UDS tester keep-alive to stay in diagnostic mode when car is shut down.
       "220101", // power kw, engine rpm etc
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64
@@ -483,6 +484,30 @@ void CarKiaEV9::parseRowMerged()
       
     }
   }
+
+  
+  // 744 for detection of AC or DC charging
+  if (liveData->currentAtshRequest.equals("ATSH744"))
+  {
+    if (liveData->commandRequest.equals("22E001") && hasPrefixAndLength("62E001", 24))
+    {
+      // Charging ON, AC or DC
+
+      // first we check if AC charging is activated
+      tempByte = liveData->hexToDecFromResponse(40, 42, 1, false); // bit 5 = AC
+      liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
+      
+      // next we check if DC charging is activated
+      tempByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
+      liveData->params.chargerDCconnected = (bitRead(tempByte, 7) == 1);
+
+
+
+    }
+  }
+
+
+ 
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0"))
