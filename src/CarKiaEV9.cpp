@@ -825,11 +825,7 @@ void CarKiaEV9::parseRowMerged()
         liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
       }
 
-      // Charging ON, AC/DC
-      // 2022-05 NOT WORKING value is still 0x00
-      // tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
-      // liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
-      // liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
+      
     }
     const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
                               liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
@@ -1010,11 +1006,13 @@ void CarKiaEV9::parseRowMerged()
     if (liveData->commandRequest.equals("220106") && hasPrefixAndLength("620106", 56))
     {
       liveData->params.getValidResponse = true;
-      tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
-      const bool chargeBitSet = (bitRead(tempByte, 0) == 1);
+      //tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
+      // const bool chargeBitSet = (bitRead(tempByte, 0) == 1);
       // eGMP may report charge bit during preheat/aux load. Do not treat clear battery discharge as active charging.
       const bool dischargingNow = (liveData->params.batPowerKw < -0.5f);
-      liveData->params.chargingOn = (chargeBitSet && !dischargingNow);
+      
+      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected);
+      
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
