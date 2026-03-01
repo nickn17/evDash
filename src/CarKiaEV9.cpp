@@ -492,14 +492,40 @@ void CarKiaEV9::parseRowMerged()
     if (liveData->commandRequest.equals("22E001") && hasPrefixAndLength("62E001", 24))
     {
       // Charging ON, AC or DC
+      const bool prevAcConnected = liveData->params.chargerACconnected;
+      const bool prevDcConnected = liveData->params.chargerDCconnected;
 
       // first we check if AC charging is activated
-      tempByte = liveData->hexToDecFromResponse(40, 42, 1, false); // bit 5 = AC
-      liveData->params.chargerACconnected = (bitRead(tempByte, 5) == 1);
-      
+      const uint8_t acStatusByte = liveData->hexToDecFromResponse(40, 42, 1, false); // bit 5 = AC
+      liveData->params.chargerACconnected = (bitRead(acStatusByte, 5) == 1);
+
       // next we check if DC charging is activated
-      tempByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
-      liveData->params.chargerDCconnected = (bitRead(tempByte, 7) == 1);
+      const uint8_t dcStatusByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
+      liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1);
+
+      if (liveData->params.chargerACconnected != prevAcConnected)
+      {
+        String msg = String("KIA EV9 charge detect: AC ") + (liveData->params.chargerACconnected ? "ON" : "OFF") +
+                     " (22E001 byte@40=" + String(acStatusByte, HEX) + ")";
+        msg.toUpperCase();
+        syslog->info(DEBUG_COMM, msg);
+      }
+
+      if (liveData->params.chargerDCconnected != prevDcConnected)
+      {
+        String msg = String("KIA EV9 charge detect: DC ") + (liveData->params.chargerDCconnected ? "ON" : "OFF") +
+                     " (22E001 byte@36=" + String(dcStatusByte, HEX) + ")";
+        msg.toUpperCase();
+        syslog->info(DEBUG_COMM, msg);
+      }
+
+      if ((liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
+          (liveData->params.chargerACconnected != prevAcConnected || liveData->params.chargerDCconnected != prevDcConnected))
+      {
+        String msg = String("KIA EV9 charge detect summary: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
+                     " DC=" + (liveData->params.chargerDCconnected ? "1" : "0");
+        syslog->info(DEBUG_COMM, msg);
+      }
 
 
 
@@ -1011,7 +1037,7 @@ void CarKiaEV9::parseRowMerged()
       // eGMP may report charge bit during preheat/aux load. Do not treat clear battery discharge as active charging.
       const bool dischargingNow = (liveData->params.batPowerKw < -0.5f);
       
-      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected);
+      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && !dischargingNow;
       
       if (liveData->params.chargingOn)
       {
