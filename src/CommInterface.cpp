@@ -103,7 +103,7 @@ void CommInterface::mainLoop()
     liveData->params.cumulativeEnergyDischargedKWhStart = liveData->params.cumulativeEnergyDischargedKWh;
 
   // Drop ChargingOn when status was not updated for more than 10 seconds
-  if (liveData->params.currentTime - liveData->params.lastChargingOnTime > 10 && liveData->params.chargingOn)
+  if (liveData->params.currentTime - liveData->params.lastChargingOnTime > 30 && liveData->params.chargingOn)
     liveData->params.chargingOn = false;
 
   // No CAN response (timeout)
