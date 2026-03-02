@@ -504,7 +504,7 @@ void CarKiaEV9::parseRowMerged()
 
     // next we check if DC charging is activated
     const uint8_t dcStatusByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
-    liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1); //LSB
+    liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 0) == 1); //LSB
 
     if (liveData->params.chargerACconnected != prevAcConnected)
     {
