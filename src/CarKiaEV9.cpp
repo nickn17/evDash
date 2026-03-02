@@ -486,78 +486,73 @@ void CarKiaEV9::parseRowMerged()
   }
 
   
-  // 744 for detection of AC or DC charging
   if (liveData->currentAtshRequest.equals("ATSH744"))
+{
+  if (liveData->commandRequest.equals("22E001") && hasPrefixAndLength("62E001", 44))
   {
-    if (liveData->commandRequest.equals("22E001") && hasPrefixAndLength("62E001", 24))
+    static uint32_t lastChargeDetectHeartbeatLogTime = 0;
+
+    // Charging ON, AC or DC
+    const bool prevAcConnected = liveData->params.chargerACconnected;
+    const bool prevDcConnected = liveData->params.chargerDCconnected;
+
+    // first we check if AC charging is activated
+    const uint8_t acStatusByte = liveData->hexToDecFromResponse(40, 42, 1, false);
+
+    // AC = true om byte@40 == 5
+    liveData->params.chargerACconnected = (acStatusByte == 5);
+
+    // next we check if DC charging is activated
+    const uint8_t dcStatusByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
+    liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1); //LSB
+
+    if (liveData->params.chargerACconnected != prevAcConnected)
     {
-      static uint32_t lastChargeDetectHeartbeatLogTime = 0;
-
-      // Charging ON, AC or DC
-      const bool prevAcConnected = liveData->params.chargerACconnected;
-      const bool prevDcConnected = liveData->params.chargerDCconnected;
-
-      // first we check if AC charging is activated
-      const uint8_t acStatusByte = liveData->hexToDecFromResponse(40, 42, 1, false); // bit 5 = AC
-      //liveData->params.chargerACconnected = (bitRead(acStatusByte, 5) == 1); //MSB
-      liveData->params.chargerACconnected = (bitRead(acStatusByte, 2) == 1); //LSB
-
-      // next we check if DC charging is activated
-      const uint8_t dcStatusByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
-      //liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1); //MSB
-      liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 0) == 1); //LSB
-
-      if (liveData->params.chargerACconnected != prevAcConnected)
-      {
-        String msg = String("KIA EV9 charge detect: AC ") + (liveData->params.chargerACconnected ? "ON" : "OFF") +
-                     " (22E001 byte@40=" + String(acStatusByte, HEX) + ")";
-        msg.toUpperCase();
-        syslog->info(DEBUG_COMM, msg);
-      }
-
-      if (liveData->params.chargerDCconnected != prevDcConnected)
-      {
-        String msg = String("KIA EV9 charge detect: DC ") + (liveData->params.chargerDCconnected ? "ON" : "OFF") +
-                     " (22E001 byte@36=" + String(dcStatusByte, HEX) + ")";
-        msg.toUpperCase();
-        syslog->info(DEBUG_COMM, msg);
-      }
-
-      if ((liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
-          (liveData->params.chargerACconnected != prevAcConnected || liveData->params.chargerDCconnected != prevDcConnected))
-      {
-        String msg = String("KIA EV9 charge detect summary: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
-                     " DC=" + (liveData->params.chargerDCconnected ? "1" : "0");
-        syslog->info(DEBUG_COMM, msg);
-      }
-
-      // Keep-alive info so AC/DC status is visible in logs even without transitions.
-      if (lastChargeDetectHeartbeatLogTime == 0 ||
-          liveData->params.currentTime >= (lastChargeDetectHeartbeatLogTime + 30))
-      {
-        String msg = String("KIA EV9 charge detect heartbeat: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
-                     " DC=" + (liveData->params.chargerDCconnected ? "1" : "0") +
-                     " RAW=" + response;
-        syslog->info(DEBUG_COMM, msg);
-        lastChargeDetectHeartbeatLogTime = liveData->params.currentTime;
-      }
-
+      String msg = String("KIA EV9 charge detect: AC ") + (liveData->params.chargerACconnected ? "ON" : "OFF") +
+                   " (22E001 byte@40=" + String(acStatusByte, HEX) + ")";
+      msg.toUpperCase();
+      syslog->info(DEBUG_COMM, msg);
     }
-    else if (liveData->commandRequest.equals("22E001"))
+
+    if (liveData->params.chargerDCconnected != prevDcConnected)
     {
-      static uint32_t lastChargeDetectInvalidLogTime = 0;
-      if (lastChargeDetectInvalidLogTime == 0 ||
-          liveData->params.currentTime >= (lastChargeDetectInvalidLogTime + 10))
-      {
-        String msg = String("KIA EV9 charge detect skipped: unexpected 22E001 response: ") + response;
-        syslog->info(DEBUG_COMM, msg);
-        lastChargeDetectInvalidLogTime = liveData->params.currentTime;
-      }
+      String msg = String("KIA EV9 charge detect: DC ") + (liveData->params.chargerDCconnected ? "ON" : "OFF") +
+                   " (22E001 byte@36=" + String(dcStatusByte, HEX) + ")";
+      msg.toUpperCase();
+      syslog->info(DEBUG_COMM, msg);
+    }
 
+    if ((liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
+        (liveData->params.chargerACconnected != prevAcConnected || liveData->params.chargerDCconnected != prevDcConnected))
+    {
+      String msg = String("KIA EV9 charge detect summary: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
+                   " DC=" + (liveData->params.chargerDCconnected ? "1" : "0");
+      syslog->info(DEBUG_COMM, msg);
+    }
 
-
+    // Keep-alive info so AC/DC status is visible in logs even without transitions.
+    if (lastChargeDetectHeartbeatLogTime == 0 ||
+        liveData->params.currentTime >= (lastChargeDetectHeartbeatLogTime + 30))
+    {
+      String msg = String("KIA EV9 charge detect heartbeat: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
+                   " DC=" + (liveData->params.chargerDCconnected ? "1" : "0") +
+                   " RAW=" + response;
+      syslog->info(DEBUG_COMM, msg);
+      lastChargeDetectHeartbeatLogTime = liveData->params.currentTime;
     }
   }
+  else if (liveData->commandRequest.equals("22E001"))
+  {
+    static uint32_t lastChargeDetectInvalidLogTime = 0;
+    if (lastChargeDetectInvalidLogTime == 0 ||
+        liveData->params.currentTime >= (lastChargeDetectInvalidLogTime + 10))
+    {
+      String msg = String("KIA EV9 charge detect skipped: unexpected 22E001 response: ") + response;
+      syslog->info(DEBUG_COMM, msg);
+      lastChargeDetectInvalidLogTime = liveData->params.currentTime;
+    }
+  }
+}
 
 
  
