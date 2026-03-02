@@ -499,11 +499,13 @@ void CarKiaEV9::parseRowMerged()
 
       // first we check if AC charging is activated
       const uint8_t acStatusByte = liveData->hexToDecFromResponse(40, 42, 1, false); // bit 5 = AC
-      liveData->params.chargerACconnected = (bitRead(acStatusByte, 5) == 1);
+      //liveData->params.chargerACconnected = (bitRead(acStatusByte, 5) == 1); //MSB
+      liveData->params.chargerACconnected = (bitRead(acStatusByte, 2) == 1); //LSB
 
       // next we check if DC charging is activated
       const uint8_t dcStatusByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
-      liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1);
+      //liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1); //MSB
+      liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 0) == 1); //LSB
 
       if (liveData->params.chargerACconnected != prevAcConnected)
       {
