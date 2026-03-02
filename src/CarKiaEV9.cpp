@@ -210,6 +210,7 @@ void CarKiaEV9::activateCommandQueue()
       "ATSH7D1",
       "220104", // speed/gear
       "ATSH7E4",
+      "021003", // Set BMS ECU to diagnostic mode to force it on when charging
       "220101", // power kW (also drives kWh/100km calc)
 
       // IGPM (full block)
@@ -236,8 +237,8 @@ void CarKiaEV9::activateCommandQueue()
       //"22C102", // 01A 62C10237000000FFFFFFFFFFFF00FF05FFFFFF00FF5501FFFFFFAA
       //"22C103", // 01A 62C103BE3000000DFFF0FCFE7FFF7FFFFFFFFFFF000005B50000AA
 
-      //"ATSH7D4", // Electric power steering
-      //"220101",  // ???
+      "ATSH744", // VCMS	Vehicle control module (overall EV coordination)
+      "22E001",  // AC and DC charging detection
 
       //"ATSH730", // ADAS
       //"22F010",  // ???
@@ -331,7 +332,7 @@ void CarKiaEV9::activateCommandQueue()
 
       // BMS (full block - 220101 is intentionally duplicated above for faster refresh)
       "ATSH7E4",
-      //"3E00",   // UDS tester present to keep it alive even when ignition off. (test by spot2000)
+      "3E00",   // UDS tester keep-alive to stay in diagnostic mode when car is shut down.
       "220101", // power kw, engine rpm etc
       "220102", // cell voltages 1 - 32
       "220103", // cell voltages 33 - 64
@@ -483,6 +484,78 @@ void CarKiaEV9::parseRowMerged()
       
     }
   }
+
+  
+  if (liveData->currentAtshRequest.equals("ATSH744"))
+{
+  if (liveData->commandRequest.equals("22E001") && hasPrefixAndLength("62E001", 44))
+  {
+    static uint32_t lastChargeDetectHeartbeatLogTime = 0;
+
+    // Charging ON, AC or DC
+    const bool prevAcConnected = liveData->params.chargerACconnected;
+    const bool prevDcConnected = liveData->params.chargerDCconnected;
+
+    // first we check if AC charging is activated
+    const uint8_t acStatusByte = liveData->hexToDecFromResponse(40, 42, 1, false);
+
+    // AC = true om byte@40 == 5
+    liveData->params.chargerACconnected = (acStatusByte == 5);
+
+    // next we check if DC charging is activated
+    const uint8_t dcStatusByte = liveData->hexToDecFromResponse(36, 38, 1, false); // bit 7 = DC
+    liveData->params.chargerDCconnected = (bitRead(dcStatusByte, 7) == 1); //LSB
+
+    if (liveData->params.chargerACconnected != prevAcConnected)
+    {
+      String msg = String("KIA EV9 charge detect: AC ") + (liveData->params.chargerACconnected ? "ON" : "OFF") +
+                   " (22E001 byte@40=" + String(acStatusByte, HEX) + ")";
+      msg.toUpperCase();
+      syslog->info(DEBUG_COMM, msg);
+    }
+
+    if (liveData->params.chargerDCconnected != prevDcConnected)
+    {
+      String msg = String("KIA EV9 charge detect: DC ") + (liveData->params.chargerDCconnected ? "ON" : "OFF") +
+                   " (22E001 byte@36=" + String(dcStatusByte, HEX) + ")";
+      msg.toUpperCase();
+      syslog->info(DEBUG_COMM, msg);
+    }
+
+    if ((liveData->params.chargerACconnected || liveData->params.chargerDCconnected) &&
+        (liveData->params.chargerACconnected != prevAcConnected || liveData->params.chargerDCconnected != prevDcConnected))
+    {
+      String msg = String("KIA EV9 charge detect summary: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
+                   " DC=" + (liveData->params.chargerDCconnected ? "1" : "0");
+      syslog->info(DEBUG_COMM, msg);
+    }
+
+    // Keep-alive info so AC/DC status is visible in logs even without transitions.
+    if (lastChargeDetectHeartbeatLogTime == 0 ||
+        liveData->params.currentTime >= (lastChargeDetectHeartbeatLogTime + 30))
+    {
+      String msg = String("KIA EV9 charge detect heartbeat: AC=") + (liveData->params.chargerACconnected ? "1" : "0") +
+                   " DC=" + (liveData->params.chargerDCconnected ? "1" : "0") +
+                   " RAW=" + response;
+      syslog->info(DEBUG_COMM, msg);
+      lastChargeDetectHeartbeatLogTime = liveData->params.currentTime;
+    }
+  }
+  else if (liveData->commandRequest.equals("22E001"))
+  {
+    static uint32_t lastChargeDetectInvalidLogTime = 0;
+    if (lastChargeDetectInvalidLogTime == 0 ||
+        liveData->params.currentTime >= (lastChargeDetectInvalidLogTime + 10))
+    {
+      String msg = String("KIA EV9 charge detect skipped: unexpected 22E001 response: ") + response;
+      syslog->info(DEBUG_COMM, msg);
+      lastChargeDetectInvalidLogTime = liveData->params.currentTime;
+    }
+  }
+}
+
+
+ 
 
   // TPMS 7A0
   if (liveData->currentAtshRequest.equals("ATSH7A0"))
@@ -800,11 +873,7 @@ void CarKiaEV9::parseRowMerged()
         liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
       }
 
-      // Charging ON, AC/DC
-      // 2022-05 NOT WORKING value is still 0x00
-      // tempByte = liveData->hexToDecFromResponse(24, 26, 1, false); // bit 5 = DC; bit 6 = AC;
-      // liveData->params.chargerACconnected = (bitRead(tempByte, 6) == 1);
-      // liveData->params.chargerDCconnected = (bitRead(tempByte, 5) == 1);
+      
     }
     const bool isSmallPack = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
                               liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
@@ -985,17 +1054,19 @@ void CarKiaEV9::parseRowMerged()
     if (liveData->commandRequest.equals("220106") && hasPrefixAndLength("620106", 56))
     {
       liveData->params.getValidResponse = true;
-      tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
-      const bool chargeBitSet = (bitRead(tempByte, 0) == 1);
+      //tempByte = liveData->hexToDecFromResponse(54, 56, 1, false); // bit 0 = charging on, values 00, 21 (dc), 31 (ac/dc), 41 (dc) - seems like coldgate level
+      // const bool chargeBitSet = (bitRead(tempByte, 0) == 1);
       // eGMP may report charge bit during preheat/aux load. Do not treat clear battery discharge as active charging.
       const bool dischargingNow = (liveData->params.batPowerKw < -0.5f);
-      liveData->params.chargingOn = (chargeBitSet && !dischargingNow);
+      
+      liveData->params.chargingOn = (liveData->params.chargerACconnected || liveData->params.chargerDCconnected) && !dischargingNow;
+      
       if (liveData->params.chargingOn)
       {
         liveData->params.lastChargingOnTime = liveData->params.currentTime;
       }
-      liveData->params.chargerACconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
-      liveData->params.chargerDCconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 12);
+      //liveData->params.chargerACconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 1 && liveData->params.batPowerKw <= 12);
+      //liveData->params.chargerDCconnected = (liveData->params.chargingOn && liveData->params.batPowerKw >= 12);
 
       //
       const float coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, true);
