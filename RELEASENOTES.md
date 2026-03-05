@@ -1,5 +1,24 @@
 # RELEASE NOTES
 
+### V4.5.19 2026-03-05
+- Changes from recent `spot2000` merges into `master` (range `3567e57..2a7b584`):
+  - EV9 charging and drive parser update:
+    - Added explicit AC/DC charging detection via `ATSH744 / 22E001`, including transition and heartbeat debug logs.
+    - `chargingOn` is now derived from `chargerACconnected || chargerDCconnected` (with discharge guard for `batPowerKw < -0.5`).
+    - `ChargingOn` stale auto-reset timeout was increased from `10s` to `30s`.
+    - EV9 queue now includes BMS diagnostic keep-alive (`021003`, `3E00`) for more stable charging data.
+    - Gear parsing moved to `ATSH7E2 / 22E004`; speed refresh now reads from `ATSH7B3 / 220100`.
+  - ABRP telemetry and upload interval update:
+    - ABRP interval now uses `0.5s` steps (`off`, `0.5` ... `5.0s`) in both menu and Web UI.
+    - ABRP scheduler now uses millisecond timing (`lastAbrpSendAtMs`) for reliable sub-second intervals.
+    - ABRP payload now includes `heading` and tire pressures `tire_pressure_fl/fr/rl/rr`.
+    - Added detailed ABRP diagnostics (payload/body length, HTTP status, response body).
+  - GPS/NTP robustness:
+    - For GPS `v2.1`, heading can now be computed from movement between fixes (minimum `3m`) with module `course` fallback.
+    - NTP sync now uses `pool.ntp.org` with fallbacks (`time.cloudflare.com`, `129.6.15.28`) and retries every `5s` for `60s` before GPS-time fallback.
+    - Debug time-source label was normalized to `NTP INTERNET` / `GPS` / `NONE`.
+  - GPS UART init now accepts hardware serial port `1` and `2` for `SERIAL2_RX/TX` mapping.
+
 ### V4.5.18 2026-02-21
 - GPS `v2.1` (ATGM336H/AT6668) startup init added:
   - Added CASIC PCAS init sequence during GPS init (`PCAS02`, `PCAS03`, `PCAS00`).
