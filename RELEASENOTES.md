@@ -1,5 +1,21 @@
 # RELEASE NOTES
 
+### V4.5.21 2026-03-21
+- Contribute/SD `v2` offline fallback and manual upload fix:
+  - SD `v2` offline snapshots no longer require valid `odoKm`; when `Contribute data` is `OFF`, non-empty `v2` snapshots continue to be recorded to SD card.
+  - Restores delayed/offline fallback logging for cars or startup phases where odometer is temporarily unavailable.
+  - Manual `Upload logs to evdash server` now flushes the pending in-memory SD buffer before scanning files.
+  - Manual upload now also includes the currently active JSON log after flush, instead of skipping it completely as the active file.
+  - Fixes cases where the server had no recent data and manual upload reported effectively `No files found` even though current drive data existed only in the open SD log/buffer.
+- Driving stats auto-clear after long parking/sentry:
+  - If the car stays parked or in Sentry for at least `2 hours`, the next shift into `Drive` triggers `Clear driving stats` automatically.
+- EV9 parked BMS keep-alive reduction:
+  - EV9 now skips `ATSH7E4 021003` and `ATSH7E4 3E00` while ignition is off and no AC/DC charging is active.
+  - Helps avoid holding the BMS in diagnostic session during idle/Sentry and reduces the chance that evDash itself keeps the parked car awake.
+- IGPM ignition parser hardening:
+  - EV9 and shared eGMP parser now ignore `ATSH770 22BC03` placeholder replies where the ignition/light state bytes are only `AA` padding.
+  - Prevents false `ignitionOn=1` from padded IGPM frames, which could block CAN autostop and keep the device out of Sentry.
+
 ### V4.5.19 2026-03-05
 - Changes from recent `spot2000` merges into `master` (range `3567e57..2a7b584`):
   - EV9 charging and drive parser update:

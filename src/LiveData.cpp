@@ -76,6 +76,8 @@ void LiveData::initParams()
   params.motionWakeLastTime = 0;
   params.motionWakeLocked = false;
   params.sentrySessionActive = false;
+  params.parkedModeStartTime = 0;
+  params.clearDrivingStatsOnNextDrive = false;
   // Car data
   memset(params.carVin, 0, sizeof(params.carVin));
   params.carMode = CAR_MODE_NONE;
@@ -357,6 +359,8 @@ void LiveData::clearDrivingAndChargingStats(int newCarMode)
 {
   params.carMode = newCarMode;
   params.carModeChanged = params.currentTime;
+  params.parkedModeStartTime = 0;
+  params.clearDrivingStatsOnNextDrive = false;
 
   params.cumulativeEnergyDischargedKWhStart = params.cumulativeEnergyDischargedKWh;
   params.cumulativeEnergyChargedKWhStart = params.cumulativeEnergyChargedKWh;

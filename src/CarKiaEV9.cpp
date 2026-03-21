@@ -415,6 +415,10 @@ void CarKiaEV9::parseRowMerged()
            (response.length() % 2 == 0);
   };
 
+  auto hasValidIgpmStateBytes = [&]() {
+    return response.substring(16, 20) != "AAAA";
+  };
+
   auto inRangeF = [](float value, float minValue, float maxValue) {
     return value >= minValue && value <= maxValue;
   };
@@ -425,7 +429,9 @@ void CarKiaEV9::parseRowMerged()
   // IGPM
   if (liveData->currentAtshRequest.equals("ATSH770"))
   {
-    if (liveData->commandRequest.equals("22BC03") && hasPrefixAndLength("62BC03", 20))
+    if (liveData->commandRequest.equals("22BC03") &&
+        hasPrefixAndLength("62BC03", 20) &&
+        hasValidIgpmStateBytes())
     {
       // Ignition ON state / Trunk opened
       tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
@@ -1143,6 +1149,18 @@ bool CarKiaEV9::commandAllowed()
       return true;
     }
 
+    return false;
+  }
+
+  // Do not keep the EV9 BMS in diagnostic session while the car is parked.
+  // Keep-alive commands are only needed during real charging or when the car is on.
+  if (liveData->currentAtshRequest.equals("ATSH7E4") &&
+      (liveData->commandRequest.equals("021003") || liveData->commandRequest.equals("3E00")) &&
+      !liveData->params.ignitionOn &&
+      !liveData->params.chargingOn &&
+      !liveData->params.chargerACconnected &&
+      !liveData->params.chargerDCconnected)
+  {
     return false;
   }
 

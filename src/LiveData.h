@@ -153,6 +153,8 @@ typedef struct
   time_t motionWakeLastTime;
   bool motionWakeLocked;
   bool sentrySessionActive;
+  time_t parkedModeStartTime;
+  bool clearDrivingStatsOnNextDrive;
   // Car params
   char carVin[18];
   uint8_t carMode;

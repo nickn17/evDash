@@ -85,6 +85,7 @@ namespace
   constexpr float kContributeGpsCoordPrecision = 1000000.0f;
   constexpr uint32_t kMotionWakeResetSec = 900;
   constexpr uint32_t kChargingQueueHoldSec = 180;
+  constexpr time_t kLongParkingClearSec = 2 * 60 * 60;
   constexpr uint8_t kGpsWakeConfirmSamples = 2;
   constexpr uint8_t kGyroWakeConfirmSamples = 3;
   constexpr size_t kContributeJsonDocCapacity = 12288;
@@ -2492,8 +2493,11 @@ void Board320_240::mainLoop()
   int64_t startTime5 = esp_timer_get_time();
   const bool sdcardJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
   const bool sdcardWriteTick = sdcardJsonV2 ? true : liveData->params.sdcardCanNotify;
+  const bool sdcardHasPayload =
+      sdcardJsonV2 ? !isContributeV2SnapshotEffectivelyEmpty(liveData)
+                   : (liveData->params.odoKm != -1 && liveData->params.socPerc != -1);
   if (!liveData->params.stopCommandQueue && liveData->params.sdcardInit && liveData->params.sdcardRecording && sdcardWriteTick &&
-      (liveData->params.odoKm != -1 && liveData->params.socPerc != -1))
+      sdcardHasPayload)
   {
     const size_t sdcardFlushSize = 2048;
     const uint32_t sdcardIntervalMs = static_cast<uint32_t>(liveData->settings.sdcardLogIntervalSec) * 1000U;
@@ -2788,6 +2792,37 @@ void Board320_240::mainLoop()
                               liveData->params.auxVoltage > 3 &&
                               liveData->params.auxVoltage < 11.5);
   const bool autoStopByCanSignals = (parkingLikely || lowAuxVoltage);
+  const bool longParkingCandidate =
+      (liveData->params.currentTime != 0 &&
+       !chargingActiveForQueue &&
+       !liveData->params.forwardDriveMode &&
+       !liveData->params.reverseDriveMode &&
+       (liveData->params.stopCommandQueueTime != 0 ||
+        liveData->params.stopCommandQueue ||
+        liveData->params.parkModeOrNeutral));
+
+  if (longParkingCandidate)
+  {
+    if (liveData->params.parkedModeStartTime == 0)
+    {
+      liveData->params.parkedModeStartTime = liveData->params.currentTime;
+    }
+    else if (!liveData->params.clearDrivingStatsOnNextDrive &&
+             liveData->params.currentTime - liveData->params.parkedModeStartTime >= kLongParkingClearSec)
+    {
+      liveData->params.clearDrivingStatsOnNextDrive = true;
+    }
+  }
+  else if (chargingActiveForQueue)
+  {
+    liveData->params.parkedModeStartTime = 0;
+    liveData->params.clearDrivingStatsOnNextDrive = false;
+  }
+  else if (!liveData->params.clearDrivingStatsOnNextDrive &&
+           (liveData->params.forwardDriveMode || liveData->params.reverseDriveMode))
+  {
+    liveData->params.parkedModeStartTime = 0;
+  }
 
   // Fallback when CAN never yields a valid response (e.g. adapter/config issue):
   // still allow Sentry autostop after a grace period so AUX battery is protected.
@@ -2885,7 +2920,7 @@ void Board320_240::mainLoop()
                                    (/*(double)*/ liveData->params.timeInForwardDriveMode / 3600.0);
   }
 
-  // Automatic reset charging or drive data after switch between drive / charging or longer standing (1800 seconds)
+  // Automatic reset charging data or clear drive stats after charging / long parking transition.
   if (liveData->params.chargingOn && !lastChargingOn)
   {
     liveData->params.chargingStartTime = liveData->params.currentTime;
@@ -2898,8 +2933,11 @@ void Board320_240::mainLoop()
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_CHARGING);
   }
-  else if (liveData->params.forwardDriveMode &&
-           (liveData->params.speedKmh > 15 || (liveData->params.speedKmhGPS > 15 && liveData->params.gpsSat >= 4)) && liveData->params.carMode != CAR_MODE_DRIVE)
+  else if ((liveData->params.clearDrivingStatsOnNextDrive &&
+            liveData->params.forwardDriveMode) ||
+           (liveData->params.forwardDriveMode &&
+            (liveData->params.speedKmh > 15 || (liveData->params.speedKmhGPS > 15 && liveData->params.gpsSat >= 4)) &&
+            liveData->params.carMode != CAR_MODE_DRIVE))
   {
     liveData->clearDrivingAndChargingStats(CAR_MODE_DRIVE);
   }
@@ -2973,6 +3011,7 @@ void Board320_240::syncTimes(time_t newTime)
       &liveData->params.lastIgnitionOnTime,
       &liveData->params.stopCommandQueueTime,
       &liveData->params.motionWakeLastTime,
+      &liveData->params.parkedModeStartTime,
       &liveData->params.lastChargingOnTime,
       &liveData->params.lastVoltageReadTime,
       &liveData->params.lastVoltageOkTime,
@@ -6663,6 +6702,51 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
     return;
   }
 
+  auto flushPendingSdcardBuffer = [&]() -> bool
+  {
+    if (sdcardRecordBuffer.length() == 0)
+    {
+      return true;
+    }
+    if (strlen(liveData->params.sdcardFilename) == 0)
+    {
+      return false;
+    }
+
+    if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
+        rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
+                               sizeof(liveData->params.sdcardFilename),
+                               sdcardRecordBuffer.length()))
+    {
+      syslog->print("SD v2 rollover file: ");
+      syslog->println(liveData->params.sdcardFilename);
+    }
+
+    File file = SD.open(liveData->params.sdcardFilename, FILE_APPEND);
+    if (!file)
+    {
+      syslog->println("Failed to open file for appending");
+      file = SD.open(liveData->params.sdcardFilename, FILE_WRITE);
+    }
+    if (!file)
+    {
+      syslog->println("Failed to create file");
+      return false;
+    }
+
+    syslog->info(DEBUG_SDCARD, "Save buffer to SD card");
+    file.print(sdcardRecordBuffer);
+    file.close();
+    sdcardRecordBuffer = "";
+    liveData->params.sdcardLastFlushMs = millis();
+    return true;
+  };
+
+  if (!flushPendingSdcardBuffer() && !silent)
+  {
+    syslog->println("Upload logs: active SD buffer flush failed");
+  }
+
   File dir = SD.open("/");
   if (!dir || !dir.isDirectory())
   {
@@ -6681,6 +6765,7 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
   uint32_t cntLogs = 0;
   uint32_t cntUploaded = 0;
   const String activeLogFilename = toAbsoluteSdPath(String(liveData->params.sdcardFilename));
+  String activeQueuedFile = "";
   String queuedFiles = "";
   queuedFiles.reserve(1024);
 
@@ -6701,14 +6786,27 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
       const bool isJsonLog = filePath.endsWith(".json");
       const bool isActiveLog = (activeLogFilename.length() > 0 && filePath == activeLogFilename);
       const bool isAlreadyUploadedV2Log = isUploadedSdV2LogFile(filePath);
-      if (isJsonLog && !isActiveLog && !isAlreadyUploadedV2Log)
+      if (isJsonLog && !isAlreadyUploadedV2Log)
       {
-        queuedFiles += filePath;
-        queuedFiles += '\n';
+        if (isActiveLog)
+        {
+          activeQueuedFile = filePath;
+        }
+        else
+        {
+          queuedFiles += filePath;
+          queuedFiles += '\n';
+        }
       }
     }
   }
   dir.close();
+
+  if (activeQueuedFile.length() > 0)
+  {
+    queuedFiles += activeQueuedFile;
+    queuedFiles += '\n';
+  }
 
   int queuePos = 0;
   while (queuePos < queuedFiles.length())
