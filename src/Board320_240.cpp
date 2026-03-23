@@ -70,6 +70,7 @@ namespace
   constexpr uint32_t kNetFailureStaleResetSec = 300;
   constexpr uint32_t kNetFailureFallbackSec = 180;
   constexpr uint16_t kNetFailureFallbackCount = 3;
+  constexpr uint32_t kWifiTransferIndicatorWindowMs = 2000;
   constexpr size_t kAbrpPayloadBufferSize = 768;
   constexpr size_t kAbrpFormBufferSize = 1536;
   constexpr uint16_t kAbrpHttpsConnectTimeoutMs = 1000;
@@ -86,6 +87,7 @@ namespace
   constexpr uint32_t kMotionWakeResetSec = 900;
   constexpr uint32_t kChargingQueueHoldSec = 180;
   constexpr time_t kLongParkingClearSec = 2 * 60 * 60;
+  constexpr uint16_t kSentryIdleSliceMs = 50;
   constexpr uint8_t kGpsWakeConfirmSamples = 2;
   constexpr uint8_t kGyroWakeConfirmSamples = 3;
   constexpr size_t kContributeJsonDocCapacity = 12288;
@@ -1514,18 +1516,34 @@ bool Board320_240::drawActiveScreenToSprite()
           (WiFi.status() == WL_CONNECTED)
               ? ((liveData->params.lastSuccessNetSendTime + wifiOkWindowSec >= liveData->params.currentTime) ? TFT_GREEN /* last request was 200 OK */ : TFT_YELLOW /* wifi connected but not send */)
               : TFT_RED; /* wifi not connected */
+      const bool wifiTransferActive =
+          (wifiTransferLastActivityMs != 0 &&
+           (millis() - wifiTransferLastActivityMs) <= kWifiTransferIndicatorWindowMs);
 
-      // WiFi icon (upper arcs + center dot), tuned to be ~20% larger.
       const int wifiCx = 146;
       const int wifiCy = 11;
-      const int wifiOuterR = 10;
-      const int wifiMidR = 6;
-      const int wifiInnerR = 4;
-      spr.drawCircle(wifiCx, wifiCy, wifiOuterR, wifiColor);
-      spr.drawCircle(wifiCx, wifiCy, wifiMidR, wifiColor);
-      spr.drawCircle(wifiCx, wifiCy, wifiInnerR, wifiColor);
-      spr.fillRect(wifiCx - (wifiOuterR + 1), wifiCy, (wifiOuterR + 1) * 2 + 1, wifiOuterR + 2, TFT_BLACK); // keep only upper arcs
-      spr.fillCircle(wifiCx, wifiCy + 3, 2, wifiColor);
+      if (wifiTransferActive)
+      {
+        // Data transfer icon: upper arrow right, lower arrow left.
+        spr.drawLine(wifiCx - 9, wifiCy - 3, wifiCx + 6, wifiCy - 3, wifiColor);
+        spr.drawLine(wifiCx + 6, wifiCy - 3, wifiCx + 2, wifiCy - 6, wifiColor);
+        spr.drawLine(wifiCx + 6, wifiCy - 3, wifiCx + 2, wifiCy, wifiColor);
+        spr.drawLine(wifiCx + 9, wifiCy + 4, wifiCx - 6, wifiCy + 4, wifiColor);
+        spr.drawLine(wifiCx - 6, wifiCy + 4, wifiCx - 2, wifiCy + 1, wifiColor);
+        spr.drawLine(wifiCx - 6, wifiCy + 4, wifiCx - 2, wifiCy + 7, wifiColor);
+      }
+      else
+      {
+        // WiFi icon (upper arcs + center dot), tuned to be ~20% larger.
+        const int wifiOuterR = 10;
+        const int wifiMidR = 6;
+        const int wifiInnerR = 4;
+        spr.drawCircle(wifiCx, wifiCy, wifiOuterR, wifiColor);
+        spr.drawCircle(wifiCx, wifiCy, wifiMidR, wifiColor);
+        spr.drawCircle(wifiCx, wifiCy, wifiInnerR, wifiColor);
+        spr.fillRect(wifiCx - (wifiOuterR + 1), wifiCy, (wifiOuterR + 1) * 2 + 1, wifiOuterR + 2, TFT_BLACK); // keep only upper arcs
+        spr.fillCircle(wifiCx, wifiCy + 3, 2, wifiColor);
+      }
 
       if (liveData->params.isWifiBackupLive)
       {
@@ -2856,7 +2874,21 @@ void Board320_240::mainLoop()
   // Descrease loop fps
   if (liveData->params.stopCommandQueue)
   {
-    delay(1000);
+    const uint32_t idleWaitStartMs = millis();
+    while (liveData->params.stopCommandQueue && (millis() - idleWaitStartMs) < 1000UL)
+    {
+      delay(kSentryIdleSliceMs);
+      boardLoop();
+
+      // Keep Sentry low-power pacing, but poll wake inputs often enough so touch wake feels immediate.
+      isButtonPressed(pinButtonMiddle);
+      if (!liveData->params.stopCommandQueue)
+        break;
+      isButtonPressed(pinButtonLeft);
+      if (!liveData->params.stopCommandQueue)
+        break;
+      isButtonPressed(pinButtonRight);
+    }
   }
 
   // Automatic sleep after inactivity
@@ -4774,6 +4806,20 @@ void Board320_240::addWifiTransferredBytes(size_t bytes)
   if (bytes == 0)
   {
     return;
+  }
+  const uint32_t nowMs = millis();
+  const bool transferIconWasIdle =
+      (wifiTransferLastActivityMs == 0 ||
+       (nowMs - wifiTransferLastActivityMs) > kWifiTransferIndicatorWindowMs);
+  wifiTransferLastActivityMs = nowMs;
+  liveData->redrawScreenRequested = true;
+  if (transferIconWasIdle &&
+      currentBrightness != 0 &&
+      !liveData->menuVisible &&
+      !messageDialogVisible &&
+      liveData->params.displayScreen != SCREEN_BLANK)
+  {
+    redrawScreen();
   }
   if (bytes > (UINT32_MAX - wifiTransferredBytes))
   {

@@ -1,5 +1,14 @@
 # RELEASE NOTES
 
+### V4.5.22 2026-03-23
+- WiFi transfer activity icon:
+  - While WiFi data transfer is active, the top WiFi status icon on speed screen now switches to transfer arrows.
+  - Arrows keep the same WiFi state color logic (`red/yellow/green`) as the original icon.
+  - This also makes `Contribute` and offline `SD v2` background upload activity visible on-screen.
+- Sentry touch wake responsiveness:
+  - While the CAN queue is stopped in `SENTRY ON`, the idle wait is now sliced into short `50ms` steps instead of one hard `1s` sleep.
+  - This keeps the low-power/Sentry pacing, but touch/button wake is polled much more often, so waking the device after entering the car should react noticeably faster.
+
 ### V4.5.21 2026-03-21
 - Contribute/SD `v2` offline fallback and manual upload fix:
   - SD `v2` offline snapshots no longer require valid `odoKm`; when `Contribute data` is `OFF`, non-empty `v2` snapshots continue to be recorded to SD card.
