@@ -118,7 +118,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 22;
+  liveData->settings.settingsVersion = 23;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -229,6 +229,9 @@ void BoardInterface::loadSettings()
   // v22
   liveData->settings.settingsVersion = 22;
   liveData->settings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
+  // v23
+  liveData->settings.settingsVersion = 23;
+  liveData->settings.traccarEnabled = 0;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -410,6 +413,11 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.settingsVersion = 22;
         liveData->tmpSettings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
       }
+      if (liveData->tmpSettings.settingsVersion == 22)
+      {
+        liveData->tmpSettings.settingsVersion = 23;
+        liveData->tmpSettings.traccarEnabled = 0;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -430,6 +438,12 @@ void BoardInterface::loadSettings()
   if (liveData->settings.remoteUploadModuleType != REMOTE_UPLOAD_WIFI)
   {
     liveData->settings.remoteUploadModuleType = REMOTE_UPLOAD_WIFI;
+    saveSettings();
+  }
+
+  if (liveData->settings.traccarEnabled > 1)
+  {
+    liveData->settings.traccarEnabled = 0;
     saveSettings();
   }
 

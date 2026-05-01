@@ -231,6 +231,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD:
     suffix = (liveData->settings.abrpSdcardLog == 0) ? "[off]" : "[on]";
     break;
+  case MENU_REMOTE_UPLOAD_TRACCAR_ENABLED:
+    suffix = (liveData->settings.traccarEnabled == 0) ? "[no]" : "[yes]";
+    break;
   case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
     suffix = (liveData->settings.mqttEnabled == 0) ? "[off]" : "[on]";
     break;
@@ -1229,6 +1232,11 @@ void Board320_240::menuItemClick()
       break;
     case MENU_REMOTE_UPLOAD_ABRP_LOG_SDCARD:
       liveData->settings.abrpSdcardLog = (liveData->settings.abrpSdcardLog == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_REMOTE_UPLOAD_TRACCAR_ENABLED:
+      liveData->settings.traccarEnabled = (liveData->settings.traccarEnabled == 1) ? 0 : 1;
       showMenu();
       return;
       break;

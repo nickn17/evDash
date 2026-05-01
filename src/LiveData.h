@@ -403,6 +403,8 @@ typedef struct
   uint8_t carSpeedType; // 0 - automatic (car/gps), 1 - only from car, 2 - only from gps
   // == settings version 22
   uint8_t contributeJsonType; // 1 - legacy raw queue-loop payload, 2 - minute snapshots with 5s samples
+  // == settings version 23
+  uint8_t traccarEnabled; // 0 - off, 1 - send GPS data to Traccar server
   //
 } SETTINGS_STRUC;
 

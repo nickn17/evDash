@@ -102,6 +102,42 @@ String selectedAttr(bool selected)
   return selected ? " selected" : "";
 }
 
+String getTraccarDeviceIdForDisplay()
+{
+  char deviceId[9] = {0};
+  uint64_t seed = ESP.getEfuseMac() >> 8;
+  for (int i = 0; i < 8; i++, seed >>= 5)
+  {
+    byte x = (byte)seed & 0x1f;
+    if (x >= 10)
+    {
+      x = x - 10 + 'A';
+      switch (x)
+      {
+      case 'B':
+        x = 'W';
+        break;
+      case 'D':
+        x = 'X';
+        break;
+      case 'I':
+        x = 'Y';
+        break;
+      case 'O':
+        x = 'Z';
+        break;
+      }
+    }
+    else
+    {
+      x += '0';
+    }
+    deviceId[i] = x;
+  }
+  deviceId[8] = 0;
+  return String(deviceId);
+}
+
 /**
  * Get off/on text
  */
@@ -214,6 +250,7 @@ void handleRoot()
   text += "<tr><td>MQTT pub.topic</td><td><input data-key='mqttPubTopic' value='" + htmlEscape(String(liveDataWebInt->settings.mqttPubTopic)) + "'></td></tr>";
   text += "<tr><td>Contribute data</td><td><input type='checkbox' data-key='contributeData'" + checkedAttr(liveDataWebInt->settings.contributeData) + "></td></tr>";
   text += "<tr><td>Contribute token</td><td><input data-key='contributeToken' value='" + htmlEscape(String(liveDataWebInt->settings.contributeToken)) + "'></td></tr>";
+  text += "<tr><td>Traccar deviceId</td><td>" + htmlEscape(getTraccarDeviceIdForDisplay()) + "</td></tr>";
 
   text += "<tr><th colspan='2'>GPS module</th></tr>";
   text += "<tr><td>GPS module type</td><td><select data-key='gpsModuleType'>";
