@@ -84,6 +84,7 @@ protected:
   struct tm cachedNow = {};
   float displayFps = 0;
   bool modalDialogActive = false;
+  static constexpr time_t kMenuAutoHideTimeoutSec = 60;
   bool screenSwipePreviewActive = false;
   String dismissedCanStatusText = "";
   time_t dismissedNetFailureTime = 0;

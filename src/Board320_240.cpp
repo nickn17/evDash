@@ -2379,6 +2379,12 @@ void Board320_240::mainLoop()
     hideMenu();
   }
 
+  if (liveData->menuVisible &&
+      liveData->params.currentTime - liveData->params.lastButtonPushedTime >= kMenuAutoHideTimeoutSec)
+  {
+    hideMenu();
+  }
+
   const bool allowGpsProcessing = !(liveData->params.stopCommandQueue && liveData->settings.voltmeterEnabled == 1);
   if (allowGpsProcessing)
   {

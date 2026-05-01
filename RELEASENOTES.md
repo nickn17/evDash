@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+### V4.5.23 2026-03-25
+- Menu idle auto-exit:
+  - When the on-device menu stays open without touch/button activity for `60s`, it now closes automatically and returns to the active screen.
+
 ### V4.5.22 2026-03-23
 - WiFi transfer activity icon:
   - While WiFi data transfer is active, the top WiFi status icon on speed screen now switches to transfer arrows.
