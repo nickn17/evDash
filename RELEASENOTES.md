@@ -1,5 +1,12 @@
 # RELEASE NOTES
 
+### V4.5.24 2026-05-01
+- Traccar server upload support (thanks to Conny/spot2000):
+  - Added optional Traccar GPS position upload, configurable from the on-device menu and Web UI.
+  - Upload sends device id, timestamp, latitude/longitude, speed, heading, altitude, SoC and charging state.
+  - Server address/port are compile-time constants, so they must be adjusted before building custom firmware.
+  - Settings upgraded to version 23 with default Traccar upload disabled.
+
 ### V4.5.23 2026-03-25
 - Menu idle auto-exit:
   - When the on-device menu stays open without touch/button activity for `60s`, it now closes automatically and returns to the active screen.
