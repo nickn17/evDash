@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-#define MENU_SIZE 183
+#define MENU_SIZE 186
 
 const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     //   menu_id,                       parent_menu,        target_menu,    menu_str
@@ -79,6 +79,9 @@ const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_ADAPTER_OBD2_PORT, MENU_ADAPTER_TYPE, MENU_NO_MENU, "[i] WiFi port:"},
     {MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP, MENU_ADAPTER_TYPE, MENU_NO_MENU, "CAN queue autostop"},
     {MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Command optimizer"},
+    {MENU_ADAPTER_MOBILE_RELAY, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Relay for iOS/Android app"},
+    {MENU_ADAPTER_MOBILE_RELAY_PAIR, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Pair mobile app"},
+    {MENU_ADAPTER_MOBILE_RELAY_FORGET, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Forget mobile app"},
     {MENU_ADAPTER_LOAD_TEST_DATA, MENU_ADAPTER_TYPE, MENU_NO_MENU, "Load demo (static) data..."},
 
     {MENU_OTHER_TOP, MENU_OTHERS, MENU_TOP_LEVEL, "<- parent menu"},

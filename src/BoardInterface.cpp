@@ -118,7 +118,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 24;
+  liveData->settings.settingsVersion = 25;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -237,6 +237,11 @@ void BoardInterface::loadSettings()
   tmpStr = "demo3.traccar.org";
   tmpStr.toCharArray(liveData->settings.traccarServerHost, tmpStr.length() + 1);
   liveData->settings.traccarServerPort = 5055;
+  // v25
+  liveData->settings.settingsVersion = 25;
+  liveData->settings.relayForMobileEnabled = 0;
+  liveData->settings.relayToken[0] = '\0';
+  liveData->settings.relayMobileId[0] = '\0';
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -429,6 +434,13 @@ void BoardInterface::loadSettings()
         tmpStr = "demo3.traccar.org";
         tmpStr.toCharArray(liveData->tmpSettings.traccarServerHost, tmpStr.length() + 1);
         liveData->tmpSettings.traccarServerPort = 5055;
+      }
+      if (liveData->tmpSettings.settingsVersion == 24)
+      {
+        liveData->tmpSettings.settingsVersion = 25;
+        liveData->tmpSettings.relayForMobileEnabled = 0;
+        liveData->tmpSettings.relayToken[0] = '\0';
+        liveData->tmpSettings.relayMobileId[0] = '\0';
       }
 
       // Save upgraded structure

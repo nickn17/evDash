@@ -373,6 +373,15 @@ void CommInterface::parseRowMerged()
   }
   liveData->responseRowMerged = normalized;
 
+  if (liveData->settings.relayForMobileEnabled == 1 &&
+      liveData->responseRowMerged.length() > 0 &&
+      !textResponse &&
+      !liveData->commandRequest.startsWith("AT"))
+  {
+    String relayKey = liveData->currentAtshRequest + "_" + liveData->commandRequest;
+    liveData->addContributeRawFrame(relayKey, liveData->responseRowMerged, liveData->lastCommandLatencyMs);
+  }
+
   // Parse response
   board->parseRowMerged();
 }
