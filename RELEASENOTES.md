@@ -1,6 +1,9 @@
 # RELEASE NOTES
 
 ### V4.5.25 2026-05-02
+- GPS v2.1 GNSS LED:
+  - Blue PPS LED is now disabled during normal driving/standing.
+  - PPS LED is enabled only while the CAN queue is stopped/suspended in Sentry.
 - Contribute/SD `v2` raw frame export:
   - Increased raw frame upload limit from `24` to `32`.
   - Allows large eGMP packs to include all BMS cell-voltage blocks (`220102/103/104/10A/10B/10C`) in contribute/SD snapshots.

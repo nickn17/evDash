@@ -2878,6 +2878,7 @@ void Board320_240::mainLoop()
     commInterface->suspendDevice();
     syslog->println("CAN Command queue stopped...");
   }
+  updateGpsV21PpsMode();
 
   // Descrease loop fps
   if (liveData->params.stopCommandQueue)
@@ -6805,7 +6806,84 @@ void Board320_240::initGPS()
     sendNmeaCommand("PCAS02,200");
     sendNmeaCommand("PCAS03,1,0,0,1,0,0,0,0");
     sendNmeaCommand("PCAS00");
+    gpsV21PpsModeKnown = false;
+    setGpsV21Pps(false);
     syslog->println("GPS v2.1 PCAS init applied (200ms, GGA+RMC).");
+  }
+}
+
+/**
+ * Send CASIC binary command to GPS module.
+ */
+void Board320_240::sendCasicGpsCommand(uint8_t msgClass, uint8_t msgId, const uint8_t *payload, uint16_t payloadLen)
+{
+  if (gpsHwUart == NULL || payload == NULL || payloadLen > 48 || (payloadLen % 4) != 0)
+  {
+    return;
+  }
+
+  uint8_t command[58];
+  command[0] = 0xBA;
+  command[1] = 0xCE;
+  command[2] = payloadLen & 0xFF;
+  command[3] = (payloadLen >> 8) & 0xFF;
+  command[4] = msgClass;
+  command[5] = msgId;
+  for (uint16_t i = 0; i < payloadLen; i++)
+  {
+    command[6 + i] = payload[i];
+  }
+
+  uint32_t checksum = 0;
+  for (uint16_t i = 2; i < payloadLen + 6; i += 4)
+  {
+    checksum += ((uint32_t)command[i]) |
+                ((uint32_t)command[i + 1] << 8) |
+                ((uint32_t)command[i + 2] << 16) |
+                ((uint32_t)command[i + 3] << 24);
+  }
+
+  uint16_t checksumOffset = payloadLen + 6;
+  command[checksumOffset] = checksum & 0xFF;
+  command[checksumOffset + 1] = (checksum >> 8) & 0xFF;
+  command[checksumOffset + 2] = (checksum >> 16) & 0xFF;
+  command[checksumOffset + 3] = (checksum >> 24) & 0xFF;
+  gpsHwUart->write(command, payloadLen + 10);
+  delay(60);
+}
+
+/**
+ * Enable or disable GPS v2.1 PPS output.
+ */
+void Board320_240::setGpsV21Pps(bool enabled)
+{
+  if (liveData->settings.gpsModuleType != GPS_MODULE_TYPE_GPS_V21_GNSS || gpsHwUart == NULL ||
+      (gpsV21PpsModeKnown && gpsV21PpsEnabled == enabled))
+  {
+    return;
+  }
+
+  uint8_t payload[16] = {
+      0x40, 0x42, 0x0F, 0x00, // 1s interval
+      0xA0, 0x86, 0x01, 0x00, // 100ms pulse width
+      (uint8_t)(enabled ? 2 : 0),
+      0x00, 0x00, 0x08,
+      0x00, 0x00, 0x00, 0x00};
+
+  sendCasicGpsCommand(0x06, 0x03, payload, sizeof(payload));
+  gpsV21PpsModeKnown = true;
+  gpsV21PpsEnabled = enabled;
+  syslog->println(enabled ? "GPS v2.1 PPS LED enabled." : "GPS v2.1 PPS LED disabled.");
+}
+
+/**
+ * Sync GPS v2.1 PPS output with Sentry/suspend state.
+ */
+void Board320_240::updateGpsV21PpsMode()
+{
+  if (liveData->settings.gpsModuleType == GPS_MODULE_TYPE_GPS_V21_GNSS)
+  {
+    setGpsV21Pps(liveData->params.stopCommandQueue);
   }
 }
 

@@ -99,6 +99,8 @@ protected:
   uint32_t ntpAttemptStartMs = 0;
   uint32_t ntpLastAttemptMs = 0;
   bool gpsTimeFallbackAllowed = false;
+  bool gpsV21PpsModeKnown = false;
+  bool gpsV21PpsEnabled = false;
   String lastNotifiedFirmwareVersion = "";
   char pairPendingCode[7] = {0};
   time_t pairPendingExpiresAt = 0;
@@ -194,6 +196,9 @@ protected:
   void resetSdV2UploadState();
   bool postSdLogChunkToEvDash(const String &fileName, uint32_t part, const uint8_t *data, size_t length, String *responsePayload = nullptr, int *responseCode = nullptr, bool preferManualTimeouts = false);
   bool cleanupUploadedSdV2Logs();
+  void sendCasicGpsCommand(uint8_t msgClass, uint8_t msgId, const uint8_t *payload, uint16_t payloadLen);
+  void setGpsV21Pps(bool enabled);
+  void updateGpsV21PpsMode();
 
 public:
   byte pinButtonLeft = 0;
