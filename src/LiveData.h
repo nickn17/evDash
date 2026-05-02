@@ -405,6 +405,9 @@ typedef struct
   uint8_t contributeJsonType; // 1 - legacy raw queue-loop payload, 2 - minute snapshots with 5s samples
   // == settings version 23
   uint8_t traccarEnabled; // 0 - off, 1 - send GPS data to Traccar server
+  // == settings version 24
+  char traccarServerHost[64]; // Traccar server host
+  uint16_t traccarServerPort; // Traccar server port
   //
 } SETTINGS_STRUC;
 

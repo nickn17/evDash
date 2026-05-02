@@ -77,8 +77,6 @@ namespace
   constexpr uint16_t kAbrpHttpsConnectTimeoutMs = 1000;
   constexpr uint16_t kAbrpHttpsIoTimeoutMs = 2500;
   constexpr uint32_t kTraccarIntervalMs = 5000;
-  constexpr const char *kTraccarServerHost = "demo3.traccar.org";
-  constexpr uint16_t kTraccarPorts[] = {5055, 80};
   constexpr float kGpsMaxSpeedKmh = 250.0f;
   constexpr float kGpsJitterMeters = 200.0f;
   constexpr float kGpsMaxJumpMetersShort = 2000.0f;
@@ -95,7 +93,7 @@ namespace
   constexpr uint8_t kGpsWakeConfirmSamples = 2;
   constexpr uint8_t kGyroWakeConfirmSamples = 3;
   constexpr size_t kContributeJsonDocCapacity = 12288;
-  constexpr uint8_t kContributeRawFrameUploadMax = 24;
+  constexpr uint8_t kContributeRawFrameUploadMax = 32;
   constexpr bool kContributeIncludeRawLatency = false;
   constexpr bool kContributeRetryOnceOnFail = false;
   constexpr bool kContributeRawTlsFallbackOnTlsMem = false;
@@ -5054,29 +5052,31 @@ void Board320_240::netLoop()
     if (hasGpsFix && (lastTraccarSendAtMs == 0 || (millis() - lastTraccarSendAtMs) > kTraccarIntervalMs))
     {
       const String traccarDeviceId = normalizeDeviceIdForApi(getTraccarDeviceIdFromEfuse());
+      String traccarServerHost = String(liveData->settings.traccarServerHost);
+      traccarServerHost.trim();
       syslog->println("Traccar deviceId: " + traccarDeviceId);
       bool sentOk = false;
       int httpCode = -1;
-      for (size_t i = 0; i < (sizeof(kTraccarPorts) / sizeof(kTraccarPorts[0])); i++)
+      if (traccarServerHost.length() == 0 || traccarServerHost == "empty")
       {
-        const uint16_t port = kTraccarPorts[i];
-        syslog->println("Traccar send tick (port " + String(port) + ")");
-        if (Traccar::sendPosition(kTraccarServerHost,
-                                  port,
-                                  traccarDeviceId,
-                                  liveData->params.currentTime,
-                                  liveData->params.gpsLat,
-                                  liveData->params.gpsLon,
-                                  liveData->params.speedKmhGPS,
-                                  liveData->params.gpsAlt,
-                                  liveData->params.gpsHeadingDeg,
-                                  liveData->params.socPerc,
-                                  liveData->params.chargingOn,
-                                  httpCode))
-        {
-          sentOk = true;
-          break;
-        }
+        syslog->println("Traccar send skipped: no server host");
+      }
+      else
+      {
+        const uint16_t port = liveData->settings.traccarServerPort ? liveData->settings.traccarServerPort : 5055;
+        syslog->println("Traccar send tick (" + traccarServerHost + ":" + String(port) + ")");
+        sentOk = Traccar::sendPosition(traccarServerHost.c_str(),
+                                       port,
+                                       traccarDeviceId,
+                                       liveData->params.currentTime,
+                                       liveData->params.gpsLat,
+                                       liveData->params.gpsLon,
+                                       liveData->params.speedKmhGPS,
+                                       liveData->params.gpsAlt,
+                                       liveData->params.gpsHeadingDeg,
+                                       liveData->params.socPerc,
+                                       liveData->params.chargingOn,
+                                       httpCode);
       }
 
       lastTraccarSendAtMs = millis();

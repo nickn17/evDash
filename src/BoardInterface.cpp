@@ -118,7 +118,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 23;
+  liveData->settings.settingsVersion = 24;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -232,6 +232,11 @@ void BoardInterface::loadSettings()
   // v23
   liveData->settings.settingsVersion = 23;
   liveData->settings.traccarEnabled = 0;
+  // v24
+  liveData->settings.settingsVersion = 24;
+  tmpStr = "demo3.traccar.org";
+  tmpStr.toCharArray(liveData->settings.traccarServerHost, tmpStr.length() + 1);
+  liveData->settings.traccarServerPort = 5055;
 
   // Load settings and replace default values
   syslog->println("Reading settings from eeprom.");
@@ -418,6 +423,13 @@ void BoardInterface::loadSettings()
         liveData->tmpSettings.settingsVersion = 23;
         liveData->tmpSettings.traccarEnabled = 0;
       }
+      if (liveData->tmpSettings.settingsVersion == 23)
+      {
+        liveData->tmpSettings.settingsVersion = 24;
+        tmpStr = "demo3.traccar.org";
+        tmpStr.toCharArray(liveData->tmpSettings.traccarServerHost, tmpStr.length() + 1);
+        liveData->tmpSettings.traccarServerPort = 5055;
+      }
 
       // Save upgraded structure
       liveData->settings = liveData->tmpSettings;
@@ -444,6 +456,18 @@ void BoardInterface::loadSettings()
   if (liveData->settings.traccarEnabled > 1)
   {
     liveData->settings.traccarEnabled = 0;
+    saveSettings();
+  }
+
+  if (strlen(liveData->settings.traccarServerHost) == 0)
+  {
+    tmpStr = "demo3.traccar.org";
+    tmpStr.toCharArray(liveData->settings.traccarServerHost, tmpStr.length() + 1);
+    saveSettings();
+  }
+  if (liveData->settings.traccarServerPort == 0)
+  {
+    liveData->settings.traccarServerPort = 5055;
     saveSettings();
   }
 
