@@ -408,6 +408,10 @@ typedef struct
   // == settings version 24
   char traccarServerHost[64]; // Traccar server host
   uint16_t traccarServerPort; // Traccar server port
+  // == settings version 25
+  uint8_t relayForMobileEnabled; // 0 - off, 1 - BLE relay for iOS/Android app
+  char relayToken[32];           // Shared token for paired mobile app
+  char relayMobileId[40];        // Last paired mobile app id
   //
 } SETTINGS_STRUC;
 

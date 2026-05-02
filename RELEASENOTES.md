@@ -1,5 +1,13 @@
 # RELEASE NOTES
 
+### V4.6.1 2026-05-02
+- evDash mobile relay v1:
+  - Added `Relay for iOS/Android app`, `Pair mobile app`, and `Forget mobile app` under the adapter menu.
+  - Added BLE peripheral service `evDash Relay` for the mobile Android/iPhone app.
+  - Added 6-digit pairing flow with stored relay token and paired mobile id.
+  - Streams live snapshots, cell voltages, module temperatures, and recent raw CAN/OBD frames to the mobile app.
+  - Settings upgraded to version 25 with relay defaults disabled.
+
 ### V4.5.25 2026-05-02
 - GPS v2.1 GNSS LED:
   - Blue PPS LED is now disabled during normal driving/standing.

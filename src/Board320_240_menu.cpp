@@ -4,6 +4,9 @@
 #include "config.h"
 #include "CarModelUtils.h"
 #include "Board320_240.h"
+#include "EvDashMobileRelay.h"
+
+extern EvDashMobileRelay *mobileRelay;
 
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #include "WebInterface.h"
@@ -195,6 +198,23 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     break;
   case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
     suffix = (liveData->settings.disableCommandOptimizer == 0) ? "[on]" : "[off]";
+    break;
+  case MENU_ADAPTER_MOBILE_RELAY:
+    suffix = (liveData->settings.relayForMobileEnabled == 1) ? "[on]" : "[off]";
+    break;
+  case MENU_ADAPTER_MOBILE_RELAY_PAIR:
+    if (mobileRelay != nullptr && mobileRelay->pairingCode()[0] != '\0')
+    {
+      sprintf(tmpStr1, "[%s %us]", mobileRelay->pairingCode(), mobileRelay->pairingSecondsLeft());
+      suffix = tmpStr1;
+    }
+    else
+    {
+      suffix = "[start]";
+    }
+    break;
+  case MENU_ADAPTER_MOBILE_RELAY_FORGET:
+    suffix = (strlen(liveData->settings.relayToken) >= 12) ? "[paired]" : "[empty]";
     break;
   case MENU_BOARD_POWER_MODE:
     suffix = (liveData->settings.boardPowerMode == 1) ? "[ext.]" : "[USB]";
@@ -1162,6 +1182,50 @@ void Board320_240::menuItemClick()
       break;
     case MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER:
       liveData->settings.disableCommandOptimizer = (liveData->settings.disableCommandOptimizer == 1) ? 0 : 1;
+      showMenu();
+      return;
+      break;
+    case MENU_ADAPTER_MOBILE_RELAY:
+    {
+      const bool enabling = (liveData->settings.relayForMobileEnabled == 0);
+      liveData->settings.relayForMobileEnabled = enabling ? 1 : 0;
+      saveSettings();
+      if (enabling && liveData->settings.commType != COMM_TYPE_OBD2_BLE4 && liveData->settings.commType != COMM_TYPE_OBD2_BT3)
+      {
+        displayMessage("Mobile relay on", "Rebooting");
+        ESP.restart();
+      }
+      showMenu();
+      return;
+    }
+      break;
+    case MENU_ADAPTER_MOBILE_RELAY_PAIR:
+    {
+      const bool wasOff = (liveData->settings.relayForMobileEnabled == 0);
+      liveData->settings.relayForMobileEnabled = 1;
+      saveSettings();
+      if (wasOff && liveData->settings.commType != COMM_TYPE_OBD2_BLE4 && liveData->settings.commType != COMM_TYPE_OBD2_BT3)
+      {
+        displayMessage("Relay enabled", "Reboot, pair again");
+        ESP.restart();
+      }
+      String code = (mobileRelay != nullptr) ? mobileRelay->startPairing() : "";
+      displayMessage("Relay pairing code", code.c_str());
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_ADAPTER_MOBILE_RELAY_FORGET:
+      if (mobileRelay != nullptr)
+      {
+        mobileRelay->forgetPairing();
+      }
+      else
+      {
+        liveData->settings.relayToken[0] = '\0';
+        liveData->settings.relayMobileId[0] = '\0';
+        saveSettings();
+      }
       showMenu();
       return;
       break;

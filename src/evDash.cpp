@@ -52,11 +52,13 @@
 #include "CarBmwI3.h"
 #include "CarVWID3.h"
 #include "CarPeugeotE208.h"
+#include "EvDashMobileRelay.h"
 
 // Board, Car, Livedata (params, settings)
 BoardInterface *board;
 CarInterface *car;
 LiveData *liveData;
+EvDashMobileRelay *mobileRelay;
 
 /**
  * Setup function that initializes the board, car interface, live data,
@@ -97,6 +99,7 @@ void setup(void)
 #if defined(CONFIG_BT_CLASSIC_ENABLED) && defined(CONFIG_BT_SPP_ENABLED)
   keepBtController = keepBtController || (liveData->settings.commType == COMM_TYPE_OBD2_BT3);
 #endif
+  keepBtController = keepBtController || (liveData->settings.relayForMobileEnabled == 1);
   if (!keepBtController)
   {
     esp_err_t btReleaseRc = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
@@ -197,6 +200,8 @@ void setup(void)
 
   // Finish board setup
   board->afterSetup();
+  mobileRelay = new EvDashMobileRelay();
+  mobileRelay->begin(liveData, board);
   board->redrawScreen();
 
   // End
@@ -253,5 +258,9 @@ void setup(void)
  */
 void loop()
 {
+  if (mobileRelay != nullptr)
+  {
+    mobileRelay->loop();
+  }
   board->mainLoop();
 }
