@@ -1,8 +1,18 @@
 # RELEASE NOTES
 
+### V4.5.25 2026-05-02
+- Contribute/SD `v2` raw frame export:
+  - Increased raw frame upload limit from `24` to `32`.
+  - Allows large eGMP packs to include all BMS cell-voltage blocks (`220102/103/104/10A/10B/10C`) in contribute/SD snapshots.
+- Traccar Web UI/menu config:
+  - Added Web UI fields for Traccar enabled state, server host and server port.
+  - Added on-device menu editors for Traccar server host and port.
+  - Traccar upload now uses saved settings instead of hard-coded `demo3.traccar.org`.
+  - Settings upgraded to version 24 with default Traccar server `demo3.traccar.org:5055`.
+
 ### V4.5.24 2026-05-01
 - Traccar server upload support (thanks to Conny/spot2000):
-  - Added optional Traccar GPS position upload, configurable from the on-device menu and Web UI.
+  - Added optional Traccar GPS position upload, enabled from the on-device menu.
   - Upload sends device id, timestamp, latitude/longitude, speed, heading, altitude, SoC and charging state.
   - Server address/port are compile-time constants, so they must be adjusted before building custom firmware.
   - Settings upgraded to version 23 with default Traccar upload disabled.

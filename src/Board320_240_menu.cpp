@@ -234,6 +234,13 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_REMOTE_UPLOAD_TRACCAR_ENABLED:
     suffix = (liveData->settings.traccarEnabled == 0) ? "[no]" : "[yes]";
     break;
+  case MENU_REMOTE_UPLOAD_TRACCAR_SERVER:
+    suffix = String(liveData->settings.traccarServerHost);
+    break;
+  case MENU_REMOTE_UPLOAD_TRACCAR_PORT:
+    sprintf(tmpStr1, "%u", liveData->settings.traccarServerPort);
+    suffix = tmpStr1;
+    break;
   case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
     suffix = (liveData->settings.mqttEnabled == 0) ? "[off]" : "[on]";
     break;
@@ -1240,6 +1247,39 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case MENU_REMOTE_UPLOAD_TRACCAR_SERVER:
+    {
+      String value = String(liveData->settings.traccarServerHost);
+      if (promptKeyboard("Traccar server", value, false, sizeof(liveData->settings.traccarServerHost) - 1))
+      {
+        value.trim();
+        if (value.length() == 0)
+          value = "demo3.traccar.org";
+        value.toCharArray(liveData->settings.traccarServerHost, sizeof(liveData->settings.traccarServerHost));
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
+    case MENU_REMOTE_UPLOAD_TRACCAR_PORT:
+    {
+      String value = String(liveData->settings.traccarServerPort);
+      if (promptKeyboard("Traccar port", value, false, 5))
+      {
+        value.trim();
+        long parsedPort = value.toInt();
+        if (parsedPort <= 0)
+          parsedPort = 5055;
+        if (parsedPort > 65535)
+          parsedPort = 65535;
+        liveData->settings.traccarServerPort = static_cast<uint16_t>(parsedPort);
+        saveSettings();
+      }
+      showMenu();
+      return;
+    }
+    break;
     case MENU_REMOTE_UPLOAD_MQTT_ENABLED:
       liveData->settings.mqttEnabled = (liveData->settings.mqttEnabled == 1) ? 0 : 1;
       showMenu();

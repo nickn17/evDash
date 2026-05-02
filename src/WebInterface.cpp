@@ -250,6 +250,9 @@ void handleRoot()
   text += "<tr><td>MQTT pub.topic</td><td><input data-key='mqttPubTopic' value='" + htmlEscape(String(liveDataWebInt->settings.mqttPubTopic)) + "'></td></tr>";
   text += "<tr><td>Contribute data</td><td><input type='checkbox' data-key='contributeData'" + checkedAttr(liveDataWebInt->settings.contributeData) + "></td></tr>";
   text += "<tr><td>Contribute token</td><td><input data-key='contributeToken' value='" + htmlEscape(String(liveDataWebInt->settings.contributeToken)) + "'></td></tr>";
+  text += "<tr><td>Traccar enabled</td><td><input type='checkbox' data-key='traccarEnabled'" + checkedAttr(liveDataWebInt->settings.traccarEnabled) + "></td></tr>";
+  text += "<tr><td>Traccar server</td><td><input data-key='traccarServerHost' value='" + htmlEscape(String(liveDataWebInt->settings.traccarServerHost)) + "'></td></tr>";
+  text += "<tr><td>Traccar port</td><td><input type='number' data-key='traccarServerPort' value='" + String(liveDataWebInt->settings.traccarServerPort) + "'></td></tr>";
   text += "<tr><td>Traccar deviceId</td><td>" + htmlEscape(getTraccarDeviceIdForDisplay()) + "</td></tr>";
 
   text += "<tr><th colspan='2'>GPS module</th></tr>";
@@ -613,6 +616,12 @@ void handleSet()
     liveDataWebInt->settings.contributeData = value.toInt() ? 1 : 0;
   else if (key == "contributeToken")
     setCharField(value, liveDataWebInt->settings.contributeToken);
+  else if (key == "traccarEnabled")
+    liveDataWebInt->settings.traccarEnabled = value.toInt() ? 1 : 0;
+  else if (key == "traccarServerHost")
+    setCharField(value, liveDataWebInt->settings.traccarServerHost);
+  else if (key == "traccarServerPort")
+    liveDataWebInt->settings.traccarServerPort = (value.toInt() > 0) ? value.toInt() : 5055;
   else if (key == "voltmeterEnabled")
     liveDataWebInt->settings.voltmeterEnabled = value.toInt() ? 1 : 0;
   else if (key == "voltmeterBasedSleep")
