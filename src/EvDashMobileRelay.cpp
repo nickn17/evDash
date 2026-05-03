@@ -46,6 +46,11 @@ void EvDashMobileRelay::loop()
   {
     return;
   }
+  if (nowMs - lastContributeMs > 1000)
+  {
+    sendContributePayload();
+    lastContributeMs = nowMs;
+  }
   if (nowMs - lastSnapshotMs > 500)
   {
     sendSnapshot();
@@ -228,7 +233,7 @@ void EvDashMobileRelay::handleCommand(const String &jsonLine)
   DeserializationError error = deserializeJson(doc, jsonLine);
   if (error)
   {
-    notifyJson("{\"type\":\"error\",\"message\":\"badJson\"}");
+    notifyJson("{\"type\":\"error\",\"ver\":2,\"message\":\"badJson\"}");
     return;
   }
   String type = doc["type"] | "";
@@ -240,12 +245,13 @@ void EvDashMobileRelay::handleCommand(const String &jsonLine)
   String token = doc["token"] | "";
   if (!paired() || token != String(liveData->settings.relayToken))
   {
-    notifyJson("{\"type\":\"pairRequired\",\"ver\":1}");
+    notifyJson("{\"type\":\"pairRequired\",\"ver\":2}");
     return;
   }
   if (type == "hello" || type == "ping" || type == "requestFullSnapshot")
   {
     sendHello();
+    sendContributePayload();
     sendSnapshot();
     sendCells();
     sendTemps();
@@ -261,7 +267,7 @@ void EvDashMobileRelay::handlePairStart(const String &mobileId, const String &co
 {
   if (!pairingOpen() || code != String(currentPairingCode))
   {
-    notifyJson("{\"type\":\"pairRequired\",\"ver\":1}");
+    notifyJson("{\"type\":\"pairRequired\",\"ver\":2}");
     return;
   }
   String token = ensureRelayToken();
@@ -273,7 +279,7 @@ void EvDashMobileRelay::handlePairStart(const String &mobileId, const String &co
     board->saveSettings();
   }
 
-  String json = "{\"type\":\"pairOk\",\"ver\":1,\"relayId\":\"" + relayId() +
+  String json = "{\"type\":\"pairOk\",\"ver\":2,\"relayId\":\"" + relayId() +
                 "\",\"mobileId\":\"" + escapeJson(String(liveData->settings.relayMobileId)) +
                 "\",\"token\":\"" + escapeJson(token) +
                 "\",\"vehicleId\":\"" + vehicleId() + "\"}";
@@ -308,7 +314,7 @@ void EvDashMobileRelay::sendHello()
   {
     return;
   }
-  String json = "{\"type\":\"hello\",\"ver\":1,\"relayId\":\"" + relayId() +
+  String json = "{\"type\":\"hello\",\"ver\":2,\"relayId\":\"" + relayId() +
                 "\",\"fw\":\"" + String(APP_VERSION) +
                 "\",\"vehicleId\":\"" + vehicleId() +
                 "\",\"paired\":" + jsonBool(paired()) +
@@ -316,10 +322,23 @@ void EvDashMobileRelay::sendHello()
   notifyJson(json);
 }
 
+void EvDashMobileRelay::sendContributePayload()
+{
+  if (board == nullptr)
+  {
+    return;
+  }
+  String json;
+  if (board->buildContributePayloadV2(json, false) && json.length() > 2)
+  {
+    notifyJson(json);
+  }
+}
+
 void EvDashMobileRelay::sendSnapshot()
 {
   PARAMS_STRUC &p = liveData->params;
-  String json = "{\"type\":\"snapshot\",\"ver\":1";
+  String json = "{\"type\":\"snapshot\",\"ver\":2";
   json += ",\"ts\":" + String(static_cast<uint32_t>(p.currentTime));
   json += ",\"relayId\":\"" + relayId() + "\"";
   json += ",\"vehicleId\":\"" + vehicleId() + "\"";
@@ -339,6 +358,13 @@ void EvDashMobileRelay::sendSnapshot()
   json += ",\"auxV\":" + jsonNumber(p.auxVoltage, 1);
   json += ",\"auxPct\":" + jsonNumber(p.auxPerc, 0);
   json += ",\"odoKm\":" + jsonNumber(p.odoKm, 1);
+  json += ",\"avgSpd\":" + jsonNumber(p.avgSpeedKmh, 1);
+  json += ",\"tripKm\":";
+  json += (p.odoKm >= 0.0f && p.odoKmStart >= 0.0f) ? jsonNumber(p.odoKm - p.odoKmStart, 1) : "null";
+  json += ",\"inC\":";
+  json += (p.indoorTemperature > -99.0f) ? jsonNumber(p.indoorTemperature, 1) : "null";
+  json += ",\"outC\":";
+  json += (p.outdoorTemperature > -99.0f) ? jsonNumber(p.outdoorTemperature, 1) : "null";
   json += ",\"chg\":" + jsonBool(p.chargingOn);
   json += ",\"chgAc\":" + jsonBool(p.chargerACconnected);
   json += ",\"chgDc\":" + jsonBool(p.chargerDCconnected);
@@ -352,6 +378,24 @@ void EvDashMobileRelay::sendSnapshot()
   json += ",\"cMaxV\":" + jsonNumber(p.batCellMaxV, 3);
   json += ",\"cMinNo\":" + String(p.batCellMinVNo);
   json += ",\"cMaxNo\":" + String(p.batCellMaxVNo);
+  json += ",\"chargedKwh\":";
+  json += (p.cumulativeEnergyChargedKWh >= 0.0f && p.cumulativeEnergyChargedKWhStart >= 0.0f) ? jsonNumber(p.cumulativeEnergyChargedKWh - p.cumulativeEnergyChargedKWhStart, 2) : "null";
+  json += ",\"dischargedKwh\":";
+  json += (p.cumulativeEnergyDischargedKWh >= 0.0f && p.cumulativeEnergyDischargedKWhStart >= 0.0f) ? jsonNumber(p.cumulativeEnergyDischargedKWh - p.cumulativeEnergyDischargedKWhStart, 2) : "null";
+  json += ",\"availKwh\":" + jsonNumber(p.batteryTotalAvailableKWh, 1);
+  json += ",\"batKwh\":" + jsonNumber(p.batEnergyContent, 1);
+  json += ",\"batMaxKwh\":" + jsonNumber(p.batMaxEnergyContent, 1);
+  json += ",\"bms\":\"" + bmsMode() + "\"";
+  json += ",\"flDoor\":" + jsonBool(p.leftFrontDoorOpen);
+  json += ",\"frDoor\":" + jsonBool(p.rightFrontDoorOpen);
+  json += ",\"rlDoor\":" + jsonBool(p.leftRearDoorOpen);
+  json += ",\"rrDoor\":" + jsonBool(p.rightRearDoorOpen);
+  json += ",\"hood\":" + jsonBool(p.hoodDoorOpen);
+  json += ",\"trunk\":" + jsonBool(p.trunkDoorOpen);
+  json += ",\"headlights\":" + jsonBool(p.headLights || p.dayLights || p.autoLights);
+  json += ",\"brakeLights\":" + jsonBool(p.brakeLights);
+  json += ",\"frontRpm\":" + jsonNumber(p.motor1Rpm, 0);
+  json += ",\"rearRpm\":" + jsonNumber(p.motor2Rpm, 0);
   json += ",\"lat\":" + jsonNumber(p.gpsLat, 5);
   json += ",\"lon\":" + jsonNumber(p.gpsLon, 5);
   json += ",\"alt\":" + jsonNumber(p.gpsAlt, 0);
@@ -365,7 +409,7 @@ void EvDashMobileRelay::sendCells()
 {
   PARAMS_STRUC &p = liveData->params;
   const uint16_t count = (p.cellCount > 0 && p.cellCount <= 192) ? p.cellCount : 192;
-  String json = "{\"type\":\"cells\",\"ver\":1,\"cells\":[";
+  String json = "{\"type\":\"cells\",\"ver\":2,\"cells\":[";
   bool first = true;
   for (uint16_t i = 0; i < count; i++)
   {
@@ -389,7 +433,7 @@ void EvDashMobileRelay::sendTemps()
 {
   PARAMS_STRUC &p = liveData->params;
   const uint16_t count = (p.batModuleTempCount > 0 && p.batModuleTempCount <= 25) ? p.batModuleTempCount : 25;
-  String json = "{\"type\":\"temps\",\"ver\":1,\"modules\":[";
+  String json = "{\"type\":\"temps\",\"ver\":2,\"modules\":[";
   bool first = true;
   for (uint16_t i = 0; i < count; i++)
   {
@@ -415,7 +459,7 @@ void EvDashMobileRelay::sendRawFrames()
   {
     return;
   }
-  String json = "{\"type\":\"raw\",\"ver\":1,\"frames\":{";
+  String json = "{\"type\":\"raw\",\"ver\":2,\"frames\":{";
   uint8_t added = 0;
   for (uint8_t i = 0; i < liveData->contributeRawFrameCount && added < 8; i++)
   {
@@ -554,10 +598,6 @@ String EvDashMobileRelay::commType() const
     return "can";
   case COMM_TYPE_OBD2_BLE4:
     return "ble4";
-  case COMM_TYPE_OBD2_BT3:
-    return "bt3";
-  case COMM_TYPE_OBD2_WIFI:
-    return "wifi";
   default:
     return "unknown";
   }
@@ -572,6 +612,11 @@ String EvDashMobileRelay::driveMode() const
   if (liveData->params.parkModeOrNeutral)
     return "P/N";
   return "-";
+}
+
+String EvDashMobileRelay::bmsMode() const
+{
+  return liveData->getBatteryManagementModeStr(liveData->params.batteryManagementMode);
 }
 
 String EvDashMobileRelay::jsonNumber(float value, uint8_t digits) const

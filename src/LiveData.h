@@ -52,8 +52,8 @@
 // COMM TYPE
 #define COMM_TYPE_OBD2_BLE4 0
 #define COMM_TYPE_CAN_COMMU 1
-#define COMM_TYPE_OBD2_WIFI 2
-#define COMM_TYPE_OBD2_BT3 3
+#define COMM_TYPE_OBD2_WIFI 2 // legacy unsupported
+#define COMM_TYPE_OBD2_BT3 3  // legacy unsupported
 
 // REMOTE_UPLOAD
 #define REMOTE_UPLOAD_OFF 0
@@ -304,7 +304,7 @@ typedef struct
   uint8_t predrawnChargingGraphs; // 0 - off, 1 - on
   // === settings version 4
   // =================================
-  uint8_t commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2 - OBD2 WIFI, 3 - OBD2 BT3
+  uint8_t commType; // 0 - OBD2 BLE4 adapter, 1 - CAN, 2/3 - legacy unsupported
   // Wifi
   uint8_t wifiEnabled; // 0/1
   char wifiSsid[32];
@@ -371,9 +371,9 @@ typedef struct
   // == settings version 15
   uint8_t abrpSdcardLog; // 0/1
   // == settings version 16
-  char obd2Name[20];     // obd2 adapter name (bt3 device name)
-  char obd2WifiIp[20];   // obd2wifi ip address
-  uint16_t obd2WifiPort; // obd2wifi port
+  char obd2Name[20];     // BLE4 adapter display name
+  char obd2WifiIp[20];   // legacy obd2wifi ip address
+  uint16_t obd2WifiPort; // legacy obd2wifi port
   /*
     192.168.0.10 35000 - most adapters
     192.168.1.10 35000
@@ -402,7 +402,7 @@ typedef struct
   // == settings version 21
   uint8_t carSpeedType; // 0 - automatic (car/gps), 1 - only from car, 2 - only from gps
   // == settings version 22
-  uint8_t contributeJsonType; // 1 - legacy raw queue-loop payload, 2 - minute snapshots with 5s samples
+  uint8_t contributeJsonType; // forced to 2 - snapshots with 5s motion/charging samples
   // == settings version 23
   uint8_t traccarEnabled; // 0 - off, 1 - send GPS data to Traccar server
   // == settings version 24

@@ -96,9 +96,6 @@ void setup(void)
 
 #if CONFIG_BT_ENABLED
   bool keepBtController = (liveData->settings.commType == COMM_TYPE_OBD2_BLE4);
-#if defined(CONFIG_BT_CLASSIC_ENABLED) && defined(CONFIG_BT_SPP_ENABLED)
-  keepBtController = keepBtController || (liveData->settings.commType == COMM_TYPE_OBD2_BT3);
-#endif
   keepBtController = keepBtController || (liveData->settings.relayForMobileEnabled == 1);
   if (!keepBtController)
   {

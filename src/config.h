@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v4.6.1"
-#define APP_RELEASE_DATE "2026-05-02"
+#define APP_VERSION "v4.6.2"
+#define APP_RELEASE_DATE "2026-05-03"
 #define WEBFLASHER_URL "evdash.eu/m5flash"
 #define FW_VERSION_CHECK_URL "https://api.evdash.eu/v1/m5evdash/version/get"
 #define PAIR_START_URL "https://api.evdash.eu/v1/m5evdash/pair/start"
@@ -66,7 +66,6 @@
 #define CAR_SPEED_TYPE_GPS 2
 
 // Contribute/SD JSON format
-#define CONTRIBUTE_JSON_TYPE_V1 1
 #define CONTRIBUTE_JSON_TYPE_V2 2
 
 // ABRP KEY
@@ -166,11 +165,7 @@ typedef enum
   MENU_ADAPTER_BLE_SELECT,
   MENU_ADAPTER_CAN_COMMU,
   MENU_ADAPTER_OBD2_BLE4,
-  MENU_ADAPTER_OBD2_BT3,
-  MENU_ADAPTER_OBD2_WIFI,
   MENU_ADAPTER_OBD2_NAME,
-  MENU_ADAPTER_OBD2_IP,
-  MENU_ADAPTER_OBD2_PORT,
   MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP,
   MENU_ADAPTER_DISABLE_COMMAND_OPTIMIZER,
   MENU_ADAPTER_THREADING,

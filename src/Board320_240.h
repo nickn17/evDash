@@ -188,7 +188,6 @@ protected:
   void recordContributeSample();
   ContributeChargingEvent captureContributeChargingEventSnapshot(time_t eventTime) const;
   void handleContributeChargingTransitions();
-  bool buildContributePayloadV2(String &outJson, bool useReadableTsForSd = false);
   void syncContributeRelativeTimes(time_t offset);
   void runSdV2BackgroundTasks(bool netReady);
   bool ensureSdV2UploadFileSelected(const String &activeLogFilename);
@@ -232,6 +231,7 @@ public:
   void netLoop();
   bool netSendData(bool sendAbrp);
   bool netContributeData();
+  bool buildContributePayloadV2(String &outJson, bool useReadableTsForSd = false) override;
   void wifiFallback();
   void wifiSwitchToMain();
   void wifiSwitchToBackup();

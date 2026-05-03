@@ -64,4 +64,10 @@ public:
   virtual void sdcardToggleRecording() = 0;
   bool serializeParamsToJson(File file, bool inclApiKey = false);
   bool serializeParamsToJson(String &outJson, bool inclApiKey = false);
+  virtual bool buildContributePayloadV2(String &outJson, bool useReadableTsForSd = false)
+  {
+    (void)outJson;
+    (void)useReadableTsForSd;
+    return false;
+  }
 };
