@@ -4,8 +4,12 @@
 - Contribute/relay v2 fix:
   - Disabled legacy contribute/SD JSON `v1`; saved `v1` settings are forced back to `v2` on load.
   - Online contribute now always builds the `v2` payload with 5-second motion/charging samples.
+  - Online contribute POST now moves the JSON payload to PSRAM, uses raw TLS with SNI first, and temporarily deinitializes the mobile BLE relay stack during HTTPS when CAN adapter is used.
   - SD logging no longer offers the JSON type switch and records only `v2` logs.
-  - Mobile relay protocol messages now report `ver:2` and also stream the full `v2` contribute payload every second for phone relay/live upload.
+  - Mobile relay protocol messages now report `ver:2`; the live stream stays on compact `snapshot`/`cells`/`temps`/`raw` messages and full `v2` contribute is only sent when the app explicitly requests it.
+  - Contribute `v2` JSON numbers are serialized with fixed precision to avoid float artifacts like `3.980000019`.
+  - Contribute HTTPS POST now sends `User-Agent` and `Accept` headers so hosting WAF does not reject raw TLS uploads with `403 Forbidden`.
+- Removed the unused local hotspot/webadmin server and ESP32WebServer dependency.
 
 ### V4.6.1 2026-05-02
 - evDash mobile relay v1:
