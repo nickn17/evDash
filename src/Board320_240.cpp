@@ -46,22 +46,21 @@ So in summary, it initializes the core display and hardware functionality, retri
 #include <Update.h>
 #include <math.h>
 #include <esp_heap_caps.h>
+#include <mbedtls/x509.h>
 #include "config.h"
 #include "BoardInterface.h"
 #include "Board320_240.h"
 #include <time.h>
 #include <ArduinoJson.h>
 #include "CarModelUtils.h"
+#include "EvDashMobileRelay.h"
 #include "traccar.h"
 
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
 #include <PubSubClient.h>
-#include "WebInterface.h"
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 
-#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-WebInterface *webInterface = nullptr;
-#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
+extern EvDashMobileRelay *mobileRelay;
 
 namespace
 {
@@ -96,11 +95,11 @@ namespace
   constexpr uint8_t kContributeRawFrameUploadMax = 32;
   constexpr bool kContributeIncludeRawLatency = false;
   constexpr bool kContributeRetryOnceOnFail = false;
-  constexpr bool kContributeRawTlsFallbackOnTlsMem = false;
+  constexpr bool kContributeRawTlsFallbackOnTlsMem = true;
   constexpr bool kContributeEnableTcpProbe = false;
   constexpr bool kContributeHttpFallbackOnTlsMem = false;
-  constexpr uint16_t kContributeHttpsConnectTimeoutMs = 4000;
-  constexpr uint16_t kContributeHttpsIoTimeoutMs = 4500;
+  constexpr uint16_t kContributeHttpsConnectTimeoutMs = 8000;
+  constexpr uint16_t kContributeHttpsIoTimeoutMs = 8000;
   constexpr uint16_t kContributeHttpConnectTimeoutMs = 2000;
   constexpr uint16_t kContributeHttpReadTimeoutMs = 3500;
   constexpr size_t kContributeResponseBufferCap = 2048;
@@ -124,6 +123,57 @@ namespace
   static char gAbrpPayloadBuffer[kAbrpPayloadBufferSize];
   static char gAbrpEncodedPayloadBuffer[kAbrpFormBufferSize];
   static char gAbrpFormBuffer[kAbrpFormBufferSize];
+
+  struct HeapCapsJsonAllocator
+  {
+    void *allocate(size_t size)
+    {
+      void *ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+      if (ptr == nullptr)
+      {
+        ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+      }
+      return ptr;
+    }
+
+    void deallocate(void *ptr)
+    {
+      free(ptr);
+    }
+
+    void *reallocate(void *ptr, size_t newSize)
+    {
+      void *newPtr = heap_caps_realloc(ptr, newSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+      if (newPtr == nullptr)
+      {
+        newPtr = heap_caps_realloc(ptr, newSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+      }
+      return newPtr;
+    }
+  };
+
+  using HeapCapsJsonDocument = BasicJsonDocument<HeapCapsJsonAllocator>;
+
+  bool isTlsMemoryIssue(int lastTlsErrCode, const String &lastTlsErrText)
+  {
+    String text = lastTlsErrText;
+    text.toLowerCase();
+    return lastTlsErrCode == MBEDTLS_ERR_X509_ALLOC_FAILED ||
+           lastTlsErrCode == -16 ||
+           text.indexOf("alloc") != -1;
+  }
+
+  char *allocContributePayloadBuffer(size_t payloadLen, bool &psramBuffer)
+  {
+    psramBuffer = false;
+    char *buffer = (char *)heap_caps_malloc(payloadLen + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (buffer != nullptr)
+    {
+      psramBuffer = true;
+      return buffer;
+    }
+    return (char *)heap_caps_malloc(payloadLen + 1, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  }
 
   size_t encodeQuotes(char *dest, size_t destSize, const char *source)
   {
@@ -236,6 +286,26 @@ namespace
       return value;
     }
     return roundf(value * multiplier) / multiplier;
+  }
+
+  String formatJsonNumber(float value, uint8_t digits)
+  {
+    if (!isfinite(value))
+    {
+      return "null";
+    }
+    return String(value, static_cast<unsigned int>(digits));
+  }
+
+  template <typename TJson>
+  void setJsonNumber(TJson &json, const char *key, float value, uint8_t digits)
+  {
+    if (!isfinite(value))
+    {
+      json[key] = nullptr;
+      return;
+    }
+    json[key] = serialized(formatJsonNumber(value, digits));
   }
 
   float normalizeHeadingDeg(float headingDeg)
@@ -1868,11 +1938,6 @@ void Board320_240::commLoop()
  */
 void Board320_240::boardLoop()
 {
-  // touch events, m5.update
-#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-  if (webInterface != nullptr)
-    webInterface->mainLoop();
-#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 }
 
 void Board320_240::recordContributeSample()
@@ -1986,7 +2051,7 @@ void Board320_240::handleContributeChargingTransitions()
 bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsForSd)
 {
   (void)useReadableTsForSd;
-  DynamicJsonDocument jsonData(kContributeJsonDocCapacity);
+  HeapCapsJsonDocument jsonData(kContributeJsonDocCapacity);
   const time_t nowTime = liveData->params.currentTime;
   const String contributeKey = ensureContributeKey();
   const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
@@ -2048,41 +2113,41 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
   jsonData["chg"] = liveData->params.chargingOn ? 1 : 0;
   jsonData["chgAc"] = liveData->params.chargerACconnected ? 1 : 0;
   jsonData["chgDc"] = liveData->params.chargerDCconnected ? 1 : 0;
-  jsonData["soc"] = roundToPrecision(liveData->params.socPerc, 10.0f);
+  setJsonNumber(jsonData, "soc", liveData->params.socPerc, 1);
   if (liveData->params.socPercBms != -1)
   {
-    jsonData["socBms"] = roundToPrecision(liveData->params.socPercBms, 10.0f);
+    setJsonNumber(jsonData, "socBms", liveData->params.socPercBms, 1);
   }
-  jsonData["soh"] = roundToPrecision(liveData->params.sohPerc, 10.0f);
-  jsonData["powKw"] = roundToPrecision(liveData->params.batPowerKw, 1000.0f);
-  jsonData["powKwh100"] = roundToPrecision(liveData->params.batPowerKwh100, 1000.0f);
-  jsonData["batV"] = roundToPrecision(liveData->params.batVoltage, 10.0f);
-  jsonData["batA"] = roundToPrecision(liveData->params.batPowerAmp, 10.0f);
-  jsonData["auxV"] = roundToPrecision(liveData->params.auxVoltage, 10.0f);
-  jsonData["auxA"] = roundToPrecision(liveData->params.auxCurrentAmp, 10.0f);
-  jsonData["batMinC"] = roundToPrecision(liveData->params.batMinC, 10.0f);
-  jsonData["batMaxC"] = roundToPrecision(liveData->params.batMaxC, 10.0f);
-  jsonData["inC"] = roundToPrecision(liveData->params.indoorTemperature, 10.0f);
-  jsonData["outC"] = roundToPrecision(liveData->params.outdoorTemperature, 10.0f);
-  jsonData["spd"] = roundToPrecision(liveData->params.speedKmh, 10.0f);
+  setJsonNumber(jsonData, "soh", liveData->params.sohPerc, 1);
+  setJsonNumber(jsonData, "powKw", liveData->params.batPowerKw, 3);
+  setJsonNumber(jsonData, "powKwh100", liveData->params.batPowerKwh100, 3);
+  setJsonNumber(jsonData, "batV", liveData->params.batVoltage, 1);
+  setJsonNumber(jsonData, "batA", liveData->params.batPowerAmp, 1);
+  setJsonNumber(jsonData, "auxV", liveData->params.auxVoltage, 1);
+  setJsonNumber(jsonData, "auxA", liveData->params.auxCurrentAmp, 1);
+  setJsonNumber(jsonData, "batMinC", liveData->params.batMinC, 1);
+  setJsonNumber(jsonData, "batMaxC", liveData->params.batMaxC, 1);
+  setJsonNumber(jsonData, "inC", liveData->params.indoorTemperature, 1);
+  setJsonNumber(jsonData, "outC", liveData->params.outdoorTemperature, 1);
+  setJsonNumber(jsonData, "spd", liveData->params.speedKmh, 1);
   if (liveData->params.speedKmhGPS >= 0)
   {
-    jsonData["gpsSpd"] = roundToPrecision(liveData->params.speedKmhGPS, 10.0f);
+    setJsonNumber(jsonData, "gpsSpd", liveData->params.speedKmhGPS, 1);
   }
   if (liveData->params.gpsHeadingDeg >= 0)
   {
-    jsonData["hdg"] = roundToPrecision(liveData->params.gpsHeadingDeg, 10.0f);
+    setJsonNumber(jsonData, "hdg", liveData->params.gpsHeadingDeg, 1);
   }
-  jsonData["odoKm"] = roundToPrecision(liveData->params.odoKm, 10.0f);
-  jsonData["cMinV"] = roundToPrecision(liveData->params.batCellMinV, 1000.0f);
-  jsonData["cMaxV"] = roundToPrecision(liveData->params.batCellMaxV, 1000.0f);
+  setJsonNumber(jsonData, "odoKm", liveData->params.odoKm, 1);
+  setJsonNumber(jsonData, "cMinV", liveData->params.batCellMinV, 3);
+  setJsonNumber(jsonData, "cMaxV", liveData->params.batCellMaxV, 3);
   jsonData["cMinNo"] = liveData->params.batCellMinVNo;
-  jsonData["cecKWh"] = roundToPrecision(liveData->params.cumulativeEnergyChargedKWh, 1000.0f);
-  jsonData["cedKWh"] = roundToPrecision(liveData->params.cumulativeEnergyDischargedKWh, 1000.0f);
+  setJsonNumber(jsonData, "cecKWh", liveData->params.cumulativeEnergyChargedKWh, 3);
+  setJsonNumber(jsonData, "cedKWh", liveData->params.cumulativeEnergyDischargedKWh, 3);
   if (isGpsFixUsable(liveData))
   {
-    jsonData["lat"] = roundToPrecision(liveData->params.gpsLat, kContributeGpsCoordPrecision);
-    jsonData["lon"] = roundToPrecision(liveData->params.gpsLon, kContributeGpsCoordPrecision);
+    setJsonNumber(jsonData, "lat", liveData->params.gpsLat, 6);
+    setJsonNumber(jsonData, "lon", liveData->params.gpsLon, 6);
   }
   JsonArray motion;
   const uint8_t motionStartIndex = (contributeMotionSampleCount == kContributeSampleSlots) ? contributeMotionSampleNext : 0;
@@ -2109,12 +2174,12 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
     }
     JsonObject row = motion.createNestedObject();
     row["t"] = static_cast<int32_t>(sample.time - nowTime);
-    row["lat"] = sample.lat;
-    row["lon"] = sample.lon;
-    row["spd"] = sample.speedKmh;
-    row["hdg"] = sample.headingDeg;
-    row["cMinV"] = sample.cellMinV;
-    row["cMaxV"] = sample.cellMaxV;
+    setJsonNumber(row, "lat", sample.lat, 6);
+    setJsonNumber(row, "lon", sample.lon, 6);
+    setJsonNumber(row, "spd", sample.speedKmh, 1);
+    setJsonNumber(row, "hdg", sample.headingDeg, 1);
+    setJsonNumber(row, "cMinV", sample.cellMinV, 3);
+    setJsonNumber(row, "cMaxV", sample.cellMaxV, 3);
     row["cMinNo"] = sample.cellMinNo;
   }
 
@@ -2137,10 +2202,10 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
       }
       JsonObject row = charging.createNestedObject();
       row["t"] = static_cast<int32_t>(sample.time - nowTime);
-      row["soc"] = sample.soc;
-      row["batV"] = sample.batV;
-      row["batA"] = sample.batA;
-      row["powKw"] = sample.powKw;
+      setJsonNumber(row, "soc", sample.soc, 1);
+      setJsonNumber(row, "batV", sample.batV, 1);
+      setJsonNumber(row, "batA", sample.batA, 1);
+      setJsonNumber(row, "powKw", sample.powKw, 3);
     }
   }
 
@@ -2151,16 +2216,16 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
     {
       JsonObject chargingStart = jsonData.createNestedObject("chargingStart");
       chargingStart["time"] = contributeChargingStartEvent.time;
-      chargingStart["soc"] = contributeChargingStartEvent.soc;
-      chargingStart["batV"] = contributeChargingStartEvent.batV;
-      chargingStart["batA"] = contributeChargingStartEvent.batA;
-      chargingStart["cMinV"] = contributeChargingStartEvent.cellMinV;
-      chargingStart["cMaxV"] = contributeChargingStartEvent.cellMaxV;
+      setJsonNumber(chargingStart, "soc", contributeChargingStartEvent.soc, 1);
+      setJsonNumber(chargingStart, "batV", contributeChargingStartEvent.batV, 1);
+      setJsonNumber(chargingStart, "batA", contributeChargingStartEvent.batA, 1);
+      setJsonNumber(chargingStart, "cMinV", contributeChargingStartEvent.cellMinV, 3);
+      setJsonNumber(chargingStart, "cMaxV", contributeChargingStartEvent.cellMaxV, 3);
       chargingStart["cMinNo"] = contributeChargingStartEvent.cellMinNo;
-      chargingStart["batMinC"] = contributeChargingStartEvent.batMinC;
-      chargingStart["batMaxC"] = contributeChargingStartEvent.batMaxC;
-      chargingStart["cecKWh"] = contributeChargingStartEvent.cecKWh;
-      chargingStart["cedKWh"] = contributeChargingStartEvent.cedKWh;
+      setJsonNumber(chargingStart, "batMinC", contributeChargingStartEvent.batMinC, 1);
+      setJsonNumber(chargingStart, "batMaxC", contributeChargingStartEvent.batMaxC, 1);
+      setJsonNumber(chargingStart, "cecKWh", contributeChargingStartEvent.cecKWh, 3);
+      setJsonNumber(chargingStart, "cedKWh", contributeChargingStartEvent.cedKWh, 3);
     }
   }
 
@@ -2171,16 +2236,16 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
     {
       JsonObject chargingEnd = jsonData.createNestedObject("chargingEnd");
       chargingEnd["time"] = contributeChargingEndEvent.time;
-      chargingEnd["soc"] = contributeChargingEndEvent.soc;
-      chargingEnd["batV"] = contributeChargingEndEvent.batV;
-      chargingEnd["batA"] = contributeChargingEndEvent.batA;
-      chargingEnd["cMinV"] = contributeChargingEndEvent.cellMinV;
-      chargingEnd["cMaxV"] = contributeChargingEndEvent.cellMaxV;
+      setJsonNumber(chargingEnd, "soc", contributeChargingEndEvent.soc, 1);
+      setJsonNumber(chargingEnd, "batV", contributeChargingEndEvent.batV, 1);
+      setJsonNumber(chargingEnd, "batA", contributeChargingEndEvent.batA, 1);
+      setJsonNumber(chargingEnd, "cMinV", contributeChargingEndEvent.cellMinV, 3);
+      setJsonNumber(chargingEnd, "cMaxV", contributeChargingEndEvent.cellMaxV, 3);
       chargingEnd["cMinNo"] = contributeChargingEndEvent.cellMinNo;
-      chargingEnd["batMinC"] = contributeChargingEndEvent.batMinC;
-      chargingEnd["batMaxC"] = contributeChargingEndEvent.batMaxC;
-      chargingEnd["cecKWh"] = contributeChargingEndEvent.cecKWh;
-      chargingEnd["cedKWh"] = contributeChargingEndEvent.cedKWh;
+      setJsonNumber(chargingEnd, "batMinC", contributeChargingEndEvent.batMinC, 1);
+      setJsonNumber(chargingEnd, "batMaxC", contributeChargingEndEvent.batMaxC, 1);
+      setJsonNumber(chargingEnd, "cecKWh", contributeChargingEndEvent.cecKWh, 3);
+      setJsonNumber(chargingEnd, "cedKWh", contributeChargingEndEvent.cedKWh, 3);
     }
   }
 
@@ -5594,40 +5659,100 @@ bool Board320_240::netContributeData()
     const char *contributeHost = "api.evdash.eu";
     const char *contributeUrl = "https://api.evdash.eu/v1/contribute";
     const char *contributePath = "/v1/contribute";
-    String payloadForPost;
+    const String contributeUserAgent = String("evDash/") + String(APP_VERSION);
+    char *payloadForPost = nullptr;
+    size_t payloadForPostLen = 0;
+    bool payloadForPostInPsram = false;
     auto scheduleNextContributeCycle = [&]()
     {
       liveData->params.contributeStatus = CONTRIBUTE_NONE;
       contributeStatusSinceMs = 0;
       nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
     };
-    if (!buildContributePayloadV2(payloadForPost, false))
     {
-      syslog->println("Failed to build contribute v2 payload");
-      scheduleNextContributeCycle();
-      updateNetAvailability(false);
-      return false;
-    }
-    if (isContributeV2SnapshotEffectivelyEmpty(liveData))
-    {
-      syslog->println("Contribute v2 empty snapshot, skipping send");
-      scheduleNextContributeCycle();
-      return false;
-    }
+      String payloadJson;
+      payloadJson.reserve(4096);
+      if (!buildContributePayloadV2(payloadJson, false))
+      {
+        syslog->println("Failed to build contribute v2 payload");
+        scheduleNextContributeCycle();
+        updateNetAvailability(false);
+        return false;
+      }
+      if (isContributeV2SnapshotEffectivelyEmpty(liveData))
+      {
+        syslog->println("Contribute v2 empty snapshot, skipping send");
+        scheduleNextContributeCycle();
+        return false;
+      }
 
-    if (payloadForPost.length() < 2 || payloadForPost.charAt(0) != '{' || payloadForPost.charAt(payloadForPost.length() - 1) != '}')
-    {
-      syslog->println("Contribute payload invalid, skipping send");
-      scheduleNextContributeCycle();
-      updateNetAvailability(false);
-      return false;
+      if (payloadJson.length() < 2 || payloadJson.charAt(0) != '{' || payloadJson.charAt(payloadJson.length() - 1) != '}')
+      {
+        syslog->println("Contribute payload invalid, skipping send");
+        scheduleNextContributeCycle();
+        updateNetAvailability(false);
+        return false;
+      }
+      payloadForPostLen = payloadJson.length();
+      payloadForPost = allocContributePayloadBuffer(payloadForPostLen, payloadForPostInPsram);
+      if (payloadForPost == nullptr)
+      {
+        syslog->println("Contribute payload buffer allocation failed");
+        scheduleNextContributeCycle();
+        updateNetAvailability(false);
+        return false;
+      }
+      memcpy(payloadForPost, payloadJson.c_str(), payloadForPostLen + 1);
     }
     syslog->print("Contribute payload bytes: ");
-    syslog->println(payloadForPost.length());
+    syslog->println(payloadForPostLen);
+    syslog->print("Contribute payload buffer: ");
+    syslog->println(payloadForPostInPsram ? "psram" : "internal");
     syslog->print("Heap intFree/intLargest/psram: ");
     syslog->println(String(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
                     String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
                     String(ESP.getFreePsram()));
+
+    bool bleCommPausedForContribute = false;
+    bool relayPausedForContribute = false;
+    auto printContributeHeap = [&]()
+    {
+      syslog->print("Heap intFree/intLargest/psram: ");
+      syslog->println(String(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                      String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
+                      String(ESP.getFreePsram()));
+    };
+    auto pauseBleForContribute = [&]()
+    {
+      if (mobileRelay != nullptr && liveData->settings.relayForMobileEnabled == 1)
+      {
+        syslog->println("Contribute: pausing mobile BLE relay for TLS");
+        mobileRelay->pauseForNetUpload();
+        relayPausedForContribute = true;
+      }
+      if (commInterface != nullptr && liveData->settings.commType == COMM_TYPE_OBD2_BLE4 && !commInterface->isSuspended())
+      {
+        syslog->println("Contribute: suspending BLE adapter for TLS");
+        commInterface->suspendDevice();
+        bleCommPausedForContribute = true;
+      }
+      if (relayPausedForContribute || bleCommPausedForContribute)
+      {
+        delay(150);
+        printContributeHeap();
+      }
+    };
+    auto resumeBleAfterContribute = [&]()
+    {
+      if (bleCommPausedForContribute && commInterface != nullptr && !liveData->params.stopCommandQueue)
+      {
+        commInterface->resumeDevice();
+      }
+      if (relayPausedForContribute && mobileRelay != nullptr)
+      {
+        mobileRelay->resumeAfterNetUpload();
+      }
+    };
 
     String responsePayload = "";
     int lastTlsErrCode = 0;
@@ -5656,9 +5781,11 @@ bool Board320_240::netContributeData()
       http.useHTTP10(true);
       http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
       http.addHeader("Content-Type", "application/json");
+      http.addHeader("User-Agent", contributeUserAgent);
+      http.addHeader("Accept", "application/json");
       http.addHeader("Connection", "close");
-      addWifiTransferredBytes(payloadForPost.length());
-      const int postRc = http.POST((uint8_t *)payloadForPost.c_str(), payloadForPost.length());
+      addWifiTransferredBytes(payloadForPostLen);
+      const int postRc = http.POST((uint8_t *)payloadForPost, payloadForPostLen);
       const uint32_t elapsedMs = millis() - startedMs;
       syslog->print("Contribute POST attempt ");
       syslog->print(attemptNo);
@@ -5703,7 +5830,7 @@ bool Board320_240::netContributeData()
       client.setHandshakeTimeout((kContributeHttpsConnectTimeoutMs + 999) / 1000);
       client.setTimeout((kContributeHttpsIoTimeoutMs + 999) / 1000);
 
-      if (!client.connect(ip, 443, kContributeHttpsConnectTimeoutMs))
+      if (!client.connect(ip, 443, contributeHost, nullptr, nullptr, nullptr))
       {
         char tlsErrBuf[160] = {0};
         lastTlsErrCode = client.lastError(tlsErrBuf, sizeof(tlsErrBuf));
@@ -5725,18 +5852,20 @@ bool Board320_240::netContributeData()
       String headers = String("POST ") + contributePath + " HTTP/1.0\r\n" +
                        "Host: " + contributeHost + "\r\n" +
                        "Content-Type: application/json\r\n" +
+                       "User-Agent: " + contributeUserAgent + "\r\n" +
+                       "Accept: application/json\r\n" +
                        "Connection: close\r\n" +
-                       "Content-Length: " + String(payloadForPost.length()) + "\r\n\r\n";
+                       "Content-Length: " + String(payloadForPostLen) + "\r\n\r\n";
 
-      addWifiTransferredBytes(headers.length() + payloadForPost.length());
+      addWifiTransferredBytes(headers.length() + payloadForPostLen);
       client.print(headers);
-      const size_t written = client.write((const uint8_t *)payloadForPost.c_str(), payloadForPost.length());
-      if (written != payloadForPost.length())
+      const size_t written = client.write((const uint8_t *)payloadForPost, payloadForPostLen);
+      if (written != payloadForPostLen)
       {
         syslog->print("Contribute RAW TLS payload short write: ");
         syslog->print(written);
         syslog->print("/");
-        syslog->println(payloadForPost.length());
+        syslog->println(payloadForPostLen);
       }
 
       String rawResponse = "";
@@ -5826,18 +5955,20 @@ bool Board320_240::netContributeData()
       String headers = String("POST ") + contributePath + " HTTP/1.0\r\n" +
                        "Host: " + contributeHost + "\r\n" +
                        "Content-Type: application/json\r\n" +
+                       "User-Agent: " + contributeUserAgent + "\r\n" +
+                       "Accept: application/json\r\n" +
                        "Connection: close\r\n" +
-                       "Content-Length: " + String(payloadForPost.length()) + "\r\n\r\n";
+                       "Content-Length: " + String(payloadForPostLen) + "\r\n\r\n";
 
-      addWifiTransferredBytes(headers.length() + payloadForPost.length());
+      addWifiTransferredBytes(headers.length() + payloadForPostLen);
       client.print(headers);
-      const size_t written = client.write((const uint8_t *)payloadForPost.c_str(), payloadForPost.length());
-      if (written != payloadForPost.length())
+      const size_t written = client.write((const uint8_t *)payloadForPost, payloadForPostLen);
+      if (written != payloadForPostLen)
       {
         syslog->print("Contribute HTTP fallback payload short write: ");
         syslog->print(written);
         syslog->print("/");
-        syslog->println(payloadForPost.length());
+        syslog->println(payloadForPostLen);
       }
 
       String rawResponse = "";
@@ -5904,24 +6035,37 @@ bool Board320_240::netContributeData()
       return statusCode;
     };
 
-    rc = postContributePayload(responsePayload, 1);
-    bool tlsMemIssue = (lastTlsErrCode == -16 || lastTlsErrText.indexOf("Memory allocation failed") != -1);
+    pauseBleForContribute();
+
     IPAddress resolvedHost;
-    int dnsRc = 0;
+    int dnsRc = WiFi.hostByName(contributeHost, resolvedHost);
+    syslog->print("Contribute DNS ");
+    syslog->print(contributeHost);
+    syslog->print(": ");
+    if (dnsRc == 1)
+    {
+      syslog->println(resolvedHost.toString());
+    }
+    else
+    {
+      syslog->println("resolve_failed");
+    }
+
+    bool usedRawTlsFirst = false;
+    if (dnsRc == 1)
+    {
+      usedRawTlsFirst = true;
+      syslog->println("Contribute HTTPS: raw TLS POST with SNI...");
+      rc = postContributePayloadRawTls(responsePayload, resolvedHost, 1);
+    }
+    else
+    {
+      rc = postContributePayload(responsePayload, 1);
+    }
+
+    bool tlsMemIssue = isTlsMemoryIssue(lastTlsErrCode, lastTlsErrText);
     if (rc < 0)
     {
-      dnsRc = WiFi.hostByName(contributeHost, resolvedHost);
-      syslog->print("Contribute DNS ");
-      syslog->print(contributeHost);
-      syslog->print(": ");
-      if (dnsRc == 1)
-      {
-        syslog->println(resolvedHost.toString());
-      }
-      else
-      {
-        syslog->println("resolve_failed");
-      }
       syslog->print("WiFi RSSI/ch/BSSID: ");
       syslog->println(String(WiFi.RSSI()) + " / " + String(WiFi.channel()) + " / " + WiFi.BSSIDstr());
       if (dnsRc == 1 && kContributeEnableTcpProbe)
@@ -5945,8 +6089,15 @@ bool Board320_240::netContributeData()
         {
           syslog->println("Retry contribute POST once...");
           delay(250);
-          rc = postContributePayload(responsePayload, 2);
-          tlsMemIssue = (lastTlsErrCode == -16 || lastTlsErrText.indexOf("Memory allocation failed") != -1);
+          if (dnsRc == 1)
+          {
+            rc = postContributePayloadRawTls(responsePayload, resolvedHost, 2);
+          }
+          else
+          {
+            rc = postContributePayload(responsePayload, 2);
+          }
+          tlsMemIssue = isTlsMemoryIssue(lastTlsErrCode, lastTlsErrText);
         }
         else
         {
@@ -5959,11 +6110,11 @@ bool Board320_240::netContributeData()
       }
     }
 
-    if (kContributeRawTlsFallbackOnTlsMem && rc < 0 && tlsMemIssue && dnsRc == 1)
+    if (kContributeRawTlsFallbackOnTlsMem && rc < 0 && dnsRc == 1 && !usedRawTlsFirst)
     {
-      syslog->println("Contribute TLS memory workaround: raw TLS POST to resolved IP...");
+      syslog->println("Contribute HTTPS fallback: raw TLS POST with SNI...");
       rc = postContributePayloadRawTls(responsePayload, resolvedHost, 3);
-      tlsMemIssue = (lastTlsErrCode == -16 || lastTlsErrText.indexOf("Memory allocation failed") != -1);
+      tlsMemIssue = isTlsMemoryIssue(lastTlsErrCode, lastTlsErrText);
     }
 
     if (kContributeHttpFallbackOnTlsMem && rc < 0 && tlsMemIssue)
@@ -5980,6 +6131,8 @@ bool Board320_240::netContributeData()
     {
       syslog->println("Contribute HTTPS TLS memory issue detected in low-memory mode.");
     }
+
+    resumeBleAfterContribute();
 
     if (rc == HTTP_CODE_OK)
     {
@@ -6062,6 +6215,7 @@ bool Board320_240::netContributeData()
       scheduleNextContributeCycle();
       updateNetAvailability(false);
     }
+    free(payloadForPost);
   }
 #endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
 

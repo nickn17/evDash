@@ -22,6 +22,10 @@ void EvDashMobileRelay::loop()
   {
     return;
   }
+  if (netUploadPaused)
+  {
+    return;
+  }
   if (liveData->settings.relayForMobileEnabled == 0)
   {
     stopServer();
@@ -45,11 +49,6 @@ void EvDashMobileRelay::loop()
   if (!paired())
   {
     return;
-  }
-  if (nowMs - lastContributeMs > 1000)
-  {
-    sendContributePayload();
-    lastContributeMs = nowMs;
   }
   if (nowMs - lastSnapshotMs > 500)
   {
@@ -111,6 +110,39 @@ void EvDashMobileRelay::forgetPairing()
   sendHello();
 }
 
+void EvDashMobileRelay::pauseForNetUpload()
+{
+  netUploadPaused = true;
+  if (connected && server != nullptr)
+  {
+    server->disconnect(server->getConnId());
+    delay(80);
+  }
+  stopServer();
+  if (liveData != nullptr && liveData->settings.commType != COMM_TYPE_OBD2_BLE4 && BLEDevice::getInitialized())
+  {
+    BLEDevice::deinit(false);
+    server = nullptr;
+    notifyCharacteristic = nullptr;
+    writeCharacteristic = nullptr;
+    started = false;
+    connected = false;
+    if (syslog != nullptr)
+    {
+      syslog->println("Mobile relay BLE stack released for HTTPS");
+    }
+  }
+}
+
+void EvDashMobileRelay::resumeAfterNetUpload()
+{
+  netUploadPaused = false;
+  if (liveData != nullptr && liveData->settings.relayForMobileEnabled == 1)
+  {
+    startServer();
+  }
+}
+
 const char *EvDashMobileRelay::pairingCode() const
 {
   return currentPairingCode;
@@ -144,7 +176,10 @@ void EvDashMobileRelay::onDisconnect(BLEServer *server)
   {
     syslog->println("Mobile relay disconnected");
   }
-  BLEDevice::startAdvertising();
+  if (!netUploadPaused)
+  {
+    BLEDevice::startAdvertising();
+  }
 }
 
 void EvDashMobileRelay::onWrite(BLECharacteristic *characteristic)
@@ -202,7 +237,11 @@ void EvDashMobileRelay::startServer()
 
   service->start();
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
-  advertising->addServiceUUID(EVDASH_RELAY_SERVICE_UUID);
+  if (!advertisingUuidAdded)
+  {
+    advertising->addServiceUUID(EVDASH_RELAY_SERVICE_UUID);
+    advertisingUuidAdded = true;
+  }
   advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
   started = true;
@@ -251,11 +290,14 @@ void EvDashMobileRelay::handleCommand(const String &jsonLine)
   if (type == "hello" || type == "ping" || type == "requestFullSnapshot")
   {
     sendHello();
-    sendContributePayload();
     sendSnapshot();
     sendCells();
     sendTemps();
     sendRawFrames();
+  }
+  else if (type == "requestContribute")
+  {
+    sendContributePayload();
   }
   else if (type == "forgetPair")
   {

@@ -112,7 +112,6 @@ const MENU_ITEM menuItemsSource[MENU_SIZE] = {
     {MENU_WIFI_SCAN, MENU_WIFI, MENU_NO_MENU, "Scan WiFi networks"},
     {MENU_WIFI_PAIR_EVDASH, MENU_WIFI, MENU_NO_MENU, "Pair with evdash.eu"},
     {MENU_WIFI_ENABLED, MENU_WIFI, MENU_NO_MENU, "WiFi enabled"},
-    {MENU_WIFI_HOTSPOT_WEBADMIN, MENU_WIFI, MENU_NO_MENU, "Enable hotspot+webadmin"},
     {MENU_WIFI_SSID, MENU_WIFI, MENU_NO_MENU, "[i] SSID:"},
     {MENU_WIFI_PASSWORD, MENU_WIFI, MENU_NO_MENU, "[i] Passwd:"},
     {MENU_WIFI_ENABLED2, MENU_WIFI, MENU_NO_MENU, "Backup WiFi enabled"},

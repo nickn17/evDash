@@ -22,6 +22,8 @@ public:
   void loop();
   String startPairing();
   void forgetPairing();
+  void pauseForNetUpload();
+  void resumeAfterNetUpload();
   const char *pairingCode() const;
   uint16_t pairingSecondsLeft() const;
 
@@ -37,6 +39,8 @@ private:
   BLECharacteristic *writeCharacteristic = nullptr;
   bool started = false;
   bool connected = false;
+  bool netUploadPaused = false;
+  bool advertisingUuidAdded = false;
   char currentPairingCode[7] = "";
   uint32_t pairingExpiresAtMs = 0;
   uint32_t lastHelloMs = 0;
@@ -44,7 +48,6 @@ private:
   uint32_t lastCellsMs = 0;
   uint32_t lastTempsMs = 0;
   uint32_t lastRawMs = 0;
-  uint32_t lastContributeMs = 0;
   String rxBuffer = "";
 
   void startServer();

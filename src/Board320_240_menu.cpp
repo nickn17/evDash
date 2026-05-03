@@ -8,11 +8,6 @@
 
 extern EvDashMobileRelay *mobileRelay;
 
-#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-#include "WebInterface.h"
-extern WebInterface *webInterface;
-#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
-
 String Board320_240::menuItemText(int16_t menuItemId, String title)
 {
   String prefix = "", suffix = "";
@@ -1474,24 +1469,6 @@ void Board320_240::menuItemClick()
     case MENU_WIFI_ENABLED2:
       liveData->settings.backupWifiEnabled = (liveData->settings.backupWifiEnabled == 1) ? 0 : 1;
       showMenu();
-      return;
-      break;
-    case MENU_WIFI_HOTSPOT_WEBADMIN:
-#if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-      if (webInterface == nullptr)
-      {
-        webInterface = new WebInterface();
-      }
-      if (webInterface != nullptr)
-      {
-        webInterface->init(liveData, this);
-        displayMessage("ssid evdash [evaccess]", "http://192.168.0.1:80");
-      }
-      else
-      {
-        displayMessage("Webadmin failed", "No memory");
-      }
-#endif // BOARD_M5STACK_CORE2 || BOARD_M5STACK_CORES3
       return;
       break;
     case MENU_WIFI_NTP:
