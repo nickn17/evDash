@@ -1,12 +1,29 @@
 # RELEASE NOTES
 
+### V4.6.2 2026-05-03
+- Contribute/relay v2 fix:
+  - Disabled legacy contribute/SD JSON `v1`; saved `v1` settings are forced back to `v2` on load.
+  - Online contribute now always builds the `v2` payload with 5-second motion/charging samples.
+  - SD logging no longer offers the JSON type switch and records only `v2` logs.
+  - Mobile relay protocol messages now report `ver:2` and also stream the full `v2` contribute payload every second for phone relay/live upload.
+
 ### V4.6.1 2026-05-02
 - evDash mobile relay v1:
   - Added `Relay for iOS/Android app`, `Pair mobile app`, and `Forget mobile app` under the adapter menu.
   - Added BLE peripheral service `evDash Relay` for the mobile Android/iPhone app.
   - Added 6-digit pairing flow with stored relay token and paired mobile id.
+  - Pair mobile app menu suffix now shows only the 6-digit pairing code.
   - Streams live snapshots, cell voltages, module temperatures, and recent raw CAN/OBD frames to the mobile app.
   - Settings upgraded to version 25 with relay defaults disabled.
+- evDash mobile relay snapshot v2:
+  - Added indoor/outdoor temperature, BMS mode, doors/hood/trunk, lights, brake
+    lights, front/rear motor RPM, trip, average speed, aux voltage, and kWh
+    deltas for the iOS/Android dashboard.
+- Adapter cleanup:
+  - Removed BT3 and OBD2 WiFi adapter support, including menu/Web Interface selection.
+  - Renamed `Search BT3/4/WiFi adapter` to `Search BLE4 adapter`.
+  - Renamed `BT3/4 name` to `BLE4 name`.
+  - Legacy saved BT3/WiFi adapter mode is normalized to BLE4 on load.
 
 ### V4.5.25 2026-05-02
 - GPS v2.1 GNSS LED:

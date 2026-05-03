@@ -13,7 +13,6 @@ Use this firmware at your own risk.
 - live EV telemetry on multiple screens (tiles, speed, cells, charging graph, debug, HUD)
 - touch-first UI with menu paging, drag scrolling, and on-screen keyboard
 - communication via CAN (MCP2515/COMMU) or OBD2 BLE4
-- OBD2 WiFi adapter mode (marked as DEV)
 - SD card logging and optional remote uploads (ABRP, MQTT, contribute)
 
 ## Supported hardware
@@ -36,8 +35,6 @@ Use this firmware at your own risk.
 
 - **Preferred:** CAN via COMMU / MCP2515
 - **Preferred:** OBD2 BLE4 adapter (`OBDLink CX BLE4` recommended)
-- **in DEV** OBD2 Bluetooth3 classic adapter (BT3, only Core2 devices with Classic BT support)
-- **in DEV** OBD2 WiFi adapter
 
 ### GPS modules
 

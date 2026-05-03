@@ -1100,12 +1100,6 @@ void Board320_240::drawSceneDebug()
   case COMM_TYPE_OBD2_BLE4:
     commMode = "BLE4";
     break;
-  case COMM_TYPE_OBD2_BT3:
-    commMode = "BT3";
-    break;
-  case COMM_TYPE_OBD2_WIFI:
-    commMode = "WIFI";
-    break;
   default:
     commMode = "UNK";
     break;

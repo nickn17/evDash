@@ -172,8 +172,6 @@ void handleRoot()
   text += "<tr><td>Type</td><td><select data-key='commType'>";
   text += "<option value='" + String(COMM_TYPE_CAN_COMMU) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_CAN_COMMU) + ">CAN COMMU module</option>";
   text += "<option value='" + String(COMM_TYPE_OBD2_BLE4) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BLE4) + ">OBD2 BLE4</option>";
-  text += "<option value='" + String(COMM_TYPE_OBD2_BT3) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_OBD2_BT3) + ">OBD2 Bluetooth3 classic</option>";
-  text += "<option value='" + String(COMM_TYPE_OBD2_WIFI) + "'" + selectedAttr(liveDataWebInt->settings.commType == COMM_TYPE_OBD2_WIFI) + ">OBD2 WIFI</option>";
   text += "</select></td></tr>";
   text += "<tr><td>OBD2 MAC</td><td><input id='obdMacAddress' data-key='obdMacAddress' value='" + htmlEscape(String(liveDataWebInt->settings.obdMacAddress)) + "'></td></tr>";
   text += "<tr><td>BLE4 scan</td><td><button id='bleScan'>Scan BLE4 adapters</button></td></tr>";
@@ -204,9 +202,7 @@ void handleRoot()
   text += "<tr><td>OBD2 BLE4 Rx UUID</td><td><input data-key='charRxUUID' value='" + htmlEscape(String(liveDataWebInt->settings.charRxUUID)) + "'></td></tr>";
   text += "<tr><td>Disable command optimizer (log all cells)</td><td><input type='checkbox' data-key='disableCommandOptimizer'" + checkedAttr(liveDataWebInt->settings.disableCommandOptimizer) + "></td></tr>";
   text += "<tr><td>CAN queue autostop</td><td><input type='checkbox' data-key='commandQueueAutoStop'" + checkedAttr(liveDataWebInt->settings.commandQueueAutoStop) + "></td></tr>";
-  text += "<tr><td>OBD2 name (BT3)</td><td><input data-key='obd2Name' value='" + htmlEscape(String(liveDataWebInt->settings.obd2Name)) + "'></td></tr>";
-  text += "<tr><td>OBD2 WIFI IP</td><td><input data-key='obd2WifiIp' value='" + htmlEscape(String(liveDataWebInt->settings.obd2WifiIp)) + "'></td></tr>";
-  text += "<tr><td>OBD2 WIFI port</td><td><input type='number' data-key='obd2WifiPort' value='" + String(liveDataWebInt->settings.obd2WifiPort) + "'></td></tr>";
+  text += "<tr><td>BLE4 name</td><td><input data-key='obd2Name' value='" + htmlEscape(String(liveDataWebInt->settings.obd2Name)) + "'></td></tr>";
 
   text += "<tr><th colspan='2'>WiFi client</th></tr>";
   text += "<tr><td>Enabled</td><td><input type='checkbox' data-key='wifiEnabled'" + checkedAttr(liveDataWebInt->settings.wifiEnabled) + "></td></tr>";
@@ -489,7 +485,8 @@ void handleSet()
     liveDataWebInt->settings.ntpDaySaveTime = value.toInt() ? 1 : 0;
   else if (key == "commType")
   {
-    liveDataWebInt->settings.commType = value.toInt();
+    uint8_t commType = value.toInt();
+    liveDataWebInt->settings.commType = (commType == COMM_TYPE_CAN_COMMU) ? COMM_TYPE_CAN_COMMU : COMM_TYPE_OBD2_BLE4;
     note = "Saved (reboot required)";
   }
   else if (key == "obdMacAddress")
@@ -506,10 +503,6 @@ void handleSet()
     liveDataWebInt->settings.commandQueueAutoStop = value.toInt() ? 1 : 0;
   else if (key == "obd2Name")
     setCharField(value, liveDataWebInt->settings.obd2Name);
-  else if (key == "obd2WifiIp")
-    setCharField(value, liveDataWebInt->settings.obd2WifiIp);
-  else if (key == "obd2WifiPort")
-    liveDataWebInt->settings.obd2WifiPort = value.toInt();
   else if (key == "carType")
     liveDataWebInt->settings.carType = value.toInt();
   else if (key == "boardPowerMode")

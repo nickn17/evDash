@@ -63,12 +63,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     case COMM_TYPE_OBD2_BLE4:
       suffix = "[BLE4]";
       break;
-    case COMM_TYPE_OBD2_BT3:
-      suffix = "[BT3]";
-      break;
-    case COMM_TYPE_OBD2_WIFI:
-      suffix = "[WiFi]";
-      break;
     default:
       suffix = "[?]";
       break;
@@ -175,22 +169,8 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_OBD2_BLE4:
     prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BLE4) ? ">" : "";
     break;
-  case MENU_ADAPTER_OBD2_BT3:
-    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_BT3) ? ">" : "";
-    break;
-  case MENU_ADAPTER_OBD2_WIFI:
-    prefix = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI) ? ">" : "";
-    break;
   case MENU_ADAPTER_OBD2_NAME:
     sprintf(tmpStr1, "%s", liveData->settings.obd2Name);
-    suffix = tmpStr1;
-    break;
-  case MENU_ADAPTER_OBD2_IP:
-    sprintf(tmpStr1, "%s", liveData->settings.obd2WifiIp);
-    suffix = tmpStr1;
-    break;
-  case MENU_ADAPTER_OBD2_PORT:
-    sprintf(tmpStr1, "%d", liveData->settings.obd2WifiPort);
     suffix = tmpStr1;
     break;
   case MENU_ADAPTER_COMMAND_QUEUE_AUTOSTOP:
@@ -205,7 +185,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case MENU_ADAPTER_MOBILE_RELAY_PAIR:
     if (mobileRelay != nullptr && mobileRelay->pairingCode()[0] != '\0')
     {
-      sprintf(tmpStr1, "[%s %us]", mobileRelay->pairingCode(), mobileRelay->pairingSecondsLeft());
+      sprintf(tmpStr1, "[%s]", mobileRelay->pairingCode());
       suffix = tmpStr1;
     }
     else
@@ -430,8 +410,7 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
     suffix = tmpStr1;
     break;
   case MENU_SDCARD_JSON_TYPE:
-    sprintf(tmpStr1, "[v%d]", (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1) ? 1 : 2);
-    suffix = tmpStr1;
+    suffix = "[v2]";
     break;
   case MENU_SDCARD_AUTOSTARTLOG:
     sprintf(tmpStr1, "[%s]", (liveData->settings.sdcardEnabled == 0) ? "n/a" : (liveData->settings.sdcardAutstartLog == 1) ? "on"
@@ -1114,61 +1093,18 @@ void Board320_240::menuItemClick()
       saveSettings();
       ESP.restart();
       break;
-    case MENU_ADAPTER_OBD2_BT3:
-      liveData->settings.commType = COMM_TYPE_OBD2_BT3;
-      displayMessage("COMM_TYPE_OBD2_BT3", "Rebooting");
-      saveSettings();
-      ESP.restart();
-      break;
     case MENU_ADAPTER_CAN_COMMU:
       liveData->settings.commType = COMM_TYPE_CAN_COMMU;
       displayMessage("COMM_TYPE_CAN_COMMU", "Rebooting");
       saveSettings();
       ESP.restart();
       break;
-    case MENU_ADAPTER_OBD2_WIFI:
-      liveData->settings.commType = COMM_TYPE_OBD2_WIFI;
-      displayMessage("COMM_TYPE_OBD2_WIFI", "Rebooting");
-      saveSettings();
-      ESP.restart();
-      break;
     case MENU_ADAPTER_OBD2_NAME:
     {
       String value = String(liveData->settings.obd2Name);
-      if (promptKeyboard("BT3/4 name", value, false, sizeof(liveData->settings.obd2Name) - 1))
+      if (promptKeyboard("BLE4 name", value, false, sizeof(liveData->settings.obd2Name) - 1))
       {
         value.toCharArray(liveData->settings.obd2Name, sizeof(liveData->settings.obd2Name));
-        saveSettings();
-      }
-      showMenu();
-      return;
-    }
-    break;
-    case MENU_ADAPTER_OBD2_IP:
-    {
-      String value = String(liveData->settings.obd2WifiIp);
-      if (promptKeyboard("Obd2 WiFi IP", value, false, sizeof(liveData->settings.obd2WifiIp) - 1))
-      {
-        value.trim();
-        value.toCharArray(liveData->settings.obd2WifiIp, sizeof(liveData->settings.obd2WifiIp));
-        saveSettings();
-      }
-      showMenu();
-      return;
-    }
-    break;
-    case MENU_ADAPTER_OBD2_PORT:
-    {
-      String value = String(liveData->settings.obd2WifiPort);
-      if (promptKeyboard("Obd2 WiFi port", value, false, 5))
-      {
-        value.trim();
-        long parsedPort = value.toInt();
-        if (parsedPort < 0)
-          parsedPort = 0;
-        if (parsedPort > 65535)
-          parsedPort = 65535;
-        liveData->settings.obd2WifiPort = static_cast<uint16_t>(parsedPort);
         saveSettings();
       }
       showMenu();
@@ -1190,7 +1126,7 @@ void Board320_240::menuItemClick()
       const bool enabling = (liveData->settings.relayForMobileEnabled == 0);
       liveData->settings.relayForMobileEnabled = enabling ? 1 : 0;
       saveSettings();
-      if (enabling && liveData->settings.commType != COMM_TYPE_OBD2_BLE4 && liveData->settings.commType != COMM_TYPE_OBD2_BT3)
+      if (enabling && liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
       {
         displayMessage("Mobile relay on", "Rebooting");
         ESP.restart();
@@ -1204,7 +1140,7 @@ void Board320_240::menuItemClick()
       const bool wasOff = (liveData->settings.relayForMobileEnabled == 0);
       liveData->settings.relayForMobileEnabled = 1;
       saveSettings();
-      if (wasOff && liveData->settings.commType != COMM_TYPE_OBD2_BLE4 && liveData->settings.commType != COMM_TYPE_OBD2_BT3)
+      if (wasOff && liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
       {
         displayMessage("Relay enabled", "Reboot, pair again");
         ESP.restart();
@@ -1436,8 +1372,7 @@ void Board320_240::menuItemClick()
       liveData->params.contributeStatus = CONTRIBUTE_WAITING;
       contributeStatusSinceMs = millis();
       nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
-      if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
-          liveData->settings.commType == COMM_TYPE_CAN_COMMU &&
+      if (liveData->settings.commType == COMM_TYPE_CAN_COMMU &&
           commInterface != nullptr)
       {
         const String canStatus = commInterface->getConnectStatus();
@@ -1631,7 +1566,7 @@ void Board320_240::menuItemClick()
       return;
       break;
     case MENU_SDCARD_JSON_TYPE:
-      liveData->settings.contributeJsonType = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V1) ? CONTRIBUTE_JSON_TYPE_V2 : CONTRIBUTE_JSON_TYPE_V1;
+      liveData->settings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
       showMenu();
       return;
       break;
@@ -1823,8 +1758,7 @@ void Board320_240::menuItemClick()
     case MENU_ADAPTER_BLE_SELECT:
       adapterSearchInProgress = true;
 
-      if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
-          liveData->settings.commType == COMM_TYPE_OBD2_BT3)
+      if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4)
       {
         scanDevices = true;
         liveData->menuCurrent = 9999;
@@ -1832,18 +1766,10 @@ void Board320_240::menuItemClick()
         return;
       }
 
-      if (liveData->settings.commType == COMM_TYPE_OBD2_WIFI)
-      {
-        wifiScanToMenu();
-        return;
-      }
-
       adapterSearchInProgress = false;
-      if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4 &&
-          liveData->settings.commType != COMM_TYPE_OBD2_BT3 &&
-          liveData->settings.commType != COMM_TYPE_OBD2_WIFI)
+      if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4)
       {
-        displayMessage("Not supported", "Use BT3/BLE4/WiFi mode");
+        displayMessage("Not supported", "Use BLE4 mode");
         delay(3000);
         hideMenu();
         return;

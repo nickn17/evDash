@@ -712,9 +712,8 @@ void Board320_240::afterSetup()
 
   // Wifi
   // Starting Wifi after BLE prevents reboot loop
-  const bool wifiRequiredByAdapter = (liveData->settings.commType == COMM_TYPE_OBD2_WIFI);
   if (!liveData->params.wifiApMode &&
-      (liveData->settings.wifiEnabled == 1 || wifiRequiredByAdapter))
+      liveData->settings.wifiEnabled == 1)
   {
     showBootProgress("WiFi initialization...", "Connecting to configured AP", TFT_BLUE);
     wifiSetup();
@@ -1441,7 +1440,6 @@ bool Board320_240::drawActiveScreenToSprite()
                                              sdV2UploadFileName.length() > 0 &&
                                              liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI &&
                                              liveData->settings.wifiEnabled == 1 &&
-                                             liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
                                              !liveData->params.wifiApMode &&
                                              WiFi.status() == WL_CONNECTED &&
                                              liveData->params.netAvailable);
@@ -1662,9 +1660,7 @@ bool Board320_240::drawActiveScreenToSprite()
   constexpr int16_t statusBoxRadius = 8;
 
   // OBD adapter not connected
-  if ((liveData->settings.commType == COMM_TYPE_OBD2_BLE4 ||
-       liveData->settings.commType == COMM_TYPE_OBD2_BT3 ||
-       liveData->settings.commType == COMM_TYPE_OBD2_WIFI) &&
+  if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4 &&
       !liveData->commConnected && liveData->obd2ready)
   {
     // Print message
@@ -2040,12 +2036,6 @@ bool Board320_240::buildContributePayloadV2(String &outJson, bool useReadableTsF
     break;
   case COMM_TYPE_OBD2_BLE4:
     commMode = "ble4";
-    break;
-  case COMM_TYPE_OBD2_BT3:
-    commMode = "bt4";
-    break;
-  case COMM_TYPE_OBD2_WIFI:
-    commMode = "wifi";
     break;
   default:
     commMode = "unknown";
@@ -2494,7 +2484,6 @@ void Board320_240::mainLoop()
   pollEvdashPairingStatus();
 
   const bool allowWifiFallback = (!liveData->params.stopCommandQueue &&
-                                  liveData->settings.commType != COMM_TYPE_OBD2_WIFI &&
                                   !liveData->params.wifiApMode &&
                                   wifiEnabled &&
                                   liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI);
@@ -2517,7 +2506,7 @@ void Board320_240::mainLoop()
 
   // SD card recording
   int64_t startTime5 = esp_timer_get_time();
-  const bool sdcardJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
+  const bool sdcardJsonV2 = true;
   const bool sdcardWriteTick = sdcardJsonV2 ? true : liveData->params.sdcardCanNotify;
   const bool sdcardHasPayload =
       sdcardJsonV2 ? !isContributeV2SnapshotEffectivelyEmpty(liveData)
@@ -2782,7 +2771,6 @@ void Board320_240::mainLoop()
     const bool shouldReconnectWifiAfterWake =
         (!liveData->params.wifiApMode &&
          liveData->settings.wifiEnabled == 1 &&
-         liveData->settings.commType != COMM_TYPE_OBD2_WIFI &&
          WiFi.status() != WL_CONNECTED);
     if (shouldReconnectWifiAfterWake)
     {
@@ -3167,8 +3155,7 @@ void Board320_240::sdcardToggleRecording()
   {
     if (sdcardRecordBuffer.length() > 0 && strlen(liveData->params.sdcardFilename) != 0)
     {
-      if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
-          rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
+      if (rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
                                  sizeof(liveData->params.sdcardFilename),
                                  sdcardRecordBuffer.length()))
       {
@@ -5122,7 +5109,6 @@ void Board320_240::netLoop()
   }
   if (netReady && liveData->settings.contributeData == 1 &&
       liveData->params.contributeStatus == CONTRIBUTE_WAITING &&
-      liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
       allowContributeWaitFallback &&
       contributeStatusSinceMs != 0 &&
       (millis() - contributeStatusSinceMs) >= kContributeWaitFallbackMs)
@@ -5608,8 +5594,6 @@ bool Board320_240::netContributeData()
     const char *contributeHost = "api.evdash.eu";
     const char *contributeUrl = "https://api.evdash.eu/v1/contribute";
     const char *contributePath = "/v1/contribute";
-    const String contributeKey = ensureContributeKey();
-    const String hardwareDeviceId = normalizeDeviceIdForApi(getHardwareDeviceId());
     String payloadForPost;
     auto scheduleNextContributeCycle = [&]()
     {
@@ -5617,72 +5601,18 @@ bool Board320_240::netContributeData()
       contributeStatusSinceMs = 0;
       nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
     };
-    const bool useJsonV2 = (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2);
-    if (useJsonV2)
+    if (!buildContributePayloadV2(payloadForPost, false))
     {
-      if (!buildContributePayloadV2(payloadForPost, false))
-      {
-        syslog->println("Failed to build contribute v2 payload");
-        scheduleNextContributeCycle();
-        updateNetAvailability(false);
-        return false;
-      }
-      if (isContributeV2SnapshotEffectivelyEmpty(liveData))
-      {
-        syslog->println("Contribute v2 empty snapshot, skipping send");
-        scheduleNextContributeCycle();
-        return false;
-      }
+      syslog->println("Failed to build contribute v2 payload");
+      scheduleNextContributeCycle();
+      updateNetAvailability(false);
+      return false;
     }
-    else
+    if (isContributeV2SnapshotEffectivelyEmpty(liveData))
     {
-      if (liveData->contributeDataJson.length() == 0)
-      {
-        liveData->contributeDataJson = "{";
-      }
-      if (liveData->contributeDataJson.charAt(liveData->contributeDataJson.length() - 1) != '}')
-      {
-        liveData->contributeDataJson += "\"key\": \"" + contributeKey + "\", ";
-        liveData->contributeDataJson += "\"deviceId\": \"" + hardwareDeviceId + "\", ";
-        liveData->contributeDataJson += "\"dev\": \"" + String(getCompiledDeviceTypeForApi()) + "\", ";
-        liveData->contributeDataJson += "\"apikey\": \"" + String(liveData->settings.remoteApiKey) + "\", ";
-        liveData->contributeDataJson += "\"carType\": \"" + getCarModelAbrpStr(liveData->settings.carType) + "\", ";
-        liveData->contributeDataJson += "\"carVin\": \"" + String(liveData->params.carVin) + "\", ";
-        liveData->contributeDataJson += "\"stoppedQueue\": " + String(liveData->params.stopCommandQueue) + ", ";
-        liveData->contributeDataJson += "\"ignitionOn\": " + String(liveData->params.ignitionOn) + ", ";
-        liveData->contributeDataJson += "\"chargingOn\": " + String(liveData->params.chargingOn) + ", ";
-        liveData->contributeDataJson += "\"socPerc\": " + String(liveData->params.socPerc, 0) + ", ";
-        if (liveData->params.socPercBms != -1)
-          liveData->contributeDataJson += "\"socPercBms\": " + String(liveData->params.socPercBms, 0) + ", ";
-        liveData->contributeDataJson += "\"sohPerc\": " + String(liveData->params.sohPerc, 0) + ", ";
-        liveData->contributeDataJson += "\"batPowerKw\": " + String(liveData->params.batPowerKw, 3) + ", ";
-        liveData->contributeDataJson += "\"batPowerKwh100\": " + String(liveData->params.batPowerKwh100, 3) + ", ";
-        liveData->contributeDataJson += "\"batVoltage\": " + String(liveData->params.batVoltage, 0) + ", ";
-        liveData->contributeDataJson += "\"batCurrentAmp\": " + String(liveData->params.batPowerAmp, 0) + ", ";
-        liveData->contributeDataJson += "\"auxVoltage\": " + String(liveData->params.auxVoltage, 0) + ", ";
-        liveData->contributeDataJson += "\"auxCurrentAmp\": " + String(liveData->params.auxCurrentAmp, 0) + ", ";
-        liveData->contributeDataJson += "\"batMinC\": " + String(liveData->params.batMinC, 0) + ", ";
-        liveData->contributeDataJson += "\"batMaxC\": " + String(liveData->params.batMaxC, 0) + ", ";
-        liveData->contributeDataJson += "\"inTemp\": " + String(liveData->params.indoorTemperature, 0) + ", ";
-        liveData->contributeDataJson += "\"extTemp\": " + String(liveData->params.outdoorTemperature, 0) + ", ";
-        liveData->contributeDataJson += "\"speedKmh\": " + String(liveData->params.speedKmh, 0) + ", ";
-        liveData->contributeDataJson += "\"odoKm\": " + String(liveData->params.odoKm, 0) + ", ";
-        liveData->contributeDataJson += "\"cecKWh\": " + String(liveData->params.cumulativeEnergyChargedKWh, 3) + ", ";
-        liveData->contributeDataJson += "\"cedKWh\": " + String(liveData->params.cumulativeEnergyDischargedKWh, 3) + ", ";
-        // Send GPS data via GPRS (if enabled && valid)
-        if (isGpsFixUsable(liveData))
-        {
-          liveData->contributeDataJson += "\"gpsLat\": " + String(liveData->params.gpsLat, 5) + ", ";
-          liveData->contributeDataJson += "\"gpsLon\": " + String(liveData->params.gpsLon, 5) + ", ";
-          liveData->contributeDataJson += "\"gpsAlt\": \"" + String(liveData->params.gpsAlt, 0) + "\", ";
-          liveData->contributeDataJson += "\"gpsSpeed\": " + String(liveData->params.speedKmhGPS, 0) + ", ";
-        }
-
-        liveData->contributeDataJson += "\"register\": 1, ";
-        liveData->contributeDataJson += "\"token\": \"" + contributeKey + "\"";
-        liveData->contributeDataJson += "}";
-      }
-      payloadForPost = liveData->contributeDataJson;
+      syslog->println("Contribute v2 empty snapshot, skipping send");
+      scheduleNextContributeCycle();
+      return false;
     }
 
     if (payloadForPost.length() < 2 || payloadForPost.charAt(0) != '{' || payloadForPost.charAt(payloadForPost.length() - 1) != '}')
@@ -6089,10 +6019,6 @@ bool Board320_240::netContributeData()
       if (responseAccepted)
       {
         scheduleNextContributeCycle();
-        if (!useJsonV2)
-        {
-          liveData->contributeDataJson = "{"; // begin json
-        }
         liveData->params.lastSuccessNetSendTime = liveData->params.currentTime;
         updateNetAvailability(true);
       }
@@ -6163,7 +6089,6 @@ void Board320_240::runSdV2BackgroundTasks(bool netReady)
       (netReady &&
        liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI &&
        liveData->settings.wifiEnabled == 1 &&
-       liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
        !liveData->params.wifiApMode);
   if (!uploadEligible)
   {
@@ -6934,8 +6859,7 @@ void Board320_240::uploadSdCardLogToEvDashServer(bool silent)
       return false;
     }
 
-    if (liveData->settings.contributeJsonType == CONTRIBUTE_JSON_TYPE_V2 &&
-        rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
+    if (rotateSdV2FileIfNeeded(liveData->params.sdcardFilename,
                                sizeof(liveData->params.sdcardFilename),
                                sdcardRecordBuffer.length()))
     {

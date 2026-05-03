@@ -31,9 +31,7 @@ It handles attaching communications and live data objects. And provides methods 
 #include <BLEDevice.h>
 #include "BoardInterface.h"
 #include "CommObd2Ble4.h"
-#include "CommObd2Bt3.h"
 #include "CommObd2Can.h"
-#include "CommObd2Wifi.h"
 #include "LiveData.h"
 #include "Solarlib.h"
 
@@ -192,9 +190,9 @@ void BoardInterface::loadSettings()
   // v15
   liveData->settings.abrpSdcardLog = 0;
   // v16
-  tmpStr = "OBD2"; // default bt3 obd2 adapter name
+  tmpStr = "OBD2"; // default BLE4 OBD2 adapter name
   tmpStr.toCharArray(liveData->settings.obd2Name, tmpStr.length() + 1);
-  tmpStr = "192.168.0.10"; // obd2wifi adapter ip
+  tmpStr = "192.168.0.10"; // legacy obd2wifi adapter ip
   tmpStr.toCharArray(liveData->settings.obd2WifiIp, tmpStr.length() + 1);
   liveData->settings.obd2WifiPort = 35000;
   // v17
@@ -373,9 +371,9 @@ void BoardInterface::loadSettings()
       if (liveData->tmpSettings.settingsVersion == 15)
       {
         liveData->tmpSettings.settingsVersion = 16;
-        tmpStr = "OBD2"; // default bt3 obd2 adapter name
+        tmpStr = "OBD2"; // default BLE4 OBD2 adapter name
         tmpStr.toCharArray(liveData->tmpSettings.obd2Name, tmpStr.length() + 1);
-        tmpStr = "192.168.0.10"; // obd2wifi adapter ip
+        tmpStr = "192.168.0.10"; // legacy obd2wifi adapter ip
         tmpStr.toCharArray(liveData->tmpSettings.obd2WifiIp, tmpStr.length() + 1);
         liveData->tmpSettings.obd2WifiPort = 35000;
       }
@@ -452,8 +450,7 @@ void BoardInterface::loadSettings()
     liveData->settings = liveData->tmpSettings;
   }
 
-  if (liveData->settings.contributeJsonType != CONTRIBUTE_JSON_TYPE_V1 &&
-      liveData->settings.contributeJsonType != CONTRIBUTE_JSON_TYPE_V2)
+  if (liveData->settings.contributeJsonType != CONTRIBUTE_JSON_TYPE_V2)
   {
     liveData->settings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
     saveSettings();
@@ -483,6 +480,13 @@ void BoardInterface::loadSettings()
     saveSettings();
   }
 
+  if (liveData->settings.commType != COMM_TYPE_OBD2_BLE4 &&
+      liveData->settings.commType != COMM_TYPE_CAN_COMMU)
+  {
+    liveData->settings.commType = COMM_TYPE_OBD2_BLE4;
+    saveSettings();
+  }
+
   syslog->setDebugLevel(liveData->settings.debugLevel);
 }
 
@@ -497,21 +501,13 @@ void BoardInterface::afterSetup()
   syslog->print("Init communication device: ");
   syslog->println(liveData->settings.commType);
 
-  if (liveData->settings.commType == COMM_TYPE_OBD2_BLE4)
-  {
-    commInterface = new CommObd2Ble4();
-  }
-  else if (liveData->settings.commType == COMM_TYPE_OBD2_BT3)
-  {
-    commInterface = new CommObd2Bt3();
-  }
-  else if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
+  if (liveData->settings.commType == COMM_TYPE_CAN_COMMU)
   {
     commInterface = new CommObd2Can();
   }
-  else if (liveData->settings.commType == COMM_TYPE_OBD2_WIFI)
+  else
   {
-    commInterface = new CommObd2Wifi();
+    commInterface = new CommObd2Ble4();
   }
 
   // Connect device
@@ -558,11 +554,6 @@ void BoardInterface::customConsoleCommand(String cmd)
     value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
   if (key == "charRxUUID")
     value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
-
-  if (key == "obd2ip")
-    value.toCharArray(liveData->settings.obd2WifiIp, value.length() + 1);
-  if (key == "obd2port")
-    liveData->settings.obd2WifiPort = value.toInt();
 
   if (key == "wifiSsid")
     value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);

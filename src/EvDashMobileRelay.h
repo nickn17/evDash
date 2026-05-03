@@ -44,6 +44,7 @@ private:
   uint32_t lastCellsMs = 0;
   uint32_t lastTempsMs = 0;
   uint32_t lastRawMs = 0;
+  uint32_t lastContributeMs = 0;
   String rxBuffer = "";
 
   void startServer();
@@ -53,6 +54,7 @@ private:
   void notifyLine(const String &line);
   void notifyJson(const String &json);
   void sendHello();
+  void sendContributePayload();
   void sendSnapshot();
   void sendCells();
   void sendTemps();
@@ -65,6 +67,7 @@ private:
   String vehicleId() const;
   String commType() const;
   String driveMode() const;
+  String bmsMode() const;
   String jsonNumber(float value, uint8_t digits = 1) const;
   String jsonBool(bool value) const;
   String escapeJson(const String &value) const;
