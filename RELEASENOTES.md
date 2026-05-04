@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+### V4.6.3 2026-05-04
+- Web flasher release refresh:
+  - Bumped firmware version so `evdash.eu/m5flash` and firmware version check pick up the contribute TLS/raw HTTPS fixes.
+
 ### V4.6.2 2026-05-03
 - Contribute/relay v2 fix:
   - Disabled legacy contribute/SD JSON `v1`; saved `v1` settings are forced back to `v2` on load.
