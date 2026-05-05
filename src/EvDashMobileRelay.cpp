@@ -621,8 +621,18 @@ String EvDashMobileRelay::vehicleId() const
     return "vw_id4_2021_58";
   case CAR_VW_ID4_2021_77:
     return "vw_id4_2021_77";
-  case CAR_RENAULT_ZOE:
-    return "zoe_22_dev";
+  case CAR_RENAULT_ZOE_ZE20_22:
+    return "zoe_ze20_22";
+  case CAR_RENAULT_ZOE_ZE40_41:
+    return "zoe_ze40_41";
+  case CAR_RENAULT_ZOE_ZE50_52:
+    return "zoe_ze50_52";
+  case CAR_SKODA_CITIGO_E_IV:
+    return "skoda_citigo_e_iv";
+  case CAR_VW_EUP_36:
+    return "vw_eup_36";
+  case CAR_SEAT_MII_ELECTRIC_36:
+    return "seat_mii_electric_36";
   case CAR_BMW_I3_2014:
     return "bmwi3_2014_22";
   case CAR_PEUGEOT_E208:

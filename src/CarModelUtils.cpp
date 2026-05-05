@@ -61,8 +61,18 @@ String getCarModelAbrpStr(int carType)
         return "volkswagen:id4:21:52";
     case CAR_VW_ID4_2021_77:
         return "volkswagen:id4:21:77";
-    case CAR_RENAULT_ZOE:
+    case CAR_RENAULT_ZOE_ZE20_22:
         return "renault:zoe:r240:22:other";
+    case CAR_RENAULT_ZOE_ZE40_41:
+        return "renault:zoe:r90:41:other";
+    case CAR_RENAULT_ZOE_ZE50_52:
+        return "renault:zoe:ze50:52:other";
+    case CAR_SKODA_CITIGO_E_IV:
+        return "skoda:citigoe:20:36:other";
+    case CAR_VW_EUP_36:
+        return "volkswagen:eup:20:36:other";
+    case CAR_SEAT_MII_ELECTRIC_36:
+        return "seat:mii:20:36:other";
     case CAR_BMW_I3_2014:
         return "bmw:i3:14:22:other";
     default:

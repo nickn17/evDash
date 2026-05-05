@@ -130,6 +130,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case VEHICLE_TYPE_SKODA_ENYAQ_82:
     prefix = (liveData->settings.carType == CAR_SKODA_ENYAQ_82) ? ">" : "";
     break;
+  case VEHICLE_TYPE_SKODA_CITIGO_E_IV:
+    prefix = (liveData->settings.carType == CAR_SKODA_CITIGO_E_IV) ? ">" : "";
+    break;
   case VEHICLE_TYPE_VW_ID3_2021_45:
     prefix = (liveData->settings.carType == CAR_VW_ID3_2021_45) ? ">" : "";
     break;
@@ -148,8 +151,20 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case VEHICLE_TYPE_VW_ID4_2021_77:
     prefix = (liveData->settings.carType == CAR_VW_ID4_2021_77) ? ">" : "";
     break;
+  case VEHICLE_TYPE_VW_EUP_36:
+    prefix = (liveData->settings.carType == CAR_VW_EUP_36) ? ">" : "";
+    break;
   case VEHICLE_TYPE_ZOE_22_DEV:
-    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE) ? ">" : "";
+    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE_ZE20_22) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_ZOE_ZE40_41:
+    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE_ZE40_41) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_ZOE_ZE50_52:
+    prefix = (liveData->settings.carType == CAR_RENAULT_ZOE_ZE50_52) ? ">" : "";
+    break;
+  case VEHICLE_TYPE_SEAT_MII_ELECTRIC_36:
+    prefix = (liveData->settings.carType == CAR_SEAT_MII_ELECTRIC_36) ? ">" : "";
     break;
   case VEHICLE_TYPE_BMWI3_2014_22:
     prefix = (liveData->settings.carType == CAR_BMW_I3_2014) ? ">" : "";
@@ -1036,6 +1051,11 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_SKODA_CITIGO_E_IV:
+      liveData->settings.carType = CAR_SKODA_CITIGO_E_IV;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_VW_ID3_2021_45:
       liveData->settings.carType = CAR_VW_ID3_2021_45;
       showMenu();
@@ -1066,8 +1086,28 @@ void Board320_240::menuItemClick()
       showMenu();
       return;
       break;
+    case VEHICLE_TYPE_VW_EUP_36:
+      liveData->settings.carType = CAR_VW_EUP_36;
+      showMenu();
+      return;
+      break;
     case VEHICLE_TYPE_ZOE_22_DEV:
-      liveData->settings.carType = CAR_RENAULT_ZOE;
+      liveData->settings.carType = CAR_RENAULT_ZOE_ZE20_22;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_ZOE_ZE40_41:
+      liveData->settings.carType = CAR_RENAULT_ZOE_ZE40_41;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_ZOE_ZE50_52:
+      liveData->settings.carType = CAR_RENAULT_ZOE_ZE50_52;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_SEAT_MII_ELECTRIC_36:
+      liveData->settings.carType = CAR_SEAT_MII_ELECTRIC_36;
       showMenu();
       return;
       break;
