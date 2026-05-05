@@ -105,7 +105,10 @@ void CarRenaultZoe::activateCommandQueue()
   //
   liveData->params.batModuleTempCount = 12; // 24, 12 is display limit
   liveData->params.batteryTotalAvailableKWh = 22;
-  // usable 22, total 26
+  if (liveData->settings.carType == CAR_RENAULT_ZOE_ZE40_41)
+    liveData->params.batteryTotalAvailableKWh = 41;
+  if (liveData->settings.carType == CAR_RENAULT_ZOE_ZE50_52)
+    liveData->params.batteryTotalAvailableKWh = 52;
 
   //  Empty and fill command queue
   liveData->commandQueue.clear();

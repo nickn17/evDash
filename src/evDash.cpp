@@ -51,6 +51,7 @@
 #include "CarRenaultZoe.h"
 #include "CarBmwI3.h"
 #include "CarVWID3.h"
+#include "CarVWUpMii.h"
 #include "CarPeugeotE208.h"
 #include "EvDashMobileRelay.h"
 
@@ -163,7 +164,9 @@ void setup(void)
   case CAR_HYUNDAI_IONIQ_PHEV:
     car = new CarHyundaiIoniqPHEV();
     break;
-  case CAR_RENAULT_ZOE:
+  case CAR_RENAULT_ZOE_ZE20_22:
+  case CAR_RENAULT_ZOE_ZE40_41:
+  case CAR_RENAULT_ZOE_ZE50_52:
     car = new CarRenaultZoe();
     break;
   case CAR_BMW_I3_2014:
@@ -183,6 +186,11 @@ void setup(void)
   case CAR_VW_ID4_2021_58:
   case CAR_VW_ID4_2021_77:
     car = new CarVWID3();
+    break;
+  case CAR_SKODA_CITIGO_E_IV:
+  case CAR_VW_EUP_36:
+  case CAR_SEAT_MII_ELECTRIC_36:
+    car = new CarVWUpMii();
     break;
   case CAR_PEUGEOT_E208:
     car = new CarPeugeotE208();

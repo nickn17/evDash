@@ -1,5 +1,14 @@
 # RELEASE NOTES
 
+### V4.6.4 2026-05-05
+- Renault ZOE support:
+  - Added selectable ZOE Z.E. 20/40/50 variants.
+  - ZOE Z.E. 40 now uses a 41kWh pack instead of falling back to 22kWh.
+- VW legacy city EV support:
+  - Added shared Skoda Citigo-e iV / VW e-Up / Seat Mii Electric profile.
+  - Reads SOC, pack voltage/current/power, charge state, battery temperatures, SOH, aux voltage/current and cell min/max where the ECU replies.
+  - Keeps fallback SOC PIDs as backup only, so primary SOC from `028C` is not overwritten by noisier fallback values.
+
 ### V4.6.3 2026-05-04
 - Web flasher release refresh:
   - Bumped firmware version so `evdash.eu/m5flash` and firmware version check pick up the contribute TLS/raw HTTPS fixes.
