@@ -175,6 +175,11 @@ namespace
     return (char *)heap_caps_malloc(payloadLen + 1, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   }
 
+  bool isMobileRelayClientConnected()
+  {
+    return mobileRelay != nullptr && mobileRelay->clientConnected();
+  }
+
   size_t encodeQuotes(char *dest, size_t destSize, const char *source)
   {
     size_t written = 0;
@@ -2616,7 +2621,8 @@ void Board320_240::mainLoop()
             (liveData->settings.remoteUploadModuleType == REMOTE_UPLOAD_WIFI) &&
             (liveData->settings.wifiEnabled == 1) &&
             (WiFi.status() == WL_CONNECTED) &&
-            liveData->params.netAvailable;
+            liveData->params.netAvailable &&
+            !isMobileRelayClientConnected();
         if (minuteTick && !contributeOnlineNow)
         {
           String jsonLine;
@@ -5655,6 +5661,15 @@ bool Board320_240::netContributeData()
   if (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
+    if (isMobileRelayClientConnected())
+    {
+      syslog->println("Contribute deferred: mobile relay client connected");
+      liveData->params.contributeStatus = CONTRIBUTE_NONE;
+      contributeStatusSinceMs = 0;
+      nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
+      return false;
+    }
+
     syslog->println("Contribute data...");
     const char *contributeHost = "api.evdash.eu";
     const char *contributeUrl = "https://api.evdash.eu/v1/contribute";

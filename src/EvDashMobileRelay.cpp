@@ -143,6 +143,11 @@ void EvDashMobileRelay::resumeAfterNetUpload()
   }
 }
 
+bool EvDashMobileRelay::clientConnected() const
+{
+  return connected;
+}
+
 const char *EvDashMobileRelay::pairingCode() const
 {
   return currentPairingCode;
