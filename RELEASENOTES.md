@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.6.5 2026-05-05
+- Mobile relay stability:
+  - Online contribute upload is deferred while a phone is actively connected to the BLE relay, avoiding repeated BLE disconnects during HTTPS/TLS uploads.
+  - SD `v2` minute logging stays active while contribute upload is deferred by an active relay connection.
+
 ### V4.6.4 2026-05-05
 - Renault ZOE support:
   - Added selectable ZOE Z.E. 20/40/50 variants.

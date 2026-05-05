@@ -24,6 +24,7 @@ public:
   void forgetPairing();
   void pauseForNetUpload();
   void resumeAfterNetUpload();
+  bool clientConnected() const;
   const char *pairingCode() const;
   uint16_t pairingSecondsLeft() const;
 
