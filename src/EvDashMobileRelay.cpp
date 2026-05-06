@@ -10,6 +10,10 @@ void EvDashMobileRelay::begin(LiveData *pLiveData, BoardInterface *pBoard)
 {
   liveData = pLiveData;
   board = pBoard;
+  if (syslog != nullptr)
+  {
+    syslog->setMirrorCallback(EvDashMobileRelay::serialMirrorThunk, this);
+  }
   if (liveData != nullptr && liveData->settings.relayForMobileEnabled == 1)
   {
     startServer();
@@ -41,6 +45,10 @@ void EvDashMobileRelay::loop()
   }
 
   const uint32_t nowMs = millis();
+  if (serialCaptureEnabled && serialMirrorBuffer.length() > 0 && nowMs - lastSerialMirrorMs > 800)
+  {
+    flushSerialMirrorLine();
+  }
   if (nowMs - lastHelloMs > 5000)
   {
     sendHello();
@@ -177,6 +185,8 @@ void EvDashMobileRelay::onDisconnect(BLEServer *server)
 {
   (void)server;
   connected = false;
+  serialCaptureEnabled = false;
+  serialMirrorBuffer = "";
   if (syslog != nullptr)
   {
     syslog->println("Mobile relay disconnected");
@@ -304,6 +314,14 @@ void EvDashMobileRelay::handleCommand(const String &jsonLine)
   {
     sendContributePayload();
   }
+  else if (type == "serialCaptureStart")
+  {
+    handleSerialCaptureStart();
+  }
+  else if (type == "serialCaptureStop")
+  {
+    handleSerialCaptureStop();
+  }
   else if (type == "forgetPair")
   {
     forgetPairing();
@@ -331,6 +349,21 @@ void EvDashMobileRelay::handlePairStart(const String &mobileId, const String &co
                 "\",\"token\":\"" + escapeJson(token) +
                 "\",\"vehicleId\":\"" + vehicleId() + "\"}";
   notifyJson(json);
+}
+
+void EvDashMobileRelay::handleSerialCaptureStart()
+{
+  serialMirrorBuffer = "";
+  serialCaptureEnabled = true;
+  lastSerialMirrorMs = millis();
+  notifyJson("{\"type\":\"serialCapture\",\"ver\":2,\"state\":\"started\"}");
+}
+
+void EvDashMobileRelay::handleSerialCaptureStop()
+{
+  flushSerialMirrorLine();
+  serialCaptureEnabled = false;
+  notifyJson("{\"type\":\"serialCapture\",\"ver\":2,\"state\":\"stopped\"}");
 }
 
 void EvDashMobileRelay::notifyLine(const String &line)
@@ -528,6 +561,53 @@ void EvDashMobileRelay::sendRawFrames()
   notifyJson(json);
 }
 
+void EvDashMobileRelay::sendSerialLine(const String &line)
+{
+  if (!serialCaptureEnabled || line.length() == 0)
+  {
+    return;
+  }
+  String json = "{\"type\":\"serial\",\"ver\":2,\"uptimeMs\":" + String(millis()) +
+                ",\"line\":\"" + escapeJson(line) + "\"}";
+  notifyJson(json);
+}
+
+void EvDashMobileRelay::handleSerialMirror(const uint8_t *data, size_t size)
+{
+  if (!serialCaptureEnabled || !connected || notifyCharacteristic == nullptr || data == nullptr || size == 0)
+  {
+    return;
+  }
+  lastSerialMirrorMs = millis();
+  for (size_t i = 0; i < size; i++)
+  {
+    const char ch = static_cast<char>(data[i]);
+    if (ch == '\n')
+    {
+      flushSerialMirrorLine();
+    }
+    else if (ch != '\r')
+    {
+      serialMirrorBuffer += ch;
+      if (serialMirrorBuffer.length() >= 220)
+      {
+        flushSerialMirrorLine();
+      }
+    }
+  }
+}
+
+void EvDashMobileRelay::flushSerialMirrorLine()
+{
+  String line = serialMirrorBuffer;
+  serialMirrorBuffer = "";
+  line.trim();
+  if (line.length() > 0)
+  {
+    sendSerialLine(line);
+  }
+}
+
 bool EvDashMobileRelay::paired() const
 {
   return liveData != nullptr && strlen(liveData->settings.relayToken) >= 12;
@@ -707,4 +787,12 @@ String EvDashMobileRelay::escapeJson(const String &value) const
     }
   }
   return out;
+}
+
+void EvDashMobileRelay::serialMirrorThunk(const uint8_t *data, size_t size, void *context)
+{
+  if (context != nullptr)
+  {
+    static_cast<EvDashMobileRelay *>(context)->handleSerialMirror(data, size);
+  }
 }
