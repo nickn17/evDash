@@ -1,5 +1,12 @@
 # RELEASE NOTES
 
+### V4.6.6 2026-05-06
+- Mobile relay terminal capture:
+  - Added relay control messages `serialCaptureStart` / `serialCaptureStop`.
+  - Serial console output can now be mirrored to the paired evDash mobile app as
+    `type:"serial"` JSON lines while capture is enabled.
+  - Bumped firmware version for M5Stack terminal-capture builds.
+
 ### V4.6.5 2026-05-05
 - Mobile relay stability:
   - Online contribute upload is deferred while a phone is actively connected to the BLE relay, avoiding repeated BLE disconnects during HTTPS/TLS uploads.

@@ -8,6 +8,8 @@
 #include <FS.h>
 #include <SD.h>
 
+typedef void (*LogSerialMirrorCallback)(const uint8_t *data, size_t size, void *context);
+
 // DEBUG LEVEL
 #define DEBUG_NONE 0
 #define DEBUG_COMM 1   // filter comm
@@ -24,6 +26,8 @@ class LogSerial : public HardwareSerial
 protected:
   uint8_t debugLevel;
   bool logToSdcard = false;
+  LogSerialMirrorCallback mirrorCallback = nullptr;
+  void *mirrorContext = nullptr;
   File file;
 
 public:
@@ -34,6 +38,14 @@ public:
   //
   void setDebugLevel(uint8_t aDebugLevel);
   void setLogToSdcard(bool state);
+  void setMirrorCallback(LogSerialMirrorCallback callback, void *context);
+#ifdef BOARD_M5STACK_CORES3
+  using HWCDC::write;
+#else
+  using HardwareSerial::write;
+#endif // BOARD_M5STACK_CORES3
+  size_t write(uint8_t data) override;
+  size_t write(const uint8_t *buffer, size_t size) override;
 
   // info
   template <class T, typename... Args>

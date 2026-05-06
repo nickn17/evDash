@@ -49,12 +49,17 @@ private:
   uint32_t lastCellsMs = 0;
   uint32_t lastTempsMs = 0;
   uint32_t lastRawMs = 0;
+  uint32_t lastSerialMirrorMs = 0;
+  bool serialCaptureEnabled = false;
   String rxBuffer = "";
+  String serialMirrorBuffer = "";
 
   void startServer();
   void stopServer();
   void handleCommand(const String &jsonLine);
   void handlePairStart(const String &mobileId, const String &code);
+  void handleSerialCaptureStart();
+  void handleSerialCaptureStop();
   void notifyLine(const String &line);
   void notifyJson(const String &json);
   void sendHello();
@@ -63,6 +68,9 @@ private:
   void sendCells();
   void sendTemps();
   void sendRawFrames();
+  void sendSerialLine(const String &line);
+  void handleSerialMirror(const uint8_t *data, size_t size);
+  void flushSerialMirrorLine();
   bool paired() const;
   bool pairingOpen() const;
   String relayId() const;
@@ -75,4 +83,5 @@ private:
   String jsonNumber(float value, uint8_t digits = 1) const;
   String jsonBool(bool value) const;
   String escapeJson(const String &value) const;
+  static void serialMirrorThunk(const uint8_t *data, size_t size, void *context);
 };
