@@ -5661,16 +5661,11 @@ bool Board320_240::netContributeData()
   if (liveData->settings.wifiEnabled == 1 && WiFi.status() == WL_CONNECTED &&
       liveData->params.contributeStatus == CONTRIBUTE_READY_TO_SEND)
   {
+    syslog->println("Contribute data...");
     if (isMobileRelayClientConnected())
     {
-      syslog->println("Contribute deferred: mobile relay client connected");
-      liveData->params.contributeStatus = CONTRIBUTE_NONE;
-      contributeStatusSinceMs = 0;
-      nextContributeCycleAtMs = millis() + kContributeCycleIntervalMs;
-      return false;
+      syslog->println("Contribute upload: mobile relay stays active");
     }
-
-    syslog->println("Contribute data...");
     const char *contributeHost = "api.evdash.eu";
     const char *contributeUrl = "https://api.evdash.eu/v1/contribute";
     const char *contributePath = "/v1/contribute";
@@ -5728,8 +5723,6 @@ bool Board320_240::netContributeData()
                     String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
                     String(ESP.getFreePsram()));
 
-    bool bleCommPausedForContribute = false;
-    bool relayPausedForContribute = false;
     auto printContributeHeap = [&]()
     {
       syslog->print("Heap intFree/intLargest/psram: ");
@@ -5737,37 +5730,8 @@ bool Board320_240::netContributeData()
                       String(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) + " / " +
                       String(ESP.getFreePsram()));
     };
-    auto pauseBleForContribute = [&]()
-    {
-      if (mobileRelay != nullptr && liveData->settings.relayForMobileEnabled == 1)
-      {
-        syslog->println("Contribute: pausing mobile BLE relay for TLS");
-        mobileRelay->pauseForNetUpload();
-        relayPausedForContribute = true;
-      }
-      if (commInterface != nullptr && liveData->settings.commType == COMM_TYPE_OBD2_BLE4 && !commInterface->isSuspended())
-      {
-        syslog->println("Contribute: suspending BLE adapter for TLS");
-        commInterface->suspendDevice();
-        bleCommPausedForContribute = true;
-      }
-      if (relayPausedForContribute || bleCommPausedForContribute)
-      {
-        delay(150);
-        printContributeHeap();
-      }
-    };
-    auto resumeBleAfterContribute = [&]()
-    {
-      if (bleCommPausedForContribute && commInterface != nullptr && !liveData->params.stopCommandQueue)
-      {
-        commInterface->resumeDevice();
-      }
-      if (relayPausedForContribute && mobileRelay != nullptr)
-      {
-        mobileRelay->resumeAfterNetUpload();
-      }
-    };
+    syslog->println("Contribute TLS: BLE stays active");
+    printContributeHeap();
 
     String responsePayload = "";
     int lastTlsErrCode = 0;
@@ -6050,8 +6014,6 @@ bool Board320_240::netContributeData()
       return statusCode;
     };
 
-    pauseBleForContribute();
-
     IPAddress resolvedHost;
     int dnsRc = WiFi.hostByName(contributeHost, resolvedHost);
     syslog->print("Contribute DNS ");
@@ -6146,8 +6108,6 @@ bool Board320_240::netContributeData()
     {
       syslog->println("Contribute HTTPS TLS memory issue detected in low-memory mode.");
     }
-
-    resumeBleAfterContribute();
 
     if (rc == HTTP_CODE_OK)
     {

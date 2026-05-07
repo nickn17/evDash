@@ -1,5 +1,11 @@
 # RELEASE NOTES
 
+### V4.6.8 2026-05-07
+- Mobile relay / HTTPS upload:
+  - Contribute upload is no longer deferred just because the evDash mobile relay app is connected.
+  - BLE relay stays active during Contribute TLS uploads; mbedTLS now prefers PSRAM for larger TLS allocations instead of freeing BLE memory.
+  - Remote terminal capture now queues serial lines and flushes them from the relay loop, so ABRP/Contribute/Traccar HTTP logs are not lost or sent synchronously inside TLS code.
+
 ### V4.6.7 2026-05-07
 - Renault ZOE support:
   - Reworked ZOE Z.E. 20/40/50 polling from the evDash app profile instead of only changing pack capacity.

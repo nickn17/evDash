@@ -53,6 +53,10 @@ private:
   bool serialCaptureEnabled = false;
   String rxBuffer = "";
   String serialMirrorBuffer = "";
+  String serialPendingLines = "";
+  bool serialPendingOverflow = false;
+  static constexpr size_t kSerialPendingMaxBytes = 8192;
+  static constexpr uint8_t kSerialFlushLinesPerLoop = 4;
 
   void startServer();
   void stopServer();
@@ -69,6 +73,8 @@ private:
   void sendTemps();
   void sendRawFrames();
   void sendSerialLine(const String &line);
+  void queueSerialLine(const String &line);
+  void flushSerialPendingLines(uint8_t maxLines);
   void handleSerialMirror(const uint8_t *data, size_t size);
   void flushSerialMirrorLine();
   bool paired() const;
