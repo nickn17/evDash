@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <WString.h>
-#include <string.h>
 #include <sys/time.h>
 #include "LiveData.h"
 #include "CarRenaultZoe.h"
@@ -10,107 +10,588 @@
 #define commandQueueLoopFromRenaultZoe 8
 
 /**
+   Checks numeric value range
+*/
+bool CarRenaultZoe::inRange(float value, float min, float max)
+{
+  return value >= min && value <= max;
+}
+
+/**
+   Normalizes ELM/CAN response and removes command echo
+*/
+String CarRenaultZoe::normalizedResponse()
+{
+  String response = liveData->responseRowMerged;
+  response.replace(" ", "");
+  response.replace("\r", "");
+  response.replace("\n", "");
+  response.replace(">", "");
+  response.trim();
+  response.toUpperCase();
+
+  String command = liveData->commandRequest;
+  command.replace(" ", "");
+  command.toUpperCase();
+  while (command.length() > 0 && response.startsWith(command) && response.length() > command.length())
+    response = response.substring(command.length());
+
+  return response;
+}
+
+/**
+   Detects text-only adapter responses
+*/
+bool CarRenaultZoe::isTextResponse(const String &response)
+{
+  if (response.length() == 0 || response.equals("NODATA") || response.equals("NO DATA") || response.equals("OK") || response.equals("?"))
+    return true;
+  for (uint16_t i = 0; i < response.length(); i++)
+  {
+    const char c = response.charAt(i);
+    if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')))
+      return true;
+  }
+  return false;
+}
+
+/**
+   Decodes ASCII bytes from a hex response
+*/
+String CarRenaultZoe::decodeAscii(const String &response, uint16_t from)
+{
+  String out = "";
+  for (uint16_t i = from; i + 1 < response.length() && out.length() < 17; i += 2)
+  {
+    const uint8_t ch = liveData->hexToDec(response.substring(i, i + 2), 1, false);
+    if (ch >= 32 && ch <= 126)
+      out += char(ch);
+  }
+  out.trim();
+  return out;
+}
+
+/**
+   Reads CanZE big-endian bit fields from merged response
+*/
+int CarRenaultZoe::canzeBits(const String &response, uint16_t start, uint16_t end)
+{
+  if (end < start || ((end / 8) + 1) * 2 > response.length())
+    return -1;
+
+  uint32_t value = 0;
+  for (uint16_t bit = start; bit <= end; bit++)
+  {
+    const uint16_t bytePos = (bit / 8) * 2;
+    const uint8_t byteValue = liveData->hexToDec(response.substring(bytePos, bytePos + 2), 1, false);
+    value = (value << 1) | bitRead(byteValue, 7 - (bit % 8));
+  }
+  return value;
+}
+
+/**
+   Reads Renault temperature bit fields
+*/
+float CarRenaultZoe::zoeTempFromBits(const String &response, uint16_t start, uint16_t end, float scale)
+{
+  const int raw = canzeBits(response, start, end);
+  return raw < 0 ? -100 : (raw * scale) - 40;
+}
+
+/**
+   Returns selected ZOE usable pack size
+*/
+float CarRenaultZoe::selectedPackKWh()
+{
+  if (liveData->settings.carType == CAR_RENAULT_ZOE_ZE40_41)
+    return 41;
+  if (liveData->settings.carType == CAR_RENAULT_ZOE_ZE50_52)
+    return 52;
+  return 22;
+}
+
+/**
+   Applies selected pack size and SOC-derived energy fallback
+*/
+void CarRenaultZoe::updateZoePackSize()
+{
+  const float pack = selectedPackKWh();
+  liveData->params.batteryTotalAvailableKWh = pack;
+  liveData->params.batMaxEnergyContent = pack;
+  if (!zoeHasBmsEnergy && inRange(liveData->params.socPerc, 0, 100))
+    liveData->params.batEnergyContent = pack * liveData->params.socPerc / 100.0;
+}
+
+/**
+   Updates cell voltages from legacy LBC frames
+*/
+void CarRenaultZoe::updateZoeCells(uint16_t offset, uint16_t count)
+{
+  if (liveData->responseRowMerged.length() < 4 + (count * 4))
+    return;
+
+  for (uint16_t i = 0; i < count && offset + i < 200; i++)
+  {
+    const uint16_t from = 4 + (i * 4);
+    const float voltage = liveData->hexToDecFromResponse(from, from + 4, 2, false) / 1000.0;
+    if (inRange(voltage, 2.5, 4.5))
+      liveData->params.cellVoltage[offset + i] = voltage;
+  }
+  liveData->params.cellCount = 96;
+  updateZoeCellMinMax();
+}
+
+/**
+   Updates cell min/max from available cell array
+*/
+void CarRenaultZoe::updateZoeCellMinMax()
+{
+  float minV = 9;
+  float maxV = 0;
+  uint8_t minNo = 255;
+  uint8_t maxNo = 255;
+  const uint16_t count = liveData->params.cellCount > 0 ? liveData->params.cellCount : 96;
+
+  for (uint16_t i = 0; i < count && i < 200; i++)
+  {
+    const float voltage = liveData->params.cellVoltage[i];
+    if (!inRange(voltage, 2.5, 4.5))
+      continue;
+    if (voltage < minV)
+    {
+      minV = voltage;
+      minNo = i + 1;
+    }
+    if (voltage > maxV)
+    {
+      maxV = voltage;
+      maxNo = i + 1;
+    }
+  }
+
+  if (minNo != 255)
+  {
+    liveData->params.batCellMinV = minV;
+    liveData->params.batCellMinVNo = minNo;
+  }
+  if (maxNo != 255)
+  {
+    liveData->params.batCellMaxV = maxV;
+    liveData->params.batCellMaxVNo = maxNo;
+  }
+}
+
+/**
+   Updates module temperature min/max from parsed module array
+*/
+void CarRenaultZoe::updateZoeModuleMinMax(uint16_t count)
+{
+  float minC = 100;
+  float maxC = -100;
+  bool found = false;
+  for (uint16_t i = 0; i < count && i < 25; i++)
+  {
+    const float temp = liveData->params.batModuleTempC[i];
+    if (!inRange(temp, -40, 90))
+      continue;
+    if (!found || temp < minC)
+      minC = temp;
+    if (!found || temp > maxC)
+      maxC = temp;
+    found = true;
+  }
+  if (found)
+  {
+    liveData->params.batMinC = minC;
+    liveData->params.batMaxC = maxC;
+    liveData->params.batTempC = minC;
+  }
+}
+
+/**
+   Applies Renault gear value
+*/
+void CarRenaultZoe::applyZoeGear(uint8_t gear)
+{
+  if (gear < 1 || gear > 4)
+    return;
+
+  liveData->params.forwardDriveMode = (gear == 4);
+  liveData->params.reverseDriveMode = (gear == 2);
+  liveData->params.parkModeOrNeutral = (gear == 1 || gear == 3);
+
+  const bool driving = liveData->params.forwardDriveMode || liveData->params.reverseDriveMode;
+  liveData->params.ignitionOn = driving || liveData->params.chargingOn || (liveData->params.speedKmh > 1);
+  if (liveData->params.ignitionOn)
+    liveData->params.lastIgnitionOnTime = liveData->params.currentTime;
+}
+
+/**
+   Converts CanZE TPMS raw pressure to bar
+*/
+void CarRenaultZoe::setTirePressureFromRaw(float &target, int raw)
+{
+  if (raw <= 0 || raw >= 255)
+    return;
+  const float pressure = raw * 13.725 / 1000.0;
+  if (inRange(pressure, 0.5, 4.5))
+    target = pressure;
+}
+
+/**
+   Updates charging status from pack power
+*/
+void CarRenaultZoe::updateChargingStateFromPower()
+{
+  if (liveData->params.batPowerKw > 0.5)
+  {
+    liveData->params.chargingOn = true;
+    liveData->params.lastChargingOnTime = liveData->params.currentTime;
+  }
+  else if (liveData->params.batPowerKw < -0.5)
+  {
+    liveData->params.chargingOn = false;
+    liveData->params.chargerACconnected = false;
+    liveData->params.chargerDCconnected = false;
+  }
+}
+
+/**
+   Parses ZOE Phase2 / Z.E.50 CanZE PIDs
+*/
+void CarRenaultZoe::parseZoePhase2(const String &response)
+{
+  if (liveData->currentAtshRequest.equals("ATSH18DAF1DB"))
+  {
+    if (liveData->commandRequest.equals("229002") && response.startsWith("629002") && response.length() >= 10)
+    {
+      const float soc = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+      if (inRange(soc, 0, 100))
+      {
+        liveData->params.socPercPrevious = liveData->params.socPerc;
+        liveData->params.socPerc = soc;
+        liveData->params.socPercBms = soc;
+      }
+    }
+    else if (liveData->commandRequest.equals("229001") && response.startsWith("629001") && response.length() >= 10)
+    {
+      const float soc = (liveData->hexToDecFromResponse(6, 10, 2, false) - 300) / 100.0;
+      if (inRange(soc, 0, 100))
+      {
+        if (!inRange(liveData->params.socPerc, 0, 100))
+          liveData->params.socPerc = soc;
+        liveData->params.socPercBms = soc;
+      }
+    }
+    else if (liveData->commandRequest.equals("229003") && response.startsWith("629003") && response.length() >= 10)
+    {
+      const float soh = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+      if (inRange(soh, 0, 100))
+        liveData->params.sohPerc = soh;
+    }
+    else if (liveData->commandRequest.equals("229005") && response.startsWith("629005") && response.length() >= 10)
+    {
+      const float voltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 10.0;
+      if (inRange(voltage, 200, 450))
+        liveData->params.batVoltage = voltage;
+    }
+    else if (liveData->commandRequest.equals("229012") && response.startsWith("629012") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) - 640) * 0.0625;
+      if (inRange(temp, -40, 90))
+      {
+        liveData->params.batTempC = temp;
+        liveData->params.batMinC = temp;
+        liveData->params.batMaxC = temp;
+        liveData->params.batModuleTempC[0] = temp;
+      }
+    }
+    else if (liveData->commandRequest.equals("229018") && response.startsWith("629018") && response.length() >= 10)
+    {
+      const float power = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+      if (inRange(power, 0, 100))
+        liveData->params.availableChargePower = power;
+    }
+    else if (liveData->commandRequest.equals("2291C8") && response.startsWith("6291C8") && response.length() >= 12)
+    {
+      const float energy = liveData->hexToDecFromResponse(6, 12, 3, false) / 1000.0;
+      if (inRange(energy, 0, 80))
+      {
+        liveData->params.batEnergyContent = energy;
+        zoeHasBmsEnergy = true;
+      }
+    }
+    else if (liveData->commandRequest.startsWith("22913") && response.startsWith("62913") && response.length() >= 10)
+    {
+      const uint16_t pid = strtoul(liveData->commandRequest.substring(2).c_str(), NULL, 16);
+      const uint8_t idx = pid >= 0x9131 ? pid - 0x9131 : 255;
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) - 640) * 0.0625;
+      if (idx < 12 && inRange(temp, -40, 90))
+      {
+        liveData->params.batModuleTempC[idx] = temp;
+        liveData->params.batModuleTempCount = 12;
+        updateZoeModuleMinMax(12);
+      }
+    }
+  }
+
+  if (liveData->currentAtshRequest.equals("ATSH18DAF1DA"))
+  {
+    if (liveData->commandRequest.equals("222003") && response.startsWith("622003") && response.length() >= 10)
+    {
+      float speed = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+      if (inRange(speed, 0, 220))
+      {
+        if (speed > 10)
+          speed += liveData->settings.speedCorrection;
+        liveData->params.speedKmh = speed;
+        if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
+        {
+          liveData->params.forwardDriveMode = speed > 1;
+          liveData->params.parkModeOrNeutral = speed <= 1;
+        }
+        liveData->params.ignitionOn = speed > 1 || liveData->params.forwardDriveMode || liveData->params.reverseDriveMode;
+      }
+    }
+    else if (liveData->commandRequest.equals("222005") && response.startsWith("622005") && response.length() >= 10)
+    {
+      const float voltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+      if (inRange(voltage, 8, 16))
+      {
+        liveData->params.auxVoltage = voltage;
+        const float tmpAuxPerc = liveData->params.ignitionOn ? (voltage - 12.8) * 100 / (14.8 - 12.8) : (voltage - 11.6) * 100 / (12.8 - 11.6);
+        liveData->params.auxPerc = tmpAuxPerc > 100 ? 100 : (tmpAuxPerc < 0 ? 0 : tmpAuxPerc);
+      }
+    }
+    else if (liveData->commandRequest.equals("22200F") && response.startsWith("62200F"))
+    {
+      const int brake = canzeBits(response, 28, 31);
+      if (brake >= 0)
+        liveData->params.brakeLights = (brake == 2 || brake == 4);
+    }
+    else if (liveData->commandRequest.equals("2220DE") && response.startsWith("6220DE") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) / 10.0) - 273;
+      if (inRange(temp, -40, 80))
+        liveData->params.outdoorTemperature = temp;
+    }
+    else if (liveData->commandRequest.equals("2221DF") && response.startsWith("6221DF") && response.length() >= 10)
+    {
+      const float current = liveData->hexToDecFromResponse(6, 10, 2, false) - 32767;
+      if (inRange(current, -200, 200))
+        liveData->params.auxCurrentAmp = current;
+    }
+    else if (liveData->commandRequest.equals("222B85") && response.startsWith("622B85"))
+    {
+      const int plugged = canzeBits(response, 31, 31);
+      if (plugged >= 0)
+      {
+        liveData->params.chargerACconnected = plugged == 1;
+        liveData->params.chargingOn = liveData->params.chargerACconnected && liveData->params.batPowerKw > 0.5;
+        if (liveData->params.chargingOn)
+          liveData->params.lastChargingOnTime = liveData->params.currentTime;
+      }
+    }
+    else if (liveData->commandRequest.equals("22300F") && response.startsWith("62300F") && response.length() >= 10)
+    {
+      const float power = liveData->hexToDecFromResponse(6, 10, 2, false) * 0.025;
+      if (inRange(power, 0, 100))
+        liveData->params.availableChargePower = power;
+    }
+    else if (liveData->commandRequest.equals("223064") && response.startsWith("623064") && response.length() >= 10)
+    {
+      const float rpm = liveData->hexToDecFromResponse(6, 10, 2, true);
+      if (inRange(rpm, -20000, 20000))
+        liveData->params.motor1Rpm = rpm;
+    }
+  }
+
+  if (liveData->currentAtshRequest.equals("ATSH764"))
+  {
+    if (liveData->commandRequest.equals("224009") && response.startsWith("624009") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) - 400) / 10.0;
+      if (inRange(temp, -40, 80))
+        liveData->params.indoorTemperature = temp;
+    }
+    else if (liveData->commandRequest.equals("224347") && response.startsWith("624347") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) - 200) * 0.25;
+      if (inRange(temp, -40, 80))
+        liveData->params.outdoorTemperature = temp;
+    }
+    else if (liveData->commandRequest.equals("224423") && response.startsWith("624423") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) - 400) / 10.0;
+      if (inRange(temp, -40, 80))
+        liveData->params.batInletC = temp;
+    }
+    else if (liveData->commandRequest.equals("22441C") && response.startsWith("62441C") && response.length() >= 8)
+    {
+      const int mode = liveData->hexToDecFromResponse(6, 8, 1, false);
+      liveData->params.batteryManagementMode = mode == 0 ? BAT_MAN_MODE_OFF : BAT_MAN_MODE_COOLING;
+    }
+    else if (liveData->commandRequest.equals("22400A") && response.startsWith("62400A") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) - 400) / 10.0;
+      if (inRange(temp, -40, 80))
+        liveData->params.evaporatorTempC = temp;
+    }
+  }
+}
+
+/**
    activateCommandQueue
 */
 void CarRenaultZoe::activateCommandQueue()
 {
 
   std::vector<String> commandQueueRenaultZoe = {
-      "AT Z",    // Reset all
-      "AT I",    // Print the version ID
-      "AT S0",   // Printing of spaces on
-      "AT E0",   // Echo off
-      "AT L0",   // Linefeeds off
-      "AT SP 6", // Select protocol to ISO 15765-4 CAN (11 bit ID, 500 kbit/s)
-      //"AT AL",     // Allow Long (>7 byte) messages
-      //"AT AR",     // Automatically receive
-      //"AT H1",     // Headers on (debug only)
-      //"AT D1",     // Display of the DLC on
-      //"AT CAF0",   // Automatic formatting off
-      ////"AT AT0",     // disabled adaptive timing
+      "AT Z",
+      "AT I",
+      "AT S0",
+      "AT E0",
+      "AT L0",
+      "AT SP 6",
       "AT DP",
-      "AT ST16", // timeout
-
-      // Loop from (RENAULT ZOE)
+      "AT ST16",
 
       // LBC Lithium battery controller
       "ATSH79B",
       "ATFCSH79B",
-      "atfcsd300010",
-      "atfcsm1",
-      "2101", // 034 61011383138600000000000000000000000009970D620FC920D0000005420000000000000008D80500000B202927100000000000000000
-      "2103", // 01D 6103018516A717240000000001850185000000FFFF07D00516E60000030000000000
-      "2104", // 04D 6104099A37098D37098F3709903709AC3609BB3609A136098B37099737098A37098437099437FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF363637000000000000
-      "2141", // 07e 61410F360F380F380F360F380F380F380F380F390F390F3A0F390F3A0F390F390F380F380F390F380F380F380F390F390F380F380F3A0F390F380F380F380F390F390F350F380F360F380F380F380F380F360F380F360F350F380F360F380F360F360F350F360F360F380F380F380F3A0F380F3A0F3A0F390F390F380F36000000000000
-      "2142", // 04a 61420F3A0F390F390F390F380F380F390F390F390F390F360F360F380F380F360F380F360F380F390F390F3A0F390F390F3A0F3A0F3A0F380F390F390F3A0F390F390F380F38922091F20000
-      "2161", // 014 6161000AA820C8C8C8C2C20001545800004696FF
+      "ATFCSD300010",
+      "ATFCSM1",
+      "2101",
+      "2103",
+      "2104",
+      "2141",
+      "2142",
+      "2161",
 
       // CLUSTER Instrument panel
       "ATSH743",
       "ATFCSH743",
-      "atfcsd300010",
-      "atfcsm1",
-      //    "220201", // 62020175300168
-      //    "220202", // 62020274710123
-      //    "220203"- "220205", // 7F2212
-      "220206", // 62020600015459
-      //"222204", // temp ext.
+      "ATFCSD300010",
+      "ATFCSM1",
+      "220206",
 
-      // BCB 793 Battery Connection Box
-      //    "ATSH792",
-      //    "ATFCSH792",
-      //    "atfcsd300010",
-      //    "atfcsm1",
-      //    "223101", to     "223114", // all with negative 7F2212*/
-
-      // CLIM 764 CLIMATE CONTROL
+      // CLIM Climate control
       "ATSH744",
       "ATFCSH744",
-      "atfcsd300010",
-      "atfcsm1",
+      "ATFCSD300010",
+      "ATFCSM1",
       "2143",
-      //"2182", // 618038303139520430343239353031520602051523080201008815
-      //    "2125", // 6125000000000000000000000000000000000000
+      "2121",
+      "2144",
 
-      // EVC 7ec El vehicle controler
+      // EVC Electric vehicle controller
       "ATSH7E4",
       "ATFCSH7E4",
-      "atfcsd300010",
-      "atfcsm1",
-      //    "222001", // 62200136
-      //    "222002", // 6220020B3D
-      "222003", // 6220030000
-                //    "222004", // 62200402ED
-                //    "222005", // 6220050532
-                //    "222006", // 622006015459
+      "ATFCSD300010",
+      "ATFCSM1",
+      "222003",
+      "22200F",
+      "222233",
+      "222238",
+      "222C04",
+      "22331E",
+      "22338E",
+      "223392",
+      "223397",
+      "223398",
+      "22339B",
+      "22339D",
+      "223451",
+      "223456",
+      "222005",
+      "2220DE",
 
-      // PEB 77e Power Electronics Bloc
-      //    "ATSH75A",
-      //    "ATFCSH75A",
-      //    "atfcsd300010",
-      //    "atfcsm1",
-      //    "223009", // 6230093640
+      // TPMS / VIN
+      "ATSH765",
+      "ATFCSH765",
+      "ATFCSD300010",
+      "ATFCSM1",
+      "2174",
+      "2181",
+      "ATSH763",
+      "ATFCSH763",
+      "ATFCSD300010",
+      "ATFCSM1",
+      "2181",
+      "22F190",
 
-      // UBP 7bc Uncoupled Braking Pedal
-      //    "ATSH79C",
-      //    "ATFCSH79C",
-      //    "atfcsd300010",
-      //    "atfcsm1",
-      //    "21F0", // 61F0303235315204303337333733325215160C0400000101008800
-      //    "21F1", // 61F10000000000F000000000F0000000000012061400005C91F600
-      //    "21FE", // 61FE333731325204303337333733325215160C0400010201008800
-
+      // PEB Power electronics bloc
+      "ATSH77E",
+      "ATFCSH77E",
+      "ATFCSD300010",
+      "ATFCSM1",
+      "22302B",
   };
 
-  //
-  liveData->params.batModuleTempCount = 12; // 24, 12 is display limit
-  liveData->params.batteryTotalAvailableKWh = 22;
-  if (liveData->settings.carType == CAR_RENAULT_ZOE_ZE40_41)
-    liveData->params.batteryTotalAvailableKWh = 41;
   if (liveData->settings.carType == CAR_RENAULT_ZOE_ZE50_52)
-    liveData->params.batteryTotalAvailableKWh = 52;
+  {
+    const std::vector<String> commandQueueRenaultZoePhase2 = {
+        // BMS Phase2
+        "ATSH18DAF1DB",
+        "ATFCSH18DAF1DB",
+        "ATFCSD300010",
+        "ATFCSM1",
+        "1003",
+        "229002",
+        "229001",
+        "229003",
+        "229005",
+        "229012",
+        "229018",
+        "2291C8",
+        "229131",
+        "229132",
+        "229133",
+        "229134",
+        "229135",
+        "229136",
+        "229137",
+        "229138",
+        "229139",
+        "22913A",
+        "22913B",
+        "22913C",
 
-  //  Empty and fill command queue
+        // EVC Phase2
+        "ATSH18DAF1DA",
+        "ATFCSH18DAF1DA",
+        "ATFCSD300010",
+        "ATFCSM1",
+        "222003",
+        "222005",
+        "22200F",
+        "2220DE",
+        "2221DF",
+        "222B85",
+        "22300F",
+        "223451",
+        "223064",
+
+        // CLIM Phase2
+        "ATSH764",
+        "ATFCSH764",
+        "ATFCSD300010",
+        "ATFCSM1",
+        "224009",
+        "224347",
+        "224423",
+        "22441C",
+        "22400A",
+    };
+    commandQueueRenaultZoe.insert(commandQueueRenaultZoe.end(), commandQueueRenaultZoePhase2.begin(), commandQueueRenaultZoePhase2.end());
+  }
+
+  liveData->params.batModuleTempCount = liveData->settings.carType == CAR_RENAULT_ZOE_ZE50_52 ? 12 : 24;
+  liveData->params.cellCount = 96;
+  liveData->params.batteryManagementMode = BAT_MAN_MODE_UNKNOWN;
+  zoeHasBmsEnergy = false;
+  updateZoePackSize();
+
   liveData->commandQueue.clear();
   for (auto cmd : commandQueueRenaultZoe)
   {
@@ -127,217 +608,259 @@ void CarRenaultZoe::activateCommandQueue()
 void CarRenaultZoe::parseRowMerged()
 {
 
-  //  uint8_t tempByte;
-  uint16_t tempWord;
-  float tempFloat;
-
-  if (liveData->responseRowMerged.equals("NO DATA"))
-  {
-    syslog->println("empty response NO DATA");
+  String response = normalizedResponse();
+  liveData->responseRowMerged = response;
+  if (isTextResponse(response))
     return;
-  }
 
-  // LBC 79B
+  parseZoePhase2(response);
+
   if (liveData->currentAtshRequest.equals("ATSH79B"))
   {
-    if (liveData->commandRequest.equals("2101"))
+    if (liveData->commandRequest.equals("2101") && response.startsWith("6101") && response.length() >= 88)
     {
-      liveData->params.batPowerAmp = (liveData->hexToDecFromResponse(4, 8, 2, false) - 5000) / 10.0;
-      syslog->print("liveData->params.batPowerAmp: ");
-      syslog->println(liveData->params.batPowerAmp);
-      liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
-      syslog->print("liveData->params.batPowerKw: ");
-      syslog->println(liveData->params.batPowerKw);
-      if (liveData->params.batPowerKw < 0) // Reset charging start time
-        liveData->params.chargingStartTime = liveData->params.currentTime;
-      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
-      liveData->params.auxVoltage = liveData->hexToDecFromResponse(56, 60, 2, false) / 100.0;
-      syslog->print("liveData->params.auxVoltage: ");
-      syslog->println(liveData->params.auxVoltage);
-      float tmpAuxPerc;
-      if (liveData->params.ignitionOn)
+      const float amps = (liveData->hexToDecFromResponse(4, 8, 2, false) - 5000) / 10.0;
+      if (inRange(amps, -500, 500))
       {
-        tmpAuxPerc = (float)(liveData->params.auxVoltage - 12.8) * 100 / (float)(14.8 - 12.8); // min: 12.8V; max: 14.8V
+        liveData->params.batPowerAmp = amps;
+        if (inRange(liveData->params.batVoltage, 200, 450))
+          liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
+        if (liveData->params.batPowerKw < 0)
+          liveData->params.chargingStartTime = liveData->params.currentTime;
+        if (liveData->params.speedKmh > 1)
+          liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+        updateChargingStateFromPower();
       }
-      else
+
+      const float auxVoltage = liveData->hexToDecFromResponse(56, 60, 2, false) / 100.0;
+      if (inRange(auxVoltage, 8, 16))
       {
-        tmpAuxPerc = (float)(liveData->params.auxVoltage - 11.6) * 100 / (float)(12.8 - 11.6); // min 11.6V; max: 12.8V
+        liveData->params.auxVoltage = auxVoltage;
+        const float tmpAuxPerc = liveData->params.ignitionOn ? (auxVoltage - 12.8) * 100 / (14.8 - 12.8) : (auxVoltage - 11.6) * 100 / (12.8 - 11.6);
+        liveData->params.auxPerc = tmpAuxPerc > 100 ? 100 : (tmpAuxPerc < 0 ? 0 : tmpAuxPerc);
       }
-      liveData->params.auxPerc = ((tmpAuxPerc > 100) ? 100 : ((tmpAuxPerc < 0) ? 0 : tmpAuxPerc));
-      syslog->print("liveData->params.auxPerc: ");
-      syslog->println(liveData->params.auxPerc);
-      liveData->params.availableChargePower = liveData->hexToDecFromResponse(84, 88, 2, false) / 100.0;
-      syslog->print("liveData->params.availableChargePower: ");
-      syslog->println(liveData->params.availableChargePower);
+
+      const float availablePower = liveData->hexToDecFromResponse(84, 88, 2, false) / 100.0;
+      if (inRange(availablePower, 0, 100))
+        liveData->params.availableChargePower = availablePower;
     }
-    if (liveData->commandRequest.equals("2103"))
+    else if (liveData->commandRequest.equals("2103") && response.startsWith("6103") && response.length() >= 52)
     {
-      liveData->params.socPercPrevious = liveData->params.socPerc;
-      liveData->params.socPerc = liveData->hexToDecFromResponse(48, 52, 2, false) / 100.0;
-      syslog->print("liveData->params.socPerc: ");
-      syslog->println(liveData->params.socPerc);
-      liveData->params.batCellMinV = liveData->hexToDecFromResponse(24, 28, 2, false) / 100.0;
-      syslog->print("liveData->params.batCellMinV: ");
-      syslog->println(liveData->params.batCellMinV);
-      liveData->params.batCellMaxV = liveData->hexToDecFromResponse(28, 32, 2, false) / 100.0;
-      syslog->print("liveData->params.batCellMaxV: ");
-      syslog->println(liveData->params.batCellMaxV);
+      const float cellMin = liveData->hexToDecFromResponse(24, 28, 2, false) / 100.0;
+      const float cellMax = liveData->hexToDecFromResponse(28, 32, 2, false) / 100.0;
+      const float soc = liveData->hexToDecFromResponse(48, 52, 2, false) / 100.0;
+      if (inRange(soc, 0, 100))
+      {
+        liveData->params.socPercPrevious = liveData->params.socPerc;
+        liveData->params.socPerc = soc;
+        liveData->params.socPercBms = soc;
+      }
+      if (inRange(cellMin, 2.5, 4.5))
+        liveData->params.batCellMinV = cellMin;
+      if (inRange(cellMax, 2.5, 4.5))
+        liveData->params.batCellMaxV = cellMax;
     }
-    if (liveData->commandRequest.equals("2104"))
+    else if (liveData->commandRequest.equals("2104") && response.startsWith("6104"))
     {
       for (uint16_t i = 0; i < 12; i++)
       {
-        liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(8 + (i * 6), 10 + (i * 6), 1, false) - 40;
+        if (response.length() >= 10 + (i * 6))
+        {
+          const float temp = liveData->hexToDecFromResponse(8 + (i * 6), 10 + (i * 6), 1, false) - 40;
+          if (inRange(temp, -40, 90))
+            liveData->params.batModuleTempC[i] = temp;
+        }
       }
       for (uint16_t i = 12; i < 24; i++)
       {
-        liveData->params.batModuleTempC[i] = liveData->hexToDecFromResponse(80 + ((i - 12) * 6), 82 + ((i - 12) * 6), 1, false) - 40;
+        const uint16_t from = 80 + ((i - 12) * 6);
+        if (response.length() >= from + 2)
+        {
+          const float temp = liveData->hexToDecFromResponse(from, from + 2, 1, false) - 40;
+          if (inRange(temp, -40, 90))
+            liveData->params.batModuleTempC[i] = temp;
+        }
       }
-      liveData->params.batMinC = liveData->params.batMaxC = liveData->params.batModuleTempC[0];
-      for (uint16_t i = 1; i < 24; i++)
-      {
-        if (liveData->params.batModuleTempC[i] < liveData->params.batMinC)
-          liveData->params.batMinC = liveData->params.batModuleTempC[i];
-        if (liveData->params.batModuleTempC[i] > liveData->params.batMaxC)
-          liveData->params.batMaxC = liveData->params.batModuleTempC[i];
-      }
-      liveData->params.batTempC = liveData->params.batMinC;
-      syslog->print("liveData->params.batTempC: ");
-      syslog->println(liveData->params.batTempC);
+      liveData->params.batModuleTempCount = 24;
+      updateZoeModuleMinMax(24);
     }
-    if (liveData->commandRequest.equals("2141"))
+    else if (liveData->commandRequest.equals("2141") && response.startsWith("6141"))
     {
-      for (int i = 0; i < 62; i++)
+      updateZoeCells(0, 62);
+    }
+    else if (liveData->commandRequest.equals("2142") && response.startsWith("6142"))
+    {
+      updateZoeCells(62, 34);
+      const uint8_t voltageOffsets[] = {144, 136, 140};
+      for (uint8_t i = 0; i < 3; i++)
       {
-        liveData->params.cellVoltage[i] = liveData->hexToDecFromResponse(4 + (i * 4), 8 + (i * 4), 2, false) / 1000;
+        const uint8_t from = voltageOffsets[i];
+        if (response.length() >= from + 4)
+        {
+          const float voltage = liveData->hexToDecFromResponse(from, from + 4, 2, false) / 100.0;
+          if (inRange(voltage, 200, 450))
+          {
+            liveData->params.batVoltage = voltage;
+            break;
+          }
+        }
       }
     }
-    if (liveData->commandRequest.equals("2142"))
+    else if (liveData->commandRequest.equals("2161") && response.startsWith("6161") && response.length() >= 20)
     {
-      for (int i = 0; i < 34; i++)
-      {
-        liveData->params.cellVoltage[i + 62] = liveData->hexToDecFromResponse(4 + (i * 4), 8 + (i * 4), 2, false) / 1000;
-      }
-      liveData->params.batVoltage = liveData->hexToDecFromResponse(144, 148, 2, false) / 100;
-      syslog->print("liveData->params.batVoltage: ");
-      syslog->println(liveData->params.batVoltage);
-    }
-    if (liveData->commandRequest.equals("2161"))
-    {
-      liveData->params.sohPerc = liveData->hexToDecFromResponse(18, 20, 2, false) / 2.0;
-      syslog->print("liveData->params.sohPerc: ");
-      syslog->println(liveData->params.sohPerc);
+      const float soh = liveData->hexToDecFromResponse(18, 20, 1, false) / 2.0;
+      if (inRange(soh, 0, 100))
+        liveData->params.sohPerc = soh;
     }
   }
 
-  // CLUSTER 743
   if (liveData->currentAtshRequest.equals("ATSH743"))
   {
-    if (liveData->commandRequest.equals("220206"))
-    {
+    if (liveData->commandRequest.equals("220206") && response.startsWith("620206") && response.length() >= 14)
       liveData->params.odoKm = liveData->hexToDecFromResponse(6, 14, 4, false);
-      syslog->print("liveData->params.speedKmh: ");
-      syslog->println(liveData->params.speedKmh);
-    }
   }
 
-  // CLUSTER ATSH7E4
-  if (liveData->currentAtshRequest.equals("ATSH7E4"))
-  {
-    if (liveData->commandRequest.equals("222003"))
-    {
-      liveData->params.speedKmh = liveData->hexToDecFromResponse(6, 8, 2, false) / 100;
-      syslog->print("liveData->params.speedKmh: ");
-      syslog->println(liveData->params.speedKmh);
-      if (liveData->params.speedKmh > 10)
-        liveData->params.speedKmh += liveData->settings.speedCorrection;
-      if (liveData->params.speedKmh < -99 || liveData->params.speedKmh > 200)
-        liveData->params.speedKmh = 0;
-    }
-  }
-
-  // CLIM 744 CLIMATE CONTROL
   if (liveData->currentAtshRequest.equals("ATSH744"))
   {
-    if (liveData->commandRequest.equals("2121"))
+    if (liveData->commandRequest.equals("2143") && response.startsWith("6143"))
     {
-      liveData->responseRowMerged = "61217E1F568FFFFFFFF0047F008700813EE011AF0300813EE011AF";
-      tempWord = (liveData->hexToDecFromResponse(6, 10, 2, false));
-      tempFloat = (((tempWord >> 4) & 0x3ff) - 400) / 10;
-      if (tempFloat > -40 && tempFloat < 50)
-        liveData->params.indoorTemperature = tempFloat;
-      syslog->print("liveData->params.indoorTemperature: ");
-      syslog->println(liveData->params.indoorTemperature);
+      const float temp = zoeTempFromBits(response, 110, 117);
+      if (inRange(temp, -40, 80))
+        liveData->params.outdoorTemperature = temp;
     }
-    if (liveData->commandRequest.equals("2143"))
+    else if (liveData->commandRequest.equals("2121") && response.startsWith("6121"))
     {
-      tempWord = (liveData->hexToDecFromResponse(26, 30, 2, false));
-      tempFloat = ((tempWord >> 2) & 0xff) - 40;
-      if (tempFloat > -40 && tempFloat < 50)
-        liveData->params.outdoorTemperature = tempFloat;
-      syslog->print("liveData->params.outdoorTemperature: ");
-      syslog->println(liveData->params.outdoorTemperature);
-      // liveData->params.coolantTemp1C = (liveData->hexToDecFromResponse(14, 16, 1, false) / 2) - 40;
-      // liveData->params.coolantTemp2C = (liveData->hexToDecFromResponse(16, 18, 1, false) / 2) - 40;
+      const float indoor = zoeTempFromBits(response, 26, 35, 0.1);
+      const float batInlet = zoeTempFromBits(response, 150, 159, 0.1);
+      if (inRange(indoor, -40, 80))
+        liveData->params.indoorTemperature = indoor;
+      if (inRange(batInlet, -40, 80))
+        liveData->params.batInletC = batInlet;
+    }
+    else if (liveData->commandRequest.equals("2144") && response.startsWith("6144"))
+    {
+      const float batInlet = zoeTempFromBits(response, 170, 179, 0.1);
+      if (inRange(batInlet, -40, 80))
+        liveData->params.batInletC = batInlet;
     }
   }
 
-  /*
-liveData->params.forwardDriveMode = (driveMode == 4);
-liveData->params.reverseDriveMode = (driveMode == 2);
-liveData->params.parkModeOrNeutral  = (driveMode == 1);
-tempByte = liveData->hexToDecFromResponse(16, 18, 1, false);
-liveData->params.ignitionOnPrevious = liveData->params.ignitionOn;
-liveData->params.ignitionOn = (bitRead(tempByte, 5) == 1);
-if (liveData->params.ignitionOnPrevious && !liveData->params.ignitionOn)
- liveData->params.automaticShutdownTimer = liveData->params.currentTime;
-liveData->params.lightInfo = liveData->hexToDecFromResponse(18, 20, 1, false);
-liveData->params.headLights = (bitRead(liveData->params.lightInfo, 5) == 1);
-liveData->params.dayLights = (bitRead(liveData->params.lightInfo, 3) == 1);
-liveData->params.brakeLightInfo = liveData->hexToDecFromResponse(14, 16, 1, false);
-liveData->params.brakeLights = (bitRead(liveData->params.brakeLightInfo, 5) == 1);
-liveData->params.auxPerc = liveData->hexToDecFromResponse(50, 52, 1, false);
-liveData->params.auxCurrentAmp = - liveData->hexToDecFromResponse(46, 50, 2, true) / 1000.0;
-liveData->params.cumulativeEnergyChargedKWh = liveData->decFromResponse(82, 90) / 10.0;
-liveData->params.cumulativeEnergyDischargedKWh = liveData->decFromResponse(90, 98) / 10.0;
-liveData->params.availableDischargePower = liveData->decFromResponse(20, 24) / 100.0;
-//liveData->params.isolationResistanceKOhm = liveData->hexToDecFromResponse(118, 122, 2, true);
-liveData->params.batFanStatus = liveData->hexToDecFromResponse(60, 62, 2, true);
-liveData->params.batFanFeedbackHz = liveData->hexToDecFromResponse(62, 64, 2, true);
-liveData->params.motor1Rpm = liveData->hexToDecFromResponse(112, 116, 2, false);
-// This is more accurate than min/max from BMS. It's required to detect kona/eniro cold gates (min 15C is needed > 43kW charging, min 25C is needed > 58kW charging)
-liveData->params.batInletC = liveData->hexToDecFromResponse(50, 52, 1, true);
-liveData->params.bmsUnknownTempA = liveData->hexToDecFromResponse(30, 32, 1, true);
-liveData->params.batHeaterC = liveData->hexToDecFromResponse(52, 54, 1, true);
-liveData->params.bmsUnknownTempB = liveData->hexToDecFromResponse(82, 84, 1, true);
-liveData->params.coolingWaterTempC = liveData->hexToDecFromResponse(14, 16, 1, false);
-liveData->params.bmsUnknownTempC = liveData->hexToDecFromResponse(18, 20, 1, true);
-liveData->params.bmsUnknownTempD = liveData->hexToDecFromResponse(46, 48, 1, true);
-liveData->params.tireFrontLeftPressureBar = liveData->hexToDecFromResponse(14, 16, 2, false) / 72.51886900361;      *0.2 / 14.503773800722
-liveData->params.tireFrontRightPressureBar = liveData->hexToDecFromResponse(22, 24, 2, false) / 72.51886900361;      *0.2 / 14.503773800722
-liveData->params.tireRearRightPressureBar = liveData->hexToDecFromResponse(30, 32, 2, false) / 72.51886900361;     *0.2 / 14.503773800722
-liveData->params.tireRearLeftPressureBar = liveData->hexToDecFromResponse(38, 40, 2, false) / 72.51886900361;      *0.2 / 14.503773800722
-liveData->params.tireFrontLeftTempC = liveData->hexToDecFromResponse(16, 18, 2, false)  - 50;
-liveData->params.tireFrontRightTempC = liveData->hexToDecFromResponse(24, 26, 2, false) - 50;
-liveData->params.tireRearRightTempC = liveData->hexToDecFromResponse(32, 34, 2, false) - 50;
-liveData->params.tireRearLeftTempC = liveData->hexToDecFromResponse(40, 42, 2, false) - 50;
-          if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100) {
- if ( liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw < liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)])
-   liveData->params.chargingGraphMinKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
- if ( liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] < 0 || liveData->params.batPowerKw > liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)])
-   liveData->params.chargingGraphMaxKw[int(liveData->params.socPerc)] = liveData->params.batPowerKw;
- liveData->params.chargingGraphBatMinTempC[int(liveData->params.socPerc)] = liveData->params.batMinC;
- liveData->params.chargingGraphBatMaxTempC[int(liveData->params.socPerc)] = liveData->params.batMaxC;
- liveData->params.chargingGraphHeaterTempC[int(liveData->params.socPerc)] = liveData->params.batHeaterC;
- liveData->params.chargingGraphWaterCoolantTempC[int(liveData->params.socPerc)] = liveData->params.coolingWaterTempC;
-if (liveData->params.socPercPrevious - liveData->params.socPerc > 0) {
- byte index = (int(liveData->params.socPerc) == 4) ? 0 : (int)(liveData->params.socPerc / 10) + 1;
- if ((int(liveData->params.socPerc) % 10 == 9 || int(liveData->params.socPerc) == 4) && liveData->params.soc10ced[index] == -1) {
-   liveData->params.soc10ced[index] = liveData->params.cumulativeEnergyDischargedKWh;
-   liveData->params.soc10cec[index] = liveData->params.cumulativeEnergyChargedKWh;
-   liveData->params.soc10odo[index] = liveData->params.odoKm;
-   liveData->params.soc10time[index] = liveData->params.currentTime;
-  */
+  if (liveData->currentAtshRequest.equals("ATSH7E4"))
+  {
+    if (liveData->commandRequest.equals("222003") && response.startsWith("622003") && response.length() >= 8)
+    {
+      const bool hasTwoBytes = response.length() >= 10;
+      float speed = liveData->hexToDecFromResponse(6, hasTwoBytes ? 10 : 8, hasTwoBytes ? 2 : 1, false) / 100.0;
+      if (inRange(speed, 0, 220))
+      {
+        if (speed > 10)
+          speed += liveData->settings.speedCorrection;
+        liveData->params.speedKmh = speed;
+        if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
+        {
+          liveData->params.forwardDriveMode = speed > 1;
+          liveData->params.parkModeOrNeutral = speed <= 1;
+        }
+        liveData->params.ignitionOn = speed > 1 || liveData->params.forwardDriveMode || liveData->params.reverseDriveMode || liveData->params.chargingOn;
+      }
+    }
+    else if (liveData->commandRequest.equals("22200F") && response.startsWith("62200F"))
+    {
+      const int brake = canzeBits(response, 28, 31);
+      if (brake >= 0)
+        liveData->params.brakeLights = (brake == 2 || brake == 4);
+    }
+    else if ((liveData->commandRequest.equals("222238") || liveData->commandRequest.equals("222C04")) && (response.startsWith("622238") || response.startsWith("622C04")))
+    {
+      const int gear = canzeBits(response, 29, 31);
+      if (gear >= 0)
+        applyZoeGear(gear);
+    }
+    else if (liveData->commandRequest.equals("222005") && response.startsWith("622005") && response.length() >= 10)
+    {
+      const float voltage = liveData->hexToDecFromResponse(6, 10, 2, false) / 100.0;
+      if (inRange(voltage, 8, 16))
+      {
+        liveData->params.auxVoltage = voltage;
+        const float tmpAuxPerc = liveData->params.ignitionOn ? (voltage - 12.8) * 100 / (14.8 - 12.8) : (voltage - 11.6) * 100 / (12.8 - 11.6);
+        liveData->params.auxPerc = tmpAuxPerc > 100 ? 100 : (tmpAuxPerc < 0 ? 0 : tmpAuxPerc);
+      }
+    }
+    else if (liveData->commandRequest.equals("2220DE") && response.startsWith("6220DE") && response.length() >= 10)
+    {
+      const float temp = (liveData->hexToDecFromResponse(6, 10, 2, false) / 10.0) - 273;
+      if (inRange(temp, -40, 80))
+        liveData->params.outdoorTemperature = temp;
+    }
+    else if (liveData->commandRequest.equals("22338E") && response.startsWith("62338E"))
+    {
+      const int open = canzeBits(response, 31, 31);
+      if (open >= 0)
+        liveData->params.leftFrontDoorOpen = open == 1;
+    }
+    else if (liveData->commandRequest.equals("22339B") && response.startsWith("62339B"))
+    {
+      const int open = canzeBits(response, 31, 31);
+      if (open >= 0)
+        liveData->params.rightFrontDoorOpen = open == 1;
+    }
+    else if (liveData->commandRequest.equals("22339D") && response.startsWith("62339D"))
+    {
+      const int plugged = canzeBits(response, 31, 31);
+      if (plugged >= 0)
+      {
+        liveData->params.chargerACconnected = plugged == 1;
+        liveData->params.chargingOn = liveData->params.chargerACconnected && liveData->params.batPowerKw > 0.5;
+        if (liveData->params.chargingOn)
+          liveData->params.lastChargingOnTime = liveData->params.currentTime;
+      }
+    }
+  }
+
+  if (liveData->currentAtshRequest.equals("ATSH765"))
+  {
+    if (liveData->commandRequest.equals("2174") && response.startsWith("6174"))
+    {
+      setTirePressureFromRaw(liveData->params.tireRearRightPressureBar, canzeBits(response, 112, 119));
+      setTirePressureFromRaw(liveData->params.tireRearLeftPressureBar, canzeBits(response, 120, 127));
+      setTirePressureFromRaw(liveData->params.tireFrontRightPressureBar, canzeBits(response, 128, 135));
+      setTirePressureFromRaw(liveData->params.tireFrontLeftPressureBar, canzeBits(response, 136, 143));
+    }
+    else if (liveData->commandRequest.equals("2181") && response.startsWith("6181"))
+    {
+      const String vin = decodeAscii(response, 4);
+      if (vin.length() >= 10)
+        vin.toCharArray(liveData->params.carVin, sizeof(liveData->params.carVin));
+    }
+  }
+
+  if (liveData->currentAtshRequest.equals("ATSH763"))
+  {
+    if (liveData->commandRequest.equals("2181") && response.startsWith("6181"))
+    {
+      const String vin = decodeAscii(response, 4);
+      if (vin.length() >= 10)
+        vin.toCharArray(liveData->params.carVin, sizeof(liveData->params.carVin));
+    }
+    else if (liveData->commandRequest.equals("22F190") && response.startsWith("62F190"))
+    {
+      const String vin = decodeAscii(response, 6);
+      if (vin.length() >= 10)
+        vin.toCharArray(liveData->params.carVin, sizeof(liveData->params.carVin));
+    }
+  }
+
+  if (liveData->currentAtshRequest.equals("ATSH77E"))
+  {
+    if (liveData->commandRequest.equals("22302B") && response.startsWith("62302B") && response.length() >= 10)
+    {
+      const float temp = liveData->hexToDecFromResponse(6, 10, 2, false) / 64.0;
+      if (inRange(temp, -30, 180))
+        liveData->params.motorTempC = temp;
+    }
+  }
+
+  updateZoePackSize();
 }
 
 /**
