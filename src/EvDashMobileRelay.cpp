@@ -39,15 +39,18 @@ void EvDashMobileRelay::loop()
   {
     startServer();
   }
-  if (!connected || notifyCharacteristic == nullptr)
-  {
-    return;
-  }
-
   const uint32_t nowMs = millis();
   if (serialCaptureEnabled && serialMirrorBuffer.length() > 0 && nowMs - lastSerialMirrorMs > 800)
   {
     flushSerialMirrorLine();
+  }
+  if (!connected || notifyCharacteristic == nullptr)
+  {
+    return;
+  }
+  if (serialCaptureEnabled && (serialPendingLines.length() > 0 || serialPendingOverflow))
+  {
+    flushSerialPendingLines(kSerialFlushLinesPerLoop);
   }
   if (nowMs - lastHelloMs > 5000)
   {
@@ -179,14 +182,19 @@ void EvDashMobileRelay::onConnect(BLEServer *server)
     syslog->println("Mobile relay connected");
   }
   sendHello();
+  flushSerialPendingLines(8);
 }
 
 void EvDashMobileRelay::onDisconnect(BLEServer *server)
 {
   (void)server;
   connected = false;
-  serialCaptureEnabled = false;
-  serialMirrorBuffer = "";
+  if (!serialCaptureEnabled)
+  {
+    serialMirrorBuffer = "";
+    serialPendingLines = "";
+    serialPendingOverflow = false;
+  }
   if (syslog != nullptr)
   {
     syslog->println("Mobile relay disconnected");
@@ -362,7 +370,13 @@ void EvDashMobileRelay::handleSerialCaptureStart()
 void EvDashMobileRelay::handleSerialCaptureStop()
 {
   flushSerialMirrorLine();
+  while (connected && notifyCharacteristic != nullptr && (serialPendingLines.length() > 0 || serialPendingOverflow))
+  {
+    flushSerialPendingLines(255);
+  }
   serialCaptureEnabled = false;
+  serialPendingLines = "";
+  serialPendingOverflow = false;
   notifyJson("{\"type\":\"serialCapture\",\"ver\":2,\"state\":\"stopped\"}");
 }
 
@@ -563,7 +577,7 @@ void EvDashMobileRelay::sendRawFrames()
 
 void EvDashMobileRelay::sendSerialLine(const String &line)
 {
-  if (!serialCaptureEnabled || line.length() == 0)
+  if (line.length() == 0)
   {
     return;
   }
@@ -572,9 +586,71 @@ void EvDashMobileRelay::sendSerialLine(const String &line)
   notifyJson(json);
 }
 
+void EvDashMobileRelay::queueSerialLine(const String &line)
+{
+  if (!serialCaptureEnabled || line.length() == 0)
+  {
+    return;
+  }
+  String queuedLine = line;
+  queuedLine.replace('\r', ' ');
+  queuedLine.replace('\n', ' ');
+  if (queuedLine.length() > 220)
+  {
+    queuedLine = queuedLine.substring(0, 220);
+  }
+  while (serialPendingLines.length() + queuedLine.length() + 1 > kSerialPendingMaxBytes)
+  {
+    int nextLinePos = serialPendingLines.indexOf('\n');
+    if (nextLinePos < 0)
+    {
+      serialPendingLines = "";
+      break;
+    }
+    serialPendingLines.remove(0, nextLinePos + 1);
+    serialPendingOverflow = true;
+  }
+  serialPendingLines += queuedLine;
+  serialPendingLines += "\n";
+}
+
+void EvDashMobileRelay::flushSerialPendingLines(uint8_t maxLines)
+{
+  if (!connected || notifyCharacteristic == nullptr || maxLines == 0)
+  {
+    return;
+  }
+  uint8_t sent = 0;
+  if (serialPendingOverflow)
+  {
+    sendSerialLine("serial backlog truncated");
+    serialPendingOverflow = false;
+    sent++;
+  }
+  while (sent < maxLines && serialPendingLines.length() > 0)
+  {
+    int nextLinePos = serialPendingLines.indexOf('\n');
+    String line = (nextLinePos >= 0) ? serialPendingLines.substring(0, nextLinePos) : serialPendingLines;
+    if (nextLinePos >= 0)
+    {
+      serialPendingLines.remove(0, nextLinePos + 1);
+    }
+    else
+    {
+      serialPendingLines = "";
+    }
+    line.trim();
+    if (line.length() > 0)
+    {
+      sendSerialLine(line);
+      sent++;
+    }
+  }
+}
+
 void EvDashMobileRelay::handleSerialMirror(const uint8_t *data, size_t size)
 {
-  if (!serialCaptureEnabled || !connected || notifyCharacteristic == nullptr || data == nullptr || size == 0)
+  if (!serialCaptureEnabled || data == nullptr || size == 0)
   {
     return;
   }
@@ -604,7 +680,7 @@ void EvDashMobileRelay::flushSerialMirrorLine()
   line.trim();
   if (line.length() > 0)
   {
-    sendSerialLine(line);
+    queueSerialLine(line);
   }
 }
 

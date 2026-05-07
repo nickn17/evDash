@@ -27,7 +27,10 @@
 #include "Arduino.h"
 #include <esp_heap_caps.h>
 #include <esp_bt.h>
+#include <mbedtls/platform.h>
 #include <new>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "config.h"
 #include "BoardInterface.h"
@@ -62,6 +65,40 @@ LiveData *liveData;
 EvDashMobileRelay *mobileRelay;
 
 /**
+ * Prefer PSRAM for larger mbedTLS allocations.
+ */
+static void *evdashTlsCalloc(size_t count, size_t size)
+{
+  if (count != 0 && size > SIZE_MAX / count)
+  {
+    return nullptr;
+  }
+  const size_t bytes = count * size;
+  void *ptr = nullptr;
+  if (bytes >= 1024 && psramFound())
+  {
+    ptr = heap_caps_calloc(count, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  }
+  if (ptr == nullptr)
+  {
+    ptr = heap_caps_calloc(count, size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  }
+  if (ptr == nullptr)
+  {
+    ptr = calloc(count, size);
+  }
+  return ptr;
+}
+
+/**
+ * Free mbedTLS memory allocated by evdashTlsCalloc.
+ */
+static void evdashTlsFree(void *ptr)
+{
+  free(ptr);
+}
+
+/**
  * Setup function that initializes the board, car interface, live data,
  * and logging. Also prints some introductory text.
  */
@@ -83,6 +120,12 @@ void setup(void)
 
   // Serial console
   syslog = new LogSerial();
+  if (psramFound())
+  {
+    int tlsAllocRc = mbedtls_platform_set_calloc_free(evdashTlsCalloc, evdashTlsFree);
+    syslog->print("mbedTLS PSRAM allocator: ");
+    syslog->println(tlsAllocRc == 0 ? "enabled" : "failed");
+  }
 
 #ifdef BOARD_M5STACK_CORE2
   board = new BoardM5stackCore2();
