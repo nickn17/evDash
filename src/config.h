@@ -2,8 +2,8 @@
 
 #include <BLEDevice.h>
 
-#define APP_VERSION "v4.6.6"
-#define APP_RELEASE_DATE "2026-05-06"
+#define APP_VERSION "v4.6.7"
+#define APP_RELEASE_DATE "2026-05-07"
 #define WEBFLASHER_URL "evdash.eu/m5flash"
 #define FW_VERSION_CHECK_URL "https://api.evdash.eu/v1/m5evdash/version/get"
 #define PAIR_START_URL "https://api.evdash.eu/v1/m5evdash/pair/start"
@@ -102,9 +102,7 @@ typedef enum
   VEHICLE_TYPE_SKODA,
   VEHICLE_TYPE_VW,
   VEHICLE_TYPE_SEAT,
-  VEHICLE_TYPE_ZOE_22_DEV,
-  VEHICLE_TYPE_ZOE_ZE40_41,
-  VEHICLE_TYPE_ZOE_ZE50_52,
+  VEHICLE_TYPE_RENAULT,
   VEHICLE_TYPE_BMWI3_2014_22,
   VEHICLE_TYPE_PEUGEOT_E208,
 
@@ -150,6 +148,11 @@ typedef enum
 
   VEHICLE_TYPE_SEAT_TOP,
   VEHICLE_TYPE_SEAT_MII_ELECTRIC_36,
+
+  VEHICLE_TYPE_RENAULT_TOP,
+  VEHICLE_TYPE_ZOE_22_DEV,
+  VEHICLE_TYPE_ZOE_ZE40_41,
+  VEHICLE_TYPE_ZOE_ZE50_52,
 
   // menu others
   MENU_OTHER_TOP = 300,

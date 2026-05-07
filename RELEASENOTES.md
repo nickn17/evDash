@@ -1,5 +1,13 @@
 # RELEASE NOTES
 
+### V4.6.7 2026-05-07
+- Renault ZOE support:
+  - Reworked ZOE Z.E. 20/40/50 polling from the evDash app profile instead of only changing pack capacity.
+  - Added legacy ZOE CLIM/EVC/TPMS/PEB/VIN requests for cabin/outdoor temperatures, 12V voltage, brake/gear/doors, plug state, tyre pressure and motor temperature.
+  - Added Z.E. 50 Phase2 29-bit BMS/EVC/CLIM polling for SOC, SOH, pack voltage, available energy, battery temperatures, 12V DCDC current and cabin/outdoor temperatures.
+  - Validates ZOE SOC/SOH/voltage/temperature values before storing them, avoiding bad placeholder values in the UI.
+  - Grouped ZOE variants under Renault in the vehicle menu.
+
 ### V4.6.6 2026-05-06
 - Mobile relay terminal capture:
   - Added relay control messages `serialCaptureStart` / `serialCaptureStop`.
