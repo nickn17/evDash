@@ -490,6 +490,25 @@ void EvDashMobileRelay::sendSnapshot()
   json += ",\"brakeLights\":" + jsonBool(p.brakeLights);
   json += ",\"frontRpm\":" + jsonNumber(p.motor1Rpm, 0);
   json += ",\"rearRpm\":" + jsonNumber(p.motor2Rpm, 0);
+  // TPMS — convert bar -> kPa (Flutter side expects kPa). null when sensor
+  // hasn't reported yet (firmware uses 0/-99 sentinels) so the iPhone shows
+  // "--" instead of a bogus 0.
+  json += ",\"flTireKpa\":";
+  json += (p.tireFrontLeftPressureBar > 0.05f) ? jsonNumber(p.tireFrontLeftPressureBar * 100.0f, 0) : "null";
+  json += ",\"frTireKpa\":";
+  json += (p.tireFrontRightPressureBar > 0.05f) ? jsonNumber(p.tireFrontRightPressureBar * 100.0f, 0) : "null";
+  json += ",\"rlTireKpa\":";
+  json += (p.tireRearLeftPressureBar > 0.05f) ? jsonNumber(p.tireRearLeftPressureBar * 100.0f, 0) : "null";
+  json += ",\"rrTireKpa\":";
+  json += (p.tireRearRightPressureBar > 0.05f) ? jsonNumber(p.tireRearRightPressureBar * 100.0f, 0) : "null";
+  json += ",\"flTireC\":";
+  json += (p.tireFrontLeftTempC > -50.0f) ? jsonNumber(p.tireFrontLeftTempC, 0) : "null";
+  json += ",\"frTireC\":";
+  json += (p.tireFrontRightTempC > -50.0f) ? jsonNumber(p.tireFrontRightTempC, 0) : "null";
+  json += ",\"rlTireC\":";
+  json += (p.tireRearLeftTempC > -50.0f) ? jsonNumber(p.tireRearLeftTempC, 0) : "null";
+  json += ",\"rrTireC\":";
+  json += (p.tireRearRightTempC > -50.0f) ? jsonNumber(p.tireRearRightTempC, 0) : "null";
   json += ",\"lat\":" + jsonNumber(p.gpsLat, 5);
   json += ",\"lon\":" + jsonNumber(p.gpsLon, 5);
   json += ",\"alt\":" + jsonNumber(p.gpsAlt, 0);

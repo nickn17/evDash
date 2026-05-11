@@ -1,5 +1,15 @@
 # RELEASE NOTES
 
+### V4.6.10 2026-05-11
+- Skoda Citigo-e / VW e-Up / Seat Mii:
+  - Fixed cell voltage and module temperature polling — DIDs `221E40-221EA5` (84 cells) and `221EAE-221EBB` (14 module temps) were being sent to the climate ECU (`0x714`) instead of the BMS (`0x7E5`) because the CAN header was not restored after polling the climate DIDs `2222E0/2222E4`. The ECU answered with `7F 22 31` ("request out of range"), shown as `[Filtered packet]` in the log, so per-cell voltages and module temperatures never populated.
+  - Added `ATSH7E5 / ATCRA7ED` after the climate block so subsequent cell/module requests go to the BMS.
+
+### V4.6.9 2026-05-09
+- Mobile relay snapshot:
+  - Added TPMS fields to the `snapshot` JSON: `flTireKpa`, `frTireKpa`, `rlTireKpa`, `rrTireKpa` (bar*100 → kPa) and `flTireC`, `frTireC`, `rlTireC`, `rrTireC`. Tyre pressures and temperatures now appear on the iPhone evDash relay screen instead of `--`.
+  - Sentinels (no data yet) are emitted as JSON `null` so the iPhone shows `--` rather than a bogus 0.
+
 ### V4.6.8 2026-05-07
 - Mobile relay / HTTPS upload:
   - Contribute upload is no longer deferred just because the evDash mobile relay app is connected.
