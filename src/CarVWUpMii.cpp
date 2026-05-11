@@ -163,6 +163,9 @@ void CarVWUpMii::activateCommandQueue()
       "ATCRA77E",
       "2222E0",
       "2222E4",
+      // Switch back to BMS before cell voltage / module temperature DIDs below
+      "ATSH7E5",
+      "ATCRA7ED",
   };
   commandQueueVwUpMii.insert(commandQueueVwUpMii.end(), extraCommands.begin(), extraCommands.end());
 
