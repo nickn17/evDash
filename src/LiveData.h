@@ -445,6 +445,7 @@ public:
   uint8_t commandStartChar;
   String commandRequest = ""; // TODO: us Command_t struct
   String currentAtshRequest = "";
+  uint32_t currentAtcraResponseId = 0; // Last ATCRAxxx value (RX ID). 0 = unset → use default TX+8 mapping.
   bool packetFilteredPending = false;
   String packetFilteredCommand = "";
   String packetFilteredId = "";

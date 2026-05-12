@@ -482,7 +482,8 @@ uint8_t CommObd2Can::receivePID()
     bool allowSpecialResponse = false;
     if (liveData->commandRequest.startsWith("0902") && rxId == 0x7EA)
       allowSpecialResponse = true; // VIN replies can come from 7EA (Hyundai/Kia)
-    if (lastPid <= 4095 && rxId != lastPid + 8 && !(rxId == lastPid && isNegativeResponse) && !allowSpecialResponse)
+    const bool matchesAtcra = liveData->currentAtcraResponseId != 0 && rxId == liveData->currentAtcraResponseId;
+    if (lastPid <= 4095 && rxId != lastPid + 8 && !(rxId == lastPid && isNegativeResponse) && !allowSpecialResponse && !matchesAtcra)
     {
       if (liveData->params.contributeStatus == CONTRIBUTE_COLLECTING)
       {

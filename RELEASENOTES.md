@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.6.11 2026-05-12
+- CAN driver:
+  - The direct-CAN driver previously ignored `ATCRA…` commands and always expected the response ID to be `TX+8`. For VW-family vehicles the gateway routes some responses with a `+0x6A` offset (e.g. `0x714→0x77E`, `0x765→0x7CF`), so valid replies for `2222E0/E4` (climate) and `221DD0/DD6` (gateway) were marked `[Filtered packet]` and discarded.
+  - The driver now tracks the last `ATCRAxxx` value and accepts that RX ID in addition to the default `TX+8` mapping. `ATSH` resets the tracked value so it must be re-armed by the next `ATCRA`.
+
 ### V4.6.10 2026-05-11
 - Skoda Citigo-e / VW e-Up / Seat Mii:
   - Fixed cell voltage and module temperature polling — DIDs `221E40-221EA5` (84 cells) and `221EAE-221EBB` (14 module temps) were being sent to the climate ECU (`0x714`) instead of the BMS (`0x7E5`) because the CAN header was not restored after polling the climate DIDs `2222E0/2222E4`. The ECU answered with `7F 22 31` ("request out of range"), shown as `[Filtered packet]` in the log, so per-cell voltages and module temperatures never populated.

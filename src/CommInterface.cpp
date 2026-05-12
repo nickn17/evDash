@@ -160,6 +160,14 @@ bool CommInterface::doNextQueueCommand()
     if (liveData->commandRequest.startsWith("ATSH"))
     {
       liveData->currentAtshRequest = liveData->commandRequest;
+      liveData->currentAtcraResponseId = 0; // reset until a new ATCRA pairs with this ATSH
+    }
+    else if (liveData->commandRequest.startsWith("ATCRA"))
+    {
+      // Track non-standard RX ID for ECUs that don't follow the TX+8 convention (e.g. VW gateway 0x714->0x77E)
+      String craHex = liveData->commandRequest.substring(5);
+      craHex.trim();
+      liveData->currentAtcraResponseId = (uint32_t)liveData->hexToDec(craHex, 4, false);
     }
 
     // Contribute data flags
