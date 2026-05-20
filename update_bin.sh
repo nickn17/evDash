@@ -1,10 +1,10 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 copy_env_bins() {
-  local env="$1"
-  local target_dir="dist/$env"
-  local build_dir=".pio/build/$env"
+  env_name="$1"
+  target_dir="dist/$env_name"
+  build_dir=".pio/build/$env_name"
 
   mkdir -p "$target_dir"
 

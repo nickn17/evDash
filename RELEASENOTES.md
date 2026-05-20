@@ -1,11 +1,12 @@
 # RELEASE NOTES
 
-### V4.6.12 2026-05-20
+### V4.6.13 2026-05-20
 - Maintenance:
   - Extracted 320x240 UI primitive methods from `Board320_240.cpp` into `Board320_240_ui.cpp`, keeping display helpers separate from board/network/GPS logic.
   - Added `SETTINGS_VERSION_CURRENT` for persisted settings schema version and reused it in default settings and upgrades.
   - Reworked repeated MQTT topic formatting to use bounded `snprintf` and checked remote JSON payload size before sending.
   - Reduced PlatformIO config duplication by sharing common dependencies, build flags and Core2 board settings across environments.
+  - Made `update_bin.sh` compatible with `sh update_bin.sh` for copying built firmware files from `.pio/build` into `dist`.
 
 ### V4.6.11 2026-05-12
 - CAN driver:
