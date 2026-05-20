@@ -545,8 +545,6 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
 uint16_t Board320_240::menuItemsCountCurrent()
 {
   uint16_t count = 0;
-  std::vector<String> customMenu = carInterface->customMenu(liveData->menuCurrent);
-  count += customMenu.size();
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
   {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
@@ -597,8 +595,7 @@ uint16_t Board320_240::menuItemFromTouchY(int16_t touchY)
  * Renders the menu UI on the screen.
  * Handles pagination/scrolling of menu items.
  * Highlights selected menu item.
- * Renders menu items from static menuItems array
- * and dynamic customMenu vector.
+ * Renders menu items from static menuItems array.
  */
 void Board320_240::showMenu()
 {
@@ -614,17 +611,13 @@ void Board320_240::showMenu()
   const int16_t backTextGap = 10;
   const int16_t highlightRadius = 8;
   const int16_t textOffsetY = 2; // 2px down from previous layout
-  int8_t idx, off = 2;
+  int8_t off = 2;
 
   liveData->menuVisible = true;
   spr.fillSprite(TFT_BLACK);
   spr.setTextDatum(TL_DATUM);
   sprSetFont(fontRobotoThin24);
   const int16_t textHeight = spr.fontHeight();
-
-  // dynamic car menu
-  std::vector<String> customMenu;
-  customMenu = carInterface->customMenu(liveData->menuCurrent);
 
   // Page scroll
   menuItemHeight = spr.fontHeight();
@@ -741,31 +734,6 @@ void Board320_240::showMenu()
     }
   }
 
-  for (uint16_t i = 0; i < customMenu.size(); ++i)
-  {
-    if (tmpCurrMenuItem >= liveData->menuItemOffset)
-    {
-      bool isMenuItemSelected = liveData->menuItemSelected == tmpCurrMenuItem;
-      bool isMenuItemHovered = allowHoverHighlight && (menuTouchHoverIndex == int16_t(tmpCurrMenuItem));
-      if (isMenuItemSelected || isMenuItemHovered)
-      {
-        uint16_t fillCol = isMenuItemSelected ? 0x2104 : 0x1082;
-        uint16_t borderCol = isMenuItemSelected ? TFT_CYAN : TFT_DARKGREY;
-        spr.fillRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, fillCol);
-        spr.drawRoundRect(2, posY + 1, 316, menuItemHeight - 2, highlightRadius, borderCol);
-      }
-      spr.setTextColor(isMenuItemHovered ? TFT_CYAN : TFT_WHITE);
-      idx = customMenu.at(i).indexOf("=");
-      const int16_t textY = posY + off + textOffsetY;
-      if (textY >= 0 && textY + textHeight <= renderHeight)
-      {
-        sprDrawString(customMenu.at(i).substring(idx + 1).c_str(), textPaddingX, textY);
-      }
-      posY += menuItemHeight;
-    }
-    tmpCurrMenuItem++;
-  }
-
   // Slim right-side scrollbar for menu position feedback.
   const int16_t scrollTrackX = 317;
   const int16_t scrollTrackY = renderOffsetY + 2;
@@ -823,8 +791,7 @@ void Board320_240::hideMenu()
  */
 void Board320_240::menuMove(bool forward, bool rotate)
 {
-  uint16_t tmpCount = 0 + carInterface->customMenu(liveData->menuCurrent).size();
-
+  uint16_t tmpCount = 0;
   for (uint16_t i = 0; i < liveData->menuItemsCount; ++i)
   {
     if (liveData->menuCurrent == liveData->menuItems[i].parentId && strlen(liveData->menuItems[i].title) != 0)
@@ -866,24 +833,6 @@ void Board320_240::menuItemClick()
       {
         tmpMenuItem = &liveData->menuItems[i];
         break;
-      }
-      tmpCurrMenuItem++;
-    }
-  }
-
-  // Look for item in car custom menu
-  if (tmpMenuItem == NULL)
-  {
-    std::vector<String> customMenu;
-    customMenu = carInterface->customMenu(liveData->menuCurrent);
-    for (uint16_t i = 0; i < customMenu.size(); ++i)
-    {
-      if (liveData->menuItemSelected == tmpCurrMenuItem)
-      {
-        String tmp = customMenu.at(i).substring(0, customMenu.at(i).indexOf("="));
-        syslog->println(tmp);
-        carInterface->carCommand(tmp);
-        return;
       }
       tmpCurrMenuItem++;
     }

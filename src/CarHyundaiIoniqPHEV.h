@@ -17,6 +17,4 @@ public:
   void parseRowMerged() override;
   bool commandAllowed() override;
   void loadTestData() override;
-  std::vector<String> customMenu(int16_t menuId) override;
-  void carCommand(const String &cmd) override;
 };

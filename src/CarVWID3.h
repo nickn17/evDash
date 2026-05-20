@@ -17,8 +17,5 @@ public:
   //
   void testHandler(const String &cmd) override;
   //
-  std::vector<String> customMenu(int16_t menuId) override;
-  void carCommand(const String &cmd) override;
-  //
   float convertLatLonToDecimal(String orig);
 };

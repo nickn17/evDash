@@ -26,12 +26,3 @@ void CarInterface::loadTestData()
 void CarInterface::testHandler(const String &cmd)
 {
 }
-
-std::vector<String> CarInterface::customMenu(int16_t menuId)
-{
-  return {};
-}
-
-void CarInterface::carCommand(const String &cmd)
-{
-}

@@ -93,7 +93,6 @@ typedef enum
   MENU_MEMORY_USAGE,
   MENU_SHUTDOWN,
   MENU_REBOOT,
-  MENU_CAR_COMMANDS,
   //
   VEHICLE_TYPE_TOP = 100,
   VEHICLE_TYPE_HYUNDAI,
@@ -316,9 +315,6 @@ typedef enum
   LIST_OF_WIFI_8,
   LIST_OF_WIFI_9,
   LIST_OF_WIFI_10,
-
-  // car commands menu
-  MENU_CAR_COMMANDS_TOP = 12000,
 
   // menu last (no menu)
   MENU_LAST

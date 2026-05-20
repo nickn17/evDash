@@ -20,7 +20,4 @@ public:
   virtual void loadTestData();
   //
   virtual void testHandler(const String &cmd);
-  //
-  virtual std::vector<String> customMenu(int16_t menuId);
-  virtual void carCommand(const String &cmd);
 };
