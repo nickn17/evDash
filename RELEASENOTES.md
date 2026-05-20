@@ -1,5 +1,12 @@
 # RELEASE NOTES
 
+### V4.6.12 2026-05-20
+- Maintenance:
+  - Extracted 320x240 UI primitive methods from `Board320_240.cpp` into `Board320_240_ui.cpp`, keeping display helpers separate from board/network/GPS logic.
+  - Added `SETTINGS_VERSION_CURRENT` for persisted settings schema version and reused it in default settings and upgrades.
+  - Reworked repeated MQTT topic formatting to use bounded `snprintf` and checked remote JSON payload size before sending.
+  - Reduced PlatformIO config duplication by sharing common dependencies, build flags and Core2 board settings across environments.
+
 ### V4.6.11 2026-05-12
 - CAN driver:
   - The direct-CAN driver previously ignored `ATCRA…` commands and always expected the response ID to be `TX+8`. For VW-family vehicles the gateway routes some responses with a `+0x6A` offset (e.g. `0x714→0x77E`, `0x765→0x7CF`), so valid replies for `2222E0/E4` (climate) and `221DD0/DD6` (gateway) were marked `[Filtered packet]` and discarded.

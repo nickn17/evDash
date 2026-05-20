@@ -96,6 +96,9 @@
 #define CONTRIBUTE_COLLECTING 2
 #define CONTRIBUTE_READY_TO_SEND 3
 
+// Stored settings schema version. Bump only when SETTINGS_STRUC gets a persisted field.
+#define SETTINGS_VERSION_CURRENT 25
+
 //
 #define MONTH_SEC 2678400
 
@@ -290,7 +293,7 @@ typedef struct
 typedef struct
 {
   uint8_t initFlag;        // 183 value
-  uint8_t settingsVersion; // see bellow for latest version
+  uint8_t settingsVersion; // current value is SETTINGS_VERSION_CURRENT
   // === settings version 1
   // =================================
   uint16_t carType; // 0 - Kia eNiro 2020, 1 - Hyundai Kona 2020, 2 - Hyudai Ioniq 2018

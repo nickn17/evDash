@@ -61,7 +61,7 @@ void BoardInterface::shutdownDevice()
   char msg[20];
   for (int i = 3; i >= 1; i--)
   {
-    sprintf(msg, "Shutdown in %d sec.", i);
+    snprintf(msg, sizeof(msg), "Shutdown in %d sec.", i);
     displayMessage(msg, "");
     delay(1000);
   }
@@ -116,7 +116,7 @@ void BoardInterface::loadSettings()
 
   // Default settings
   liveData->settings.initFlag = 183;
-  liveData->settings.settingsVersion = 25;
+  liveData->settings.settingsVersion = SETTINGS_VERSION_CURRENT;
   liveData->settings.carType = CAR_KIA_ENIRO_2020_64;
   tmpStr = "00:00:00:00:00:00"; // Pair via menu (middle button)
   tmpStr.toCharArray(liveData->settings.obdMacAddress, tmpStr.length() + 1);
@@ -236,7 +236,7 @@ void BoardInterface::loadSettings()
   tmpStr.toCharArray(liveData->settings.traccarServerHost, tmpStr.length() + 1);
   liveData->settings.traccarServerPort = 5055;
   // v25
-  liveData->settings.settingsVersion = 25;
+  liveData->settings.settingsVersion = SETTINGS_VERSION_CURRENT;
   liveData->settings.relayForMobileEnabled = 0;
   liveData->settings.relayToken[0] = '\0';
   liveData->settings.relayMobileId[0] = '\0';
@@ -435,7 +435,7 @@ void BoardInterface::loadSettings()
       }
       if (liveData->tmpSettings.settingsVersion == 24)
       {
-        liveData->tmpSettings.settingsVersion = 25;
+        liveData->tmpSettings.settingsVersion = SETTINGS_VERSION_CURRENT;
         liveData->tmpSettings.relayForMobileEnabled = 0;
         liveData->tmpSettings.relayToken[0] = '\0';
         liveData->tmpSettings.relayMobileId[0] = '\0';
