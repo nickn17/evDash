@@ -456,9 +456,10 @@ void CarRenaultZoe::activateCommandQueue()
       "AT DP",
       "AT ST16",
 
-      // LBC Lithium battery controller
+      // LBC Lithium battery controller (TX 0x79B -> RX 0x7BB, Renault +0x20)
       "ATSH79B",
       "ATFCSH79B",
+      "ATCRA7BB",
       "ATFCSD300010",
       "ATFCSM1",
       "2101",
@@ -468,25 +469,28 @@ void CarRenaultZoe::activateCommandQueue()
       "2142",
       "2161",
 
-      // CLUSTER Instrument panel
+      // CLUSTER Instrument panel (TX 0x743 -> RX 0x763, Renault +0x20)
       "ATSH743",
       "ATFCSH743",
+      "ATCRA763",
       "ATFCSD300010",
       "ATFCSM1",
       "220206",
 
-      // CLIM Climate control
+      // CLIM Climate control (TX 0x744 -> RX 0x764, Renault +0x20)
       "ATSH744",
       "ATFCSH744",
+      "ATCRA764",
       "ATFCSD300010",
       "ATFCSM1",
       "2143",
       "2121",
       "2144",
 
-      // EVC Electric vehicle controller
+      // EVC Electric vehicle controller (TX 0x7E4 -> RX 0x7EC, UDS +8)
       "ATSH7E4",
       "ATFCSH7E4",
+      "ATCRA7EC",
       "ATFCSD300010",
       "ATFCSM1",
       "222003",
@@ -506,23 +510,26 @@ void CarRenaultZoe::activateCommandQueue()
       "222005",
       "2220DE",
 
-      // TPMS / VIN
+      // TPMS / VIN - clear ATCRA filter so ELM327 accepts any response ID
       "ATSH765",
       "ATFCSH765",
+      "ATCRA",
       "ATFCSD300010",
       "ATFCSM1",
       "2174",
       "2181",
       "ATSH763",
       "ATFCSH763",
+      "ATCRA",
       "ATFCSD300010",
       "ATFCSM1",
       "2181",
       "22F190",
 
-      // PEB Power electronics bloc
+      // PEB Power electronics bloc - clear ATCRA filter
       "ATSH77E",
       "ATFCSH77E",
+      "ATCRA",
       "ATFCSD300010",
       "ATFCSM1",
       "22302B",
