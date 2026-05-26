@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V4.6.14 2026-05-26
+- Renault ZOE direct CAN fix:
+  - ZOE Phase 1 (Z.E. 20/22 and Z.E. 40/41) ECUs respond with a `+0x20` offset, not the default UDS `+8`. With BLE4 this worked because the ELM327 auto-receives any response ID, but the direct-CAN driver discarded the valid frames as `[Filtered packet]` (e.g. CLIM first frame `Standard ID: 0x764 Data: 0x10 0x1B 0x61 0x44 …` for request `2144` on TX `0x744`), and the M5Stack screen showed only dashes.
+  - Added explicit `ATCRA` filter values after each `ATFCSH` in the ZOE command queue: `ATCRA7BB` (LBC `0x79B→0x7BB`), `ATCRA763` (Cluster `0x743→0x763`), `ATCRA764` (CLIM `0x744→0x764`), `ATCRA7EC` (EVC `0x7E4→0x7EC`, UDS standard). The TPMS / VIN / PEB sections (`ATSH765`, `ATSH763`, `ATSH77E`) use a bare `ATCRA` to clear the previous filter so the ELM327 does not inherit a stale receive address from the previous section.
+
 ### V4.6.13 2026-05-20
 - Maintenance:
   - Extracted 320x240 UI primitive methods from `Board320_240.cpp` into `Board320_240_ui.cpp`, keeping display helpers separate from board/network/GPS logic.
