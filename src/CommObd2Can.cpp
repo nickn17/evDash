@@ -654,6 +654,7 @@ bool CommObd2Can::processFrameBytes()
     FirstFrame_t *pFirstFrame = (FirstFrame_t *)pDataStart;
 
     rxRemaining = pFirstFrame->lengthOfFullPacket(); // length of complete data
+    requestFramesCount = 0;                          // ISO-TP block size 0 = request all remaining frames
 
     mergedData.clear();
     dataRows.clear();
