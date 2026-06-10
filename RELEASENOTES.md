@@ -1,5 +1,13 @@
 # RELEASE NOTES
 
+### V4.6.15 2026-06-10
+- Peugeot e-208 / PSA e-CMP:
+  - Replaced the old Renault-ZOE-style `79B/21xx` polling with the confirmed PSA e-CMP topology: TBMU `6B4→694`, VCU `6A2→682`, and charger `590→58F`.
+  - Added BLE4 and direct-CAN compatible `ATSH/ATCRA/ATFCSH` queue sections for M5-visible values: SOC, SOH, pack voltage/current/power, speed, outdoor temperature, 12V voltage, available charge/discharge power, isolation, battery temperatures, 108 cell voltages, module temperatures, charge-active flag, VIN, and front motor RPM.
+  - Fixed the e-208 loop header ordering so each loop re-arms the correct PSA ECU header instead of inheriting the previous `ATSH`.
+  - Initialized direct-CAN ISO-TP flow-control block size to `0` for long multi-frame replies, so COMMU mode can reliably receive full cell/SOH/temp arrays.
+  - Added the Peugeot e-208 ABRP model id and removed the DEV suffix from the vehicle menu entry.
+
 ### V4.6.14 2026-05-26
 - Renault ZOE direct CAN fix:
   - ZOE Phase 1 (Z.E. 20/22 and Z.E. 40/41) ECUs respond with a `+0x20` offset, not the default UDS `+8`. With BLE4 this worked because the ELM327 auto-receives any response ID, but the direct-CAN driver discarded the valid frames as `[Filtered packet]` (e.g. CLIM first frame `Standard ID: 0x764 Data: 0x10 0x1B 0x61 0x44 …` for request `2144` on TX `0x744`), and the M5Stack screen showed only dashes.

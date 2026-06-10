@@ -73,6 +73,8 @@ String getCarModelAbrpStr(int carType)
         return "volkswagen:eup:20:36:other";
     case CAR_SEAT_MII_ELECTRIC_36:
         return "seat:mii:20:36:other";
+    case CAR_PEUGEOT_E208:
+        return "peugeot:e208:20:50";
     case CAR_BMW_I3_2014:
         return "bmw:i3:14:22:other";
     default:
