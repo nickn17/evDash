@@ -240,7 +240,7 @@ void Board320_240::drawSceneSpeed()
   spr.setTextSize(1);
   if ((liveData->params.speedKmh > 25 || (liveData->params.speedKmhGPS > 25 && liveData->params.gpsSat >= 4)) && liveData->params.batPowerKw < 0)
   {
-    sprintf(tmpStr3, (liveData->params.batPowerKwh100 == -1000) ? "n/a" : "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
+    sprintf(tmpStr3, (liveData->params.batPowerKwh100 == -1) ? "n/a" : "%01.01f", liveData->km2distance(liveData->params.batPowerKwh100));
     sprSetFont(fontFont2);
     sprDrawString("kWh/100km", 200, posy + 46);
   }

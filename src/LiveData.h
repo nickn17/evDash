@@ -5,7 +5,7 @@
 #include <WString.h>
 #include <string.h>
 #include <sys/time.h>
-#include <BLEDevice.h>
+#include "ble_compat.h"
 #include "config.h"
 #include "LogSerial.h"
 #include <vector>
@@ -18,6 +18,7 @@
 #define CAR_HYUNDAI_IONIQ5_58_63 12
 #define CAR_HYUNDAI_IONIQ5_72 13
 #define CAR_HYUNDAI_IONIQ5_77_84 14
+#define CAR_HYUNDAI_IONIQ6_53 37
 #define CAR_HYUNDAI_IONIQ6_58_63 31
 #define CAR_HYUNDAI_IONIQ6_77_84 29
 

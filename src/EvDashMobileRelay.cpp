@@ -126,7 +126,21 @@ void EvDashMobileRelay::pauseForNetUpload()
   netUploadPaused = true;
   if (connected && server != nullptr)
   {
+#ifdef EVDASH_USE_NIMBLE
+    // NimBLE has no getConnId(); disconnect every connected phone (collect handles
+    // first because the peer list shrinks as we disconnect).
+    std::vector<uint16_t> handles;
+    for (size_t i = 0; i < server->getConnectedCount(); i++)
+    {
+      handles.push_back(server->getPeerInfo(i).getConnHandle());
+    }
+    for (uint16_t h : handles)
+    {
+      server->disconnect(h);
+    }
+#else
     server->disconnect(server->getConnId());
+#endif
     delay(80);
   }
   stopServer();
@@ -207,7 +221,11 @@ void EvDashMobileRelay::onDisconnect(BLEServer *server)
 
 void EvDashMobileRelay::onWrite(BLECharacteristic *characteristic)
 {
+#ifdef EVDASH_USE_NIMBLE
+  std::string value = characteristic->getValue<std::string>();
+#else
   std::string value = characteristic->getValue();
+#endif
   if (value.empty())
   {
     return;
@@ -244,11 +262,20 @@ void EvDashMobileRelay::startServer()
     return;
   }
   BLEDevice::init("evDash Relay");
-  esp_ble_gap_set_device_name("evDash Relay");
   server = BLEDevice::createServer();
   server->setCallbacks(this);
 
   BLEService *service = server->createService(EVDASH_RELAY_SERVICE_UUID);
+#ifdef EVDASH_USE_NIMBLE
+  // NimBLE auto-creates the 0x2902 CCCD for NOTIFY/INDICATE characteristics.
+  notifyCharacteristic = service->createCharacteristic(
+      EVDASH_RELAY_NOTIFY_UUID,
+      NIMBLE_PROPERTY::NOTIFY | NIMBLE_PROPERTY::READ);
+  writeCharacteristic = service->createCharacteristic(
+      EVDASH_RELAY_WRITE_UUID,
+      NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+#else
+  esp_ble_gap_set_device_name("evDash Relay");
   notifyCharacteristic = service->createCharacteristic(
       EVDASH_RELAY_NOTIFY_UUID,
       BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ);
@@ -256,6 +283,7 @@ void EvDashMobileRelay::startServer()
   writeCharacteristic = service->createCharacteristic(
       EVDASH_RELAY_WRITE_UUID,
       BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+#endif
   writeCharacteristic->setCallbacks(this);
 
   service->start();
@@ -751,6 +779,8 @@ String EvDashMobileRelay::vehicleId() const
     return "hyundai_ioniq5_72";
   case CAR_HYUNDAI_IONIQ5_77_84:
     return "hyundai_ioniq5_77_84";
+  case CAR_HYUNDAI_IONIQ6_53:
+    return "hyundai_ioniq6_53";
   case CAR_HYUNDAI_IONIQ6_58_63:
     return "hyundai_ioniq6_58_63";
   case CAR_HYUNDAI_IONIQ6_77_84:

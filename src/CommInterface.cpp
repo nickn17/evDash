@@ -335,6 +335,15 @@ void CommInterface::parseRowMerged()
     }
     normalized = hexOnly;
   }
+  // UDS "response pending" (7F xx 78) frames can get merged in front of the real
+  // payload on the BLE path (the CAN driver already drops them in-driver). Strip the
+  // prefix so "7F2278620101..." parses as "620101...". Other negative responses
+  // (and a pending frame with no payload behind it) are kept intact.
+  while (!textResponse && normalized.startsWith("7F") && normalized.length() > 6 &&
+         normalized.substring(4, 6) == "78")
+  {
+    normalized = normalized.substring(6);
+  }
   liveData->responseRowMerged = normalized;
 
   if (liveData->settings.relayForMobileEnabled == 1 &&

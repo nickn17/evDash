@@ -1,6 +1,6 @@
 #pragma once
 
-#include <BLEDevice.h>
+#include "ble_compat.h"
 #include "LiveData.h"
 #include "CommInterface.h"
 
