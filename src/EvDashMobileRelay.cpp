@@ -771,85 +771,9 @@ String EvDashMobileRelay::generateToken() const
 
 String EvDashMobileRelay::vehicleId() const
 {
-  switch (liveData->settings.carType)
-  {
-  case CAR_HYUNDAI_IONIQ5_58_63:
-    return "hyundai_ioniq5_58_63";
-  case CAR_HYUNDAI_IONIQ5_72:
-    return "hyundai_ioniq5_72";
-  case CAR_HYUNDAI_IONIQ5_77_84:
-    return "hyundai_ioniq5_77_84";
-  case CAR_HYUNDAI_IONIQ6_53:
-    return "hyundai_ioniq6_53";
-  case CAR_HYUNDAI_IONIQ6_58_63:
-    return "hyundai_ioniq6_58_63";
-  case CAR_HYUNDAI_IONIQ6_77_84:
-    return "hyundai_ioniq6_77_84";
-  case CAR_KIA_EV6_58_63:
-    return "kia_ev6_58_63";
-  case CAR_KIA_EV6_77_84:
-    return "kia_ev6_77_84";
-  case CAR_KIA_EV9_100:
-    return "kia_ev9_100";
-  case CAR_HYUNDAI_IONIQ_2018:
-    return "ioniq_2018_28";
-  case CAR_HYUNDAI_IONIQ_PHEV:
-    return "ioniq_2018_phev";
-  case CAR_HYUNDAI_KONA_2020_64:
-    return "kona_2020_64";
-  case CAR_HYUNDAI_KONA_2020_39:
-    return "kona_2020_39";
-  case CAR_KIA_ENIRO_2020_64:
-    return "eniro_2020_64";
-  case CAR_KIA_ENIRO_2020_39:
-    return "eniro_2020_39";
-  case CAR_KIA_ESOUL_2020_64:
-    return "esoul_2020_64";
-  case CAR_AUDI_Q4_35:
-    return "audi_q4_35";
-  case CAR_AUDI_Q4_40:
-    return "audi_q4_40";
-  case CAR_AUDI_Q4_45:
-    return "audi_q4_45";
-  case CAR_AUDI_Q4_50:
-    return "audi_q4_50";
-  case CAR_SKODA_ENYAQ_55:
-    return "skoda_enyaq_55";
-  case CAR_SKODA_ENYAQ_62:
-    return "skoda_enyaq_62";
-  case CAR_SKODA_ENYAQ_82:
-    return "skoda_enyaq_82";
-  case CAR_VW_ID3_2021_45:
-    return "vw_id3_2021_45";
-  case CAR_VW_ID3_2021_58:
-    return "vw_id3_2021_58";
-  case CAR_VW_ID3_2021_77:
-    return "vw_id3_2021_77";
-  case CAR_VW_ID4_2021_45:
-    return "vw_id4_2021_45";
-  case CAR_VW_ID4_2021_58:
-    return "vw_id4_2021_58";
-  case CAR_VW_ID4_2021_77:
-    return "vw_id4_2021_77";
-  case CAR_RENAULT_ZOE_ZE20_22:
-    return "zoe_ze20_22";
-  case CAR_RENAULT_ZOE_ZE40_41:
-    return "zoe_ze40_41";
-  case CAR_RENAULT_ZOE_ZE50_52:
-    return "zoe_ze50_52";
-  case CAR_SKODA_CITIGO_E_IV:
-    return "skoda_citigo_e_iv";
-  case CAR_VW_EUP_36:
-    return "vw_eup_36";
-  case CAR_SEAT_MII_ELECTRIC_36:
-    return "seat_mii_electric_36";
-  case CAR_BMW_I3_2014:
-    return "bmwi3_2014_22";
-  case CAR_PEUGEOT_E208:
-    return "peugeot_e208";
-  default:
-    return "unknown";
-  }
+  // Looked up from the single per-vehicle table in CarModelUtils (kept in sync with
+  // the ABRP id and the evDash app's vehicle ids).
+  return getCarModelRelayId(liveData->settings.carType);
 }
 
 String EvDashMobileRelay::commType() const

@@ -15,7 +15,7 @@ void Board320_240::otaUpdate()
 {
 // Only for core2
 #if defined(BOARD_M5STACK_CORE2) || defined(BOARD_M5STACK_CORES3)
-#include "raw_githubusercontent_com.h" // the root certificate is now in const char * root_cert
+#include "evdash_certs.h" // ISRG Root X1 — raw.githubusercontent.com now chains to Lets Encrypt
 
 #ifndef OTA_DIST_DIR
 #define OTA_DIST_DIR "m5stack-core2-v1_1"
@@ -35,7 +35,10 @@ void Board320_240::otaUpdate()
 
   WiFiClientSecure client;
   client.setTimeout(20000);
-  client.setCACert(root_cert);
+  // Validate against the pinned root so a MITM cannot serve forged firmware (RCE).
+  // The previous bundled cert was a stale DigiCert root — GitHub raw moved to
+  // Lets Encrypt, so validation silently failed and always fell through to insecure.
+  client.setCACert(ISRG_ROOT_X1);
 
   HTTPClient http;
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -52,6 +55,7 @@ void Board320_240::otaUpdate()
   if (responseCode <= 0)
   {
     // TLS chain on GitHub occasionally changes; fallback to insecure to avoid bricking OTA feature.
+    syslog->println("OTA: validated TLS failed, retrying WITHOUT certificate validation (insecure).");
     http.end();
     client.stop();
     client.setInsecure();

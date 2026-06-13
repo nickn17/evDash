@@ -445,7 +445,7 @@ public:
   String prevResponseRowMerged;
   std::vector<uint8_t> vResponseRowMerged;
   uint16_t commandQueueIndex;
-  bool canSendNextAtCommand = false;
+  volatile bool canSendNextAtCommand = false; // set in BLE notify callback (other task), read in loop task
   uint8_t commandStartChar;
   String commandRequest = ""; // TODO: us Command_t struct
   String currentAtshRequest = "";
@@ -478,10 +478,10 @@ public:
   int8_t wifiScanRssi[10];
   uint8_t wifiScanEnc[10];
 
-  // Comm
-  boolean commConnected = false;
+  // Comm. Written from BLE connect/disconnect callbacks (other task), read in loop task.
+  volatile bool commConnected = false;
   // Bluetooth4
-  boolean obd2ready = true;
+  volatile bool obd2ready = true;
   BLEAddress *pServerAddress;
   BLERemoteCharacteristic *pRemoteCharacteristic;
   BLERemoteCharacteristic *pRemoteCharacteristicWrite;

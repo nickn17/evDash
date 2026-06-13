@@ -11,6 +11,15 @@ namespace
 {
   constexpr uint32_t kBleConnectRetryBaseMs = 3000;
   constexpr uint32_t kBleConnectRetryMaxMs = 15000;
+  // Queue-stall watchdog: if the ELM327 '>' prompt is lost (packet loss / frozen
+  // adapter), canSendNextAtCommand never goes true again and the whole OBD queue
+  // hangs until reboot. Re-arm the queue if no '>' arrives within this window.
+  constexpr uint32_t kBleCmdTimeoutMs = 4000;
+
+  // BLE connect/disconnect events are signalled from the BLE callback task and the
+  // user-facing message is rendered later from the loop task (TFT/sprite work must
+  // not run in BLE host/controller context). 0 = none, 1 = connected, 2 = disconnected.
+  volatile int8_t bleConnEventPending = 0;
 
   bool hasConfiguredBleMac(const char *value)
   {
@@ -40,21 +49,26 @@ namespace
 class MyClientCallback : public BLEClientCallbacks
 {
 
-  // On BLE connect
+  // On BLE connect. Runs in BLE callback task context — only touch flags here,
+  // the display message is rendered later from the loop task (see mainLoop).
   void onConnect(BLEClient *pclient)
   {
     syslog->println("onConnect");
     liveDataObj->commConnected = true;
-    boardObj->displayMessage("BLE connected", "");
+    bleConnEventPending = 1;
   }
 
-  // On BLE disconnect
+  // On BLE disconnect. Clear the stale characteristic pointers so executeCommand
+  // can't dereference a freed handle, and re-arm obd2ready so mainLoop reconnects
+  // (mainLoop early-returns while suspended, so this won't fight sleep/shutdown).
   void onDisconnect(BLEClient *pclient)
   {
-    liveDataObj->commConnected = false;
     syslog->println("onDisconnect");
-
-    boardObj->displayMessage("BLE disconnected", "");
+    liveDataObj->commConnected = false;
+    liveDataObj->pRemoteCharacteristic = nullptr;
+    liveDataObj->pRemoteCharacteristicWrite = nullptr;
+    liveDataObj->obd2ready = true;
+    bleConnEventPending = 2;
   }
 };
 
@@ -542,6 +556,26 @@ void CommObd2Ble4::mainLoop()
     return;
   }
 
+  // Render deferred BLE connect/disconnect message here (loop task), not in the callback.
+  const int8_t connEvent = bleConnEventPending;
+  if (connEvent != 0)
+  {
+    bleConnEventPending = 0;
+    board->displayMessage(connEvent == 1 ? "BLE connected" : "BLE disconnected", "");
+  }
+
+  // Queue-stall watchdog: if we sent a command but never got the '>' prompt back,
+  // flush the stale partial response and re-arm the queue so it doesn't hang forever.
+  if (liveData->commConnected && !liveData->canSendNextAtCommand &&
+      lastBleCmdSentMs != 0 && (uint32_t)(millis() - lastBleCmdSentMs) > kBleCmdTimeoutMs)
+  {
+    syslog->println("BLE queue stall: no '>' prompt, re-arming command queue.");
+    liveData->responseRow = "";
+    liveData->responseRowMerged = "";
+    liveData->canSendNextAtCommand = true;
+    lastBleCmdSentMs = millis();
+  }
+
   // Connect BLE device
   if (liveData->obd2ready == true && hasConfiguredBleMac(liveData->settings.obdMacAddress))
   {
@@ -606,13 +640,16 @@ void CommObd2Ble4::executeCommand(String cmd)
 {
 
   String tmpStr = cmd + "\r";
-  if (liveData->commConnected)
+  // Require the write handle too: commConnected can still be true for a moment after
+  // a disconnect callback nulls the characteristic pointers.
+  if (liveData->commConnected && liveData->pRemoteCharacteristicWrite != nullptr)
   {
     // Drop any unfinished line fragment from the previous response so it cannot
     // prepend itself to this command's response (responseRow persists across
     // BLE notifications, see notifyCallback).
     liveData->responseRow = "";
     liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
+    lastBleCmdSentMs = millis(); // arm the queue-stall watchdog
   }
 }
 

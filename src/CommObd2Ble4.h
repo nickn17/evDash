@@ -11,6 +11,7 @@ protected:
   uint32_t PIN = 1234;
   uint32_t nextConnectRetryMs = 0;
   uint8_t connectFailCount = 0;
+  uint32_t lastBleCmdSentMs = 0; // for the queue-stall watchdog (lost ELM '>' prompt)
 
 public:
   void connectDevice() override;

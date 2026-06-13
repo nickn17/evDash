@@ -1,5 +1,23 @@
 # RELEASE NOTES
 
+### V5.0.1 2026-06-13
+- Build config — the CoreS3 #159 fix now actually ships: added the CoreS3 NimBLE build config (`-D EVDASH_USE_NIMBLE`, `CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192`, `NimBLE-Arduino`, `lib_ignore = BLE, SimpleBLE`) to `platformio.ini.example`. V5.0.0 shipped the NimBLE source guards but not the build flag in the example, so a fresh clone still built CoreS3 on Bluedroid and hit #159.
+- TLS / OTA security (from project audit):
+  - OTA firmware download now validates against a pinned root CA again. The bundled root was a stale DigiCert cert, but GitHub raw moved to Let's Encrypt, so validation silently failed and every OTA ran unverified (MITM → arbitrary firmware = remote code execution). Now pinned to ISRG Root X1 (the current chain), with the existing insecure fallback kept and logged so a future CA change still can't brick OTA.
+  - Added `evdash_certs.h` with verified root CAs (ISRG Root X1 for evdash.eu/GitHub, Amazon Root CA 1 for ABRP). The drive-time telemetry paths (ABRP, contribute, SD-log) deliberately stay on unvalidated TLS — loading a CA chain raises the handshake's internal-heap use, the exact pressure behind the contribute TLS-memory failures on Core2, and their leak risk is a telemetry token, not RCE. This is documented at each call site.
+- Single source of truth for per-vehicle ids (maintainability, from project audit):
+  - The ABRP model string and the mobile-app relay vehicle id were two parallel `switch` statements (37 cars each) that had to be kept in sync with the app by hand. Both now read one `kCarModels[]` table in `CarModelUtils` — adding a car is one row. Behavior is byte-identical for all 37 car types (verified).
+- BLE / stability hardening (from project audit):
+  - Added a BLE command-queue watchdog: if the ELM327 `>` prompt is lost (packet loss / frozen adapter), the queue used to hang until reboot — it now flushes the stale partial response and re-arms after 4 s.
+  - BLE connect/disconnect callbacks no longer render to the display (TFT/sprite work must not run in BLE host/controller task context); the message is now drawn from the main loop via a flag.
+  - On BLE disconnect the stale characteristic pointers are cleared and a reconnect is re-armed, fixing a possible null-dereference in `executeCommand` and making auto-reconnect reliable.
+  - NTP sync no longer blocks the main loop for up to 10 s (watchdog risk when NTP is unreachable); it does a single short poll since `netLoop` already retries every 5 s.
+  - `commConnected` / `obd2ready` / `canSendNextAtCommand` marked `volatile` (written from the BLE callback task, read in the loop task).
+- Parser correctness fixes (from project audit):
+  - VW ID.3: fixed the HMI-SOC formula — `* 0, 4425 - 6, 1947` used comma operators, so SOC was always reported as 1947. Now `* 0.4425 - 6.1947` and the result is range-checked 0..100.
+  - Consumption (kWh/100km) no longer divides by zero at standstill on Kia eNiro, Hyundai Ioniq, Ioniq PHEV, BMW i3 and VW ID.3 — these now use the same `speed > 20` guard as eGMP/EV9 (fall back to instantaneous kW below that).
+  - SOC is range-checked (0..100) before use on Hyundai Ioniq, Ioniq PHEV, Kia eNiro and BMW i3, preventing a malformed CAN frame (e.g. a raw byte decoding to >100 %) from writing past the end of the 11-slot `soc10*` history tables and corrupting adjacent fields.
+
 ### V5.0.0 2026-06-13
 - CoreS3 BLE stack migrated to NimBLE (see below) — major version bump.
 - Hyundai Ioniq 6 53 kWh (Standard Range) — dedicated vehicle type (issue #107):

@@ -348,8 +348,12 @@ void CarVWID3::parseRowMerged()
     {
       // Put code here to parse the data
       liveData->params.socPercPrevious = liveData->params.socPerc;
-      liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5;            // SOC BMS
-      liveData->params.socPerc = liveData->hexToDecFromResponse(6, 8, 1, false) * 0, 4425 - 6, 1947; // SOC HMI (New calculation - 2022-12-01)
+      liveData->params.socPercBms = liveData->hexToDecFromResponse(6, 8, 1, false) / 2.5; // SOC BMS
+      // SOC HMI (New calculation - 2022-12-01). NOTE: was "* 0, 4425 - 6, 1947" — the
+      // commas were comma operators, so socPerc was always 1947. Fixed to decimals.
+      const float decodedSoc = liveData->hexToDecFromResponse(6, 8, 1, false) * 0.4425 - 6.1947;
+      if (decodedSoc >= 0 && decodedSoc <= 100) // reject garbage frames (also keeps soc10 index in range)
+        liveData->params.socPerc = decodedSoc;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
       if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)
@@ -421,7 +425,10 @@ void CarVWID3::parseRowMerged()
     {
       liveData->params.batPowerAmp = (liveData->hexToDecFromResponse(6, 14, 4, false) - 150000) / 100; // kod här
       liveData->params.batPowerKw = liveData->params.batPowerAmp * liveData->params.batVoltage / 1000; // total power in kW from HV battery
-      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      if (liveData->params.speedKmh > 20)
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      else
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
     }

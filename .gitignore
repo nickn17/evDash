@@ -3,3 +3,6 @@ platformio.ini
 .DS_Store
 .pio/
 .vscode/
+# Local-only notes / audits — must never reach the public repo
+AUDIT_*.md
+_local/
