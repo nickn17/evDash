@@ -734,17 +734,11 @@ void BoardM5stackCore2::ntpSync()
   configTime(liveData->settings.timezone * 3600, liveData->settings.daylightSaving * 3600,
              ntpServer1, ntpServer2, ntpServer3);
 
+  // Single short poll only — netLoop() re-invokes ntpSync() every 5 s within a 60 s
+  // window, so a blocking 10 s wait here is redundant and can trip the task watchdog
+  // when NTP is unreachable.
   struct tm tmInfo = {};
-  bool timeOk = false;
-  const uint32_t ntpWaitStartMs = millis();
-  while ((millis() - ntpWaitStartMs) < 10000)
-  {
-    if (getLocalTime(&tmInfo, 250))
-    {
-      timeOk = true;
-      break;
-    }
-  }
+  const bool timeOk = getLocalTime(&tmInfo, 250);
 
   if (timeOk)
   {

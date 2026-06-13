@@ -292,7 +292,10 @@ void CarKiaEniro::parseRowMerged()
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
       if (liveData->params.batPowerKw < 0) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
-      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      if (liveData->params.speedKmh > 20)
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      else
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
       if (liveData->settings.voltmeterEnabled == 0)
       {
         liveData->params.auxVoltage = liveData->hexToDecFromResponse(64, 66, 1, false) / 10.0;
@@ -363,7 +366,9 @@ void CarKiaEniro::parseRowMerged()
     {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDecFromResponse(56, 60, 2, false) / 10.0;
-      liveData->params.socPerc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
+      const float decodedSoc = liveData->hexToDecFromResponse(68, 70, 1, false) / 2.0;
+      if (decodedSoc >= 0 && decodedSoc <= 100) // reject garbage frames (also keeps soc10 index in range)
+        liveData->params.socPerc = decodedSoc;
       // if (liveData->params.socPercPrevious != liveData->params.socPerc) liveData->params.sdcardCanNotify = true;
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)

@@ -251,7 +251,10 @@ void CarBmwI3::parseRowMerged()
           liveData->params.chargingStartTime = liveData->params.currentTime;
 
         // calculate kWh/100
-        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+        if (liveData->params.speedKmh > 20)
+          liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+        else
+          liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
 
         // update charging graph data if car is charging
         if (liveData->params.speedKmh < 10 && liveData->params.batPowerKw >= 1 && liveData->params.socPerc > 0 && liveData->params.socPerc <= 100)
@@ -414,7 +417,9 @@ void CarBmwI3::parseRowMerged()
         DDBC_t *ptr = (DDBC_t *)payloadReversed.data();
 
         liveData->params.socPercPrevious = liveData->params.socPerc;
-        liveData->params.socPerc = ptr->soc / 10.0;
+        const float decodedSoc = ptr->soc / 10.0;
+        if (decodedSoc >= 0 && decodedSoc <= 100) // reject garbage frames (also keeps soc10 index in range)
+          liveData->params.socPerc = decodedSoc;
 
         // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
         if (liveData->params.socPercPrevious - liveData->params.socPerc > 0)

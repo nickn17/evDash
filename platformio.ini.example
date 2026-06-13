@@ -56,11 +56,21 @@ build_flags =
 	-D COMMU_INT_PIN=13
 	-D SERIAL2_RX=44 ;change to correct GPIO pin for RX
 	-D SERIAL2_TX=43 ;change to correct GPIO pin for TX
+; CoreS3 uses NimBLE instead of the prebuilt Bluedroid host: its BTU task stack is
+; only 4 KB on ESP32-S3 and overflows during BLE service discovery (Guru Meditation
+; "Stack canary ... BTU_TASK", issue #159). NimBLE compiles from source so its host
+; task stack is configurable. Core2 (plain ESP32, 8 KB BTU stack, unaffected) stays
+; on Bluedroid - the two stacks cannot coexist in one binary.
+	-D EVDASH_USE_NIMBLE
+	-D CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192
 lib_deps =
 	m5stack/M5CoreS3
 	m5stack/M5Unified
 	m5stack/M5GFX
+	h2zero/NimBLE-Arduino@^1.4.3
 	${common.lib_deps}
+; Keep the bundled Bluedroid "BLE" library out of the link so only NimBLE provides BLE.
+lib_ignore = BLE, SimpleBLE
 
 ;targets = upload
 upload_protocol = ${common.upload_protocol}

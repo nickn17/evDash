@@ -2,7 +2,7 @@
 
 #include "ble_compat.h"
 
-#define APP_VERSION "v5.0.0"
+#define APP_VERSION "v5.0.1"
 #define APP_RELEASE_DATE "2026-06-13"
 #define WEBFLASHER_URL "evdash.eu/m5flash"
 #define FW_VERSION_CHECK_URL "https://api.evdash.eu/v1/m5evdash/version/get"

@@ -233,7 +233,10 @@ void CarHyundaiIoniq::parseRowMerged()
       liveData->params.batPowerKw = (liveData->params.batPowerAmp * liveData->params.batVoltage) / 1000.0;
       if (liveData->params.batPowerKw < 1) // Reset charging start time
         liveData->params.chargingStartTime = liveData->params.currentTime;
-      liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      if (liveData->params.speedKmh > 20)
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw / liveData->params.speedKmh * 100;
+      else
+        liveData->params.batPowerKwh100 = liveData->params.batPowerKw;
       liveData->params.batCellMaxV = liveData->hexToDecFromResponse(50, 52, 1, false) / 50.0;
       liveData->params.batCellMinV = liveData->hexToDecFromResponse(54, 56, 1, false) / 50.0;
       liveData->params.batModuleTempC[0] = liveData->hexToDecFromResponse(36, 38, 1, true);
@@ -297,7 +300,9 @@ void CarHyundaiIoniq::parseRowMerged()
     {
       liveData->params.socPercPrevious = liveData->params.socPerc;
       liveData->params.sohPerc = liveData->hexToDecFromResponse(54, 58, 2, false) / 10.0;
-      liveData->params.socPerc = liveData->hexToDecFromResponse(66, 68, 1, false) / 2.0;
+      const float decodedSoc = liveData->hexToDecFromResponse(66, 68, 1, false) / 2.0;
+      if (decodedSoc >= 0 && decodedSoc <= 100) // reject garbage frames (also keeps soc10 index in range)
+        liveData->params.socPerc = decodedSoc;
 
       // Remaining battery modules (tempC)
       liveData->params.batModuleTempC[5] = liveData->hexToDecFromResponse(22, 24, 1, true);

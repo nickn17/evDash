@@ -4957,6 +4957,12 @@ bool Board320_240::netSendData(bool sendAbrp)
       WiFiClientSecure client;
       HTTPClient http;
 
+      // Deliberately unvalidated: ABRP runs continuously during driving while BLE is
+      // active, and loading a CA chain raises the TLS handshake's internal-heap use —
+      // the exact pressure behind the contribute TLS-memory failures (issue #123) on
+      // Core2. The leak risk here is only the ABRP token (telemetry), not RCE; the
+      // RCE-relevant path (OTA) IS validated. Root CA is bundled in evdash_certs.h
+      // (AMAZON_ROOT_CA_1) for anyone who wants to opt in on a PSRAM-roomy build.
       client.setInsecure();
       http.begin(client, "https://api.iternio.com/1/tlm/send");
       http.setConnectTimeout(kAbrpHttpsConnectTimeoutMs);
@@ -5169,6 +5175,10 @@ bool Board320_240::netContributeData()
       lastTlsErrText = "";
       WiFiClientSecure client;
       HTTPClient http;
+      // Deliberately unvalidated — this is the memory-critical contribute path that
+      // already fails with TLS BIGNUM-alloc errors under BLE+WiFi on Core2 (issue
+      // #123); adding CA-chain verification raises that pressure. Leaked data is the
+      // contribute token + telemetry, not RCE. See evdash_certs.h / ABRP note above.
       client.setInsecure();
       client.setHandshakeTimeout((kContributeHttpsConnectTimeoutMs + 999) / 1000);
       client.setTimeout((kContributeHttpsIoTimeoutMs + 999) / 1000);
