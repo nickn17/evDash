@@ -1,4 +1,4 @@
-#include <BLEDevice.h>
+#include "ble_compat.h"
 #include "CommObd2Ble4.h"
 #include "BoardInterface.h"
 #include "LiveData.h"
@@ -65,12 +65,19 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
 {
 
   // Called for each advertising BLE server.
-  void onResult(BLEAdvertisedDevice advertisedDevice)
+  // NimBLE passes the device by pointer, Bluedroid by value; normalize to a pointer.
+#ifdef EVDASH_USE_NIMBLE
+  void onResult(BLEAdvertisedDevice *advertisedDevice)
   {
+#else
+  void onResult(BLEAdvertisedDevice advertisedDeviceVal)
+  {
+    BLEAdvertisedDevice *advertisedDevice = &advertisedDeviceVal;
+#endif
 
     syslog->print("BLE advertised device found: ");
-    syslog->println(advertisedDevice.toString().c_str());
-    syslog->println(advertisedDevice.getAddress().toString().c_str());
+    syslog->println(advertisedDevice->toString().c_str());
+    syslog->println(advertisedDevice->getAddress().toString().c_str());
 
     // Add to the device list (maximum of 9 devices allowed for now)
     String tmpStr;
@@ -81,8 +88,8 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
       {
         if (liveDataObj->menuItems[i].id == 10001 + liveDataObj->scanningDeviceIndex)
         {
-          String deviceName = advertisedDevice.getName().c_str();
-          String manufacturerData = advertisedDevice.getManufacturerData().c_str();
+          String deviceName = advertisedDevice->getName().c_str();
+          String manufacturerData = advertisedDevice->getManufacturerData().c_str();
 
           if (deviceName.isEmpty() && manufacturerData.isEmpty())
           {
@@ -98,21 +105,21 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
             tmpStr += manufacturerData;
           }
           tmpStr += ", ";
-          tmpStr += advertisedDevice.getAddress().toString().c_str();
+          tmpStr += advertisedDevice->getAddress().toString().c_str();
 
           // Save to menuItems
           tmpStr.toCharArray(liveDataObj->menuItems[i].title, sizeof(liveDataObj->menuItems[i].title));
-          tmpStr = advertisedDevice.getAddress().toString().c_str();
+          tmpStr = advertisedDevice->getAddress().toString().c_str();
           tmpStr.toCharArray(liveDataObj->menuItems[i].obdMacAddress, sizeof(liveDataObj->menuItems[i].obdMacAddress));
         }
       }
       liveDataObj->scanningDeviceIndex++;
     }
 
-    if (strcmp(advertisedDevice.getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0)
+    if (strcmp(advertisedDevice->getAddress().toString().c_str(), liveDataObj->settings.obdMacAddress) == 0)
     {
-      if (advertisedDevice.haveServiceUUID() &&
-          advertisedDevice.isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)))
+      if (advertisedDevice->haveServiceUUID() &&
+          advertisedDevice->isAdvertisingService(BLEUUID(liveDataObj->settings.serviceUUID)))
       {
         syslog->println("Stop scanning. Found target MAC + matching service UUID.");
       }
@@ -122,7 +129,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
         syslog->println("Stop scanning. Found target MAC (service UUID differs/missing, using auto-detect).");
       }
       BLEDevice::getScan()->stop();
-      liveDataObj->foundMyBleDevice = new BLEAdvertisedDevice(advertisedDevice);
+      liveDataObj->foundMyBleDevice = new BLEAdvertisedDevice(*advertisedDevice);
     }
   }
 };
@@ -158,9 +165,15 @@ class MySecurity : public BLESecurityCallbacks
     return true;
   }
 
+#ifdef EVDASH_USE_NIMBLE
+  void onAuthenticationComplete(ble_gap_conn_desc *desc)
+  {
+    if (desc->sec_state.encrypted || desc->sec_state.bonded)
+#else
   void onAuthenticationComplete(esp_ble_auth_cmpl_t auth_cmpl)
   {
     if (auth_cmpl.success)
+#endif
     {
       syslog->printf("onAuthenticationComplete\r\n");
     }
@@ -180,9 +193,11 @@ static void notifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, ui
 
   char ch;
 
-  // Parse multiframes to single response
-  liveDataObj->responseRow = "";
-  for (int i = 0; i <= length; i++)
+  // Parse multiframes to single response. responseRow deliberately persists across
+  // notifications: an ELM327 line split over two BLE packets is completed by the
+  // next packet instead of being dropped (frozen 620101/power values, issue #107).
+  // It is cleared in executeCommand() before each new command.
+  for (size_t i = 0; i < length; i++)
   {
     ch = pData[i];
     if (ch == '\r' || ch == '\n' || ch == '\0')
@@ -228,8 +243,11 @@ void CommObd2Ble4::connectDevice()
   liveData->pRemoteCharacteristicWrite = nullptr;
   liveData->foundMyBleDevice = nullptr;
 
-  // Start BLE connection
+  // Start BLE connection. NimBLE releases classic-BT controller memory itself;
+  // Bluedroid needs the explicit release to reclaim heap.
+#ifndef EVDASH_USE_NIMBLE
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+#endif
   BLEDevice::init("");
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we have detected a new device.
@@ -256,7 +274,11 @@ void CommObd2Ble4::disconnectDevice()
 {
 
   syslog->println("COMM disconnectDevice");
+#ifdef EVDASH_USE_NIMBLE
+  BLEDevice::deinit(false);
+#else
   btStop();
+#endif
 }
 
 /**
@@ -332,7 +354,9 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   board->displayMessage(" > Connecting device - init", pAddress.toString().c_str());
 
   // Set BLE encryption and security
+#ifndef EVDASH_USE_NIMBLE
   BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
+#endif
   BLEDevice::setSecurityCallbacks(new MySecurity());
 
   BLESecurity *pSecurity = new BLESecurity();
@@ -359,12 +383,21 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
 
   // Attempt to connect to the BLE device.
   // Most adapters use random address type, but some use public type.
+#ifdef EVDASH_USE_NIMBLE
+  bool connected = liveData->pClient->connect(BLEAddress(pAddress.toString(), BLE_ADDR_RANDOM));
+  if (!connected)
+  {
+    syslog->println("Connect with RANDOM address type failed. Trying PUBLIC...");
+    connected = liveData->pClient->connect(BLEAddress(pAddress.toString(), BLE_ADDR_PUBLIC));
+  }
+#else
   bool connected = liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_RANDOM);
   if (!connected)
   {
     syslog->println("Connect with RANDOM address type failed. Trying PUBLIC...");
     connected = liveData->pClient->connect(pAddress, BLE_ADDR_TYPE_PUBLIC);
   }
+#endif
 
   if (!connected)
   {
@@ -375,7 +408,46 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
   syslog->println("Successfully connected to BLE device.");
   board->displayMessage("> Successfully connected", pAddress.toString().c_str());
 
-  // Discover all services
+  // Discover all services. NimBLE returns a vector, Bluedroid a map.
+  liveData->pRemoteCharacteristic = nullptr;
+  liveData->pRemoteCharacteristicWrite = nullptr;
+
+#ifdef EVDASH_USE_NIMBLE
+  std::vector<BLERemoteService *> *services = liveData->pClient->getServices(true);
+  if (services == nullptr || services->empty())
+  {
+    syslog->println("No services found.");
+    liveData->pClient->disconnect();
+    return false;
+  }
+
+  for (auto *pRemoteService : *services)
+  {
+    syslog->print("Detected service UUID: ");
+    syslog->println(pRemoteService->getUUID().toString().c_str());
+
+    std::vector<BLERemoteCharacteristic *> *characteristics = pRemoteService->getCharacteristics(true);
+    for (auto *pCharacteristic : *characteristics)
+    {
+      if (pCharacteristic->canNotify() && liveData->pRemoteCharacteristic == nullptr)
+      {
+        liveData->pRemoteCharacteristic = pCharacteristic;
+        syslog->print("Detected Tx characteristic UUID: ");
+        syslog->println(pCharacteristic->getUUID().toString().c_str());
+      }
+      if (pCharacteristic->canWrite() && liveData->pRemoteCharacteristicWrite == nullptr)
+      {
+        liveData->pRemoteCharacteristicWrite = pCharacteristic;
+        syslog->print("Detected Rx characteristic UUID: ");
+        syslog->println(pCharacteristic->getUUID().toString().c_str());
+      }
+      if (liveData->pRemoteCharacteristic && liveData->pRemoteCharacteristicWrite)
+        break;
+    }
+    if (liveData->pRemoteCharacteristic && liveData->pRemoteCharacteristicWrite)
+      break;
+  }
+#else
   std::map<std::string, BLERemoteService *> *services = liveData->pClient->getServices();
   if (services == nullptr || services->empty())
   {
@@ -384,51 +456,35 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
     return false;
   }
 
-  // Loop through services to find characteristics
-  liveData->pRemoteCharacteristic = nullptr;
-  liveData->pRemoteCharacteristicWrite = nullptr;
-
   for (auto const &entry : *services)
   {
     BLERemoteService *pRemoteService = entry.second;
     syslog->print("Detected service UUID: ");
     syslog->println(entry.first.c_str());
 
-    // Discover characteristics within the service
     std::map<std::string, BLERemoteCharacteristic *> *characteristics = pRemoteService->getCharacteristics();
     for (auto const &charEntry : *characteristics)
     {
       BLERemoteCharacteristic *pCharacteristic = charEntry.second;
-
-      // Check if the characteristic can notify (Tx)
       if (pCharacteristic->canNotify() && liveData->pRemoteCharacteristic == nullptr)
       {
         liveData->pRemoteCharacteristic = pCharacteristic;
         syslog->print("Detected Tx characteristic UUID: ");
         syslog->println(charEntry.first.c_str());
       }
-
-      // Check if the characteristic can write (Rx)
       if (pCharacteristic->canWrite() && liveData->pRemoteCharacteristicWrite == nullptr)
       {
         liveData->pRemoteCharacteristicWrite = pCharacteristic;
         syslog->print("Detected Rx characteristic UUID: ");
         syslog->println(charEntry.first.c_str());
       }
-
-      // Stop searching if both Tx and Rx characteristics are found
       if (liveData->pRemoteCharacteristic && liveData->pRemoteCharacteristicWrite)
-      {
         break;
-      }
     }
-
-    // Exit if we found valid Tx and Rx characteristics
     if (liveData->pRemoteCharacteristic && liveData->pRemoteCharacteristicWrite)
-    {
       break;
-    }
   }
+#endif
 
   // Check if Tx and Rx characteristics were found
   if (liveData->pRemoteCharacteristic == nullptr || liveData->pRemoteCharacteristicWrite == nullptr)
@@ -440,7 +496,21 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
 
   syslog->println("Successfully detected service and characteristics.");
 
-  // Enable notifications for the Tx characteristic
+  // Enable indications on the Tx characteristic (CCCD = {0x02,0x00}).
+#ifdef EVDASH_USE_NIMBLE
+  // NimBLE writes the CCCD itself: subscribe(false,...) = indications, matching the
+  // old {0x02,0x00} write + registerForNotify(cb, false). Fall back to notifications.
+  if (liveData->pRemoteCharacteristic->canIndicate())
+  {
+    liveData->pRemoteCharacteristic->subscribe(false, notifyCallback, true);
+    delay(200);
+  }
+  else if (liveData->pRemoteCharacteristic->canNotify())
+  {
+    liveData->pRemoteCharacteristic->subscribe(true, notifyCallback, true);
+    delay(200);
+  }
+#else
   if (liveData->pRemoteCharacteristic->canNotify())
   {
     const uint8_t indicationOn[] = {0x2, 0x0};
@@ -456,6 +526,7 @@ bool CommObd2Ble4::connectToServer(BLEAddress pAddress)
     liveData->pRemoteCharacteristic->registerForNotify(notifyCallback, false);
     delay(200);
   }
+#endif
 
   syslog->println("BLE device is ready for communication.");
   return true;
@@ -537,6 +608,10 @@ void CommObd2Ble4::executeCommand(String cmd)
   String tmpStr = cmd + "\r";
   if (liveData->commConnected)
   {
+    // Drop any unfinished line fragment from the previous response so it cannot
+    // prepend itself to this command's response (responseRow persists across
+    // BLE notifications, see notifyCallback).
+    liveData->responseRow = "";
     liveData->pRemoteCharacteristicWrite->writeValue(tmpStr.c_str(), tmpStr.length());
   }
 }

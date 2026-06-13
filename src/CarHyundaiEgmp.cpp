@@ -90,6 +90,26 @@ namespace
 
     logger->info(DEBUG_COMM, msg);
   }
+
+  // Drop a contiguous run of exact 0.0 C at the module-temp array tail when the pack
+  // is clearly warm (warmest module >= 15 C). Packs with fewer sensors than the eGMP
+  // 16-slot superset (Ioniq6 53 = 14) pad the 220105 tail with 0x00, which decodes as
+  // a phantom 0 C and drags min temp to 0. Modules are thermally coupled, so a 0 C
+  // slot behind a 15+ C module is a missing sensor, not ice; a genuinely cold pack
+  // (all modules near 0) is left untouched. -100 is the existing "no data" sentinel.
+  void suppressTrailingPhantomTemps(float *temps, uint16_t count)
+  {
+    float warmest = -1000;
+    for (uint16_t i = 0; i < count; i++)
+    {
+      if (temps[i] >= -30 && temps[i] <= 80 && temps[i] > warmest)
+        warmest = temps[i];
+    }
+    if (warmest < 15)
+      return;
+    for (int16_t i = count - 1; i >= 0 && temps[i] == 0.0f; i--)
+      temps[i] = -100;
+  }
 } // namespace
 
 // Shared eGMP UDS implementation for Ioniq 5/6 and EV6.
@@ -346,6 +366,14 @@ void CarHyundaiEgmp::activateCommandQueue()
     liveData->params.batModuleTempCount = 8;
     liveData->params.batteryTotalAvailableKWh = 58;
     liveData->params.cellCount = 144; // 288 / 2, 24 modules
+  }
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_53)
+  {
+    // SR pack confirmed on owner car (2026-06): 14 module temp sensors, 132 cells.
+    // Uses the standard eGMP temp mapping (not the 58/63 sweep); slots 15/16 don't exist.
+    liveData->params.batModuleTempCount = 14;
+    liveData->params.batteryTotalAvailableKWh = 53.0;
+    liveData->params.cellCount = 132; // 264 / 2
   }
   if (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_72)
   {
@@ -744,6 +772,7 @@ void CarHyundaiEgmp::parseRowMerged()
         liveData->params.batMinC = decodedBatMin;
 
       // This is more accurate than min/max from BMS.
+      suppressTrailingPhantomTemps(liveData->params.batModuleTempC, liveData->params.batModuleTempCount);
       float minTemp = 999;
       float maxTemp = -999;
       for (uint16_t i = 0; i < liveData->params.batModuleTempCount; i++)
@@ -880,6 +909,7 @@ void CarHyundaiEgmp::parseRowMerged()
               liveData->params.batModuleTempC[i] = temp;
           }
 
+          suppressTrailingPhantomTemps(liveData->params.batModuleTempC, tempCount);
           float minTemp = 999;
           float maxTemp = -999;
           for (uint8_t i = 0; i < tempCount; i++)
@@ -902,39 +932,24 @@ void CarHyundaiEgmp::parseRowMerged()
       }
       else
       {
-        const float t5 = liveData->hexToDecFromResponse(24, 26, 1, true);
-        const float t6 = liveData->hexToDecFromResponse(26, 28, 1, true);
-        const float t7 = liveData->hexToDecFromResponse(28, 30, 1, true);
-        const float t8 = liveData->hexToDecFromResponse(30, 32, 1, true);
-        const float t9 = liveData->hexToDecFromResponse(32, 34, 1, true);
-        const float t10 = liveData->hexToDecFromResponse(34, 36, 1, true);
-        const float t11 = liveData->hexToDecFromResponse(36, 38, 1, true);
-        const float t12 = liveData->hexToDecFromResponse(84, 86, 1, true);
-        const float t13 = liveData->hexToDecFromResponse(86, 88, 1, true);
-        const float t14 = liveData->hexToDecFromResponse(88, 90, 1, true);
-        const float t15 = liveData->hexToDecFromResponse(90, 92, 1, true);
-        if (inRangeF(t5, -30, 80))
-          liveData->params.batModuleTempC[5] = t5;
-        if (inRangeF(t6, -30, 80))
-          liveData->params.batModuleTempC[6] = t6;
-        if (inRangeF(t7, -30, 80))
-          liveData->params.batModuleTempC[7] = t7;
-        if (inRangeF(t8, -30, 80))
-          liveData->params.batModuleTempC[8] = t8;
-        if (inRangeF(t9, -30, 80))
-          liveData->params.batModuleTempC[9] = t9;
-        if (inRangeF(t10, -30, 80))
-          liveData->params.batModuleTempC[10] = t10;
-        if (inRangeF(t11, -30, 80))
-          liveData->params.batModuleTempC[11] = t11;
-        if (inRangeF(t12, -30, 80))
-          liveData->params.batModuleTempC[12] = t12;
-        if (inRangeF(t13, -30, 80))
-          liveData->params.batModuleTempC[13] = t13;
-        if (inRangeF(t14, -30, 80))
-          liveData->params.batModuleTempC[14] = t14;
-        if (inRangeF(t15, -30, 80))
-          liveData->params.batModuleTempC[15] = t15;
+        // Module temp sensors 6-12 at chars 24-38, 13-16 at chars 84-92.
+        // Short packs (Ioniq6 53 = 14 sensors) don't carry the tail slots; skipping
+        // them avoids decoding the 0x00 padding as a phantom 0 C.
+        const struct
+        {
+          uint8_t idx;
+          uint8_t charPos;
+        } tempMap[] = {{5, 24}, {6, 26}, {7, 28}, {8, 30}, {9, 32}, {10, 34}, {11, 36}, {12, 84}, {13, 86}, {14, 88}, {15, 90}};
+        for (const auto &m : tempMap)
+        {
+          if (m.idx >= liveData->params.batModuleTempCount)
+            continue;
+          if (liveData->responseRowMerged.length() < (uint16_t)(m.charPos + 2))
+            continue;
+          const float temp = liveData->hexToDecFromResponse(m.charPos, m.charPos + 2, 1, true);
+          if (inRangeF(temp, -30, 80))
+            liveData->params.batModuleTempC[m.idx] = temp;
+        }
       }
 
       // Soc10ced table, record x0% CEC/CED table (ex. 90%->89%, 80%->79%)
@@ -1096,9 +1111,11 @@ bool CarHyundaiEgmp::commandAllowed()
     return false;
   }
 
-  // 58/63 kWh packs have 144 cells; 22010C block is not needed and often noisy.
+  // Packs up to 160 cells (58/63 = 144, Ioniq6 53 = 132) have nothing in cells 161-180;
+  // the 22010C block is not needed and often noisy.
   if ((liveData->settings.carType == CAR_HYUNDAI_IONIQ5_58_63 ||
        liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+       liveData->settings.carType == CAR_HYUNDAI_IONIQ6_53 ||
        liveData->settings.carType == CAR_KIA_EV6_58_63) &&
       liveData->currentAtshRequest.equals("ATSH7E4") &&
       liveData->commandRequest.equals("22010C"))
@@ -1221,8 +1238,10 @@ void CarHyundaiEgmp::loadTestData()
     return;
   }
 
-  // Ioniq6 58/63 demo (updated from provided contribute capture)
-  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63)
+  // Ioniq6 53 + 58/63 demo (updated from provided contribute capture; the capture
+  // itself comes from a 53 kWh SR car, so it also exercises the 14-sensor mapping)
+  if (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63 ||
+      liveData->settings.carType == CAR_HYUNDAI_IONIQ6_53)
   {
     applyDemoResponse("ATSH770", "22BC01", "62BC014200000000030000000002AAAAAAAAAAAA");
     applyDemoResponse("ATSH770", "22BC03", "62BC03FDFE20620A000000AAAA");

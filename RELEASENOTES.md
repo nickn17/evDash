@@ -1,5 +1,25 @@
 # RELEASE NOTES
 
+### V5.0.0 2026-06-13
+- CoreS3 BLE stack migrated to NimBLE (see below) — major version bump.
+- Hyundai Ioniq 6 53 kWh (Standard Range) — dedicated vehicle type (issue #107):
+  - Added a separate "Ioniq6 53kWh" car type. Previously the only option was "Ioniq6 58/63kWh", whose constants (144 cells, 8 temp sensors, 58 kWh) are wrong for the SR pack — and the owner-contributed capture the 58/63 profile was tuned on actually came from this 53 kWh car.
+  - The 53 kWh profile uses 132 cells, 14 battery module temperature sensors and 53 kWh, and reads module temps through the standard eGMP mapping (`220101` sensors 1-5, `220105` sensors 6-14). Tail sensors 15/16 don't exist on this pack and are no longer decoded, so they can't be read as phantom 0 °C.
+  - Added a generic guard for short packs: a contiguous run of exactly 0 °C module temps at the array tail is dropped when the warmest module is ≥ 15 °C (thermally-coupled pack ⇒ a 0 °C slot behind a warm module is a missing sensor, not ice), so battery min temp is no longer dragged to 0.
+  - `22010C` (cells 161-180) is skipped for the 132-cell pack; ABRP id `hyundai:ioniq6:23:58:rwd`; mobile-relay id `hyundai_ioniq6_53` (matches the evDash app).
+  - After updating, select Vehicle → Hyundai → Ioniq6 53kWh, then Save settings and restart.
+- eGMP frozen battery power / kWh-per-100 on BLE4 (Ioniq 6, issue #107):
+  - The BLE4 notification handler reset the line buffer on every notification, so an ELM327 line split across two BLE packets was discarded. The longest response (`620101`, which carries pack power/voltage/aux) is the one most likely to span a packet boundary, so power could read once after connect and then stay frozen for the whole drive while shorter PIDs (speed, SOC, temps) kept updating.
+  - The line buffer now persists across notifications and is cleared before each command; the off-by-one buffer over-read in the notification loop was fixed.
+  - The BLE response normalizer now strips a leading `7F xx 78` ("response pending") prefix before parsing (the direct-CAN path already did this), so a pending+payload frame no longer fails the decode.
+  - Fixed the Speed-screen kWh/100 sentinel check (`-1` vs `-1000`) so "n/a" shows correctly before the first reading.
+- CoreS3 BLE boot-loop fixed — migrated to NimBLE (issue #159):
+  - On M5Stack CoreS3 (ESP32-S3) the prebuilt Bluedroid host has only a 4 KB BTU task stack, which the GATT service-discovery path overflowed right after connecting to the OBD adapter ("Guru Meditation Error … Stack canary watchpoint triggered (BTU_TASK)", reboot loop). CoreS3 now uses NimBLE, whose host task stack is configurable (set to 8 KB) and whose footprint is much smaller (CoreS3 flash 60.9% → 50.0%).
+  - Core2 (plain ESP32) keeps Bluedroid: it has an 8 KB BTU stack, is not affected by #159, and the two BLE stacks cannot coexist in one binary.
+- Settings robustness (issue #123):
+  - Serial-console setters (`wifiSsid=`, `wifiPassword=`, `remoteApiUrl=`, `mqtt*=`, …) are now bounded to the destination field size, so an over-length value can no longer overflow into adjacent settings.
+  - All string settings are force-NUL-terminated after loading from flash, so a blob written by older firmware can never be read past its buffer (a source of the garbage-hostname DNS queries reported in #123).
+
 ### V4.6.15 2026-06-10
 - Peugeot e-208 / PSA e-CMP:
   - Replaced the old Renault-ZOE-style `79B/21xx` polling with the confirmed PSA e-CMP topology: TBMU `6B4→694`, VCU `6A2→682`, and charger `590→58F`.

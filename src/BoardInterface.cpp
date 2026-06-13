@@ -28,7 +28,7 @@ It handles attaching communications and live data objects. And provides methods 
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
-#include <BLEDevice.h>
+#include "ble_compat.h"
 #include "BoardInterface.h"
 #include "CommObd2Ble4.h"
 #include "CommObd2Can.h"
@@ -450,6 +450,35 @@ void BoardInterface::loadSettings()
     liveData->settings = liveData->tmpSettings;
   }
 
+  // Defensive: force NUL termination on char[] settings fields loaded from flash,
+  // so a blob corrupted by an older firmware can never be read past the array end
+  // (garbage hostname/SSID DNS queries, issue #123).
+#define EVDASH_TERMINATE_FIELD(f) liveData->settings.f[sizeof(liveData->settings.f) - 1] = '\0'
+  EVDASH_TERMINATE_FIELD(obdMacAddress);
+  EVDASH_TERMINATE_FIELD(serviceUUID);
+  EVDASH_TERMINATE_FIELD(charTxUUID);
+  EVDASH_TERMINATE_FIELD(charRxUUID);
+  EVDASH_TERMINATE_FIELD(wifiSsid);
+  EVDASH_TERMINATE_FIELD(wifiPassword);
+  EVDASH_TERMINATE_FIELD(gprsApn);
+  EVDASH_TERMINATE_FIELD(remoteApiUrl);
+  EVDASH_TERMINATE_FIELD(remoteApiKey);
+  EVDASH_TERMINATE_FIELD(abrpApiToken);
+  EVDASH_TERMINATE_FIELD(wifiSsid2);
+  EVDASH_TERMINATE_FIELD(wifiPassword2);
+  EVDASH_TERMINATE_FIELD(obd2Name);
+  EVDASH_TERMINATE_FIELD(obd2WifiIp);
+  EVDASH_TERMINATE_FIELD(contributeToken);
+  EVDASH_TERMINATE_FIELD(mqttServer);
+  EVDASH_TERMINATE_FIELD(mqttId);
+  EVDASH_TERMINATE_FIELD(mqttUsername);
+  EVDASH_TERMINATE_FIELD(mqttPassword);
+  EVDASH_TERMINATE_FIELD(mqttPubTopic);
+  EVDASH_TERMINATE_FIELD(traccarServerHost);
+  EVDASH_TERMINATE_FIELD(relayToken);
+  EVDASH_TERMINATE_FIELD(relayMobileId);
+#undef EVDASH_TERMINATE_FIELD
+
   if (liveData->settings.contributeJsonType != CONTRIBUTE_JSON_TYPE_V2)
   {
     liveData->settings.contributeJsonType = CONTRIBUTE_JSON_TYPE_V2;
@@ -548,20 +577,22 @@ void BoardInterface::customConsoleCommand(String cmd)
   String key = cmd.substring(0, idx);
   String value = cmd.substring(idx + 1);
 
+  // Bounded to destination size (truncates + NUL-terminates); an over-length value
+  // would otherwise overflow into adjacent settings fields (issue #123).
   if (key == "serviceUUID")
-    value.toCharArray(liveData->settings.serviceUUID, value.length() + 1);
+    value.toCharArray(liveData->settings.serviceUUID, sizeof(liveData->settings.serviceUUID));
   if (key == "charTxUUID")
-    value.toCharArray(liveData->settings.charTxUUID, value.length() + 1);
+    value.toCharArray(liveData->settings.charTxUUID, sizeof(liveData->settings.charTxUUID));
   if (key == "charRxUUID")
-    value.toCharArray(liveData->settings.charRxUUID, value.length() + 1);
+    value.toCharArray(liveData->settings.charRxUUID, sizeof(liveData->settings.charRxUUID));
 
   if (key == "wifiSsid")
-    value.toCharArray(liveData->settings.wifiSsid, value.length() + 1);
+    value.toCharArray(liveData->settings.wifiSsid, sizeof(liveData->settings.wifiSsid));
   if (key == "wifiPassword")
-    value.toCharArray(liveData->settings.wifiPassword, value.length() + 1);
+    value.toCharArray(liveData->settings.wifiPassword, sizeof(liveData->settings.wifiPassword));
   if (key == "wifiSsid2")
   {
-    value.toCharArray(liveData->settings.wifiSsid2, value.length() + 1);
+    value.toCharArray(liveData->settings.wifiSsid2, sizeof(liveData->settings.wifiSsid2));
     if (strcmp(liveData->settings.wifiSsid2, "empty") == 0)
     {
       liveData->settings.backupWifiEnabled = 0;
@@ -572,25 +603,25 @@ void BoardInterface::customConsoleCommand(String cmd)
     }
   }
   if (key == "wifiPassword2")
-    value.toCharArray(liveData->settings.wifiPassword2, value.length() + 1);
+    value.toCharArray(liveData->settings.wifiPassword2, sizeof(liveData->settings.wifiPassword2));
   if (key == "remoteApiUrl")
-    value.toCharArray(liveData->settings.remoteApiUrl, value.length() + 1);
+    value.toCharArray(liveData->settings.remoteApiUrl, sizeof(liveData->settings.remoteApiUrl));
   if (key == "remoteApiKey")
-    value.toCharArray(liveData->settings.remoteApiKey, value.length() + 1);
+    value.toCharArray(liveData->settings.remoteApiKey, sizeof(liveData->settings.remoteApiKey));
   if (key == "abrpApiToken")
-    value.toCharArray(liveData->settings.abrpApiToken, value.length() + 1);
+    value.toCharArray(liveData->settings.abrpApiToken, sizeof(liveData->settings.abrpApiToken));
 
   // Mqtt
   if (key == "mqttServer")
-    value.toCharArray(liveData->settings.mqttServer, value.length() + 1);
+    value.toCharArray(liveData->settings.mqttServer, sizeof(liveData->settings.mqttServer));
   if (key == "mqttId")
-    value.toCharArray(liveData->settings.mqttId, value.length() + 1);
+    value.toCharArray(liveData->settings.mqttId, sizeof(liveData->settings.mqttId));
   if (key == "mqttUsername")
-    value.toCharArray(liveData->settings.mqttUsername, value.length() + 1);
+    value.toCharArray(liveData->settings.mqttUsername, sizeof(liveData->settings.mqttUsername));
   if (key == "mqttPassword")
-    value.toCharArray(liveData->settings.mqttPassword, value.length() + 1);
+    value.toCharArray(liveData->settings.mqttPassword, sizeof(liveData->settings.mqttPassword));
   if (key == "mqttPubTopic")
-    value.toCharArray(liveData->settings.mqttPubTopic, value.length() + 1);
+    value.toCharArray(liveData->settings.mqttPubTopic, sizeof(liveData->settings.mqttPubTopic));
 
   //
   if (key == "debugLevel")

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <BLEDevice.h>
+#include "ble_compat.h"
 
-#define APP_VERSION "v4.6.13"
-#define APP_RELEASE_DATE "2026-05-20"
+#define APP_VERSION "v5.0.0"
+#define APP_RELEASE_DATE "2026-06-13"
 #define WEBFLASHER_URL "evdash.eu/m5flash"
 #define FW_VERSION_CHECK_URL "https://api.evdash.eu/v1/m5evdash/version/get"
 #define PAIR_START_URL "https://api.evdash.eu/v1/m5evdash/pair/start"
@@ -113,6 +113,7 @@ typedef enum
   VEHICLE_TYPE_HYUNDAI_IONIQ5_58_63,
   VEHICLE_TYPE_HYUNDAI_IONIQ5_72,
   VEHICLE_TYPE_HYUNDAI_IONIQ5_77_84,
+  VEHICLE_TYPE_HYUNDAI_IONIQ6_53,
   VEHICLE_TYPE_HYUNDAI_IONIQ6_58_63,
   VEHICLE_TYPE_HYUNDAI_IONIQ6_77_84,
 

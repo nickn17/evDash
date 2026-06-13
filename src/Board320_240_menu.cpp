@@ -85,6 +85,9 @@ String Board320_240::menuItemText(int16_t menuItemId, String title)
   case VEHICLE_TYPE_HYUNDAI_IONIQ5_77_84:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ5_77_84) ? ">" : "";
     break;
+  case VEHICLE_TYPE_HYUNDAI_IONIQ6_53:
+    prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_53) ? ">" : "";
+    break;
   case VEHICLE_TYPE_HYUNDAI_IONIQ6_58_63:
     prefix = (liveData->settings.carType == CAR_HYUNDAI_IONIQ6_58_63) ? ">" : "";
     break;
@@ -922,6 +925,11 @@ void Board320_240::menuItemClick()
       break;
     case VEHICLE_TYPE_HYUNDAI_IONIQ5_77_84:
       liveData->settings.carType = CAR_HYUNDAI_IONIQ5_77_84;
+      showMenu();
+      return;
+      break;
+    case VEHICLE_TYPE_HYUNDAI_IONIQ6_53:
+      liveData->settings.carType = CAR_HYUNDAI_IONIQ6_53;
       showMenu();
       return;
       break;

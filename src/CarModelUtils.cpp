@@ -17,6 +17,9 @@ String getCarModelAbrpStr(int carType)
         return "hyundai:ioniq5:21:72:lr";
     case CAR_HYUNDAI_IONIQ5_77_84:
         return "hyundai:ioniq5:21:77:lr";
+    case CAR_HYUNDAI_IONIQ6_53:
+        // ABRP has no 53 kWh bucket; nearest is the 58 SR entry (same id used by the mobile app).
+        return "hyundai:ioniq6:23:58:rwd";
     case CAR_HYUNDAI_IONIQ6_58_63:
         return "hyundai:ioniq6:23:58:mr";
     case CAR_HYUNDAI_IONIQ6_77_84:
