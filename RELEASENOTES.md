@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V5.0.2 2026-06-18
+- Direct-CAN command queue no longer stalls on a busy bus (Peugeot e-208 / PSA e-CMP, but affects any car):
+  - `receivePID()` refreshed the rx-timeout (`lastDataSent = millis()`) on **every** received frame, including the broadcast traffic it filters out. On a quiet diagnostic bus this is harmless, but on a car whose OBD port is the live high-speed CAN (the e-208 emits hundreds of broadcast frames/s), `lastDataSent` was permanently "now", so the `rxTimeoutMs` check never fired. The command queue hung on the very first PID that got no answer (`0902` VIN) and never advanced to the battery PIDs — every value stayed `n/a` with a constant "Packet filtered" status, even though the adapter was transmitting and reading the bus correctly.
+  - The timeout is now refreshed only when a frame passes the response-ID filter (i.e. is actually part of our reply). Multi-frame consecutive frames arrive on the response ID and still extend the timeout, so ISO-TP reception is unchanged; a genuinely lost frame now correctly times out instead of being masked by unrelated broadcast traffic. Behavior for accepted single-frame responses is byte-identical, so quiet-bus cars (Korean/VW/BMW) are unaffected.
+
 ### V5.0.1 2026-06-13
 - Build config — the CoreS3 #159 fix now actually ships: added the CoreS3 NimBLE build config (`-D EVDASH_USE_NIMBLE`, `CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192`, `NimBLE-Arduino`, `lib_ignore = BLE, SimpleBLE`) to `platformio.ini.example`. V5.0.0 shipped the NimBLE source guards but not the build flag in the example, so a fresh clone still built CoreS3 on Bluedroid and hit #159.
 - TLS / OTA security (from project audit):
