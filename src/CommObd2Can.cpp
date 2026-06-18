@@ -432,7 +432,6 @@ uint8_t CommObd2Can::receivePID()
   const uint8_t rxBuffOffset = liveData->bAdditionalStartingChar ? 1 : 0;
   if (!digitalRead(pinCanInt) && sentCanData == true) // If CAN0_INT pin is low, read receive buffer
   {
-    lastDataSent = millis();
     syslog->infoNolf(DEBUG_COMM, " CAN READ ");
     CAN->readMsgBuf(&rxId, &rxLen, rxBuf); // Read data: len = data length, buf = data byte(s)
 
@@ -512,6 +511,13 @@ uint8_t CommObd2Can::receivePID()
 
     syslog->info(DEBUG_COMM, "");
     connectStatus = "";
+    // Refresh the rx-timeout only on a matching (accepted) frame. On a busy bus
+    // (e.g. PSA e-CMP, whose OBD port is the live HS-CAN with hundreds of broadcast
+    // frames/s) refreshing on every received frame kept lastDataSent permanently
+    // "now", so the rxTimeoutMs check never fired and the command queue stalled on
+    // the first PID. Multi-frame consecutive frames arrive on the response ID and
+    // pass the filter, so they still extend the timeout here.
+    lastDataSent = millis();
     processFrameBytes();
     // processFrame();
   }
