@@ -45,7 +45,9 @@ void CommObd2Can::connectDevice()
     return;
   }
 
-  // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
+  // Initialize MCP2515 (8MHz crystal, 500 kbit/s). MCP_STDEXT puts both RX buffers in
+  // filter mode, but the masks default to 0x00000000 (= all id bits don't-care = accept
+  // all), so reception is unfiltered unless a car below programs explicit masks/filters.
   if (CAN->begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ) == CAN_OK)
   {
     syslog->println("MCP2515 Initialized Successfully!");
@@ -70,6 +72,23 @@ void CommObd2Can::connectDevice()
     {
       CAN->init_Filt(i, 0, 0x06000000); // Init filters
     }
+  }
+  else if (liveData->settings.carType == CAR_PEUGEOT_E208)
+  {
+    // PSA e-CMP: the OBD port is the live high-speed CAN with hundreds of broadcast
+    // frames/s. With the masks open the MCP2515's two RX buffers overflow with
+    // broadcast and the diagnostic reply is dropped before the firmware reads it
+    // (a plugged-in ELM327 works here because ATCRA programs the same hardware filter).
+    // Accept only the e-208 response IDs. For this library a standard 11-bit id is
+    // written as (id << 16); mask 0x07FF0000 is an exact 11-bit match (see mcp2515_write_mf).
+    CAN->init_Mask(0, 0, 0x07FF0000); // RXB0 exact match
+    CAN->init_Mask(1, 0, 0x07FF0000); // RXB1 exact match
+    CAN->init_Filt(0, 0, 0x07E80000); // 0x7E8 VIN (mode 09)
+    CAN->init_Filt(1, 0, 0x058F0000); // 0x58F charger / DC-DC
+    CAN->init_Filt(2, 0, 0x06820000); // 0x682 VCU
+    CAN->init_Filt(3, 0, 0x06940000); // 0x694 BMS / TBMU
+    CAN->init_Filt(4, 0, 0x06940000); // 0x694 (dup, BMS carries the bulk + multiframe)
+    CAN->init_Filt(5, 0, 0x06940000); // 0x694 (dup)
   }
 
   if (MCP2515_OK != CAN->setMode(MCP_NORMAL))
