@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V5.0.3 2026-06-19
+- Peugeot e-208 direct-CAN now reads battery data on the busy OBD bus — MCP2515 hardware acceptance filtering:
+  - V5.0.2 got the command queue running again, but on the e-208 the OBD port is the live broadcast CAN (hundreds of frames/s). With the MCP2515 masks left open, its two RX buffers overflowed with broadcast traffic and the battery ECU's reply was dropped before the firmware could read it — every value still read `n/a` / "Packet filtered". A plugged-in ELM327 works on the same port because it programs a hardware receive filter via `ATCRA`; the direct-CAN path left the masks open and filtered only in software.
+  - The Peugeot car type now programs the MCP2515 to accept only the four e-208 diagnostic response IDs (`0x58F` charger, `0x682` VCU, `0x694` BMS, `0x7E8` VIN). These IDs never appear in the e-208's broadcast traffic (verified against ~35k captured frames), so the controller stays idle until a genuine reply arrives and can no longer overflow. Mirrors the existing BMW i3 filter block and is gated on `CAR_PEUGEOT_E208`, so no other car's reception changes — their masks stay at the accept-all default. ISO-TP multi-frame is unaffected: consecutive frames arrive on the accepted response ID.
+
 ### V5.0.2 2026-06-18
 - Direct-CAN command queue no longer stalls on a busy bus (Peugeot e-208 / PSA e-CMP, but affects any car):
   - `receivePID()` refreshed the rx-timeout (`lastDataSent = millis()`) on **every** received frame, including the broadcast traffic it filters out. On a quiet diagnostic bus this is harmless, but on a car whose OBD port is the live high-speed CAN (the e-208 emits hundreds of broadcast frames/s), `lastDataSent` was permanently "now", so the `rxTimeoutMs` check never fired. The command queue hung on the very first PID that got no answer (`0902` VIN) and never advanced to the battery PIDs — every value stayed `n/a` with a constant "Packet filtered" status, even though the adapter was transmitting and reading the bus correctly.
