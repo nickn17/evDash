@@ -13,6 +13,7 @@ namespace
 {
   const uint8_t kPsaCellCount = 108;
   const uint8_t kPsaModuleTempCount = 24; // M5 LiveData stores max 25 module temps.
+  const time_t kParkDebounceSec = 120;    // stand still this long (speed <= 1) before leaving drive mode
 
   bool inRange(float value, float min, float max)
   {
@@ -301,8 +302,22 @@ void CarPeugeotE208::parseRowMerged()
       if (!inRange(speed, 0, 220))
         speed = 0;
       liveData->params.speedKmh = speed;
-      if (!liveData->params.forwardDriveMode && !liveData->params.reverseDriveMode)
-        liveData->params.forwardDriveMode = speed > 1;
+      // Drive-mode latch with a stationary debounce. Enter drive mode immediately on
+      // movement, but leave it only after the car has stood still (speed <= 1) for
+      // kParkDebounceSec, so a traffic-light stop does not bounce out of drive while a
+      // genuine park still releases the latch. Without this clear, forwardDriveMode stayed
+      // true forever, ignitionOn never went false and the Sentry auto-stop never armed.
+      static time_t lastMovingTime = 0;
+      if (speed > 1)
+      {
+        lastMovingTime = liveData->params.currentTime;
+        liveData->params.forwardDriveMode = true;
+      }
+      else if (liveData->params.forwardDriveMode && lastMovingTime != 0 &&
+               liveData->params.currentTime - lastMovingTime >= kParkDebounceSec)
+      {
+        liveData->params.forwardDriveMode = false;
+      }
       applyIgnitionState(liveData);
       return;
     }
