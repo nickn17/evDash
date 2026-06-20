@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V5.0.4 2026-06-20
+- Peugeot e-208 now actually goes to sleep (Sentry auto-stop) after parking:
+  - The e-208 parser latched `forwardDriveMode` to `true` the first time speed exceeded 1 km/h and never cleared it (the only reset ran once at boot). `applyIgnitionState()` derives `ignitionOn` from the drive mode, so after the first drive `ignitionOn` stayed permanently `true`, `parkingLikely` was never satisfied and the command-queue auto-stop never armed — the device kept scanning CAN and draining the 12 V AUX battery indefinitely. Selecting Park or switching the car off made no difference, and an INA3221 voltmeter would not have helped (the e-208 reads its AUX voltage from CAN, and the only voltage-based stop triggers below 11.5 V, an emergency-discharge level).
+  - Drive mode now uses a stationary debounce: it enters on movement (`speed > 1`) immediately, and leaves only after the car has stood still (`speed <= 1`) for 120 s. A normal traffic-light stop (< 2 min) stays in drive; a genuine park releases the latch, `ignitionOn` goes false and Sentry arms as designed (~2 min debounce + 60 s grace before SENTRY ON). Gated entirely inside `CarPeugeotE208`, so no other car changes.
+
 ### V5.0.3 2026-06-19
 - Peugeot e-208 direct-CAN now reads battery data on the busy OBD bus — MCP2515 hardware acceptance filtering:
   - V5.0.2 got the command queue running again, but on the e-208 the OBD port is the live broadcast CAN (hundreds of frames/s). With the MCP2515 masks left open, its two RX buffers overflowed with broadcast traffic and the battery ECU's reply was dropped before the firmware could read it — every value still read `n/a` / "Packet filtered". A plugged-in ELM327 works on the same port because it programs a hardware receive filter via `ATCRA`; the direct-CAN path left the masks open and filtered only in software.
