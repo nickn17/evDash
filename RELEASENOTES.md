@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V5.0.5 2026-06-23
+- Peugeot e-208 direct-CAN now reads the VIN and no longer wastes a poll cycle on it — ISO-TP flow-control addressing fix:
+  - The mode-09 VIN request (`0902`) is sent on the functional broadcast header `0x7DF` and the BMU answers from its physical response ID `0x7E8`. `sendFlowControlFrame()` addressed the ISO-TP Flow Control frame to `lastPid` (the `0x7DF` broadcast), but an ECU only accepts an FC on its physical request ID (`0x7E0`). The First Frame arrived (`49 02 01 "VR3…"`, the Peugeot WMI) but the BMU never sent the consecutive frames, so the VIN read timed out (~1.2 s) on every poll cycle. Because `carVin` stayed empty, `CarPeugeotE208::commandAllowed()` never suppressed `0902`, so the timeout repeated indefinitely and dragged down the whole loop's responsiveness.
+  - Flow Control is now sent to the responder's physical request ID: on a functional broadcast (`lastPid == 0x7DF`) answered from `0x7E8..0x7EF`, the FC target is `rxId - 8` (`0x7E0`); every other request keeps `lastPid` (manufacturer ECUs such as PSA `0x6B4`→`0x694` already use the request ID directly). The VIN now reassembles on the first cycle, after which `commandAllowed()` permanently skips `0902` and the recurring timeout is gone. Gated on the broadcast ID, so no other car's reception changes.
+
 ### V5.0.4 2026-06-20
 - Peugeot e-208 now actually goes to sleep (Sentry auto-stop) after parking:
   - The e-208 parser latched `forwardDriveMode` to `true` the first time speed exceeded 1 km/h and never cleared it (the only reset ran once at boot). `applyIgnitionState()` derives `ignitionOn` from the drive mode, so after the first drive `ignitionOn` stayed permanently `true`, `parkingLikely` was never satisfied and the command-queue auto-stop never armed — the device kept scanning CAN and draining the 12 V AUX battery indefinitely. Selecting Park or switching the car off made no difference, and an INA3221 voltmeter would not have helped (the e-208 reads its AUX voltage from CAN, and the only voltage-based stop triggers below 11.5 V, an emergency-discharge level).
