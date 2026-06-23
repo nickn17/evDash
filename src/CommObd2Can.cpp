@@ -394,16 +394,24 @@ void CommObd2Can::sendFlowControlFrame()
     memmove(txBuf + 1, txBuf, 7);
     txBuf[0] = liveData->commandStartChar;
   }
+  // ISO-TP flow control must target the responder's *physical* request ID.
+  // Functional broadcast (0x7DF, e.g. mode-09 VIN) is answered from 0x7E8..0x7EF,
+  // whose physical request ID is rxId-8 (0x7E0). An ECU ignores an FC on 0x7DF, so
+  // the multiframe stalls and times out. Manufacturer ECUs (e.g. PSA 0x6B4->0x694)
+  // use the request ID directly, so keep lastPid for everything else.
+  uint32_t fcId = lastPid;
+  if (lastPid == 0x7DF && rxId >= 0x7E8 && rxId <= 0x7EF)
+    fcId = rxId - 8;
   // logic to choose from 11-bit or 29-bit
   byte is29bit = 0;
-  if (lastPid > 4095)
+  if (fcId > 4095)
     is29bit = 1;
   uint8_t sndStat = 0xFF;
   uint8_t sendTry = 0;
   const uint8_t maxSendTries = 3;
   for (; sendTry < maxSendTries; sendTry++)
   {
-    sndStat = CAN->sendMsgBuf(lastPid, is29bit, 8, txBuf); // VW:29bit vs others:11 bit
+    sndStat = CAN->sendMsgBuf(fcId, is29bit, 8, txBuf); // VW:29bit vs others:11 bit
     if (sndStat == CAN_OK)
       break;
     delay(1);
@@ -429,7 +437,7 @@ void CommObd2Can::sendFlowControlFrame()
     syslog->infoNolf(DEBUG_COMM, "Error sending flow control frame ");
     connectStatus = "Err sending flow fr.";
   }
-  syslog->infoNolf(DEBUG_COMM, lastPid);
+  syslog->infoNolf(DEBUG_COMM, fcId);
   for (auto txByte : txBuf)
   {
     sprintf(msgString, " 0x%.2X", txByte);
