@@ -6345,8 +6345,11 @@ void Board320_240::initGPS()
   {
     // M5 GPS Module v2.1 (ATGM336H/AT6668): use CASIC PCAS NMEA commands (not UBX).
     // Keep only GGA + RMC output and a faster 200 ms update interval.
+    // PCAS03 field order: GGA, GLL, GSA, GSV, RMC, VTG, ZDA, ANT - RMC is the
+    // 5th field. "1,0,0,1,..." enabled GSV instead, so the module (saved by
+    // PCAS00) sent no RMC at all: no GPS speed and no date.
     sendNmeaCommand("PCAS02,200");
-    sendNmeaCommand("PCAS03,1,0,0,1,0,0,0,0");
+    sendNmeaCommand("PCAS03,1,0,0,0,1,0,0,0");
     sendNmeaCommand("PCAS00");
     gpsV21PpsModeKnown = false;
     setGpsV21Pps(false);

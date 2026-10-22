@@ -1,5 +1,10 @@
 # RELEASE NOTES
 
+### V5.0.10 2026-10-22
+- M5 GPS Module v2.1 (ATGM336H/AT6668) now really outputs RMC, so GPS speed and the date work:
+  - The CASIC init sent `PCAS03,1,0,0,1,0,0,0,0`, meant as "GGA + RMC". The field order is GGA, GLL, GSA, GSV, RMC, VTG, ZDA, ANT, so that string enabled GSV instead of RMC - and `PCAS00` saved it into the module. A module set up this way sends positions only: no speed (the Sentry GPS wake never had one to compare with 5 km/h) and no date. The init now sends `PCAS03,1,0,0,0,1,0,0,0` (GGA + RMC) and saves it, so one boot with the GPS module type set to "v2.1" repairs a module that was already configured the old way.
+- CoreS3 build made with the current M5Unified 0.2.27 / M5GFX 0.2.34 / M5CoreS3 1.0.1 (the same versions the M5-OBD2 adapter firmware runs on the CoreS3).
+
 ### V5.0.9 2026-08-25
 - Direct-CAN ISO-TP: multi-frame responses longer than 111 bytes no longer get corrupted (found on Peugeot e-208 - the 108 cell voltages never showed on the battery cells screen):
   - Consecutive frames were stored into the reassembly map keyed by the on-wire ISO-TP sequence number, which is only 4 bits and wraps 15->0. Any response needing more than 15 consecutive frames (FF + 15 CF = 111 bytes) overwrote rows 0..15 on the second lap - including row 0 holding the First frame - so the merged response no longer started with `62 DID` and the parser silently dropped it. The e-208 `D440` reply (108 cell voltages, 219 bytes, 31 CFs) hit this every time, while the 54 module temps (`D442`, 8 CFs) worked - exactly the reported symptom. Frames are now keyed by receive order (CAN delivers CFs of one ISO-TP message in order), with a syslog warning when the 4-bit index does not match the expected sequence. Kia/Hyundai read cells in 32-cell blocks (9 CFs) and never triggered the wrap, so nothing changes for them.
